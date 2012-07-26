@@ -28,12 +28,13 @@ acc = (column) ->
   return column if typeof column is 'function'
   return (d) -> d[column]
 
-cross_data_scales = (data, scales) ->
+cross_data_ctx = (data, scales, extra) ->
   newData = []
   for datum in data
     newData.push {
       d: datum
       s: scales
+      e: extra
     }
   return newData
 
@@ -114,19 +115,17 @@ svl.plot = ({selector, size, dataSource, plot}) ->
   data = dataSource.data
 
   plots = {
-    facet: (parent, size, data, {split, plot, x, y, color}) ->
+    facet: (parent, dataCtx, {split, plot, x, y, color}) ->
       fsplit = acc(split)
       fx = acc(x)
       fy = acc(y)
       fcolor = acc(color)
 
+      labelWidth = 60
+
       sel = parent.selectAll('g')
         .data((d,i) ->
-            if typeof data is 'function'
-              { data: myData, scales } = data.call(this,d,i)
-            else
-              myData = data
-              scales = {}
+            { data: myData, scales, size } = dataCtx.call(this,d,i)
 
             splitData = sac(myData, make_dimension(split), make_metric('$ident'))
 
@@ -155,7 +154,7 @@ svl.plot = ({selector, size, dataSource, plot}) ->
                 .domain(myData.map(fcolor))
               scale.color.by = fcolor
 
-            return cross_data_scales(splitData, scale)
+            return cross_data_ctx(splitData, scale, { width: size.width, height: size.height, num: buckets.length })
           )
 
 
@@ -165,36 +164,31 @@ svl.plot = ({selector, size, dataSource, plot}) ->
 
       sel.exit().remove()
       sel
-        .attr('transform', (d) -> s = d.s.vertical; "translate(0, #{s(s.by(d.d)) * size.height})")
+        .attr('transform', (d) -> s = d.s.vertical; "translate(0, #{s(s.by(d.d)) * d.e.height})")
 
       sel.select('text')
         .text((d) -> fsplit(d.d))
 
-      labelWidth = 60
       innerGroup = sel.select('g')
         .attr('transform', "translate(#{labelWidth}, 0)")
 
       if plot
         doPlot(
           innerGroup
-          {width: size.width-labelWidth, height: size.height/4}
-          (d) -> { data:d.d.$ident, scales:d.s }
+          (d) -> { data:d.d.$ident, scales:d.s, size: { width: d.e.width-labelWidth, height: d.e.height/d.e.num }}
           plot
         )
+
       return
 
-    points: (parent, size, data, {x, y, color}) ->
+    points: (parent, dataCtx, {plot, x, y, color}) ->
       fx = acc(x)
       fy = acc(y)
       fcolor = acc(color)
 
       sel = parent.selectAll('circle')
         .data((d,i) ->
-            if typeof data is 'function'
-              { data: myData, scales } = data.call(this,d,i)
-            else
-              myData = data
-              scales = {}
+            { data: myData, scales, size } = dataCtx.call(this,d,i)
 
             scale = copy(scales)
 
@@ -213,36 +207,42 @@ svl.plot = ({selector, size, dataSource, plot}) ->
             if fcolor
               scale.color = d3.scale.category10()
                 .domain(myData.map(fcolor))
-              scale.color.by = fcolor
+              # scale.color.by = fcolor
 
-            return cross_data_scales(myData, scale)
+            return cross_data_ctx(myData, scale, size)
           )
 
       sel.enter().append('circle')
       sel.exit().remove()
       sel
-        .attr('cx', (d) -> s = d.s.x; s(s.by(d.d)) * size.width)
-        .attr('cy', (d) -> s = d.s.y; s(s.by(d.d)) * size.height)
+        .attr('cx', (d) -> s = d.s.x; s(s.by(d.d)) * d.e.width)
+        .attr('cy', (d) -> s = d.s.y; s(s.by(d.d)) * d.e.height)
         .attr('r', 3.5)
 
       sel.style('fill', (d) -> s = d.s.color; if s then s(s.by(d.d)) else null)
 
+      if plot
+        throw "can not subplot"
+
       return
 
-    text: (parent, size, data, {text}) ->
+    text: (parent, dataCtx, {text}) ->
 
       return
   }
 
-  doPlot = (parent, size, data, args) ->
+  doPlot = (parent, dataCtx, args) ->
     throw "type must be a string" unless typeof args.type is 'string'
     p = plots[args.type]
     throw "unknown type '#{args.type}'" unless p
-    p(parent.append('g').attr('class', args.type), size, data, args)
+    p(parent.append('g').attr('class', args.type), dataCtx, args)
     return
 
-  doPlot(svg, size, data, plot)
-
+  doPlot(
+    svg
+    -> {data, scales:{}, size}
+    plot
+  )
   return
 
 # ------------------------------------------
@@ -263,20 +263,26 @@ data = do ->
 
 # d3.select('.cont').append('div').text('just point')
 
-# svl.plot {
-#   selector: '.cont'
-#   size:
-#     width: 600
-#     height: 600
-#   dataSource:
-#     data: data
-#     removeNA: false
-#   plot:
-#     type: 'points'
-#     x: 'Time'
-#     y: 'ScoreA'
-#     color: 'Letter'
-# }
+svl.plot {
+  selector: '.cont'
+  size:
+    width: 600
+    height: 600
+  dataSource:
+    data: data
+    removeNA: false
+  plot:
+    type: 'facet'
+    split: 'Letter'
+    color: 'Letter'
+    x: 'Time'
+    plot:
+      type: 'facet'
+      split: 'Number'
+      plot:
+        type: 'points'
+        y: 'ScoreA'
+}
 
 # d3.select('.cont').append('div').text('just facet Number > point')
 
@@ -318,26 +324,26 @@ d3.select('.cont').append('div').text('just facet Letter > point')
 #       color: 'Letter'
 # }
 
-svl.plot {
-  selector: '.cont'
-  size:
-    width: 600
-    height: 600
-  dataSource:
-    data: data
-    removeNA: false
-  plot:
-    type: 'facet'
-    split: 'Number'
-    plot:
-      type: 'facet'
-      split: 'Letter'
-      x: 'Time'
-      color: 'Letter'
-      plot:
-        type: 'points'
-        y: 'ScoreA'
-}
+# svl.plot {
+#   selector: '.cont'
+#   size:
+#     width: 600
+#     height: 600
+#   dataSource:
+#     data: data
+#     removeNA: false
+#   plot:
+#     type: 'facet'
+#     split: 'Number'
+#     plot:
+#       type: 'facet'
+#       split: 'Letter'
+#       x: 'Time'
+#       color: 'Letter'
+#       plot:
+#         type: 'points'
+#         y: 'ScoreA'
+# }
 
 # Split by 'Number' [facet options: {direction: vertical}]
 # Split by 'Time' don't bucket [measure ScoreA]

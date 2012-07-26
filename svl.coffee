@@ -114,59 +114,71 @@ svl.plot = ({selector, size, dataSource, plot}) ->
   data = dataSource.data
 
   plots = {
-    facet: (parent, size, data, {split, plot, x, y}, scales) ->
-      fsplit = (d) -> d[split]
-      splitData = sac(data, make_dimension(split), make_metric('$ident'))
+    facet: (parent, size, data, {split, plot, x, y, color}) ->
+      fsplit = acc(split)
+      fx = acc(x)
+      fy = acc(y)
+      fcolor = acc(color)
 
-      buckets = sortedUniq(splitData.map(fsplit).sort())
+      sel = parent.selectAll('g')
+        .data((d,i) ->
+            if typeof data is 'function'
+              { data: myData, scales } = data.call(this,d,i)
+            else
+              myData = data
+              scales = {}
 
-      verticalScale = d3.scale.ordinal()
-        .domain(buckets)
-        .rangeBands([0, size.height])
+            splitData = sac(myData, make_dimension(split), make_metric('$ident'))
 
-      sel = parent.selectAll('g').data(splitData)
+            scale = copy(scales)
+
+            buckets = sortedUniq(splitData.map(fsplit).sort())
+            scale.vertical = d3.scale.ordinal()
+              .domain(buckets)
+              .rangeBands([0, 1])
+            scale.vertical.by = fsplit
+
+            if fx
+              scale.x = d3.scale.linear()
+                .domain([d3.min(myData, fx), d3.max(myData, fx)])
+                .range([0, 1])
+              scale.x.by = fx
+
+            if fy
+              scale.y = d3.scale.linear()
+                .domain([d3.min(myData, fy), d3.max(myData, fy)])
+                .range([1, 0])
+              scale.y.by = fy
+
+            if fcolor
+              scale.color = d3.scale.category10()
+                .domain(myData.map(fcolor))
+              scale.color.by = fcolor
+
+            return cross_data_scales(splitData, scale)
+          )
+
+
       enterSel = sel.enter().append('g')
       enterSel.append('text').attr('dy', '1em')
       enterSel.append('g')
 
       sel.exit().remove()
       sel
-        .attr('transform', (d) -> "translate(0, #{verticalScale(fsplit(d))})")
+        .attr('transform', (d) -> s = d.s.vertical; "translate(0, #{s(s.by(d.d)) * size.height})")
 
       sel.select('text')
-        .text(fsplit)
+        .text((d) -> fsplit(d.d))
 
       labelWidth = 60
       innerGroup = sel.select('g')
         .attr('transform', "translate(#{labelWidth}, 0)")
 
-
-      fx = acc(x)
-      fy = acc(y)
-
-      myScales = []
-      myScales[0] = scale = {}
-
-      myData = data
-
-      if fx
-        scale.x = d3.scale.linear()
-          .domain([d3.min(myData, fx), d3.max(myData, fx)])
-          .range([0, 1])
-        scale.x.by = fx
-
-      if fy
-        scale.y = d3.scale.linear()
-          .domain([d3.min(myData, fy), d3.max(myData, fy)])
-          .range([1, 0])
-        scale.y.by = fy
-
-
       if plot
         doPlot(
           innerGroup
-          {width: size.width-labelWidth, height: size.height/buckets.length}
-          (d) -> { data:d.$ident, scales:myScales[0] }
+          {width: size.width-labelWidth, height: size.height/4}
+          (d) -> { data:d.d.$ident, scales:d.s }
           plot
         )
       return
@@ -203,7 +215,6 @@ svl.plot = ({selector, size, dataSource, plot}) ->
                 .domain(myData.map(fcolor))
               scale.color.by = fcolor
 
-            console.log i, scale
             return cross_data_scales(myData, scale)
           )
 
@@ -214,8 +225,7 @@ svl.plot = ({selector, size, dataSource, plot}) ->
         .attr('cy', (d) -> s = d.s.y; s(s.by(d.d)) * size.height)
         .attr('r', 3.5)
 
-      if fcolor
-        sel.style('fill', (d) -> s = d.s.color; s(s.by(d.d)))
+      sel.style('fill', (d) -> s = d.s.color; if s then s(s.by(d.d)) else null)
 
       return
 
@@ -318,14 +328,14 @@ svl.plot {
     removeNA: false
   plot:
     type: 'facet'
-    split: 'Letter'
+    split: 'Number'
     plot:
       type: 'facet'
-      split: 'Number'
+      split: 'Letter'
+      x: 'Time'
+      color: 'Letter'
       plot:
         type: 'points'
-        color: 'Letter'
-        x: 'Time'
         y: 'ScoreA'
 }
 

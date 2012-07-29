@@ -4,6 +4,10 @@ svl = {}
 # Metric = {row} -> Number
 # [Metric] = {row} -> [Number]
 
+# how to do paralel coordinates
+# m = n plots (4d scatterplots)
+#
+
 sum = (values) ->
   s = 0
   s += v for v in values
@@ -28,12 +32,12 @@ acc = (column) ->
   return column if typeof column is 'function'
   return (d) -> d[column]
 
-cross_data_ctx = (data, scales, extra) ->
+cross_data_ctx = (data, scale, extra) ->
   newData = []
   for datum in data
     newData.push {
       d: datum
-      s: scales
+      s: scale
       e: extra
     }
   return newData
@@ -105,17 +109,32 @@ sac = (rows, split, apply) ->
 
 # ------------------------------------------
 
+scales = {
+  linear: (data, fn, flipRange = false) ->
+    s = d3.scale.linear()
+      .domain([d3.min(data, fn), d3.max(data, fn)])
+      .range(if flipRange then [1,0] else [0,1])
+    s.by = fn
+    return s
+
+  color: (data, fn) ->
+    s = d3.scale.category10()
+      .domain(data.map(fn))
+    s.by = fn
+    return s
+}
+
 svl.plot = ({selector, size, dataSource, plot}) ->
   svg = d3.select(selector)
     .append('svg')
     .attr('class', 'svl')
-    .attr('width', size.width)
+    .attr('width',  size.width)
     .attr('height', size.height)
 
   data = dataSource.data
 
   plots = {
-    facet: (parent, dataCtx, {split, plot, x, y, color}) ->
+    facet: (cont, dataCtx, {split, x, y, color, plot}) ->
       fsplit = acc(split)
       fx = acc(x)
       fy = acc(y)
@@ -123,41 +142,27 @@ svl.plot = ({selector, size, dataSource, plot}) ->
 
       labelWidth = 60
 
-      sel = parent.selectAll('g')
-        .data((d,i) ->
-            { data: myData, scales, size } = dataCtx.call(this,d,i)
+      dataFn = (d,i) ->
+        { data, scale, size } = dataCtx.call(this,d,i)
 
-            splitData = sac(myData, make_dimension(split), make_metric('$ident'))
+        splitData = sac(data, make_dimension(split), make_metric('$ident'))
 
-            scale = copy(scales)
+        scale = copy(scale)
 
-            buckets = sortedUniq(splitData.map(fsplit).sort())
-            scale.vertical = d3.scale.ordinal()
-              .domain(buckets)
-              .rangeBands([0, 1])
-            scale.vertical.by = fsplit
+        buckets = sortedUniq(splitData.map(fsplit).sort())
+        scale.vertical = d3.scale.ordinal()
+          .domain(buckets)
+          .rangeBands([0, 1])
+        scale.vertical.by = fsplit
 
-            if fx
-              scale.x = d3.scale.linear()
-                .domain([d3.min(myData, fx), d3.max(myData, fx)])
-                .range([0, 1])
-              scale.x.by = fx
+        scale.x = scales.linear(data, fx) if fx
+        scale.y = scales.linear(data, fy, true) if fy
+        scale.color = scales.color(data, fcolor) if fcolor
 
-            if fy
-              scale.y = d3.scale.linear()
-                .domain([d3.min(myData, fy), d3.max(myData, fy)])
-                .range([1, 0])
-              scale.y.by = fy
+        return cross_data_ctx(splitData, scale, { width: size.width, height: size.height, num: buckets.length })
 
-            if fcolor
-              scale.color = d3.scale.category10()
-                .domain(myData.map(fcolor))
-              scale.color.by = fcolor
-
-            return cross_data_ctx(splitData, scale, { width: size.width, height: size.height, num: buckets.length })
-          )
-
-
+      cont.datum(dataFn)
+      sel = cont.selectAll('g').data((d) -> d)
       enterSel = sel.enter().append('g')
       enterSel.append('text').attr('dy', '1em')
       enterSel.append('g')
@@ -173,45 +178,66 @@ svl.plot = ({selector, size, dataSource, plot}) ->
         .attr('transform', "translate(#{labelWidth}, 0)")
 
       if plot
-        doPlot(
-          innerGroup
-          (d) -> { data:d.d.$ident, scales:d.s, size: { width: d.e.width-labelWidth, height: d.e.height/d.e.num }}
-          plot
-        )
+        plot = [plot] unless plot.splice
+        for p in plot
+          doPlot(
+            innerGroup
+            (d) -> { data:d.d.$ident, scale:d.s, size: { width: d.e.width-labelWidth, height: d.e.height/d.e.num }}
+            p
+          )
 
       return
 
-    points: (parent, dataCtx, {plot, x, y, color}) ->
+    # ------------------------------------------------------------------------------------
+    grid: (cont, dataCtx, {x, y, plot}) ->
+      fx = acc(x)
+      fy = acc(y)
+
+      dataFn = (d,i) ->
+        { data, scale, size } = dataCtx.call(this,d,i)
+        scale = copy(scale)
+        scale.x = scales.linear(data, fx) if fx
+        scale.y = scales.linear(data, fy, true) if fy
+        return cross_data_ctx(data, scale, size)
+
+      cont.datum(dataFn)
+      sel = cont.selectAll('rect').data((d) -> [d])
+      sel.enter().append('rect')
+      sel.exit().remove()
+      sel
+        .attr('width',  (ds) -> d = ds[0]; d.e.width)
+        .attr('height', (ds) -> d = ds[0]; d.e.height)
+        .style('fill', '#efefef')
+
+      # sel = cont.selectAll('line').data((d) -> d)
+      # sel.enter().append('line')
+      # sel.exit().remove()
+      # sel
+      #   .attr('width',  (ds) -> d = ds[0]; d.e.width)
+      #   .attr('height', (ds) -> d = ds[0]; d.e.height)
+      #   .style('fill', '#efefef')
+
+      # sel.style('fill', (d) -> s = d.s.color; if s then s(s.by(d.d)) else null)
+
+      throw "can not subplot" if plot
+      return
+
+    # ------------------------------------------------------------------------------------
+    points: (cont, dataCtx, {x, y, color, plot}) ->
       fx = acc(x)
       fy = acc(y)
       fcolor = acc(color)
 
-      sel = parent.selectAll('circle')
-        .data((d,i) ->
-            { data: myData, scales, size } = dataCtx.call(this,d,i)
+      dataFn = (d,i) ->
+        { data, scale, size } = dataCtx.call(this,d,i)
+        scale = copy(scale)
+        scale.x = scales.linear(data, fx) if fx
+        scale.y = scales.linear(data, fy, true) if fy
+        scale.color = scales.color(data, fcolor) if fcolor
+        return cross_data_ctx(data, scale, size)
 
-            scale = copy(scales)
-
-            if fx
-              scale.x = d3.scale.linear()
-                .domain([d3.min(myData, fx), d3.max(myData, fx)])
-                .range([0, 1])
-              scale.x.by = fx
-
-            if fy
-              scale.y = d3.scale.linear()
-                .domain([d3.min(myData, fy), d3.max(myData, fy)])
-                .range([1, 0])
-              scale.y.by = fy
-
-            if fcolor
-              scale.color = d3.scale.category10()
-                .domain(myData.map(fcolor))
-              # scale.color.by = fcolor
-
-            return cross_data_ctx(myData, scale, size)
-          )
-
+      cont.datum(dataFn)
+      sel = cont.selectAll('circle').data((d) -> d)
       sel.enter().append('circle')
       sel.exit().remove()
       sel
@@ -221,13 +247,67 @@ svl.plot = ({selector, size, dataSource, plot}) ->
 
       sel.style('fill', (d) -> s = d.s.color; if s then s(s.by(d.d)) else null)
 
-      if plot
-        throw "can not subplot"
-
+      throw "can not subplot" if plot
       return
 
-    text: (parent, dataCtx, {text}) ->
+    # ------------------------------------------------------------------------------------
+    text: (cont, dataCtx, {split, apply, x, y, text, color, plot}) ->
+      fx = acc(x)
+      fy = acc(y)
+      fcolor = acc(color)
+      ftext = acc(text)
 
+      dataFn = (d,i) ->
+        { data, scale, size } = dataCtx.call(this,d,i)
+
+        splitData = sac(data, make_dimension(split or '$all'), make_metric(apply))
+
+        scale = copy(scale)
+        scale.x = scales.linear(data, fx) if fx
+        scale.y = scales.linear(data, fy, true) if fy
+        scale.color = scales.color(data, fcolor) if fcolor
+        return cross_data_ctx(splitData, scale, size)
+
+      cont.datum(dataFn)
+      sel = cont.selectAll('text').data((d) -> d)
+      sel.enter().append('text')
+      sel.exit().remove()
+      sel
+        .attr('x', 0) #(d) -> s = d.s.x; s(s.by(d.d)) * d.e.width)
+        .attr('y', 0) #(d) -> s = d.s.y; s(s.by(d.d)) * d.e.height)
+        .attr('dy', '1em')
+        .text((d) -> ftext(d.d))
+
+      throw "can not subplot" if plot
+      return
+
+    # ------------------------------------------------------------------------------------
+    line: (cont, dataCtx, {x, y, color, plot}) ->
+      fx = acc(x)
+      fy = acc(y)
+      fcolor = acc(color)
+
+      dataFn = (d,i) ->
+        { data, scale, size } = dataCtx.call(this,d,i)
+
+        scale = copy(scale)
+        scale.x = scales.linear(data, fx) if fx
+        scale.y = scales.linear(data, fy, true) if fy
+        scale.color = scales.color(data, fcolor) if fcolor
+        return cross_data_ctx(data, scale, size)
+
+      cont.datum(dataFn)
+      sel = cont.selectAll('path').data((d) -> [d])
+      sel.enter().append('path')
+      sel.exit().remove()
+      sel
+        .attr('d', d3.svg.line().x((d) -> s = d.s.x; s(s.by(d.d)) * d.e.width).y((d) -> s = d.s.y; s(s.by(d.d)) * d.e.height))
+
+      sel
+        .style('fill', 'none')
+        .style('stroke', (ds) -> d = ds[0]; s = d.s.color; if s then s(s.by(d.d)) else null)
+
+      throw "can not subplot" if plot
       return
   }
 
@@ -240,7 +320,7 @@ svl.plot = ({selector, size, dataSource, plot}) ->
 
   doPlot(
     svg
-    -> {data, scales:{}, size}
+    -> {data, scale:{}, size}
     plot
   )
   return
@@ -251,6 +331,7 @@ data = do ->
   pick = (arr) -> arr[Math.floor(Math.random() * arr.length)]
 
   now = Date.now()
+  w = 100
   return d3.range(400).map (i) ->
     return {
       id: i
@@ -259,9 +340,23 @@ data = do ->
       Number: pick('1234')
       ScoreA: i * Math.random() * Math.random()
       ScoreB: 10 * Math.random()
+      Walk: w += Math.random() - 0.5
     }
 
 # d3.select('.cont').append('div').text('just point')
+
+# svl.plot {
+#   selector: '.cont'
+#   size:
+#     width: 600
+#     height: 600
+#   dataSource:
+#     data: data
+#     removeNA: false
+#   plot:
+#     type: 'points'
+#     y: 'Walk'
+# }
 
 svl.plot {
   selector: '.cont'
@@ -273,15 +368,28 @@ svl.plot {
     removeNA: false
   plot:
     type: 'facet'
+    mapping: {color: 'Letter', x: 'Time'}
+    data: data
     split: 'Letter'
-    color: 'Letter'
-    x: 'Time'
+
+
     plot:
       type: 'facet'
       split: 'Number'
-      plot:
-        type: 'points'
-        y: 'ScoreA'
+      y: 'Walk'
+      plot: [
+        # {
+        #   type: 'grid'
+        # }, {
+        #   type: 'line'
+        # }, {
+        #   type: 'points'
+        # },
+        {
+          type: 'text'
+          apply: 'Walk'
+          text: 'Walk'
+        }]
 }
 
 # d3.select('.cont').append('div').text('just facet Number > point')

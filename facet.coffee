@@ -1,13 +1,20 @@
-svl = {}
+facet = {}
 
 # Dimension = {row} -> String
 # Metric = {row} -> Number
 # [Metric] = {row} -> [Number]
 
-sum = (values) ->
-  s = 0
-  s += v for v in values
-  return s
+aggregartion = {
+  sum: (values) ->
+    s = 0
+    s += v for v in values
+    return s
+
+  average: (values) ->
+    s = 0
+    s += v for v in values
+    return s / values.length
+}
 
 sortedUniq = (arr) ->
   u = []
@@ -38,69 +45,127 @@ cross_data_ctx = (data, scale, extra) ->
     }
   return newData
 
-make_dimension = (column) ->
-  if column is '$all'
-    fn = (row) -> '$all'
-  else if column
-    fn = (row) -> row[column]
-  else
-    throw 'wtf mate'
-  fn.type = 'dimension'
-  fn.column = column
+# Valid:
+# {name, column} = {name}
+# {name, type: all }
+
+binMap = {
+  millisecond: 1
+  second: 1000
+  minute: 60 * 1000
+  hour: 60 * 60 * 1000
+  day: 24 * 60 * 60 * 1000
+  week: 7 * 24 * 60 * 60 * 1000
+}
+make_dimension = (name, {column, type, bin}) ->
+  column = name.toLowerCase() unless column
+  switch type
+    when 'all'
+      fn = (row) -> '$all'
+    when 'categorical'
+      throw 'categorical dimension must have column' unless column
+      fn = (row) -> row[column]
+    when 'ordinal'
+      throw 'ordinal dimension must have column' unless column
+      fn = (row) -> row[column]
+    when 'continuous'
+      throw 'continuous dimension must have column' unless column
+      throw 'continuous dimension must have bin' unless bin
+      bin = binMap[bin] if binMap[bin]
+      fn = (row) -> Math.floor(row[column] / bin)
+    else
+      throw 'must have a type'
+  fn.role = 'dimension'
+  fn.$name = name
   return fn
 
-is_dimension = (d) -> typeof d is 'function' and d.type is 'dimension' and d.column
+is_dimension = (d) -> typeof d is 'function' and d.role is 'dimension' and d.$name
 
-
-make_metric = (column) ->
-  if column is '$count'
+# Valid:
+# {column}
+# {agg: 'count' }
+make_metric = (name {column, agg}) ->
+  column = name.toLowerCase() unless column
+  if agg is 'const'
+    fn = (rows) -> 1
+  else if agg is 'count'
     fn = (rows) -> rows.length
-  else if column is '$ident'
-    fn = (rows) -> rows
   else if column
-    fn = (rows) -> sum(rows.map((d) -> d[column]))
+    a = aggregartion[agg]
+    throw "invalid agg (#{agg})" unless a
+    fn = (rows) -> a(rows.map((d) -> d[column]))
   else
-    throw 'wtf mate'
-  fn.type = 'metric'
-  fn.column = column
+    throw "needs agg == 'count' or column"
+  fn.role = 'metric'
+  fn.$name = name
   return fn
 
-is_metric = (m) -> typeof m is 'function' and m.type is 'metric' and m.column
+is_metric = (m) -> typeof m is 'function' and m.role is 'metric' and m.$name
 
+facet.data = (rows) ->
+  splits = []
 
-sac = (rows, split, apply) ->
-  throw "split mist be a dimension" unless is_dimension(split) or split.splice?
-  throw "apply must be a metric or a list of metrics" unless is_metric(apply) or apply.splice?
+  makeSac = ({split, apply, combine}, breakdown) -> (rows) ->
+    buckets = {}
 
-  if not split.splice
-    split = [split]
+    for row in rows
+      bucketNameParts = []
+      dimensionValues = {}
+      for dim in split
+        v = dim(row)
+        dimensionValues[dim.column] = v
+        bucketNameParts.push(v)
 
-  if not apply.splice
-    apply = [apply]
+      key = bucketNameParts.join(' | ')
+      bucket = (buckets[key] or= { rows: [], dimensionValues })
+      bucket.rows.push(row)
 
-  buckets = {}
+    out = []
+    for key,bucket of buckets
+      newRow = bucket.dimensionValues
 
-  for row in rows
-    bucketNameParts = []
-    dimensionValues = {}
-    for dim in split
-      v = dim(row)
-      dimensionValues[dim.column] = v
-      bucketNameParts.push(v)
+      if breakdown
+        newRow['$split'] = bucket.rows
 
-    key = bucketNameParts.join(' | ')
-    bucket = (buckets[key] or= { rows: [], dimensionValues })
-    bucket.rows.push(row)
+      for metric in apply
+        v = metric(bucket.rows)
+        newRow[metric.column] = v
 
-  out = []
-  for key,bucket of buckets
-    newRow = bucket.dimensionValues
-    for metric in apply
-      v = metric(bucket.rows)
-      newRow[metric.column] = v
-    out.push(newRow)
+      out.push(newRow)
 
-  return out
+    return out
+
+  me = {
+    sac: (split, apply, combine) ->
+      throw "split must be a dimension" unless is_dimension(split) or split.splice?
+      throw "apply must be a metric or a list of metrics" unless is_metric(apply) or apply.splice?
+      split = [split] if not split.splice
+      apply = [apply] if not apply.splice
+      splits.push { split, apply, combine }
+      return me
+
+    # outputs a list  []
+    get: ->
+      numSplits = splits.length
+      throw 'no splits defined' unless splits
+
+      dummy = {}
+      dummy['$split'] = rows
+
+      stage = [dummy]
+      for s,i in splits
+        sacFn = makeSac(s, i < numSplits-1)
+        newStages = []
+        for st in stage
+          mappedRows = sacFn(st['$split'])
+          st['$split'] = mappedRows
+          newStages.push(mappedRows)
+
+        stage = Array::concat.apply([], newStages)
+
+      return dummy['$split']
+  }
+  return me
 
 
 # ------------------------------------------
@@ -118,10 +183,10 @@ scales = {
     return s
 }
 
-svl.plot = ({selector, size, dataSource, plot}) ->
+facet.plot = ({selector, size, dataSource, plot}) ->
   svg = d3.select(selector)
     .append('svg')
-    .attr('class', 'svl')
+    .attr('class', 'facet')
     .attr('width',  size.width)
     .attr('height', size.height)
 
@@ -339,6 +404,24 @@ svl.plot = ({selector, size, dataSource, plot}) ->
   )
   return
 
+facet.makeData = ({selector, size, dataSpec, plot}) ->
+  dimensions = {}
+  for name, dimensionSpec of dataSpec.dimensions
+    dimensions[name] = make_dimension(name, dimensionSpec)
+
+  metrics = {}
+  for name, metricSpec of dataSpec.metrics
+    metrics[name] = make_metric(name, metricSpec)
+
+
+
+  return {
+    selector
+    size
+    data
+    plot
+  }
+
 # ------------------------------------------
 
 data = do ->
@@ -349,17 +432,17 @@ data = do ->
   return d3.range(400).map (i) ->
     return {
       id: i
-      Time: new Date(now + i * 13 * 1000)
-      Letter: 'ABC'[Math.floor(3 * i/400)]
-      Number: pick('1234')
-      ScoreA: i * Math.random() * Math.random()
-      ScoreB: 10 * Math.random()
-      Walk: w += Math.random() - 0.5 + 0.02
+      time: new Date(now + i * 13 * 1000)
+      letter: 'ABC'[Math.floor(3 * i/400)]
+      number: pick(['1', '10', '3', '4'])
+      scoreA: i * Math.random() * Math.random()
+      scoreB: 10 * Math.random()
+      walk: w += Math.random() - 0.5 + 0.02
     }
 
 # d3.select('.cont').append('div').text('just point')
 
-# svl.plot {
+# facet.plot {
 #   selector: '.cont'
 #   size:
 #     width: 600
@@ -372,14 +455,19 @@ data = do ->
 #     y: 'Walk'
 # }
 
-svl.plot {
+spec = {
   selector: '.cont'
   size:
     width: 600
     height: 600
-  dataSource:
-    data: data
-    removeNA: false
+  dataSpec:
+    from: data
+    dimensions:
+      Letter: { type: 'categorical' }
+      Number: { type: 'ordinal' }
+    metrics:
+      Count:  { agg: 'count' }
+      Walk:   { agg: 'avg' }
   plot:
     type: 'facet'
     split: 'Letter'
@@ -396,6 +484,8 @@ svl.plot {
         color: { type: 'color', column: 'Letter' }
 }
 
+#facet.plot spec
+facet.makeData spec
 
 
 

@@ -4,18 +4,6 @@ facet = {}
 # Metric = {row} -> Number
 # [Metric] = {row} -> [Number]
 
-aggregartion = {
-  sum: (values) ->
-    s = 0
-    s += v for v in values
-    return s
-
-  average: (values) ->
-    s = 0
-    s += v for v in values
-    return s / values.length
-}
-
 sortedUniq = (arr) ->
   u = []
   last = u
@@ -30,80 +18,157 @@ copy = (obj) ->
     newObj[k] = v
   return newObj
 
+makeArray = (obj) ->
+  if obj? then (if obj.splice then obj else [obj]) else []
+
 acc = (column) ->
   throw "no such column" unless column?
   return column if typeof column is 'function'
   return (d) -> d[column]
 
-cross_data_ctx = (data, scale, extra) ->
-  newData = []
-  for datum in data
-    newData.push {
-      d: datum
-      s: scale
-      e: extra
-    }
-  return newData
+cross = (arrays) ->
+  vectorName = []
+  vectorValues = []
+  retLength = 1
+  for k,vs of arrays
+    return [] unless vs.splice
+    vectorName.push(k)
+    vectorValues.push(vs)
+    retLength *= vs.length
+
+  return [] unless vectorValues.length
+
+  ret = []
+  i = 0
+  while i < retLength
+    row = {}
+    k = i
+    for vs,j in vectorValues
+      t = k % vs.length
+      row[vectorName[j]] = vs[t]
+      k = Math.floor(k / vs.length)
+
+    ret[i] = row
+    i++
+
+  return ret
+
+
+window.tile = {
+  vertical: (rect, datas) ->
+    total = 0
+    for d in datas
+      total += d
+
+    scale = rect.height / total
+    rects = []
+    y = 0
+    for d in datas
+      h = d * scale
+      rects.push {
+        x: 0
+        y: y
+        width: rect.width
+        height: h
+      }
+      y += h
+
+    return rects
+}
+
+# ------------------------------------------------------------------
 
 # Valid:
 # {name, column} = {name}
 # {name, type: all }
-
-binMap = {
-  millisecond: 1
-  second: 1000
-  minute: 60 * 1000
-  hour: 60 * 60 * 1000
-  day: 24 * 60 * 60 * 1000
-  week: 7 * 24 * 60 * 60 * 1000
-}
-make_dimension = (name, {column, type, bin}) ->
-  column = name.toLowerCase() unless column
-  switch type
-    when 'all'
-      fn = (row) -> '$all'
-    when 'categorical'
-      throw 'categorical dimension must have column' unless column
-      fn = (row) -> row[column]
-    when 'ordinal'
-      throw 'ordinal dimension must have column' unless column
-      fn = (row) -> row[column]
-    when 'continuous'
-      throw 'continuous dimension must have column' unless column
-      throw 'continuous dimension must have bin' unless bin
-      bin = binMap[bin] if binMap[bin]
-      fn = (row) -> Math.floor(row[column] / bin)
-    else
-      throw 'must have a type'
-  fn.role = 'dimension'
-  fn.$name = name
-  return fn
-
-is_dimension = (d) -> typeof d is 'function' and d.role is 'dimension' and d.$name
+facet.dimension = do ->
+  binMap = {
+    millisecond: 1
+    second: 1000
+    minute: 60 * 1000
+    hour: 60 * 60 * 1000
+    day: 24 * 60 * 60 * 1000
+    week: 7 * 24 * 60 * 60 * 1000
+  }
+  return (name, {column, type, bin}) ->
+    throw "name can not start with $  (#{name})" if name[0] is '$'
+    column = name.toLowerCase() unless column
+    switch type
+      when 'all'
+        fn = (row) -> '$all'
+      when 'categorical'
+        throw 'categorical dimension must have column' unless column
+        fn = (row) -> row[column]
+      when 'ordinal'
+        throw 'ordinal dimension must have column' unless column
+        fn = (row) -> row[column]
+      when 'continuous'
+        throw 'continuous dimension must have column' unless column
+        throw 'continuous dimension must have bin' unless bin
+        bin = binMap[bin] if binMap[bin]
+        fn = (row) -> Math.floor(row[column] / bin)
+      else
+        throw 'must have a type'
+    fn.$name = name
+    return fn
 
 # Valid:
 # {column}
 # {agg: 'count' }
-make_metric = (name {column, agg}) ->
-  column = name.toLowerCase() unless column
-  if agg is 'const'
-    fn = (rows) -> 1
-  else if agg is 'count'
-    fn = (rows) -> rows.length
-  else if column
-    a = aggregartion[agg]
-    throw "invalid agg (#{agg})" unless a
-    fn = (rows) -> a(rows.map((d) -> d[column]))
-  else
-    throw "needs agg == 'count' or column"
-  fn.role = 'metric'
-  fn.$name = name
-  return fn
+facet.metric = do ->
+  aggregartion = {
+    sum: (values) ->
+      sum = 0
+      for v in values
+        sum += v
+      return sum
 
-is_metric = (m) -> typeof m is 'function' and m.role is 'metric' and m.$name
+    average: (values) ->
+      sum = 0
+      for v in values
+        sum += v
+      return sum / values.length
 
+    uniq: (values) ->
+      seen = {}
+      count = 0
+      for v in values
+        continue if seen[v]
+        count++
+        seen[v] = 1
+      return count
+
+    common: (values) ->
+      counts = {}
+      # to do
+      return values[0]
+  }
+  return (name, {column, agg}) ->
+    throw "name can not start with $  (#{name})" if name[0] is '$'
+    column = name.toLowerCase() unless column
+    if agg is 'const'
+      fn = (rows) -> 1
+    else if agg is 'count'
+      fn = (rows) -> rows.length
+    else if column
+      a = aggregartion[agg]
+      throw "invalid agg (#{agg})" unless a
+      fn = (rows) -> a(rows.map((d) -> d[column]))
+    else
+      throw "needs agg == 'count' or column"
+    fn.$name = name
+    return fn
+
+
+# combine =
+#  sort: <dimension or metric name>
+#  order: asc | desc
+#  skip: <number>
+#  limit: <number>
 facet.data = (rows) ->
   splits = []
+  dimensions = {}
+  metrics = {}
 
   makeSac = ({split, apply, combine}, breakdown) -> (rows) ->
     buckets = {}
@@ -113,7 +178,7 @@ facet.data = (rows) ->
       dimensionValues = {}
       for dim in split
         v = dim(row)
-        dimensionValues[dim.column] = v
+        dimensionValues[dim.$name] = v
         bucketNameParts.push(v)
 
       key = bucketNameParts.join(' | ')
@@ -129,68 +194,108 @@ facet.data = (rows) ->
 
       for metric in apply
         v = metric(bucket.rows)
-        newRow[metric.column] = v
+        newRow[metric.$name] = v
 
       out.push(newRow)
 
+    if combine
+      { sort, order, skip, limit } = combine
+      if sort
+        cmpFn = if order is 'asc' then d3.ascending else d3.descending
+        out.sort (a,b) -> cmpFn(a[sort], b[sort])
+
+      if skip? or limit?
+        skip or= 0
+        out = if limit? then out.slice(skip, skip+limit) else out.slice(skip)
+
     return out
 
-  me = {
-    sac: (split, apply, combine) ->
-      throw "split must be a dimension" unless is_dimension(split) or split.splice?
-      throw "apply must be a metric or a list of metrics" unless is_metric(apply) or apply.splice?
-      split = [split] if not split.splice
-      apply = [apply] if not apply.splice
-      splits.push { split, apply, combine }
-      return me
+  query = ({dimensions, metrics, splits}) ->
+    for name, spec of dimensions
+      spec = facet.dimension(name, spec) unless typeof spec is 'function'
+      dimensions[name] = spec
 
-    # outputs a list  []
-    get: ->
-      numSplits = splits.length
-      throw 'no splits defined' unless splits
+    for name, spec of metrics
+      spec = facet.metric(name, spec) unless typeof spec is 'function'
+      metrics[name] = spec
 
-      dummy = {}
-      dummy['$split'] = rows
+    splits = splits.map ({split, apply, combine}) ->
+      split = makeArray(split).map (d) ->
+        if typeof d is 'string'
+          dim = dimensions[d]
+          throw "Unknown dimension '#{d}'" unless dim
+          return dim
+        else
+          return d
 
-      stage = [dummy]
-      for s,i in splits
-        sacFn = makeSac(s, i < numSplits-1)
-        newStages = []
-        for st in stage
-          mappedRows = sacFn(st['$split'])
-          st['$split'] = mappedRows
-          newStages.push(mappedRows)
+      apply = makeArray(apply).map (m) ->
+        if typeof m is 'string'
+          met = metrics[m]
+          throw "Unknown metric '#{m}'" unless met
+          return met
+        else
+          return m
 
-        stage = Array::concat.apply([], newStages)
+      if combine and combine.sort
+        throw 'combine.sort must be a dimension or a metric' unless dimensions[combine.sort] or metrics[combine.sort]
 
-      return dummy['$split']
-  }
-  return me
+      return { split, apply, combine }
+
+    numSplits = splits.length
+    throw 'no splits defined' unless splits
+
+    dummy = {}
+    dummy['$split'] = rows
+
+    stage = [dummy]
+    for s,i in splits
+      sacFn = makeSac(s, i < numSplits-1)
+      newStages = []
+      for st in stage
+        mappedRows = sacFn(st['$split'])
+        st['$split'] = mappedRows
+        newStages.push(mappedRows)
+
+      stage = Array::concat.apply([], newStages)
+
+    return dummy['$split']
+
+  return { query }
 
 
 # ------------------------------------------
 
-scales = {
-  linear: (data, fn, flipRange = false) ->
-    s = d3.scale.linear()
-      .domain([d3.min(data, fn), d3.max(data, fn)])
-      .range(if flipRange then [1,0] else [0,1])
-    return s
+facet.scale = do ->
+  scales = {
+    linear: ({from}, data, flipRange = false) ->
+      fn = (d) -> d[from]
+      s = d3.scale.linear()
+        .domain(d3.extent(data, fn))
+        .range(if flipRange then [1,0] else [0,1])
+      return s
 
-  color: (data, fn) ->
-    s = d3.scale.category10()
-      .domain(data.map(fn))
-    return s
-}
+    color: ({from}, data) ->
+      fn = (d) -> d[from]
+      s = d3.scale.category10()
+        .domain(data.map(fn))
+      return s
+  }
 
-facet.plot = ({selector, size, dataSource, plot}) ->
+  return (scaleSpec, data, flipRange) ->
+    throw 'scale spec must have type' unless scaleSpec.type
+    s = scales[scaleSpec.type]
+    throw "no such scale type (#{scaleSpec.type})" unless s
+    return s(scaleSpec, data, flipRange)
+
+
+facet.plot = ({selector, size, data, plot}) ->
   svg = d3.select(selector)
     .append('svg')
     .attr('class', 'facet')
     .attr('width',  size.width)
     .attr('height', size.height)
 
-  data = dataSource.data
+  {sac, dimensions, metrics} = data
 
   ###
   scale: {
@@ -200,97 +305,49 @@ facet.plot = ({selector, size, dataSource, plot}) ->
   ###
 
   plots = {
-    facet: (cont, dataCtx, {split, scale, plot}) ->
+    facet: (cont, dataCtx, {split, scale, mapping, plot}) ->
       fsplit = acc(split)
       scale or= {}
-
-      labelWidth = 60
 
       dataFn = (d,i) ->
         { data, scaleFn, size } = dataCtx.call(this,d,i)
         scaleFn = copy(scaleFn)
 
-        splitData = sac(data, make_dimension(split), make_metric('$ident'))
-
-        buckets = sortedUniq(splitData.map(fsplit).sort())
-        scaleFn.vertical = d3.scale.ordinal()
-          .domain(buckets)
-          .rangeBands([0, 1])
+        buckets = data.map (d) -> d.$split[split]
 
         if scale.x
-          fx = acc(scale.x.column)
-          scaleFn.x = scales.linear(data, fx)
+          scaleFn.x = facet.scale(scale.x, data)
 
         if scale.y
-          fy = acc(scale.y.column)
-          scaleFn.y = scales.linear(data, fy, true)
+          scaleFn.y = facet.scale(scale.y, data, true)
 
         if scale.color
-          fcolor = acc(scale.color.column)
-          scaleFn.color = scales.color(data, fcolor)
+          scaleFn.color = facet.scale(scale.color, data)
 
-        return cross_data_ctx(splitData, scaleFn, { width: size.width, height: size.height, num: buckets.length, fsplit })
+        return cross {
+          d: data.$split
+          s: [scaleFn]
+          e: [{ width: size.width, height: size.height, num: buckets.length, fsplit }]
+        }
 
       cont.datum(dataFn)
       sel = cont.selectAll('g').data((d) -> d)
-      enterSel = sel.enter().append('g')
-      enterSel.append('text').attr('dy', '1em')
-      enterSel.append('g')
+      sel.enter().append('g')
 
       sel.exit().remove()
       sel
         .attr('transform', (d) -> s = d.s.vertical; "translate(0, #{s(d.e.fsplit(d.d)) * d.e.height})")
 
-      sel.select('text')
-        .text((d) -> fsplit(d.d))
-
-      innerGroup = sel.select('g')
-        .attr('transform', "translate(#{labelWidth}, 0)")
-
       if plot
         plot = [plot] unless plot.splice
         for p in plot
           doPlot(
-            innerGroup
-            (d) -> { data:d.d.$ident, scaleFn:d.s, size: { width: d.e.width-labelWidth, height: d.e.height/d.e.num }}
+            sel
+            (d) -> { data:d.d.$ident, scaleFn:d.s, size: { width: d.e.width, height: d.e.height/d.e.num }}
             p
           )
 
       return
-
-    # ------------------------------------------------------------------------------------
-    # rect: (cont, dataCtx, {x, y, plot}) ->
-    #   fx = acc(x)
-    #   fy = acc(y)
-
-    #   dataFn = (d,i) ->
-    #     { data, scale, size } = dataCtx.call(this,d,i)
-    #     scale = copy(scale)
-    #     scale.x = scales.linear(data, fx) if fx
-    #     scale.y = scales.linear(data, fy, true) if fy
-    #     return cross_data_ctx(data, scale, size)
-
-    #   cont.datum(dataFn)
-    #   sel = cont.selectAll('rect').data((d) -> [d])
-    #   sel.enter().append('rect')
-    #   sel.exit().remove()
-    #   sel
-    #     .attr('width',  (ds) -> d = ds[0]; d.e.width)
-    #     .attr('height', (ds) -> d = ds[0]; d.e.height)
-    #     .style('fill', '#efefef')
-
-    #   # sel = cont.selectAll('line').data((d) -> d)
-    #   # sel.enter().append('line')
-    #   # sel.exit().remove()
-    #   # sel
-    #   #   .attr('width',  (ds) -> d = ds[0]; d.e.width)
-    #   #   .attr('height', (ds) -> d = ds[0]; d.e.height)
-    #   #   .style('fill', '#efefef')
-
-    #   # sel.style('fill', (d) -> s = d.s.color; if s then s(s.by(d.d)) else null)
-
-    #   throw "can not subplot" if plot
-    #   return
 
     # ------------------------------------------------------------------------------------
     points: (cont, dataCtx, {mapping, scale, plot}) ->
@@ -359,35 +416,6 @@ facet.plot = ({selector, size, dataSource, plot}) ->
 
     #   throw "can not subplot" if plot
     #   return
-
-    # # ------------------------------------------------------------------------------------
-    # line: (cont, dataCtx, {x, y, color, plot}) ->
-    #   fx = acc(x)
-    #   fy = acc(y)
-    #   fcolor = acc(color)
-
-    #   dataFn = (d,i) ->
-    #     { data, scale, size } = dataCtx.call(this,d,i)
-
-    #     scale = copy(scale)
-    #     scale.x = scales.linear(data, fx) if fx
-    #     scale.y = scales.linear(data, fy, true) if fy
-    #     scale.color = scales.color(data, fcolor) if fcolor
-    #     return cross_data_ctx(data, scale, size)
-
-    #   cont.datum(dataFn)
-    #   sel = cont.selectAll('path').data((d) -> [d])
-    #   sel.enter().append('path')
-    #   sel.exit().remove()
-    #   sel
-    #     .attr('d', d3.svg.line().x((d) -> s = d.s.x; s(s.by(d.d)) * d.e.width).y((d) -> s = d.s.y; s(s.by(d.d)) * d.e.height))
-
-    #   sel
-    #     .style('fill', 'none')
-    #     .style('stroke', (ds) -> d = ds[0]; s = d.s.color; if s then s(s.by(d.d)) else null)
-
-    #   throw "can not subplot" if plot
-    #   return
   }
 
   doPlot = (parent, dataCtx, args) ->
@@ -399,26 +427,38 @@ facet.plot = ({selector, size, dataSource, plot}) ->
 
   doPlot(
     svg
-    -> {data, scale:{}, size}
+    -> {data:sac, scale:{}, size}
     plot
   )
   return
 
 facet.makeData = ({selector, size, dataSpec, plot}) ->
-  dimensions = {}
-  for name, dimensionSpec of dataSpec.dimensions
-    dimensions[name] = make_dimension(name, dimensionSpec)
+  { from, dimensions, metrics } = dataSpec
 
-  metrics = {}
-  for name, metricSpec of dataSpec.metrics
-    metrics[name] = make_metric(name, metricSpec)
+  splits = []
+  split = [{ apply, combine: null }]
+  while plot
+    split.push(plot.split)
+    apply = []
+    for k,m of plot.mapping
+      apply.push(m) unless m in split
+    splits.push { split: split.slice(), apply, combine: null }
+    plot = plot.plot
 
-
+  dataSac = facet.data(from).query {
+    dimensions
+    metrics
+    splits
+  }
 
   return {
     selector
     size
-    data
+    data: {
+      sac: dataSac
+      dimensions
+      metrics
+    }
     plot
   }
 
@@ -458,34 +498,67 @@ data = do ->
 spec = {
   selector: '.cont'
   size:
-    width: 600
+    width:  800
     height: 600
   dataSpec:
     from: data
     dimensions:
+      Time:   { type: 'continuous', bin: 'second' }
       Letter: { type: 'categorical' }
       Number: { type: 'ordinal' }
     metrics:
+      Const:  { agg: 'const' }
       Count:  { agg: 'count' }
-      Walk:   { agg: 'avg' }
+      Walk:   { agg: 'average' }
   plot:
     type: 'facet'
+    method: 'vertical'
+    mapping: { area: 'Const' }
     split: 'Letter'
     scale:
-      x: { type: 'linear', column: 'Time' }
-    plot:
-      type: 'points'
-      mapping:
-        x: 'Time'
-        y: 'Walk'
-        color: 'Letter'
-      scale:
-        y: { type: 'linear', column: 'Walk' }
-        color: { type: 'color', column: 'Letter' }
+      x: { type: 'linear', from: 'Time' }
+    # plot:
+    #   split: 'Time'
+    #   type: 'point'
+    #   mapping:
+    #     x: 'Time'
+    #     y: 'Walk'
+    #     color: 'Letter'
+    #   scale:
+    #     y: { type: 'linear', from: 'Walk' }
+    #     color: { type: 'color', from: 'Letter' }
 }
 
 #facet.plot spec
-facet.makeData spec
+console.log '-----------'
+console.log facet.makeData(spec)
+console.log '-----------'
 
+testCarData = [
+  { make: 'Honda',  model: 'Civic',   price: 10000 }
+  { make: 'Honda',  model: 'Civic',   price: 10100 }
+  { make: 'Honda',  model: 'Element', price: 13000 }
+  { make: 'Toyota', model: 'Corrola', price: 11000 }
+  { make: 'Toyota', model: 'Corrola', price: 11100 }
+  { make: 'BMW',    model: 'M3',      price: 51000 }
+  { make: 'BMW',    model: 'M5',      price: 61000 }
+]
 
+console.log facet.data(testCarData).query {
+  dimensions:
+    'Make': { type: 'categorical' }
+    'Model': { type: 'categorical' }
+  metrics:
+    'Total Price': { agg: 'sum', column: 'price' }
+    'Avg Price': { agg: 'average', column: 'price' }
+    'Count': { agg: 'count' }
+  splits: [
+    { split: 'Make',  apply: ['Count', 'Total Price', 'Avg Price'] }
+    { split: 'Model', apply: ['Count', 'Total Price', 'Avg Price'] }
+  ]
+}
+
+# what is the most common model of car for each manufacturer
+# carSales.split('Mfr', [], 'alphbetic').split('Model', 'count', 'sort desc limit 1')
+# carSales.split('Mfr', Model_most_popular, 'alphbetic')
 

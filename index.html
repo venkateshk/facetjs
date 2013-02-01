@@ -6,14 +6,36 @@
     -->
     <link rel="stylesheet/less" type="text/css" href="facet.less">
     <script src="lib/less-1.3.0.min.js"></script>
-    <script src="lib/coffee-script.js"></script>
+    <script src="http://underscorejs.org/underscore-min.js"></script>
     <script src="lib/d3.js"></script>
+    <script src="facet.js"></script>
     <title>Facet v0.1</title>
   </head>
 
   <body>
     <div class="cont">
     </div>
-    <script type="text/coffeescript" src="facet.coffee"></script>
+    <script>
+      var split = facet.split;
+      var apply = facet.apply;
+      var layout = facet.layout;
+      var plot = facet.plot;
+      var prop = facet.prop;
+      var sort = facet.sort;
+
+      var r = facet.canvas('.cont', 800, 600, data1)
+        .split('Letter', split.natural('letter'))
+        .apply('avgScoreA', apply.average('scoreA'))
+        .layout(layout.vertical({ size: prop('avgScoreA'), gap: 5 }))
+        .plot(plot.rect({ color: 'none' }))
+        .plot(plot.text({ text: prop('Letter'), color: 'green' }))
+          .split('Number', split.natural('number'))
+          .combine({ sort: sort.natural('Number') })
+          .layout(layout.horizontal({ gap: 2 }))
+          .plot(plot.rect({ color: '#ccccff' }))
+          .plot(plot.text({ text: prop('Number'), color: 'red' }))
+
+      console.log(r)
+    </script>
   </body>
 </html>

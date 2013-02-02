@@ -1,20 +1,3 @@
-window.data1 = do ->
-  pick = (arr) -> arr[Math.floor(Math.random() * arr.length)]
-
-  now = Date.now()
-  w = 100
-  return d3.range(400).map (i) ->
-    return {
-      id: i
-      time: new Date(now + i * 13 * 1000)
-      letter: 'ABC'[Math.floor(3 * i/400)]
-      number: pick([1, 10, 3, 4])
-      scoreA: i * Math.random() * Math.random()
-      scoreB: 10 * Math.random()
-      walk: w += Math.random() - 0.5 + 0.02
-    }
-
-# =============================================================
 
 arraySubclass = if [].__proto__
     # Until ECMAScript supports array subclassing, prototype injection works well.
@@ -45,7 +28,27 @@ facet.split = {
     b = Math.floor((d[attribute] + offset) / size) * size
     return "#{b};#{b + size}"
 
-  timeBucket: (attribute) -> (d) -> d.getHour()
+  time: {
+    second: (attribute) -> (d) ->
+      d = new Date(d[attribute])
+      d.setUTCMilliseconds(0)
+      return d
+
+    minute: (attribute) -> (d) ->
+      d = new Date(d[attribute])
+      d.setUTCSeconds(0, 0)
+      return d
+
+    hour: (attribute) -> (d) ->
+      d = new Date(d[attribute])
+      d.setUTCMinutes(0, 0, 0)
+      return d
+
+    day: (attribute) -> (d) ->
+      d = new Date(d[attribute])
+      d.setUTCHours(0, 0, 0, 0)
+      return d
+  }
 }
 
 # =============================================================
@@ -99,9 +102,11 @@ stripeTile = (dim1, dim2) ->
     gap or= 0
     size or= -> 1
     n = segmentGroup.length
-    parentSize = parentSegment.size
-    parentDim1 = parentSize[dim1]
-    parentDim2 = parentSize[dim2]
+    parentStage = parentSegment.stage
+    if parentStage.type isnt 'rectangle'
+      throw new Error("Must have a rectangular stage (is #{parentStage.type})")
+    parentDim1 = parentStage[dim1]
+    parentDim2 = parentStage[dim2]
     maxGap = Math.max(0, (parentDim1 - n * 2) / (n - 1)) # Each segment takes up at least 2px
     gap = Math.min(gap, maxGap)
     availableDim1 = parentDim1 - gap * (n - 1)
@@ -111,11 +116,11 @@ stripeTile = (dim1, dim2) ->
     for segment, i in segmentGroup
       curDim1 = dim1s[i]
 
-      segmentSize = {}
-      segmentSize[dim1] = curDim1
-      segmentSize[dim2] = parentDim2
+      segmentStage = { type: 'rectangle' }
+      segmentStage[dim1] = curDim1
+      segmentStage[dim2] = parentDim2
 
-      segment.size = segmentSize
+      segment.stage = segmentStage
 
       segment.node
         .attr('transform', makeTransform(dim1, dimSoFar))
@@ -138,27 +143,57 @@ facet.layout = {
 }
 
 # =============================================================
+# TRANSFORM STAGE
+# A function that transforms the stage from one form to another.
+# Arguments* -> Segment -> Segment
+
+facet.stage = {
+  rectToPoint: (xPos, yPos) -> (segment) ->
+    { parent, data, node, stage, prop } = segment
+    throw new Error("Must have a rectangle stage (is #{stage.type})") unless stage.type is 'rectangle'
+    return {
+      parent
+      data
+      node
+      stage: {
+        type: 'point'
+        x: xPos * stage.width
+        y: yPos * stage.height
+      }
+      prop
+    }
+}
+
+# =============================================================
 # PLOT
 # A function that takes a facet and
+# Arguments* -> Segment -> void
 
 facet.plot = {
-  rect: ({ color }) -> ({ size, node, prop }) ->
-    node.append('rect').datum({ size, prop })
-      .attr('width', size.width)
-      .attr('height', size.height)
+  rect: ({ color }) -> ({ stage, node, prop }) ->
+    throw new Error("Must have a rectangle stage (is #{stage.type})") unless stage.type is 'rectangle'
+    node.append('rect').datum({ stage, prop })
+      .attr('width', stage.width)
+      .attr('height', stage.height)
       .style('fill', color)
       .style('stroke', 'black')
     return
 
-  text: ({ color, text }) -> ({ size, node, prop }) ->
-    node.append('text').datum({ size, prop })
+  text: ({ color, text }) -> ({ stage, node, prop }) ->
+    throw new Error("Must have a point stage (is #{stage.type})") unless stage.type is 'point'
+    node.append('text').datum({ stage, prop })
+      .attr('x', stage.x)
+      .attr('y', stage.y)
       .attr('dy', '.71em')
       .style('fill', color)
       .text(text)
     return
 
-  circle: ({ color }) -> ({ size, node, prop }) ->
-    node.append('text').datum({ size, prop })
+  circle: ({ color }) -> ({ stage, node, prop }) ->
+    throw new Error("Must have a point stage (is #{stage.type})") unless stage.type is 'point'
+    node.append('text').datum({ stage, prop })
+      .attr('cx', stage.x)
+      .attr('cy', stage.y)
       .attr('dy', '.71em')
       .style('fill', color)
       .text(text)
@@ -206,17 +241,13 @@ facetArrayPrototype.split = (name, split) ->
     return keys.map (key) ->
       prop = {}
       prop[name] = bucketValue[key]
-
-      size = f.size
-
+      stage = f.stage
       node = f.node.append('g')
-        .attr('width', size.width)
-        .attr('height', size.height)
 
       return {
         parent: f
         data: bucket[key]
-        size
+        stage
         prop
         node
       }
@@ -228,7 +259,9 @@ facetArrayPrototype.layout = (layout) ->
   throw new TypeError("Layout must be a function") unless typeof layout is 'function'
 
   for segmentGroup in this
-    layout(segmentGroup[0].parent, segmentGroup)
+    parentSegment = segmentGroup[0].parent
+    throw new Error("You must split before calling layout") unless parentSegment
+    layout(parentSegment, segmentGroup)
 
   return this
 
@@ -258,6 +291,12 @@ facetArrayPrototype.combine = ({ filter, sort, limit } = {}) ->
   return this
 
 
+facetArrayPrototype.stage = (transform) ->
+  newSegmentGroup = this.map (segmentGroup) ->
+    return segmentGroup.map transform
+
+  return makeFacetArray(newSegmentGroup)
+
 facetArrayPrototype.plot = (plot) ->
   for segmentGroup in this
     for segment in segmentGroup
@@ -278,7 +317,7 @@ facet.canvas = (selector, width, height, data) ->
     parent: null
     data: data
     node: svg
-    size: { width, height }
+    stage: { type: 'rectangle', width, height }
     prop: {}
   }]])
 

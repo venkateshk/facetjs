@@ -2,26 +2,6 @@
 (function() {
   var arraySubclass, divideLength, facet, facetArrayPrototype, flatten, makeFacetArray, stripeTile;
 
-  window.data1 = (function() {
-    var now, pick, w;
-    pick = function(arr) {
-      return arr[Math.floor(Math.random() * arr.length)];
-    };
-    now = Date.now();
-    w = 100;
-    return d3.range(400).map(function(i) {
-      return {
-        id: i,
-        time: new Date(now + i * 13 * 1000),
-        letter: 'ABC'[Math.floor(3 * i / 400)],
-        number: pick([1, 10, 3, 4]),
-        scoreA: i * Math.random() * Math.random(),
-        scoreB: 10 * Math.random(),
-        walk: w += Math.random() - 0.5 + 0.02
-      };
-    });
-  })();
-
   arraySubclass = [].__proto__ ? function(array, prototype) {
     array.__proto__ = prototype;
     return array;
@@ -53,10 +33,35 @@
         return "" + b + ";" + (b + size);
       };
     },
-    timeBucket: function(attribute) {
-      return function(d) {
-        return d.getHour();
-      };
+    time: {
+      second: function(attribute) {
+        return function(d) {
+          d = new Date(d[attribute]);
+          d.setUTCMilliseconds(0);
+          return d;
+        };
+      },
+      minute: function(attribute) {
+        return function(d) {
+          d = new Date(d[attribute]);
+          d.setUTCSeconds(0, 0);
+          return d;
+        };
+      },
+      hour: function(attribute) {
+        return function(d) {
+          d = new Date(d[attribute]);
+          d.setUTCMinutes(0, 0, 0);
+          return d;
+        };
+      },
+      day: function(attribute) {
+        return function(d) {
+          d = new Date(d[attribute]);
+          d.setUTCHours(0, 0, 0, 0);
+          return d;
+        };
+      }
     }
   };
 
@@ -144,15 +149,18 @@
       var gap, size, _ref;
       _ref = _arg != null ? _arg : {}, gap = _ref.gap, size = _ref.size;
       return function(parentSegment, segmentGroup) {
-        var availableDim1, curDim1, dim1s, dimSoFar, i, maxGap, n, parentDim1, parentDim2, parentSize, segment, segmentSize, _i, _len;
+        var availableDim1, curDim1, dim1s, dimSoFar, i, maxGap, n, parentDim1, parentDim2, parentStage, segment, segmentStage, _i, _len;
         gap || (gap = 0);
         size || (size = function() {
           return 1;
         });
         n = segmentGroup.length;
-        parentSize = parentSegment.size;
-        parentDim1 = parentSize[dim1];
-        parentDim2 = parentSize[dim2];
+        parentStage = parentSegment.stage;
+        if (parentStage.type !== 'rectangle') {
+          throw new Error("Must have a rectangular stage (is " + parentStage.type + ")");
+        }
+        parentDim1 = parentStage[dim1];
+        parentDim2 = parentStage[dim2];
         maxGap = Math.max(0, (parentDim1 - n * 2) / (n - 1));
         gap = Math.min(gap, maxGap);
         availableDim1 = parentDim1 - gap * (n - 1);
@@ -161,10 +169,12 @@
         for (i = _i = 0, _len = segmentGroup.length; _i < _len; i = ++_i) {
           segment = segmentGroup[i];
           curDim1 = dim1s[i];
-          segmentSize = {};
-          segmentSize[dim1] = curDim1;
-          segmentSize[dim2] = parentDim2;
-          segment.size = segmentSize;
+          segmentStage = {
+            type: 'rectangle'
+          };
+          segmentStage[dim1] = curDim1;
+          segmentStage[dim2] = parentDim2;
+          segment.stage = segmentStage;
           segment.node.attr('transform', makeTransform(dim1, dimSoFar)).attr(dim1, curDim1).attr(dim2, parentDim2);
           dimSoFar += curDim1 + gap;
         }
@@ -181,41 +191,73 @@
     tile: function() {}
   };
 
+  facet.stage = {
+    rectToPoint: function(xPos, yPos) {
+      return function(segment) {
+        var data, node, parent, prop, stage;
+        parent = segment.parent, data = segment.data, node = segment.node, stage = segment.stage, prop = segment.prop;
+        if (stage.type !== 'rectangle') {
+          throw new Error("Must have a rectangle stage (is " + stage.type + ")");
+        }
+        return {
+          parent: parent,
+          data: data,
+          node: node,
+          stage: {
+            type: 'point',
+            x: xPos * stage.width,
+            y: yPos * stage.height
+          },
+          prop: prop
+        };
+      };
+    }
+  };
+
   facet.plot = {
     rect: function(_arg) {
       var color;
       color = _arg.color;
       return function(_arg1) {
-        var node, prop, size;
-        size = _arg1.size, node = _arg1.node, prop = _arg1.prop;
+        var node, prop, stage;
+        stage = _arg1.stage, node = _arg1.node, prop = _arg1.prop;
+        if (stage.type !== 'rectangle') {
+          throw new Error("Must have a rectangle stage (is " + stage.type + ")");
+        }
         node.append('rect').datum({
-          size: size,
+          stage: stage,
           prop: prop
-        }).attr('width', size.width).attr('height', size.height).style('fill', color).style('stroke', 'black');
+        }).attr('width', stage.width).attr('height', stage.height).style('fill', color).style('stroke', 'black');
       };
     },
     text: function(_arg) {
       var color, text;
       color = _arg.color, text = _arg.text;
       return function(_arg1) {
-        var node, prop, size;
-        size = _arg1.size, node = _arg1.node, prop = _arg1.prop;
+        var node, prop, stage;
+        stage = _arg1.stage, node = _arg1.node, prop = _arg1.prop;
+        if (stage.type !== 'point') {
+          throw new Error("Must have a point stage (is " + stage.type + ")");
+        }
         node.append('text').datum({
-          size: size,
+          stage: stage,
           prop: prop
-        }).attr('dy', '.71em').style('fill', color).text(text);
+        }).attr('x', stage.x).attr('y', stage.y).attr('dy', '.71em').style('fill', color).text(text);
       };
     },
     circle: function(_arg) {
       var color;
       color = _arg.color;
       return function(_arg1) {
-        var node, prop, size;
-        size = _arg1.size, node = _arg1.node, prop = _arg1.prop;
+        var node, prop, stage;
+        stage = _arg1.stage, node = _arg1.node, prop = _arg1.prop;
+        if (stage.type !== 'point') {
+          throw new Error("Must have a point stage (is " + stage.type + ")");
+        }
         node.append('text').datum({
-          size: size,
+          stage: stage,
           prop: prop
-        }).attr('dy', '.71em').style('fill', color).text(text);
+        }).attr('cx', stage.x).attr('cy', stage.y).attr('dy', '.71em').style('fill', color).text(text);
       };
     }
   };
@@ -272,15 +314,15 @@
         bucket[key].push(d);
       }
       return keys.map(function(key) {
-        var node, prop, size;
+        var node, prop, stage;
         prop = {};
         prop[name] = bucketValue[key];
-        size = f.size;
-        node = f.node.append('g').attr('width', size.width).attr('height', size.height);
+        stage = f.stage;
+        node = f.node.append('g');
         return {
           parent: f,
           data: bucket[key],
-          size: size,
+          stage: stage,
           prop: prop,
           node: node
         };
@@ -290,13 +332,17 @@
   };
 
   facetArrayPrototype.layout = function(layout) {
-    var segmentGroup, _i, _len;
+    var parentSegment, segmentGroup, _i, _len;
     if (typeof layout !== 'function') {
       throw new TypeError("Layout must be a function");
     }
     for (_i = 0, _len = this.length; _i < _len; _i++) {
       segmentGroup = this[_i];
-      layout(segmentGroup[0].parent, segmentGroup);
+      parentSegment = segmentGroup[0].parent;
+      if (!parentSegment) {
+        throw new Error("You must split before calling layout");
+      }
+      layout(parentSegment, segmentGroup);
     }
     return this;
   };
@@ -342,6 +388,14 @@
     return this;
   };
 
+  facetArrayPrototype.stage = function(transform) {
+    var newSegmentGroup;
+    newSegmentGroup = this.map(function(segmentGroup) {
+      return segmentGroup.map(transform);
+    });
+    return makeFacetArray(newSegmentGroup);
+  };
+
   facetArrayPrototype.plot = function(plot) {
     var segment, segmentGroup, _i, _j, _len, _len1;
     for (_i = 0, _len = this.length; _i < _len; _i++) {
@@ -367,7 +421,8 @@
           parent: null,
           data: data,
           node: svg,
-          size: {
+          stage: {
+            type: 'rectangle',
             width: width,
             height: height
           },

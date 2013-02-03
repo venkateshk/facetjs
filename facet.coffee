@@ -15,6 +15,30 @@ flatten = (ar) -> Array::concat.apply([], ar)
 
 # =============================================================
 
+class Segment
+  constructor: ({ @parent, @data, @node, stage, @prop }) ->
+    throw "invalid stage" unless typeof stage?.type is 'string'
+    @_stageStack = [stage]
+
+  getStage: ->
+    return @_stageStack[@_stageStack.length - 1]
+
+  setStage: (stage) ->
+    throw "invalid stage" unless typeof stage?.type is 'string'
+    @_stageStack[@_stageStack.length - 1] = stage
+    return
+
+  pushStage: (stage) ->
+    throw "invalid stage" unless typeof stage?.type is 'string'
+    @_stageStack.push(stage)
+    return
+
+  popStage: ->
+    throw "must have at least one stage" if @_stageStack.length < 2
+    @_stageStack.pop()
+    return
+
+
 window.facet = facet = {}
 
 # =============================================================
@@ -102,7 +126,7 @@ stripeTile = (dim1, dim2) ->
     gap or= 0
     size or= -> 1
     n = segmentGroup.length
-    parentStage = parentSegment.stage
+    parentStage = parentSegment.getStage()
     if parentStage.type isnt 'rectangle'
       throw new Error("Must have a rectangular stage (is #{parentStage.type})")
     parentDim1 = parentStage[dim1]
@@ -120,7 +144,7 @@ stripeTile = (dim1, dim2) ->
       segmentStage[dim1] = curDim1
       segmentStage[dim2] = parentDim2
 
-      segment.stage = segmentStage
+      segment.setStage(segmentStage)
 
       segment.node
         .attr('transform', makeTransform(dim1, dimSoFar))
@@ -145,23 +169,18 @@ facet.layout = {
 # =============================================================
 # TRANSFORM STAGE
 # A function that transforms the stage from one form to another.
-# Arguments* -> Segment -> Segment
+# Arguments* -> Segment -> void
 
 facet.stage = {
   rectToPoint: (xPos, yPos) -> (segment) ->
-    { parent, data, node, stage, prop } = segment
+    stage = segment.getStage()
     throw new Error("Must have a rectangle stage (is #{stage.type})") unless stage.type is 'rectangle'
-    return {
-      parent
-      data
-      node
-      stage: {
-        type: 'point'
-        x: xPos * stage.width
-        y: yPos * stage.height
-      }
-      prop
-    }
+    segment.pushStage({
+      type: 'point'
+      x: xPos * stage.width
+      y: yPos * stage.height
+    })
+    return
 }
 
 # =============================================================
@@ -170,18 +189,20 @@ facet.stage = {
 # Arguments* -> Segment -> void
 
 facet.plot = {
-  rect: ({ color }) -> ({ stage, node, prop }) ->
+  rect: ({ color }) -> (segment) ->
+    stage = segment.getStage()
     throw new Error("Must have a rectangle stage (is #{stage.type})") unless stage.type is 'rectangle'
-    node.append('rect').datum({ stage, prop })
+    segment.node.append('rect').datum(segment)
       .attr('width', stage.width)
       .attr('height', stage.height)
       .style('fill', color)
       .style('stroke', 'black')
     return
 
-  text: ({ color, text }) -> ({ stage, node, prop }) ->
+  text: ({ color, text }) -> (segment) ->
+    stage = segment.getStage()
     throw new Error("Must have a point stage (is #{stage.type})") unless stage.type is 'point'
-    node.append('text').datum({ stage, prop })
+    segment.node.append('text').datum(segment)
       .attr('x', stage.x)
       .attr('y', stage.y)
       .attr('dy', '.71em')
@@ -189,9 +210,10 @@ facet.plot = {
       .text(text)
     return
 
-  circle: ({ color }) -> ({ stage, node, prop }) ->
+  circle: ({ color }) -> (segment) ->
+    stage = segment.getStage()
     throw new Error("Must have a point stage (is #{stage.type})") unless stage.type is 'point'
-    node.append('text').datum({ stage, prop })
+    segment.node.append('text').datum(segment)
       .attr('cx', stage.x)
       .attr('cy', stage.y)
       .attr('dy', '.71em')
@@ -223,6 +245,12 @@ facet.sort = {
 
 facetArrayPrototype = []
 
+facetArrayPrototype._eachSegment = (fn) ->
+  for segmentGroup in this
+    for segment in segmentGroup
+      fn(segment)
+  return
+
 facetArrayPrototype.split = (name, split) ->
   throw new TypeError("Split must be a function") unless typeof split is 'function'
 
@@ -241,16 +269,16 @@ facetArrayPrototype.split = (name, split) ->
     return keys.map (key) ->
       prop = {}
       prop[name] = bucketValue[key]
-      stage = f.stage
+      stage = f.getStage()
       node = f.node.append('g')
 
-      return {
+      return new Segment({
         parent: f
         data: bucket[key]
         stage
         prop
         node
-      }
+      })
 
   return makeFacetArray(segmentGroup)
 
@@ -268,11 +296,7 @@ facetArrayPrototype.layout = (layout) ->
 
 facetArrayPrototype.apply = (name, apply) ->
   throw new TypeError("Apply must be a function") unless typeof apply is 'function'
-
-  for segmentGroup in this
-    for segment in segmentGroup
-      segment.prop[name] = apply(segment.data)
-
+  @_eachSegment (segment) -> segment.prop[name] = apply(segment.data)
   return this
 
 
@@ -292,16 +316,17 @@ facetArrayPrototype.combine = ({ filter, sort, limit } = {}) ->
 
 
 facetArrayPrototype.stage = (transform) ->
-  newSegmentGroup = this.map (segmentGroup) ->
-    return segmentGroup.map transform
+  @_eachSegment transform
+  return this
 
-  return makeFacetArray(newSegmentGroup)
+
+facetArrayPrototype.pop = ->
+  @_eachSegment (segment) -> segment.popStage()
+  return this
+
 
 facetArrayPrototype.plot = (plot) ->
-  for segmentGroup in this
-    for segment in segmentGroup
-      plot(segment)
-
+  @_eachSegment plot
   return this
 
 
@@ -313,13 +338,13 @@ facet.canvas = (selector, width, height, data) ->
     .attr('width', width)
     .attr('height', height)
 
-  return makeFacetArray([[{
+  return makeFacetArray([[new Segment({
     parent: null
     data: data
     node: svg
     stage: { type: 'rectangle', width, height }
     prop: {}
-  }]])
+  })]])
 
 
 

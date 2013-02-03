@@ -49,13 +49,12 @@
         .apply('avgScoreA', apply.average('scoreA'))
         .layout(layout.vertical({ size: prop('avgScoreA'), gap: 5 }))
         .plot(plot.rect({ color: 'none' }))
+        .stage(stage.rectToPoint(0.5, 0.5)).plot(plot.text({ text: prop('Letter'), color: 'green' }))
           // .split('Time', split.time.minute('time'))
           // .layout(layout.horizontal({ gap: 2 }))
           // .plot(plot.rect({ color: '#ccccff' }))
           // .plot(plot.text({ text: prop('Number'), color: 'red' }))
 
-      rect1.stage(stage.rectToPoint(0.5, 0.5))
-        .plot(plot.text({ text: prop('Letter'), color: 'green' }))
 
     </script>
   </body>

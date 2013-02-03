@@ -1,9 +1,0 @@
-how to do paralel coordinates
-m = n plots (4d scatterplots)
-
-
-
-library(ggplot2)
-
-write.csv(mpg,      file="mpg.csv")
-write.csv(diamonds, file="diamonds.csv")

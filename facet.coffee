@@ -54,24 +54,32 @@ facet.split = {
 
   time: {
     second: (attribute) -> (d) ->
-      d = new Date(d[attribute])
-      d.setUTCMilliseconds(0)
-      return d
+      ds = new Date(d[attribute])
+      ds.setUTCMilliseconds(0)
+      de = new Date(ds)
+      de.setUTCMilliseconds(1000)
+      return [ds, de]
 
     minute: (attribute) -> (d) ->
-      d = new Date(d[attribute])
-      d.setUTCSeconds(0, 0)
-      return d
+      ds = new Date(d[attribute])
+      ds.setUTCSeconds(0, 0)
+      de = new Date(ds)
+      de.setUTCSeconds(60)
+      return [ds, de]
 
     hour: (attribute) -> (d) ->
-      d = new Date(d[attribute])
-      d.setUTCMinutes(0, 0, 0)
-      return d
+      ds = new Date(d[attribute])
+      ds.setUTCMinutes(0, 0, 0)
+      de = new Date(ds)
+      de.setUTCMinutes(60)
+      return [ds, de]
 
     day: (attribute) -> (d) ->
-      d = new Date(d[attribute])
-      d.setUTCHours(0, 0, 0, 0)
-      return d
+      ds = new Date(d[attribute])
+      ds.setUTCHours(0, 0, 0, 0)
+      de = new Date(ds)
+      de.setUTCHours(24)
+      return [ds, de]
   }
 }
 
@@ -330,6 +338,11 @@ facetArrayPrototype.plot = (plot) ->
   return this
 
 
+facetArrayPrototype.render = ->
+  return this
+
+
+
 makeFacetArray = (arr) -> arraySubclass(arr, facetArrayPrototype)
 
 facet.canvas = (selector, width, height, data) ->
@@ -345,6 +358,34 @@ facet.canvas = (selector, width, height, data) ->
     stage: { type: 'rectangle', width, height }
     prop: {}
   })]])
+
+
+# =============================================================
+# =============================================================
+
+facet.driver = {
+  simple: (data) -> (query, callback) ->
+
+    # keys = []
+    # bucket = {}
+    # bucketValue = {}
+    # for d in f.data
+    #   key = split(d)
+    #   if not bucket[key]
+    #     keys.push(key)
+    #     bucket[key] = []
+    #     bucketValue[key] = key # Key might not be a string
+    #   bucket[key].push(d)
+    return
+}
+
+
+
+
+
+
+
+
 
 
 

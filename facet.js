@@ -78,30 +78,42 @@
     time: {
       second: function(attribute) {
         return function(d) {
-          d = new Date(d[attribute]);
-          d.setUTCMilliseconds(0);
-          return d;
+          var de, ds;
+          ds = new Date(d[attribute]);
+          ds.setUTCMilliseconds(0);
+          de = new Date(ds);
+          de.setUTCMilliseconds(1000);
+          return [ds, de];
         };
       },
       minute: function(attribute) {
         return function(d) {
-          d = new Date(d[attribute]);
-          d.setUTCSeconds(0, 0);
-          return d;
+          var de, ds;
+          ds = new Date(d[attribute]);
+          ds.setUTCSeconds(0, 0);
+          de = new Date(ds);
+          de.setUTCSeconds(60);
+          return [ds, de];
         };
       },
       hour: function(attribute) {
         return function(d) {
-          d = new Date(d[attribute]);
-          d.setUTCMinutes(0, 0, 0);
-          return d;
+          var de, ds;
+          ds = new Date(d[attribute]);
+          ds.setUTCMinutes(0, 0, 0);
+          de = new Date(ds);
+          de.setUTCMinutes(60);
+          return [ds, de];
         };
       },
       day: function(attribute) {
         return function(d) {
-          d = new Date(d[attribute]);
-          d.setUTCHours(0, 0, 0, 0);
-          return d;
+          var de, ds;
+          ds = new Date(d[attribute]);
+          ds.setUTCHours(0, 0, 0, 0);
+          de = new Date(ds);
+          de.setUTCHours(24);
+          return [ds, de];
         };
       }
     }
@@ -438,6 +450,10 @@
     return this;
   };
 
+  facetArrayPrototype.render = function() {
+    return this;
+  };
+
   makeFacetArray = function(arr) {
     return arraySubclass(arr, facetArrayPrototype);
   };
@@ -460,6 +476,12 @@
         })
       ]
     ]);
+  };
+
+  facet.driver = {
+    simple: function(data) {
+      return function(query, callback) {};
+    }
   };
 
 }).call(this);

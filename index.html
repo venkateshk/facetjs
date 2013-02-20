@@ -8,6 +8,7 @@
     <script src="lib/less-1.3.0.min.js"></script>
     <script src="http://underscorejs.org/underscore-min.js"></script>
     <script src="lib/d3.js"></script>
+    <script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
     <script src="target/facet.js"></script>
     <script src="target/simple.js"></script>
     <script src="target/sql.js"></script>
@@ -67,12 +68,13 @@
         .apply('avgScoreA', apply.average('scoreA'))
         .layout(layout.vertical({ size: prop('avgScoreA'), gap: 5 }))
         .plot(plot.rect({ color: 'none' }))
-        .stage(stage.rectToPoint(0.5, 0.5)).plot(plot.text({ text: prop('Letter'), color: 'green' }))
+        .stage(stage.rectToPoint(0.5, 0.5)).plot(plot.text({ text: prop('Letter'), color: 'green' })).pop()
         .render('.cont', 800, 600)
-          // .split('Time', split.time.minute('time'))
+          // .split('Time', split.time('time', 'minute'))
           // .layout(layout.horizontal({ gap: 2 }))
           // .plot(plot.rect({ color: '#ccccff' }))
-          // .plot(plot.text({ text: prop('Number'), color: 'red' }))
+          // .stage(stage.rectToPoint(0.5, 0.5)).plot(plot.text({ text: prop('Number'), color: 'red' })).pop()
+          // .render('.cont', 800, 600)
 
 
     </script>

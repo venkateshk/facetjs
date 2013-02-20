@@ -199,7 +199,7 @@
   simpleDriver = function(data, query) {
     var applyFn, cmd, propName, rootSegment, segment, segmentGroup, segmentGroups, sortFn, splitFn, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _len6, _len7, _m, _n, _o, _p;
     rootSegment = {
-      raw: data,
+      _raw: data,
       prop: {}
     };
     segmentGroups = [[rootSegment]];
@@ -220,7 +220,7 @@
             keys = [];
             buckets = {};
             bucketValue = {};
-            _ref = segment.raw;
+            _ref = segment._raw;
             for (_j = 0, _len1 = _ref.length; _j < _len1; _j++) {
               d = _ref[_j];
               key = splitFn(d);
@@ -239,11 +239,11 @@
               prop = {};
               prop[propName] = bucketValue[key];
               return {
-                raw: buckets[key],
+                _raw: buckets[key],
                 prop: prop
               };
             });
-            delete segment.raw;
+            delete segment._raw;
             return segment.splits;
           });
           break;
@@ -260,7 +260,7 @@
             segmentGroup = segmentGroups[_j];
             for (_k = 0, _len2 = segmentGroup.length; _k < _len2; _k++) {
               segment = segmentGroup[_k];
-              segment.prop[propName] = applyFn(segment.raw);
+              segment.prop[propName] = applyFn(segment._raw);
             }
           }
           break;
@@ -293,7 +293,7 @@
       segmentGroup = segmentGroups[_o];
       for (_p = 0, _len7 = segmentGroup.length; _p < _len7; _p++) {
         segment = segmentGroup[_p];
-        delete segment.raw;
+        delete segment._raw;
       }
     }
     return rootSegment;

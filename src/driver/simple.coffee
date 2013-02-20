@@ -106,7 +106,7 @@ sortFns = {
 
 simpleDriver = (data, query) ->
   rootSegment = {
-    raw: data
+    _raw: data
     prop: {}
   }
   segmentGroups = [[rootSegment]]
@@ -122,7 +122,7 @@ simpleDriver = (data, query) ->
           keys = []
           buckets = {}
           bucketValue = {}
-          for d in segment.raw
+          for d in segment._raw
             key = splitFn(d)
             throw new Error("Bucket returned undefined") unless key?
             if not buckets[key]
@@ -135,11 +135,11 @@ simpleDriver = (data, query) ->
             prop = {}
             prop[propName] = bucketValue[key]
             return {
-              raw: buckets[key]
+              _raw: buckets[key]
               prop
             }
           )
-          delete segment.raw
+          delete segment._raw
           return segment.splits
 
       when 'apply'
@@ -149,7 +149,7 @@ simpleDriver = (data, query) ->
         throw new Error("No such aggregate `#{cmd.aggregate}` in apply") unless applyFn
         for segmentGroup in segmentGroups
           for segment in segmentGroup
-            segment.prop[propName] = applyFn(segment.raw)
+            segment.prop[propName] = applyFn(segment._raw)
 
       when 'combine'
         if cmd.sort
@@ -166,10 +166,10 @@ simpleDriver = (data, query) ->
       else
         throw new Error("Unknown operation '#{cmd.operation}'")
 
-  # Cleanup raw data on last segment
+  # Cleanup _raw data on last segment
   for segmentGroup in segmentGroups
     for segment in segmentGroup
-      delete segment.raw
+      delete segment._raw
 
   return rootSegment
 

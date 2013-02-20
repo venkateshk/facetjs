@@ -84,15 +84,12 @@
           // .render('.cont', 800, 600)
 
 
-      // facet.ajaxPostDriver({
-      //   url: '/driver/simple',
-      //   context: { data: 'data1' },
-      //   prety: true
-      // })([
-      //   { operation: 'apply', prop: 'SumScoreA', aggregate: 'sum', attribute: 'scoreA' },
-      //   { operation: 'split', prop: 'Letter', bucket: 'natural', attribute: 'letter' },
-      //   { operation: 'apply', prop: 'SumScoreA', aggregate: 'sum', attribute: 'scoreA' }
-      // ])
+      q = {"intervals":["2013-02-04T00:00:00.000/2013-02-24T00:00:00.000"],"aggregations":[{"type":"doubleSum","name":"count","fieldName":"count"},{"type":"hyperUnique","name":"uniques","fieldName":"unique_users"},{"type":"doubleSum","name":"delta","fieldName":"delta"},{"type":"doubleSum","name":"added","fieldName":"added"},{"type":"doubleSum","name":"deleted","fieldName":"deleted"}],"postAggregations":[{"type":"arithmetic","name":"variation","fn":"-","fields":[{"type":"fieldAccess","name":"added","fieldName":"added"},{"type":"fieldAccess","name":"deleted","fieldName":"deleted"}]},{"type":"arithmetic","name":"average_variation","fn":"/","fields":[{"type":"fieldAccess","name":"variation","fieldName":"variation"},{"type":"fieldAccess","name":"count","fieldName":"count"}]}],"dataSource":"wikipedia_editstream","granularity":"hour","queryType":"timeseries"}
+
+      facet.ajaxPostDriver({
+        url: '/pass/druid',
+        prety: true
+      })(q)
     </script>
   </body>
 </html>

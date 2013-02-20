@@ -59,7 +59,7 @@
       var sort = facet.sort;
       var stage = facet.stage;
 
-      var rect1 = facet.canvas(simpleDriver)
+      var rect1 = facet.visualize(simpleDriver)
         .split('Letter', split.natural('letter'))
         .apply('avgScoreA', apply.average('scoreA'))
         .layout(layout.vertical({ size: prop('avgScoreA'), gap: 5 }))

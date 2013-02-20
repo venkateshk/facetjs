@@ -76,6 +76,16 @@
         size: size,
         offset: offset
       };
+    },
+    time: function(attribute, duration) {
+      if (duration !== 'second' && duration !== 'minute' && duration !== 'hour' && duration !== 'day') {
+        throw new Error("Invalid duration '" + duration + "'");
+      }
+      return {
+        bucket: 'time',
+        attribute: attribute,
+        duration: duration
+      };
     }
   };
 
@@ -461,7 +471,7 @@
 
   })();
 
-  facet.canvas = function(driver) {
+  facet.visualize = function(driver) {
     return new FacetJob(driver);
   };
 
@@ -491,45 +501,47 @@
         return [b, b + size];
       };
     },
-    timeSecond: function(attribute) {
-      return function(d) {
-        var de, ds;
-        ds = new Date(d[attribute]);
-        ds.setUTCMilliseconds(0);
-        de = new Date(ds);
-        de.setUTCMilliseconds(1000);
-        return [ds, de];
-      };
-    },
-    timeMinute: function(attribute) {
-      return function(d) {
-        var de, ds;
-        ds = new Date(d[attribute]);
-        ds.setUTCSeconds(0, 0);
-        de = new Date(ds);
-        de.setUTCSeconds(60);
-        return [ds, de];
-      };
-    },
-    timeHour: function(attribute) {
-      return function(d) {
-        var de, ds;
-        ds = new Date(d[attribute]);
-        ds.setUTCMinutes(0, 0, 0);
-        de = new Date(ds);
-        de.setUTCMinutes(60);
-        return [ds, de];
-      };
-    },
-    timeDay: function(attribute) {
-      return function(d) {
-        var de, ds;
-        ds = new Date(d[attribute]);
-        ds.setUTCHours(0, 0, 0, 0);
-        de = new Date(ds);
-        de.setUTCHours(24);
-        return [ds, de];
-      };
+    time: function(_arg) {
+      var attribute, duration;
+      attribute = _arg.attribute, duration = _arg.duration;
+      switch (duration) {
+        case 'second':
+          return function(d) {
+            var de, ds;
+            ds = new Date(d[attribute]);
+            ds.setUTCMilliseconds(0);
+            de = new Date(ds);
+            de.setUTCMilliseconds(1000);
+            return [ds, de];
+          };
+        case 'minute':
+          return function(d) {
+            var de, ds;
+            ds = new Date(d[attribute]);
+            ds.setUTCSeconds(0, 0);
+            de = new Date(ds);
+            de.setUTCSeconds(60);
+            return [ds, de];
+          };
+        case 'hour':
+          return function(d) {
+            var de, ds;
+            ds = new Date(d[attribute]);
+            ds.setUTCMinutes(0, 0, 0);
+            de = new Date(ds);
+            de.setUTCMinutes(60);
+            return [ds, de];
+          };
+        case 'day':
+          return function(d) {
+            var de, ds;
+            ds = new Date(d[attribute]);
+            ds.setUTCHours(0, 0, 0, 0);
+            de = new Date(ds);
+            de.setUTCHours(24);
+            return [ds, de];
+          };
+      }
     }
   };
 

@@ -47,46 +47,24 @@ window.facet = facet = {}
 
 facet.split = {
   natural: (attribute) -> {
-    bucket: 'natural'
-    attribute
-  }
+      bucket: 'natural'
+      attribute
+    }
 
   even: (attribute, size, offset) -> {
-    bucket: 'even'
-    attribute
-    size
-    offset
-  }
+      bucket: 'even'
+      attribute
+      size
+      offset
+    }
 
-  # time: {
-  #   second: (attribute) -> (d) ->
-  #     ds = new Date(d[attribute])
-  #     ds.setUTCMilliseconds(0)
-  #     de = new Date(ds)
-  #     de.setUTCMilliseconds(1000)
-  #     return [ds, de]
-
-  #   minute: (attribute) -> (d) ->
-  #     ds = new Date(d[attribute])
-  #     ds.setUTCSeconds(0, 0)
-  #     de = new Date(ds)
-  #     de.setUTCSeconds(60)
-  #     return [ds, de]
-
-  #   hour: (attribute) -> (d) ->
-  #     ds = new Date(d[attribute])
-  #     ds.setUTCMinutes(0, 0, 0)
-  #     de = new Date(ds)
-  #     de.setUTCMinutes(60)
-  #     return [ds, de]
-
-  #   day: (attribute) -> (d) ->
-  #     ds = new Date(d[attribute])
-  #     ds.setUTCHours(0, 0, 0, 0)
-  #     de = new Date(ds)
-  #     de.setUTCHours(24)
-  #     return [ds, de]
-  # }
+  time: (attribute, duration) ->
+    throw new Error("Invalid duration '#{duration}'") unless duration in ['second', 'minute', 'hour', 'day']
+    return {
+      bucket: 'time'
+      attribute
+      duration
+    }
 }
 
 # =============================================================
@@ -401,8 +379,7 @@ class FacetJob
     return this
 
 
-facet.canvas = (driver) ->
-  return new FacetJob(driver)
+facet.visualize = (driver) -> new FacetJob(driver)
 
 # Initialize drivers container
 facet.driver = {}

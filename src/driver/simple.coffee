@@ -9,33 +9,39 @@ splitFns = {
     b = Math.floor((d[attribute] + offset) / size) * size
     return [b, b + size]
 
-  timeSecond: (attribute) -> (d) ->
-    ds = new Date(d[attribute])
-    ds.setUTCMilliseconds(0)
-    de = new Date(ds)
-    de.setUTCMilliseconds(1000)
-    return [ds, de]
+  time: ({attribute, duration}) ->
+    switch duration
+      when 'second'
+        return (d) ->
+          ds = new Date(d[attribute])
+          ds.setUTCMilliseconds(0)
+          de = new Date(ds)
+          de.setUTCMilliseconds(1000)
+          return [ds, de]
 
-  timeMinute: (attribute) -> (d) ->
-    ds = new Date(d[attribute])
-    ds.setUTCSeconds(0, 0)
-    de = new Date(ds)
-    de.setUTCSeconds(60)
-    return [ds, de]
+      when 'minute'
+        return (d) ->
+          ds = new Date(d[attribute])
+          ds.setUTCSeconds(0, 0)
+          de = new Date(ds)
+          de.setUTCSeconds(60)
+          return [ds, de]
 
-  timeHour: (attribute) -> (d) ->
-    ds = new Date(d[attribute])
-    ds.setUTCMinutes(0, 0, 0)
-    de = new Date(ds)
-    de.setUTCMinutes(60)
-    return [ds, de]
+      when 'hour'
+        return (d) ->
+          ds = new Date(d[attribute])
+          ds.setUTCMinutes(0, 0, 0)
+          de = new Date(ds)
+          de.setUTCMinutes(60)
+          return [ds, de]
 
-  timeDay: (attribute) -> (d) ->
-    ds = new Date(d[attribute])
-    ds.setUTCHours(0, 0, 0, 0)
-    de = new Date(ds)
-    de.setUTCHours(24)
-    return [ds, de]
+      when 'day'
+        return (d) ->
+          ds = new Date(d[attribute])
+          ds.setUTCHours(0, 0, 0, 0)
+          de = new Date(ds)
+          de.setUTCHours(24)
+          return [ds, de]
 }
 
 applyFns = {

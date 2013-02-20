@@ -40,20 +40,20 @@
         });
       })();
 
-      var query = [
-        { operation: 'apply', prop: 'SumScoreA', aggregate: 'sum', attribute: 'scoreA' },
-        { operation: 'split', prop: 'Letter', bucket: 'natural', attribute: 'letter' },
-        { operation: 'apply', prop: 'SumScoreA', aggregate: 'sum', attribute: 'scoreA' }
-      ];
-      var simpleDriver = facet.driver.simple(data1);
-      simpleDriver(query, function(err, res) {
-        if (err) {
-          console.log("ERROR");
-          throw err;
-        }
+      // var query = [
+      //   { operation: 'apply', prop: 'SumScoreA', aggregate: 'sum', attribute: 'scoreA' },
+      //   { operation: 'split', prop: 'Letter', bucket: 'natural', attribute: 'letter' },
+      //   { operation: 'apply', prop: 'SumScoreA', aggregate: 'sum', attribute: 'scoreA' }
+      // ];
+      // var simpleDriver = facet.driver.simple(data1);
+      // simpleDriver(query, function(err, res) {
+      //   if (err) {
+      //     console.log("ERROR");
+      //     throw err;
+      //   }
 
-        console.log(res);
-      });
+      //   console.log(res);
+      // });
 
       var split = facet.split;
       var apply = facet.apply;
@@ -63,7 +63,14 @@
       var sort = facet.sort;
       var stage = facet.stage;
 
-      var rect1 = facet.visualize(simpleDriver)
+      //var driver = simpleDriver;
+      var driver = facet.ajaxPostDriver({
+        url: '/driver/simple',
+        context: { data: 'data1' },
+        prety: true
+      });
+
+      var rect1 = facet.visualize(driver)
         .split('Letter', split.natural('letter'))
         .apply('avgScoreA', apply.average('scoreA'))
         .layout(layout.vertical({ size: prop('avgScoreA'), gap: 5 }))
@@ -77,6 +84,15 @@
           // .render('.cont', 800, 600)
 
 
+      // facet.ajaxPostDriver({
+      //   url: '/driver/simple',
+      //   context: { data: 'data1' },
+      //   prety: true
+      // })([
+      //   { operation: 'apply', prop: 'SumScoreA', aggregate: 'sum', attribute: 'scoreA' },
+      //   { operation: 'split', prop: 'Letter', bucket: 'natural', attribute: 'letter' },
+      //   { operation: 'apply', prop: 'SumScoreA', aggregate: 'sum', attribute: 'scoreA' }
+      // ])
     </script>
   </body>
 </html>

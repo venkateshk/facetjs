@@ -2,6 +2,8 @@
 
 flatten = (ar) -> Array::concat.apply([], ar)
 
+# ===================================
+
 splitFns = {
   natural: ({attribute}) -> (d) -> d[attribute]
 
@@ -45,15 +47,28 @@ splitFns = {
 }
 
 applyFns = {
-  count: -> (ds) -> ds.length
+  count: -> (ds) ->
+    return ds.length
 
-  sum: ({attribute}) -> (ds) -> d3.sum(ds, (d) -> d[attribute])
+  sum: ({attribute}) -> (ds) ->
+    sum = 0
+    sum += d[attribute] for d in ds
+    return sum
 
-  average: ({attribute}) -> (ds) -> d3.sum(ds, (d) -> d[attribute]) / ds.length
+  average: ({attribute}) -> (ds) ->
+    sum = 0
+    sum += d[attribute] for d in ds
+    return sum / ds.length
 
-  min: ({attribute}) -> (ds) -> d3.min(ds, (d) -> d[attribute])
+  min: ({attribute}) -> (ds) ->
+    min = +Infinity
+    min = Math.min(min, d[attribute]) for d in ds
+    return min
 
-  max: ({attribute}) -> (ds) -> d3.max(ds, (d) -> d[attribute])
+  max: ({attribute}) -> (ds) ->
+    max = -Infinity
+    max = Math.max(max, d[attribute]) for d in ds
+    return max
 
   unique: ({attribute}) -> (ds) ->
     seen = {}
@@ -66,17 +81,25 @@ applyFns = {
     return count
 }
 
+
+ascending = (a, b) ->
+  return if a < b then -1 else if a > b then 1 else if a >= b then 0 else NaN
+
+descending = (a, b) ->
+  return if b < a then -1 else if b > a then 1 else if b >= a then 0 else NaN
+
+
 sortFns = {
   natural: ({prop, direction}) ->
     direction = direction.toUpperCase()
     throw "direction has to be 'ASC' or 'DESC'" unless direction is 'ASC' or direction is 'DESC'
-    cmpFn = if direction is 'ASC' then d3.ascending else d3.descending
+    cmpFn = if direction is 'ASC' then ascending else descending
     return (a, b) -> cmpFn(a.prop[prop], b.prop[prop])
 
   caseInsensetive: ({prop, direction}) ->
     direction = direction.toUpperCase()
     throw "direction has to be 'ASC' or 'DESC'" unless direction is 'ASC' or direction is 'DESC'
-    cmpFn = if direction is 'ASC' then d3.ascending else d3.descending
+    cmpFn = if direction is 'ASC' then ascending else descending
     return (a, b) -> cmpFn(String(a.prop[prop]).toLowerCase(), String(b.prop[prop]).toLowerCase())
 }
 
@@ -101,6 +124,7 @@ simpleDriver = (data, query) ->
           bucketValue = {}
           for d in segment.raw
             key = splitFn(d)
+            throw new Error("Bucket returned undefined") unless key?
             if not buckets[key]
               keys.push(key)
               buckets[key] = []
@@ -165,6 +189,6 @@ simple = (data) -> (query, callback) ->
 if facet?.driver?
   facet.driver.simple = simple
 
-if exports
-  exports = simple
+if typeof module isnt 'undefined' and typeof exports isnt 'undefined'
+  module.exports = simple
 

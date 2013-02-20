@@ -383,3 +383,19 @@ facet.visualize = (driver) -> new FacetJob(driver)
 
 # Initialize drivers container
 facet.driver = {}
+
+facet.ajaxPostDriver = ({url, context, prety}) -> (query, callback) ->
+  callback ?= ->
+  return $.ajax({
+    url
+    type: 'POST'
+    dataType: 'json'
+    contentType: 'application/json'
+    data: JSON.stringify({ context, query }, null, if prety then 2 else null)
+    success: (res) ->
+      callback(null, res)
+      return
+    error: (err) ->
+      callback(err, null)
+      return
+  })

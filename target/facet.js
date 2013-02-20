@@ -477,4 +477,30 @@
 
   facet.driver = {};
 
+  facet.ajaxPostDriver = function(_arg) {
+    var context, prety, url;
+    url = _arg.url, context = _arg.context, prety = _arg.prety;
+    return function(query, callback) {
+      if (callback == null) {
+        callback = function() {};
+      }
+      return $.ajax({
+        url: url,
+        type: 'POST',
+        dataType: 'json',
+        contentType: 'application/json',
+        data: JSON.stringify({
+          context: context,
+          query: query
+        }, null, prety ? 2 : null),
+        success: function(res) {
+          callback(null, res);
+        },
+        error: function(err) {
+          callback(err, null);
+        }
+      });
+    };
+  };
+
 }).call(this);

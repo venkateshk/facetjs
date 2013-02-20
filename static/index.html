@@ -110,11 +110,19 @@
         { operation: 'apply', prop: 'Edits', aggregate: 'count' },
         { operation: 'combine', sort: { prop: 'Edits', compare: 'natural', direction: 'DESC' }, limit: 4 },
       ];
-      var druidDriver = facet.driver.druid({
-        requester: druidRequester,
-        dataSource: "wikipedia_editstream",
-        interval: [new Date(Date.UTC(2013, 2-1, 14, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 20, 0, 0, 0))],
-        filters: null
+      // var druidDriver = facet.driver.druid({
+      //   requester: druidRequester,
+      //   dataSource: "wikipedia_editstream",
+      //   interval: [new Date(Date.UTC(2013, 2-1, 14, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 20, 0, 0, 0))],
+      //   filters: null
+      // })(druidQ, function(err, result) {
+      //   console.log('got', err, result);
+      // })
+
+      facet.ajaxPostDriver({
+        url: '/driver/druid',
+        context: { data: 'data1' },
+        prety: true
       })(druidQ, function(err, result) {
         console.log('got', err, result);
       })

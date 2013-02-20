@@ -1,3 +1,5 @@
+async = require('async') if typeof require isnt 'undefined'
+
 # Utils
 
 flatten = (ar) -> Array::concat.apply([], ar)

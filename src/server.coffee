@@ -2,6 +2,7 @@ express = require('express')
 http = require('http')
 
 simpleDriver = require('./simple.js')
+druidDriver = require('./druid.js')
 
 
 druidPost = ({host, port, path}) -> (druidQuery, callback) ->
@@ -84,16 +85,17 @@ app.get '/', (req, res) ->
   res.send('Welcome to facet')
   return
 
+respondWithResult = (res) -> (err, result) ->
+  if err
+    res.json(500, err)
+    return
+  res.json(result)
+  return
+
 # Simple
 app.post '/driver/simple', (req, res) ->
   { context, query } = req.body
-  simpleDriver(data[context.data])(query, (err, result) ->
-    if err
-      res.json(500, err)
-      return
-
-    res.json(result)
-  )
+  simpleDriver(data[context.data])(query, respondWithResult(res))
   return
 
 # SQL
@@ -102,6 +104,7 @@ app.post '/pass/sql', (req, res) ->
   return
 
 app.post '/driver/sql', (req, res) ->
+  { context, query } = req.body
 
   return
 
@@ -113,17 +116,17 @@ druidPass = druidPost({
 })
 app.post '/pass/druid', (req, res) ->
   { context, query } = req.body
-  druidPass(query, (err, result) ->
-    if err
-      res.json(500, err)
-      return
-
-    res.json(result)
-  )
+  druidPass(query, respondWithResult(res))
   return
 
 app.post '/driver/druid', (req, res) ->
-
+  { context, query } = req.body
+  druidDriver({
+    requester: druidPass
+    dataSource: "wikipedia_editstream"
+    interval: [new Date(Date.UTC(2013, 2-1, 14, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 20, 0, 0, 0))]
+    filters: null
+  })(query, respondWithResult(res))
   return
 
 # Druid notes:

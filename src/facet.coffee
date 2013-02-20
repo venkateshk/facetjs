@@ -16,7 +16,7 @@ flatten = (ar) -> Array::concat.apply([], ar)
 # =============================================================
 
 class Segment
-  constructor: ({ @parent, @data, @node, stage, @prop }) ->
+  constructor: ({ @parent, @node, stage, @prop, @splits }) ->
     throw "invalid stage" unless typeof stage?.type is 'string'
     @_stageStack = [stage]
 
@@ -46,41 +46,47 @@ window.facet = facet = {}
 # A split is a function that takes a row and returns a string-able thing.
 
 facet.split = {
-  natural: (attribute) -> (d) -> d[attribute]
-
-  bucket: (attribute, size, offset) -> (d) ->
-    b = Math.floor((d[attribute] + offset) / size) * size
-    return "#{b};#{b + size}"
-
-  time: {
-    second: (attribute) -> (d) ->
-      ds = new Date(d[attribute])
-      ds.setUTCMilliseconds(0)
-      de = new Date(ds)
-      de.setUTCMilliseconds(1000)
-      return [ds, de]
-
-    minute: (attribute) -> (d) ->
-      ds = new Date(d[attribute])
-      ds.setUTCSeconds(0, 0)
-      de = new Date(ds)
-      de.setUTCSeconds(60)
-      return [ds, de]
-
-    hour: (attribute) -> (d) ->
-      ds = new Date(d[attribute])
-      ds.setUTCMinutes(0, 0, 0)
-      de = new Date(ds)
-      de.setUTCMinutes(60)
-      return [ds, de]
-
-    day: (attribute) -> (d) ->
-      ds = new Date(d[attribute])
-      ds.setUTCHours(0, 0, 0, 0)
-      de = new Date(ds)
-      de.setUTCHours(24)
-      return [ds, de]
+  natural: (attribute) -> {
+    bucket: 'natural'
+    attribute
   }
+
+  even: (attribute, size, offset) -> {
+    bucket: 'even'
+    attribute
+    size
+    offset
+  }
+
+  # time: {
+  #   second: (attribute) -> (d) ->
+  #     ds = new Date(d[attribute])
+  #     ds.setUTCMilliseconds(0)
+  #     de = new Date(ds)
+  #     de.setUTCMilliseconds(1000)
+  #     return [ds, de]
+
+  #   minute: (attribute) -> (d) ->
+  #     ds = new Date(d[attribute])
+  #     ds.setUTCSeconds(0, 0)
+  #     de = new Date(ds)
+  #     de.setUTCSeconds(60)
+  #     return [ds, de]
+
+  #   hour: (attribute) -> (d) ->
+  #     ds = new Date(d[attribute])
+  #     ds.setUTCMinutes(0, 0, 0)
+  #     de = new Date(ds)
+  #     de.setUTCMinutes(60)
+  #     return [ds, de]
+
+  #   day: (attribute) -> (d) ->
+  #     ds = new Date(d[attribute])
+  #     ds.setUTCHours(0, 0, 0, 0)
+  #     de = new Date(ds)
+  #     de.setUTCHours(24)
+  #     return [ds, de]
+  # }
 }
 
 # =============================================================
@@ -88,25 +94,34 @@ facet.split = {
 # An apply is a function that takes an array of rows and returns a number.
 
 facet.apply = {
-  count: -> (ds) -> ds.length
+  count: -> {
+    aggregate: 'count'
+  }
 
-  sum: (attribute) -> (ds) -> d3.sum(ds, (d) -> d[attribute])
+  sum: (attribute) -> {
+    aggregate: 'sum'
+    attribute
+  }
 
-  average: (attribute) -> (ds) -> d3.sum(ds, (d) -> d[attribute]) / ds.length
+  average: (attribute) -> {
+    aggregate: 'sum'
+    attribute
+  }
 
-  min: (attribute) -> (ds) -> d3.min(ds, (d) -> d[attribute])
+  min: (attribute) -> {
+    aggregate: 'min'
+    attribute
+  }
 
-  max: (attribute) -> (ds) -> d3.max(ds, (d) -> d[attribute])
+  max: (attribute) -> {
+    aggregate: 'max'
+    attribute
+  }
 
-  unique: (attribute) -> (ds) ->
-    seen = {}
-    count = 0
-    for d in ds
-      v = d[attribute]
-      if not seen[v]
-        count++
-        seen[v] = 1
-    return count
+  unique: (attribute) -> {
+    aggregate: 'unique'
+    attribute
+  }
 }
 
 # =============================================================
@@ -234,159 +249,160 @@ facet.plot = {
 # SORT
 
 facet.sort = {
-  natural: (attribute, direction = 'ASC') ->
-    direction = direction.toUpperCase()
-    throw "direction has to be 'ASC' or 'DESC'" unless direction is 'ASC' or direction is 'DESC'
-    cmpFn = if direction is 'ASC' then d3.ascending else d3.descending
-    return (a, b) -> cmpFn(a.prop[attribute], b.prop[attribute])
+  natural: (attribute, direction = 'ASC') -> {
+    compare: 'natural'
+    attribute
+    direction
+  }
 
-  caseInsensetive: ->
-    direction = direction.toUpperCase()
-    throw "direction has to be 'ASC' or 'DESC'" unless direction is 'ASC' or direction is 'DESC'
-    cmpFn = if direction is 'ASC' then d3.ascending else d3.descending
-    return (a, b) -> cmpFn(String(a.prop[attribute]).toLowerCase(), String(b.prop[attribute]).toLowerCase())
+  caseInsensetive: (attribute, direction = 'ASC') -> {
+    compare: 'caseInsensetive'
+    attribute
+    direction
+  }
 }
 
 
 # =============================================================
 # main
 
-facetArrayPrototype = []
+class FacetJob
+  constructor: (@driver) ->
+    @ops = []
 
-facetArrayPrototype._eachSegment = (fn) ->
-  for segmentGroup in this
-    for segment in segmentGroup
-      fn(segment)
-  return
+  split: (propName, split) ->
+    split = _.clone(split)
+    split.operation = 'split'
+    split.prop = propName
+    @ops.push(split)
+    return this
 
-facetArrayPrototype.split = (name, split) ->
-  throw new TypeError("Split must be a function") unless typeof split is 'function'
+  layout: (layout) ->
+    throw new TypeError("Layout must be a function") unless typeof layout is 'function'
+    @ops.push({
+      operation: 'layout'
+      layout
+    })
+    return this
 
-  segmentGroup = flatten(this).map (f) ->
-    keys = []
-    bucket = {}
-    bucketValue = {}
-    for d in f.data
-      key = split(d)
-      if not bucket[key]
-        keys.push(key)
-        bucket[key] = []
-        bucketValue[key] = key # Key might not be a string
-      bucket[key].push(d)
+  apply: (propName, apply) ->
+    apply = _.clone(apply)
+    apply.operation = 'apply'
+    apply.prop = propName
+    @ops.push(apply)
+    return this
 
-    return keys.map (key) ->
-      prop = {}
-      prop[name] = bucketValue[key]
-      stage = f.getStage()
-      node = f.node.append('g')
+  combine: ({ filter, sort, limit } = {}) ->
+    combine = {
+      operation: 'combine'
+    }
+    if sort
+      combine.sort = sort
 
-      return new Segment({
-        parent: f
-        data: bucket[key]
-        stage
-        prop
-        node
-      })
+    if limit?
+      combine.limit = limit
 
-  return makeFacetArray(segmentGroup)
+    @ops.push(combine)
+    return this
 
+  stage: (transform) ->
+    throw new TypeError("transform must be a function") unless typeof transform is 'function'
+    @ops.push({
+      operation: 'stage'
+      transform
+    })
+    return this
 
-facetArrayPrototype.layout = (layout) ->
-  throw new TypeError("Layout must be a function") unless typeof layout is 'function'
-
-  for segmentGroup in this
-    parentSegment = segmentGroup[0].parent
-    throw new Error("You must split before calling layout") unless parentSegment
-    layout(parentSegment, segmentGroup)
-
-  return this
-
-
-facetArrayPrototype.apply = (name, apply) ->
-  throw new TypeError("Apply must be a function") unless typeof apply is 'function'
-  @_eachSegment (segment) -> segment.prop[name] = apply(segment.data)
-  return this
+  pop: ->
+    @ops.push({
+      operation: 'pop'
+    })
+    return this
 
 
-facetArrayPrototype.combine = ({ filter, sort, limit } = {}) ->
-  if filter
-    throw new TypeError("filter must be a function") unless typeof filter is 'function'
-    #segmentGroup.sort(sort) for segmentGroup in this
+  plot: (plot) ->
+    throw new TypeError("plot must be a function") unless typeof plot is 'function'
+    @ops.push({
+      operation: 'plot'
+      plot
+    })
+    return this
 
-  if sort
-    throw new TypeError("sort must be a function") unless typeof sort is 'function'
-    segmentGroup.sort(sort) for segmentGroup in this
+  render: (selector, width, height) ->
+    parent = d3.select(selector)
+    throw new Error("could not find the provided selector") if parent.empty()
+    throw new Error("bad size: #{width} x #{height}") unless width and height
 
-  if limit?
-    segmentGroup.splice(limit, segmentGroup.length - limit) for segmentGroup in this
+    operations = @ops
+    query = operations.filter(({operation}) -> operation in ['split', 'apply', 'combine'])
+    @driver query, (err, res) ->
+      if err
+        alert("An error has occurred")
+        throw err
 
-  return this
+      svg = parent.append('svg')
+        .attr('width', width)
+        .attr('height', height)
 
+      segmentGroups = [[new Segment({
+        parent: null
+        node: svg
+        stage: { type: 'rectangle', width, height }
+        prop: res.prop
+        splits: res.splits
+      })]]
 
-facetArrayPrototype.stage = (transform) ->
-  @_eachSegment transform
-  return this
+      for cmd in operations
+        switch cmd.operation
+          when 'split'
+            segmentGroups = flatten(segmentGroups).map((segment) ->
+              return segment.splits.map (sp) ->
+                return new Segment({
+                  parent: segment
+                  node: segment.node.append('g')
+                  stage: segment.getStage()
+                  prop: sp.prop
+                  splits: sp.splits
+                })
+            )
 
+          when 'apply', 'combine'
+            null # Do nothing, there is nothing to do on the client for those two :-)
 
-facetArrayPrototype.pop = ->
-  @_eachSegment (segment) -> segment.popStage()
-  return this
+          when 'layout'
+            { layout } = cmd
+            for segmentGroup in segmentGroups
+              parentSegment = segmentGroup[0].parent
+              throw new Error("You must split before calling layout") unless parentSegment
+              layout(parentSegment, segmentGroup)
 
+          when 'stage'
+            { transform } = cmd
+            for segmentGroup in segmentGroups
+              for segment in segmentGroup
+                transform(segment)
 
-facetArrayPrototype.plot = (plot) ->
-  @_eachSegment plot
-  return this
+          when 'pop'
+            for segmentGroup in segmentGroups
+              for segment in segmentGroup
+                segment.popStage()
 
+          when 'plot'
+            { plot } = cmd
+            for segmentGroup in segmentGroups
+              for segment in segmentGroup
+                plot(segment)
 
-facetArrayPrototype.render = ->
-  return this
+          else
+            throw new Error("Unknown operation '#{cmd.operation}'")
 
+      return
 
-
-makeFacetArray = (arr) -> arraySubclass(arr, facetArrayPrototype)
-
-facet.canvas = (selector, width, height, data) ->
-  svg = d3.select(selector)
-    .append('svg')
-    .attr('width', width)
-    .attr('height', height)
-
-  return makeFacetArray([[new Segment({
-    parent: null
-    data: data
-    node: svg
-    stage: { type: 'rectangle', width, height }
-    prop: {}
-  })]])
-
-
-# =============================================================
-# =============================================================
-
-facet.driver = {
-  simple: (data) -> (query, callback) ->
-
-    # keys = []
-    # bucket = {}
-    # bucketValue = {}
-    # for d in f.data
-    #   key = split(d)
-    #   if not bucket[key]
-    #     keys.push(key)
-    #     bucket[key] = []
-    #     bucketValue[key] = key # Key might not be a string
-    #   bucket[key].push(d)
-    return
-}
-
-
-
-
-
-
-
-
+    return this
 
 
+facet.canvas = (driver) ->
+  return new FacetJob(driver)
 
-
+# Initialize drivers container
+facet.driver = {}

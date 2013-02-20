@@ -36,6 +36,21 @@
         });
       })();
 
+      var query = [
+        { operation: 'apply', prop: 'SumScoreA', aggregate: 'sum', attribute: 'scoreA' },
+        { operation: 'split', prop: 'Letter', bucket: 'natural', attribute: 'letter' },
+        { operation: 'apply', prop: 'SumScoreA', aggregate: 'sum', attribute: 'scoreA' }
+      ];
+      var simpleDriver = facet.driver.simple(data1);
+      simpleDriver(query, function(err, res) {
+        if (err) {
+          console.log("ERROR");
+          throw err;
+        }
+
+        console.log(res);
+      });
+
       var split = facet.split;
       var apply = facet.apply;
       var layout = facet.layout;
@@ -44,13 +59,13 @@
       var sort = facet.sort;
       var stage = facet.stage;
 
-      var rect1 = facet.canvas('.cont', 800, 600, data1)
+      var rect1 = facet.canvas(simpleDriver)
         .split('Letter', split.natural('letter'))
         .apply('avgScoreA', apply.average('scoreA'))
         .layout(layout.vertical({ size: prop('avgScoreA'), gap: 5 }))
         .plot(plot.rect({ color: 'none' }))
         .stage(stage.rectToPoint(0.5, 0.5)).plot(plot.text({ text: prop('Letter'), color: 'green' }))
-        .render()
+        .render('.cont', 800, 600)
           // .split('Time', split.time.minute('time'))
           // .layout(layout.horizontal({ gap: 2 }))
           // .plot(plot.rect({ color: '#ccccff' }))

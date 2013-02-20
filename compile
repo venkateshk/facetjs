@@ -1,2 +1,2 @@
 #!/bin/bash
-coffee --compile facet.coffee
+coffee --compile --join facet.js src/facet.coffee src/driver/*

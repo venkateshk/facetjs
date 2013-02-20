@@ -395,7 +395,7 @@ facet.ajaxPostDriver = ({url, context, prety}) -> (query, callback) ->
     success: (res) ->
       callback(null, res)
       return
-    error: (err) ->
-      callback(err, null)
+    error: (xhr) ->
+      callback(xhr.responseText, null)
       return
   })

@@ -7,6 +7,7 @@
     <link rel="stylesheet/less" type="text/css" href="facet.less">
     <script src="lib/less-1.3.0.min.js"></script>
     <script src="http://underscorejs.org/underscore-min.js"></script>
+    <script src="lib/async.js"></script>
     <script src="lib/d3.js"></script>
     <script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
     <script src="facet.js"></script>
@@ -45,7 +46,7 @@
       //   { operation: 'split', prop: 'Letter', bucket: 'natural', attribute: 'letter' },
       //   { operation: 'apply', prop: 'SumScoreA', aggregate: 'sum', attribute: 'scoreA' }
       // ];
-      // var simpleDriver = facet.driver.simple(data1);
+      var simpleDriver = facet.driver.simple(data1);
       // simpleDriver(query, function(err, res) {
       //   if (err) {
       //     console.log("ERROR");
@@ -63,12 +64,12 @@
       var sort = facet.sort;
       var stage = facet.stage;
 
-      //var driver = simpleDriver;
-      var driver = facet.ajaxPostDriver({
-        url: '/driver/simple',
-        context: { data: 'data1' },
-        prety: true
-      });
+      var driver = simpleDriver;
+      // var driver = facet.ajaxPostDriver({
+      //   url: '/driver/simple',
+      //   context: { data: 'data1' },
+      //   prety: true
+      // });
 
       var rect1 = facet.visualize(driver)
         .split('Letter', split.natural('letter'))
@@ -84,12 +85,33 @@
           // .render('.cont', 800, 600)
 
 
-      q = {"intervals":["2013-02-04T00:00:00.000/2013-02-24T00:00:00.000"],"aggregations":[{"type":"doubleSum","name":"count","fieldName":"count"},{"type":"hyperUnique","name":"uniques","fieldName":"unique_users"},{"type":"doubleSum","name":"delta","fieldName":"delta"},{"type":"doubleSum","name":"added","fieldName":"added"},{"type":"doubleSum","name":"deleted","fieldName":"deleted"}],"postAggregations":[{"type":"arithmetic","name":"variation","fn":"-","fields":[{"type":"fieldAccess","name":"added","fieldName":"added"},{"type":"fieldAccess","name":"deleted","fieldName":"deleted"}]},{"type":"arithmetic","name":"average_variation","fn":"/","fields":[{"type":"fieldAccess","name":"variation","fieldName":"variation"},{"type":"fieldAccess","name":"count","fieldName":"count"}]}],"dataSource":"wikipedia_editstream","granularity":"hour","queryType":"timeseries"}
+      // q = {"intervals":["2013-02-04T00:00:00.000/2013-02-24T00:00:00.000"],"aggregations":[{"type":"doubleSum","name":"count","fieldName":"count"},{"type":"hyperUnique","name":"uniques","fieldName":"unique_users"},{"type":"doubleSum","name":"delta","fieldName":"delta"},{"type":"doubleSum","name":"added","fieldName":"added"},{"type":"doubleSum","name":"deleted","fieldName":"deleted"}],"postAggregations":[{"type":"arithmetic","name":"variation","fn":"-","fields":[{"type":"fieldAccess","name":"added","fieldName":"added"},{"type":"fieldAccess","name":"deleted","fieldName":"deleted"}]},{"type":"arithmetic","name":"average_variation","fn":"/","fields":[{"type":"fieldAccess","name":"variation","fieldName":"variation"},{"type":"fieldAccess","name":"count","fieldName":"count"}]}],"dataSource":"wikipedia_editstream","granularity":"hour","queryType":"timeseries"}
 
-      facet.ajaxPostDriver({
+      // facet.ajaxPostDriver({
+      //   url: '/pass/druid',
+      //   prety: true
+      // })(q)
+
+      var druidRequester = facet.ajaxPostDriver({
         url: '/pass/druid',
         prety: true
-      })(q)
+      })
+
+      var druidQ = [
+        { operation: 'apply', prop: 'Edits', aggregate: 'count' },
+        { operation: 'split', prop: 'PageType', bucket: 'natural', attribute: 'namespace' },
+        { operation: 'apply', prop: 'Edits', aggregate: 'count' },
+        { operation: 'combine', sort: { prop: 'Edits', compare: 'natural', direction: 'DESC' }, limit: 12 }
+      ];
+      var druidDriver = facet.driver.druid({
+        requester: druidRequester,
+        dataSource: "wikipedia_editstream",
+        start: new Date(Date.UTC(2013, 2-1, 14, 0, 0, 0)),
+        end:   new Date(Date.UTC(2013, 2-1, 20, 0, 0, 0)),
+        filters: null
+      })(druidQ, function(err, result) {
+        console.log('got', err, result);
+      })
     </script>
   </body>
 </html>

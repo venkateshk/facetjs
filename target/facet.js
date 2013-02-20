@@ -496,8 +496,8 @@
         success: function(res) {
           callback(null, res);
         },
-        error: function(err) {
-          callback(err, null);
+        error: function(xhr) {
+          callback(xhr.responseText, null);
         }
       });
     };

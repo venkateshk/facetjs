@@ -19,11 +19,11 @@ condenseQuery = (query) ->
     applies: []
     combine: null
   }
-  condenseted = []
+  condensed = []
   for cmd in query
     switch cmd.operation
       when 'split'
-        condenseted.push(curQuery)
+        condensed.push(curQuery)
         curQuery = {
           split: cmd
           applies: []
@@ -40,11 +40,30 @@ condenseQuery = (query) ->
       else
         throw new Error("Unknown operation '#{cmd.operation}'")
 
-  condenseted.push(curQuery)
-  return condenseted
+  condensed.push(curQuery)
+  return condensed
 
+makeFilter = (attribute, value) ->
+  return {
+    type: 'selector'
+    dimension: attribute
+    value: value
+  }
 
-condensedQueryToDruid = ({requester, dataSource, intervals, filters, condensedQuery}, callback) ->
+andFilters = (filters...) ->
+  filters = filters.filter((filter) -> filter?)
+  switch filters.length
+    when 0
+      return null
+    when 1
+      return filters[0]
+    else
+      return {
+        type: 'and'
+        fields: filters
+      }
+
+condensedQueryToDruid = ({requester, dataSource, interval, filters, condensedQuery}, callback) ->
   findApply = (applies, propName) ->
     for apply in applies
       return apply if apply.prop is propName
@@ -55,18 +74,23 @@ condensedQueryToDruid = ({requester, dataSource, intervals, filters, condensedQu
       return apply if apply.aggregate is 'count'
     return
 
+  toDruidInterval = (interval) ->
+    return interval[0].toISOString().replace('Z', '') + '/' + interval[1].toISOString().replace('Z', '')
+
+  if interval?.length isnt 2
+    callback("Must have valid interval [start, end]"); return
+
   if condensedQuery.applies.length is 0
     # Nothing to do as we are not calculating anything (not true, fix this)
-    callback(null, {})
-    return
+    callback(null, {}); return
 
   druidQuery = {
     dataSource
-    intervals
+    intervals: [toDruidInterval(interval)]
   }
 
   if filters
-    druidQuery.filters = filters
+    druidQuery.filter = filters
 
   # split + combine
   if condensedQuery.split
@@ -83,6 +107,8 @@ condensedQueryToDruid = ({requester, dataSource, intervals, filters, condensedQu
             callback("split must have an attribute"); return
           if not condensedQuery.split.prop
             callback("split must have a prop"); return
+          if condensedQuery.combine.sort.direction isnt 'DESC'
+            callback("sort direction must be DESC for now"); return
 
           druidQuery.queryType = "topN"
           druidQuery.granularity = "all"
@@ -126,9 +152,8 @@ condensedQueryToDruid = ({requester, dataSource, intervals, filters, condensedQu
         when 'count'
           countPropName = apply.prop
           druidQuery.aggregations.push {
-            type: "doubleSum"
+            type: "count"
             name: apply.prop
-            fieldName: 'count'
           }
 
         when 'sum'
@@ -139,6 +164,8 @@ condensedQueryToDruid = ({requester, dataSource, intervals, filters, condensedQu
           }
 
         when 'average'
+          callback("not implemented correctly yet")
+          return
           druidQuery.aggregations.push {
             type: "doubleSum"
             name: apply.prop
@@ -161,10 +188,21 @@ condensedQueryToDruid = ({requester, dataSource, intervals, filters, condensedQu
           if ds.length isnt 1
             callback("something went wrong")
             return
-          result = ds[0].result
+          filterAttribute = condensedQuery.split.attribute
+          filterValueProp = condensedQuery.split.prop
+          splits = ds[0].result.map (prop) -> {
+            prop
+            _interval: interval
+            _filters: andFilters(filters, makeFilter(filterAttribute, prop[filterValueProp]))
+          }
 
         when 'time'
-          result = { "not": "implemented yet" }
+          # expand time into an interval
+          splits = [{
+            prop: { "not": "implemented yet" }
+            _interval: interval # wrong
+            _filters: filters
+          }]
 
         else
           callback("Unsupported bucketing '#{condensedQuery.split.bucket}' in split post process")
@@ -173,18 +211,19 @@ condensedQueryToDruid = ({requester, dataSource, intervals, filters, condensedQu
       if ds.length isnt 1
         callback("something went wrong")
         return
-      result = ds.map((d) -> d.result)
+      splits = [{
+        prop: ds[0].result
+        _interval: interval
+        _filters: filters
+      }]
 
-    callback(null, result)
+    callback(null, splits)
     return
   return
 
 
-druid = ({requester, dataSource, start, end, filters}) -> (query, callback) ->
+druid = ({requester, dataSource, interval, filters}) -> (query, callback) ->
   condensedQuery = condenseQuery(query)
-  start = start.toISOString().replace('Z', '')
-  end = end.toISOString().replace('Z', '')
-  intervals = ["#{start}/#{end}"]
 
   rootSegemnt = null
   segments = [rootSegemnt]
@@ -199,17 +238,18 @@ druid = ({requester, dataSource, start, end, filters}) -> (query, callback) ->
         condensedQueryToDruid({
           requester
           dataSource
-          intervals
-          filters: null # todo
+          interval: if parentSegment then parentSegment._interval else interval
+          filters: if parentSegment then parentSegment._filters else filters
           condensedQuery: condensed
-        }, (err, props) ->
+        }, (err, splits) ->
           if err
             done(err)
             return
           # Make the results into segments and build the tree
-          splits = props.map((prop) -> { prop })
           if parentSegment
             parentSegment.splits = splits
+            delete parentSegment._interval
+            delete parentSegment._filters
           else
             rootSegemnt = splits[0]
           done(null, splits)
@@ -237,6 +277,10 @@ druid = ({requester, dataSource, start, end, filters}) -> (query, callback) ->
       if err
         callback(err)
         return
+      # Clean up the last segments
+      for segment in segments
+        delete segment._interval
+        delete segment._filters
       callback(null, rootSegemnt)
       return
   )

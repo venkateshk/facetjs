@@ -103,11 +103,33 @@ facet.apply = {
 }
 
 # =============================================================
-# PROP
-# Extracts the property from a segment
+# USE
+# Extracts the property and other things from a segment
 
-facet.prop = (propName) -> (segment) ->
-  return segment.prop[propName]
+getProp = (segment, propName) ->
+  if not segment
+    throw new Error("No such prop name '#{propName}'")
+  return segment.prop[propName] ? getProp(segment.parent, propName)
+
+facet.use = {
+  prop: (propName) -> (segment) ->
+    return getProp(segment, propName)
+
+  literal: (value) -> () ->
+    return value
+
+  fn: (args..., fn) -> (segment) ->
+    throw new TypeError("second argument must be a function") unless typeof fn is 'function'
+    return fn.apply(this, args.map((arg) -> arg(segment)))
+
+  scale: {
+    color: (propName) ->
+      s = d3.scale.category10()
+      return (segment) ->
+        v = getProp(segment, propName)
+        return s(v)
+  }
+}
 
 # =============================================================
 # LAYOUT
@@ -202,35 +224,44 @@ facet.stage = {
 # Arguments* -> Segment -> void
 
 facet.plot = {
-  rect: ({ color }) -> (segment) ->
+  rect: ({stroke, fill}) -> (segment) ->
     stage = segment.getStage()
     throw new Error("Must have a rectangle stage (is #{stage.type})") unless stage.type is 'rectangle'
     segment.node.append('rect').datum(segment)
       .attr('width', stage.width)
       .attr('height', stage.height)
-      .style('fill', color)
-      .style('stroke', 'black')
+      .style('fill', fill)
+      .style('stroke', stroke)
     return
 
-  text: ({ color, text }) -> (segment) ->
+  text: ({color, text, anchor, baseline}) -> (segment) ->
     stage = segment.getStage()
     throw new Error("Must have a point stage (is #{stage.type})") unless stage.type is 'point'
-    segment.node.append('text').datum(segment)
+    node = segment.node.append('text').datum(segment)
       .attr('x', stage.x)
       .attr('y', stage.y)
-      .attr('dy', '.71em')
+
+    if typeof baseline is 'function'
+      node.attr('dy', (segment) ->
+        bv = baseline.call(this, segment)
+        return if bv is 'top' then '.71em' else if bv is 'center' then '.35em' else null
+      )
+
+    node
       .style('fill', color)
+      .style('text-anchor', anchor)
       .text(text)
     return
 
-  circle: ({ color }) -> (segment) ->
+  circle: ({stroke, fill}) -> (segment) ->
     stage = segment.getStage()
     throw new Error("Must have a point stage (is #{stage.type})") unless stage.type is 'point'
     segment.node.append('text').datum(segment)
       .attr('cx', stage.x)
       .attr('cy', stage.y)
       .attr('dy', '.71em')
-      .style('fill', color)
+      .style('fill', fill)
+      .style('stroke', stroke)
       .text(text)
     return
 }
@@ -320,14 +351,16 @@ class FacetJob
     })
     return this
 
+  getQuery: ->
+    return @ops.filter(({operation}) -> operation in ['split', 'apply', 'combine'])
+
   render: (selector, width, height) ->
     parent = d3.select(selector)
     throw new Error("could not find the provided selector") if parent.empty()
     throw new Error("bad size: #{width} x #{height}") unless width and height
 
     operations = @ops
-    query = operations.filter(({operation}) -> operation in ['split', 'apply', 'combine'])
-    @driver query, (err, res) ->
+    @driver @getQuery(), (err, res) ->
       if err
         alert("An error has occurred: " + err.message)
         return

@@ -71,7 +71,10 @@ condensedQueryToSQL = ({requester, table, filters, condensedQuery}, callback) ->
 
   if condensedQuery.applies.length is 0
     # Nothing to do as we are not calculating anything (not true, fix this)
-    callback(null, {}); return
+    callback(null, [{
+      prop: {}
+    }])
+    return
 
   selectParts = []
   groupByPart = null
@@ -176,8 +179,8 @@ condensedQueryToSQL = ({requester, table, filters, condensedQuery}, callback) ->
 sql = ({requester, table, filters}) -> (query, callback) ->
   condensedQuery = condenseQuery(query)
 
-  rootSegemnt = null
-  segments = [rootSegemnt]
+  rootSegment = null
+  segments = [rootSegment]
 
   querySQL = (condensed, done) ->
     # do the query in parallel
@@ -200,7 +203,7 @@ sql = ({requester, table, filters}) -> (query, callback) ->
             parentSegment.splits = splits
             delete parentSegment._filters
           else
-            rootSegemnt = splits[0]
+            rootSegment = splits[0]
           done(null, splits)
           return
         )
@@ -229,7 +232,8 @@ sql = ({requester, table, filters}) -> (query, callback) ->
       # Clean up the last segments
       for segment in segments
         delete segment._filters
-      callback(null, rootSegemnt)
+
+      callback(null, rootSegment)
       return
   )
 

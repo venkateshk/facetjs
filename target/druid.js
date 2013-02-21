@@ -101,7 +101,11 @@
       return;
     }
     if (condensedQuery.applies.length === 0) {
-      callback(null, {});
+      callback(null, [
+        {
+          prop: {}
+        }
+      ]);
       return;
     }
     druidQuery = {
@@ -285,10 +289,10 @@
     var dataSource, filters, interval, requester;
     requester = _arg.requester, dataSource = _arg.dataSource, interval = _arg.interval, filters = _arg.filters;
     return function(query, callback) {
-      var cmdIndex, condensedQuery, queryDruid, rootSegemnt, segments;
+      var cmdIndex, condensedQuery, queryDruid, rootSegment, segments;
       condensedQuery = condenseQuery(query);
-      rootSegemnt = null;
-      segments = [rootSegemnt];
+      rootSegment = null;
+      segments = [rootSegment];
       queryDruid = function(condensed, done) {
         var QUERY_LIMIT, queryFns;
         QUERY_LIMIT = 10;
@@ -309,7 +313,7 @@
               delete parentSegment._interval;
               delete parentSegment._filters;
             } else {
-              rootSegemnt = splits[0];
+              rootSegment = splits[0];
             }
             done(null, splits);
           });
@@ -341,7 +345,7 @@
           delete segment._interval;
           delete segment._filters;
         }
-        callback(null, rootSegemnt);
+        callback(null, rootSegment);
       });
     };
   };

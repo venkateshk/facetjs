@@ -87,7 +87,11 @@
       }
     };
     if (condensedQuery.applies.length === 0) {
-      callback(null, {});
+      callback(null, [
+        {
+          prop: {}
+        }
+      ]);
       return;
     }
     selectParts = [];
@@ -201,10 +205,10 @@
     var filters, requester, table;
     requester = _arg.requester, table = _arg.table, filters = _arg.filters;
     return function(query, callback) {
-      var cmdIndex, condensedQuery, querySQL, rootSegemnt, segments;
+      var cmdIndex, condensedQuery, querySQL, rootSegment, segments;
       condensedQuery = condenseQuery(query);
-      rootSegemnt = null;
-      segments = [rootSegemnt];
+      rootSegment = null;
+      segments = [rootSegment];
       querySQL = function(condensed, done) {
         var QUERY_LIMIT, queryFns;
         QUERY_LIMIT = 10;
@@ -223,7 +227,7 @@
               parentSegment.splits = splits;
               delete parentSegment._filters;
             } else {
-              rootSegemnt = splits[0];
+              rootSegment = splits[0];
             }
             done(null, splits);
           });
@@ -254,7 +258,7 @@
           segment = segments[_i];
           delete segment._filters;
         }
-        callback(null, rootSegemnt);
+        callback(null, rootSegment);
       });
     };
   };

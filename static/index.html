@@ -43,7 +43,7 @@
       var apply = facet.apply;
       var layout = facet.layout;
       var plot = facet.plot;
-      var prop = facet.prop;
+      var use = facet.use;
       var sort = facet.sort;
       var stage = facet.stage;
     </script>
@@ -52,7 +52,7 @@
   <body>
     <div class="cont">
       <h1>Number of diamonds by Cut (ordered by Avg Price)</h1>
-      <h2>Simple Driver (JS) in Node</h2>
+      <h2>Simple Driver (JS) in Node / diamonds</h2>
       <div id="ex1" class="example"></div>
     </div>
     <script>
@@ -76,22 +76,90 @@
         prety: true
       });
 
-      var rect1 = facet.visualize(simpleDriverNode)
+      var vis = facet.visualize(simpleDriverNode)
         .split('Cut', split.natural('cut'))
         .apply('Count', apply.count())
         .apply('AvgPrice', apply.average('price'))
         .combine({ sort: { prop: 'AvgPrice', direction: 'DESC' }})
-        .layout(layout.vertical({ size: prop('Count'), gap: 3 }))
-        .plot(plot.rect({ color: 'none' }))
+        .layout(layout.vertical({ size: use.prop('Count'), gap: 3 }))
+        .plot(plot.rect({
+          fill: use.literal('#f0f0f0'),
+          stroke: use.scale.color('Cut')
+        }))
         .stage(stage.rectToPoint({ top: 0.5, left: 0.5 }))
-          .plot(plot.text({ text: prop('Cut'), color: 'green' }))
+          .plot(plot.text({
+            text: use.fn(
+              use.prop('Cut'), use.prop('Count'),
+              function(cut, count) { return cut + ' (count: ' + count + ")"; }
+            ),
+            color: use.scale.color('Cut'),
+            anchor: use.literal('middle'),
+            baseline: use.literal('center')
+          }))
         .popStage()
         .render('#ex1', 800, 600)
+    })();
+    </script>
 
+    <div class="cont">
+      <h1>Number of diamonds by Cut (ordered by Avg Price)</h1>
+      <h2>SQL Driver in Client / diamonds</h2>
+      <div id="ex2" class="example"></div>
+    </div>
+    <script>
+    (function() {
+      // {
+      //   "carat": "0.23",
+      //   "cut": "Ideal",
+      //   "color": "E",
+      //   "clarity": "SI2",
+      //   "depth": "61.5",
+      //   "table": "55",
+      //   "price": "326",
+      //   "x": "3.95",
+      //   "y": "3.98",
+      //   "z": "2.43"
+      // },
+
+      var sqlRequester = facet.ajaxPostDriver({
+        url: '/pass/sql',
+        prety: true
+      });
+
+      var sqlDriverClient = facet.driver.sql({
+        requester: sqlRequester,
+        table: "diamonds",
+        filters: null
+      });
+
+      var vis = facet.visualize(sqlDriverClient)
+        .split('Cut', split.natural('cut'))
+        .apply('Count', apply.count())
+        .apply('AvgPrice', apply.average('price'))
+        .combine({ sort: { prop: 'AvgPrice', direction: 'DESC' }})
+        .layout(layout.vertical({ size: use.prop('Count'), gap: 3 }))
+        .plot(plot.rect({
+          fill: use.literal('#f0f0f0'),
+          stroke: use.scale.color('Cut')
+        }))
+        .stage(stage.rectToPoint({ top: 0.5, left: 0.5 }))
+          .plot(plot.text({
+            text: use.fn(
+              use.prop('Cut'), use.prop('Count'),
+              function(cut, count) { return cut + ' (count: ' + count + ")"; }
+            ),
+            color: use.scale.color('Cut'),
+            anchor: use.literal('middle'),
+            baseline: use.literal('center')
+          }))
+        .popStage()
+        .render('#ex2', 800, 600)
     })();
     </script>
 
     <script>
+    (function() {
+      return;
 
       // var query = [
       //   { operation: 'apply', prop: 'SumScoreA', aggregate: 'sum', attribute: 'scoreA' },
@@ -119,16 +187,16 @@
       // var rect1 = facet.visualize(driver)
       //   .split('Letter', split.natural('letter'))
       //   .apply('avgScoreA', apply.average('scoreA'))
-      //   .layout(layout.vertical({ size: prop('avgScoreA'), gap: 5 }))
+      //   .layout(layout.vertical({ size: use.prop('avgScoreA'), gap: 5 }))
       //   .plot(plot.rect({ color: 'none' }))
       //   .stage(stage.rectToPoint(0.5, 0.5))
-      //     .plot(plot.text({ text: prop('Letter'), color: 'green' }))
+      //     .plot(plot.text({ text: use.prop('Letter'), color: 'green' }))
       //   .popStage()
       //   .render('.cont', 800, 600)
           // .split('Time', split.time('time', 'minute'))
           // .layout(layout.horizontal({ gap: 2 }))
           // .plot(plot.rect({ color: '#ccccff' }))
-          // .stage(stage.rectToPoint(0.5, 0.5)).plot(plot.text({ text: prop('Number'), color: 'red' })).pop()
+          // .stage(stage.rectToPoint(0.5, 0.5)).plot(plot.text({ text: use.prop('Number'), color: 'red' })).pop()
           // .render('.cont', 800, 600)
 
 
@@ -197,6 +265,7 @@
       // })(sqlQ, function(err, result) {
       //   console.log('got', err, result);
       // })
+    })();
     </script>
   </body>
 </html>

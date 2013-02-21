@@ -198,6 +198,9 @@
 
   simpleDriver = function(data, query) {
     var aggregatorFn, applyFn, bucketFn, cmd, compareFn, propName, rootSegment, segment, segmentGroup, segmentGroups, sortFn, splitFn, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _len6, _len7, _m, _n, _o, _p;
+    if (!query) {
+      throw new Error("query not given");
+    }
     rootSegment = {
       _raw: data,
       prop: {}

@@ -84,7 +84,10 @@ condensedQueryToDruid = ({requester, dataSource, interval, filters, condensedQue
 
   if condensedQuery.applies.length is 0
     # Nothing to do as we are not calculating anything (not true, fix this)
-    callback(null, {}); return
+    callback(null, [{
+      prop: {}
+    }])
+    return
 
   druidQuery = {
     dataSource
@@ -243,8 +246,8 @@ condensedQueryToDruid = ({requester, dataSource, interval, filters, condensedQue
 druid = ({requester, dataSource, interval, filters}) -> (query, callback) ->
   condensedQuery = condenseQuery(query)
 
-  rootSegemnt = null
-  segments = [rootSegemnt]
+  rootSegment = null
+  segments = [rootSegment]
 
   queryDruid = (condensed, done) ->
     # do the query in parallel
@@ -269,7 +272,7 @@ druid = ({requester, dataSource, interval, filters}) -> (query, callback) ->
             delete parentSegment._interval
             delete parentSegment._filters
           else
-            rootSegemnt = splits[0]
+            rootSegment = splits[0]
           done(null, splits)
           return
         )
@@ -299,7 +302,8 @@ druid = ({requester, dataSource, interval, filters}) -> (query, callback) ->
       for segment in segments
         delete segment._interval
         delete segment._filters
-      callback(null, rootSegemnt)
+
+      callback(null, rootSegment)
       return
   )
 

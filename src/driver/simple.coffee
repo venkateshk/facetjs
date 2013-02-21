@@ -105,6 +105,8 @@ sortFns = {
 
 
 simpleDriver = (data, query) ->
+  throw new Error("query not given") unless query
+
   rootSegment = {
     _raw: data
     prop: {}

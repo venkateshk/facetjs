@@ -50,8 +50,9 @@
   </head>
 
   <body>
+  <!--
     <div class="cont">
-      <h1>Number of diamonds by Cut (ordered by Avg Price)</h1>
+      <h1>1. Number of diamonds by Cut (ordered by Avg Price)</h1>
       <h2>Simple Driver (JS) in Node / diamonds</h2>
       <div id="ex1" class="example"></div>
     </div>
@@ -102,7 +103,7 @@
     </script>
 
     <div class="cont">
-      <h1>Number of diamonds by Cut (ordered by Avg Price)</h1>
+      <h1>2. Number of diamonds by Cut (ordered by Avg Price)</h1>
       <h2>SQL Driver in Client / diamonds</h2>
       <div id="ex2" class="example"></div>
     </div>
@@ -156,6 +157,134 @@
         .render('#ex2', 800, 600)
     })();
     </script>
+
+
+    <div class="cont">
+      <h1>3. Avg Price by Cut</h1>
+      <h2>SQL Driver in Client / diamonds</h2>
+      <div id="ex3" class="example"></div>
+    </div>
+    <script>
+    (function() {
+      // {
+      //   "carat": "0.23",
+      //   "cut": "Ideal",
+      //   "color": "E",
+      //   "clarity": "SI2",
+      //   "depth": "61.5",
+      //   "table": "55",
+      //   "price": "326",
+      //   "x": "3.95",
+      //   "y": "3.98",
+      //   "z": "2.43"
+      // },
+
+      var sqlRequester = facet.ajaxPostDriver({
+        url: '/pass/sql',
+        prety: true
+      });
+
+      var sqlDriverClient = facet.driver.sql({
+        requester: sqlRequester,
+        table: "diamonds",
+        filters: null
+      });
+
+      var scale = d3.scale.linear().domain([0, 74513487]).range([0, 600])
+
+      var vis = facet.visualize(sqlDriverClient)
+        .split('Cut', split.natural('cut'))
+        .apply('AvgPrice', apply.average('price'))
+        .combine({ sort: { prop: 'AvgPrice', direction: 'DESC' }})
+        .layout(layout.horizontal({ gap: 3 }))
+        .plot(plot.rect({
+          fill: use.literal('#f0f0f0'),
+          stroke: use.scale.color('Cut'),
+          bottom: use.literal(0),
+          height: use.fn(use.prop('AvgPrice'), scale)
+        }))
+        .stage(stage.rectToPoint({ bottom: 0.01, left: 0.5 }))
+          .plot(plot.text({
+            text: use.prop('Cut'),
+            color: use.scale.color('Cut'),
+            anchor: use.literal('middle'),
+            baseline: use.literal('bottom')
+          }))
+        .popStage()
+        .render('#ex3', 800, 600)
+    })();
+    </script>
+-->
+
+    <div class="cont">
+      <h1>4. Avg Price by Cut by Clarity</h1>
+      <h2>SQL Driver in Node / diamonds</h2>
+      <div id="ex3" class="example"></div>
+    </div>
+    <script>
+    (function() {
+      // {
+      //   "carat": "0.23",
+      //   "cut": "Ideal",
+      //   "color": "E",
+      //   "clarity": "SI2",
+      //   "depth": "61.5",
+      //   "table": "55",
+      //   "price": "326",
+      //   "x": "3.95",
+      //   "y": "3.98",
+      //   "z": "2.43"
+      // },
+
+      var sqlDriverNode = facet.ajaxPostDriver({
+        url: '/driver/sql',
+        context: { table: 'diamonds' },
+        prety: true
+      });
+
+      var scale = d3.scale.linear().domain([0, 18000000]).range([0, 600])
+
+      var vis = facet.visualize(sqlDriverNode)
+        .split('Clarity', split.natural('clarity'))
+        .apply('AvgPrice', apply.average('price'))
+        .combine({ sort: { prop: 'AvgPrice', direction: 'DESC' }})
+        .layout(layout.horizontal({ gap: 3 }))
+        .plot(plot.rect({
+          fill: use.literal('none'),
+          stroke: use.literal('black')
+        }))
+        .stage(stage.rectToPoint({ top: 0.01, left: 0.5 }))
+          .plot(plot.text({
+            text: use.prop('Clarity'),
+            anchor: use.literal('middle'),
+            baseline: use.literal('top')
+          }))
+        .popStage()
+          .split('Cut', split.natural('cut'))
+          .apply('AvgPrice', apply.average('price'))
+          .combine({ sort: { prop: 'AvgPrice', direction: 'DESC' }})
+          .layout(layout.horizontal({ gap: 3 }))
+          .plot(plot.rect({
+            fill: use.literal('#f0f0f0'),
+            stroke: use.scale.color('Cut'),
+            bottom: use.literal(0),
+            height: use.fn(use.prop('AvgPrice'), scale)
+          }))
+          .stage(stage.rectToPoint({ bottom: 0.01, left: 0.5 }))
+            .plot(plot.text({
+              text: use.prop('Cut'),
+              color: use.scale.color('Cut'),
+              baseline: use.literal('center'),
+              angle: use.literal(-90)
+            }))
+          .popStage()
+          .render('#ex3', 800, 600)
+    })();
+    </script>
+
+
+
+
 
     <script>
     (function() {

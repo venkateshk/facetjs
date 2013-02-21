@@ -223,23 +223,43 @@ facet.stage = {
 # A function that takes a facet and
 # Arguments* -> Segment -> void
 
+boxPosition = (segment, stageWidth, left, width, right) ->
+  if left? and width? and right?
+    throw new Error("Over-constrained")
+
+  if left?
+    return if width? then [left(segment), width(segment)] else [left(segment), stageWidth - left(segment)]
+  else if right?
+    return if width? then [stageWidth - right(segment) - width(segment), width(segment)] else [0, stageWidth - right(segment)]
+  else
+    return if width? then [0, width(segment)] else [0, stageWidth]
+
+
 facet.plot = {
-  rect: ({stroke, fill}) -> (segment) ->
+  rect: ({left, width, right, top, height, bottom, stroke, fill}) -> (segment) ->
     stage = segment.getStage()
     throw new Error("Must have a rectangle stage (is #{stage.type})") unless stage.type is 'rectangle'
+
+    [x, w] = boxPosition(segment, stage.width, left, width, right)
+    [y, h] = boxPosition(segment, stage.height, top, height, bottom)
+
     segment.node.append('rect').datum(segment)
-      .attr('width', stage.width)
-      .attr('height', stage.height)
+      .attr('x', x)
+      .attr('y', y)
+      .attr('width', w)
+      .attr('height', h)
       .style('fill', fill)
       .style('stroke', stroke)
     return
 
-  text: ({color, text, anchor, baseline}) -> (segment) ->
+  text: ({color, text, anchor, baseline, angle}) -> (segment) ->
     stage = segment.getStage()
     throw new Error("Must have a point stage (is #{stage.type})") unless stage.type is 'point'
     node = segment.node.append('text').datum(segment)
-      .attr('x', stage.x)
-      .attr('y', stage.y)
+
+    transformStr = "translate(#{stage.x}, #{stage.y})"
+    transformStr += " rotate(#{angle(segment)})" if angle?
+    node.attr('transform', transformStr)
 
     if typeof baseline is 'function'
       node.attr('dy', (segment) ->

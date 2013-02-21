@@ -113,8 +113,9 @@ condensedQueryToSQL = ({requester, table, filters, condensedQuery}, callback) ->
         selectParts.push "COUNT(DISTINCT `#{apply.attribute}`) AS \"#{apply.prop}\""
 
   # filter
+  filterPart = null
   if filters
-    sqlQuery.filter = filters
+    filterPart = 'WHERE ' + filters
 
   # combine
   orderByPart = null
@@ -148,6 +149,7 @@ condensedQueryToSQL = ({requester, table, filters, condensedQuery}, callback) ->
     'SELECT'
     selectParts.join(', ')
     "FROM `#{table}`"
+    filterPart
     groupByPart
     orderByPart
     limitPart

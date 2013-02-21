@@ -66,7 +66,7 @@
   };
 
   condensedQueryToSQL = function(_arg, callback) {
-    var apply, combine, condensedQuery, filters, findApply, findCountApply, groupByPart, limitPart, orderByPart, requester, selectParts, sort, split, sqlQuery, table, _i, _len, _ref, _ref1;
+    var apply, combine, condensedQuery, filterPart, filters, findApply, findCountApply, groupByPart, limitPart, orderByPart, requester, selectParts, sort, split, sqlQuery, table, _i, _len, _ref, _ref1;
     requester = _arg.requester, table = _arg.table, filters = _arg.filters, condensedQuery = _arg.condensedQuery;
     findApply = function(applies, propName) {
       var apply, _i, _len;
@@ -132,8 +132,9 @@
           selectParts.push("COUNT(DISTINCT `" + apply.attribute + "`) AS \"" + apply.prop + "\"");
       }
     }
+    filterPart = null;
     if (filters) {
-      sqlQuery.filter = filters;
+      filterPart = 'WHERE ' + filters;
     }
     orderByPart = null;
     limitPart = null;
@@ -171,7 +172,7 @@
         limitPart = "LIMIT " + combine.limit;
       }
     }
-    sqlQuery = ['SELECT', selectParts.join(', '), "FROM `" + table + "`", groupByPart, orderByPart, limitPart].filter(function(part) {
+    sqlQuery = ['SELECT', selectParts.join(', '), "FROM `" + table + "`", filterPart, groupByPart, orderByPart, limitPart].filter(function(part) {
       return part != null;
     }).join(' ') + ';';
     requester(sqlQuery, function(err, ds) {

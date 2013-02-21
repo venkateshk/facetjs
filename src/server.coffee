@@ -4,6 +4,7 @@ mysql = require('mysql')
 
 simpleDriver = require('./simple.js')
 druidDriver = require('./druid.js')
+sqlDriver = require('./sql.js')
 
 data = {}
 data.data1 = do ->
@@ -128,7 +129,11 @@ app.post '/pass/sql', (req, res) ->
 
 app.post '/driver/sql', (req, res) ->
   { context, query } = req.body
-
+  sqlDriver({
+    requester: sqlPass
+    table: context.table
+    filters: null
+  })(query, respondWithResult(res))
   return
 
 # Druid

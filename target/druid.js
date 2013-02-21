@@ -3,7 +3,7 @@
   var andFilters, async, condenseQuery, condensedQueryToDruid, druid, flatten, makeFilter,
     __slice = [].slice;
 
-  async = window ? window.async : require('async');
+  async = typeof window !== 'undefined' ? window.async : require('async');
 
   flatten = function(ar) {
     return Array.prototype.concat.apply([], ar);
@@ -73,7 +73,7 @@
   };
 
   condensedQueryToDruid = function(_arg, callback) {
-    var apply, bucketDuration, combinePropName, condensedQuery, countPropName, dataSource, druidQuery, filters, findApply, findCountApply, interval, requester, timePropName, toDruidInterval, _i, _len, _ref, _ref1, _ref2;
+    var apply, bucketDuration, combinePropName, condensedQuery, countPropName, dataSource, druidQuery, filters, findApply, findCountApply, interval, requester, timePropName, toDruidInterval, _i, _len, _ref, _ref1, _ref2, _ref3;
     requester = _arg.requester, dataSource = _arg.dataSource, interval = _arg.interval, filters = _arg.filters, condensedQuery = _arg.condensedQuery;
     findApply = function(applies, propName) {
       var apply, _i, _len;
@@ -132,8 +132,8 @@
               callback("split must have a prop");
               return;
             }
-            if (condensedQuery.combine.sort.direction !== 'DESC') {
-              callback("sort direction must be DESC for now");
+            if ((_ref1 = condensedQuery.combine.sort.direction) !== 'ASC' && _ref1 !== 'DESC') {
+              callback("direction has to be 'ASC' or 'DESC'");
               return;
             }
             druidQuery.queryType = "topN";
@@ -162,7 +162,7 @@
             callback("Must have duration for time bucket");
             return;
           }
-          if ((_ref1 = !bucketDuration) === 'second' || _ref1 === 'minute' || _ref1 === 'hour' || _ref1 === 'day') {
+          if ((_ref2 = !bucketDuration) === 'second' || _ref2 === 'minute' || _ref2 === 'hour' || _ref2 === 'day') {
             callback("Unsupported duration '" + bucketDuration + "' in time bucket");
             return;
           }
@@ -179,9 +179,9 @@
     if (condensedQuery.applies.length > 0) {
       countPropName = null;
       druidQuery.aggregations = [];
-      _ref2 = condensedQuery.applies;
-      for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
-        apply = _ref2[_i];
+      _ref3 = condensedQuery.applies;
+      for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
+        apply = _ref3[_i];
         switch (apply.aggregate) {
           case 'count':
             countPropName = apply.prop;
@@ -202,6 +202,20 @@
             return;
             druidQuery.aggregations.push({
               type: "doubleSum",
+              name: apply.prop,
+              fieldName: apply.attribute
+            });
+            break;
+          case 'min':
+            druidQuery.aggregations.push({
+              type: "min",
+              name: apply.prop,
+              fieldName: apply.attribute
+            });
+            break;
+          case 'max':
+            druidQuery.aggregations.push({
+              type: "max",
               name: apply.prop,
               fieldName: apply.attribute
             });

@@ -1,4 +1,4 @@
-async = if window then window.async else require('async')
+async = if typeof window isnt 'undefined' then window.async else require('async')
 
 # Utils
 
@@ -95,6 +95,7 @@ condensedQueryToDruid = ({requester, dataSource, interval, filters, condensedQue
     druidQuery.filter = filters
 
   # split + combine
+  #invertCombineSort = false
   if condensedQuery.split
     if not condensedQuery.combine?.sort
       callback("must have a sort combine for a split"); return
@@ -109,8 +110,9 @@ condensedQueryToDruid = ({requester, dataSource, interval, filters, condensedQue
             callback("split must have an attribute"); return
           if not condensedQuery.split.prop
             callback("split must have a prop"); return
-          if condensedQuery.combine.sort.direction isnt 'DESC'
-            callback("sort direction must be DESC for now"); return
+          if condensedQuery.combine.sort.direction not in ['ASC', 'DESC']
+            callback("direction has to be 'ASC' or 'DESC'"); return
+          #invertCombineSort = condensedQuery.combine.sort.direction is 'ASC'
 
           druidQuery.queryType = "topN"
           druidQuery.granularity = "all"
@@ -174,6 +176,20 @@ condensedQueryToDruid = ({requester, dataSource, interval, filters, condensedQue
             fieldName: apply.attribute
           }
           # Add postagg to do divide
+
+        when 'min'
+          druidQuery.aggregations.push {
+            type: "min"
+            name: apply.prop
+            fieldName: apply.attribute
+          }
+
+        when 'max'
+          druidQuery.aggregations.push {
+            type: "max"
+            name: apply.prop
+            fieldName: apply.attribute
+          }
 
         when 'unique'
           callback("not implemented yet")

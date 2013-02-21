@@ -1,4 +1,4 @@
-async = if window then window.async else require('async')
+async = if typeof window isnt 'undefined' then window.async else require('async')
 
 # Utils
 
@@ -107,7 +107,7 @@ condensedQueryToSQL = ({requester, table, filters, condensedQuery}, callback) ->
         selectParts.push "MAX(`#{apply.attribute}`) AS \"#{apply.prop}\""
 
       when 'unique'
-        callback("not implemented yet"); return
+        selectParts.push "COUNT(DISTINCT `#{apply.attribute}`) AS \"#{apply.prop}\""
 
   # filter
   if filters
@@ -124,6 +124,8 @@ condensedQueryToSQL = ({requester, table, filters, condensedQuery}, callback) ->
         callback("must have a sort prop name"); return
       if not sort.direction
         callback("must have a sort direction"); return
+      if sort.direction not in ['ASC', 'DESC']
+        callback("direction has to be 'ASC' or 'DESC'"); return
 
       orderByPart = 'ORDER BY '
 

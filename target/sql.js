@@ -3,7 +3,7 @@
   var andFilters, async, condenseQuery, condensedQueryToSQL, flatten, makeFilter, sql,
     __slice = [].slice;
 
-  async = window ? window.async : require('async');
+  async = typeof window !== 'undefined' ? window.async : require('async');
 
   flatten = function(ar) {
     return Array.prototype.concat.apply([], ar);
@@ -66,7 +66,7 @@
   };
 
   condensedQueryToSQL = function(_arg, callback) {
-    var apply, combine, condensedQuery, filters, findApply, findCountApply, groupByPart, limitPart, orderByPart, requester, selectParts, sort, split, sqlQuery, table, _i, _len, _ref;
+    var apply, combine, condensedQuery, filters, findApply, findCountApply, groupByPart, limitPart, orderByPart, requester, selectParts, sort, split, sqlQuery, table, _i, _len, _ref, _ref1;
     requester = _arg.requester, table = _arg.table, filters = _arg.filters, condensedQuery = _arg.condensedQuery;
     findApply = function(applies, propName) {
       var apply, _i, _len;
@@ -125,8 +125,7 @@
           selectParts.push("MAX(`" + apply.attribute + "`) AS \"" + apply.prop + "\"");
           break;
         case 'unique':
-          callback("not implemented yet");
-          return;
+          selectParts.push("COUNT(DISTINCT `" + apply.attribute + "`) AS \"" + apply.prop + "\"");
       }
     }
     if (filters) {
@@ -144,6 +143,10 @@
         }
         if (!sort.direction) {
           callback("must have a sort direction");
+          return;
+        }
+        if ((_ref1 = sort.direction) !== 'ASC' && _ref1 !== 'DESC') {
+          callback("direction has to be 'ASC' or 'DESC'");
           return;
         }
         orderByPart = 'ORDER BY ';

@@ -19,7 +19,6 @@
   "main": "target/facet.js",
   "dependencies": {
     "express": "3.1.0",
-    "async": "0.2.5",
-    "sqlite": "2.1.5"
+    "async": "0.2.5"
   }
 }

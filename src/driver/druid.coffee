@@ -1,4 +1,4 @@
-async = require('async') if typeof require isnt 'undefined'
+async = if window then window.async else require('async')
 
 # Utils
 

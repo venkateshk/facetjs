@@ -1,56 +1,9 @@
 express = require('express')
 http = require('http')
+mysql = require('mysql')
 
 simpleDriver = require('./simple.js')
 druidDriver = require('./druid.js')
-
-
-druidPost = ({host, port, path}) -> (druidQuery, callback) ->
-  opts = {
-    host
-    port
-    path
-    method: 'POST'
-    headers: {
-      'content-type': 'application/json'
-    }
-  }
-  req = http.request(opts, (response) ->
-    # response.statusCode
-    # response.headers
-    # response.statusCode
-
-    response.setEncoding('utf8')
-    chunks = []
-    response.on 'data', (chunk) ->
-      chunks.push(chunk)
-      return
-
-    response.on 'close', (err) ->
-      console.log 'CLOSE'
-      return
-
-    response.on 'end', ->
-      chunks = chunks.join('')
-      if response.statusCode isnt 200
-        callback(chunks, null)
-        return
-
-      try
-        chunks = JSON.parse(chunks)
-      catch e
-        callback(e, null)
-        return
-
-      callback(null, chunks)
-      return
-    return
-  )
-
-  req.write(JSON.stringify(druidQuery))
-  req.end()
-  return
-
 
 data = {}
 data.data1 = do ->
@@ -69,6 +22,81 @@ data.data1 = do ->
       walk: w += Math.random() - 0.5 + 0.02
     }
   return ret
+
+# data.diamonds = require('../data/diamonds.js')
+# {
+#   "": "1",
+#   "carat": "0.23",
+#   "cut": "Ideal",
+#   "color": "E",
+#   "clarity": "SI2",
+#   "depth": "61.5",
+#   "table": "55",
+#   "price": "326",
+#   "x": "3.95",
+#   "y": "3.98",
+#   "z": "2.43"
+# },
+
+druidPost = ({host, port, path}) ->
+  opts = {
+    host
+    port
+    path
+    method: 'POST'
+    headers: {
+      'content-type': 'application/json'
+    }
+  }
+  return (druidQuery, callback) ->
+    req = http.request(opts, (response) ->
+      # response.statusCode
+      # response.headers
+      # response.statusCode
+
+      response.setEncoding('utf8')
+      chunks = []
+      response.on 'data', (chunk) ->
+        chunks.push(chunk)
+        return
+
+      response.on 'close', (err) ->
+        console.log 'CLOSE'
+        return
+
+      response.on 'end', ->
+        chunks = chunks.join('')
+        if response.statusCode isnt 200
+          callback(chunks, null)
+          return
+
+        try
+          chunks = JSON.parse(chunks)
+        catch e
+          callback(e, null)
+          return
+
+        callback(null, chunks)
+        return
+      return
+    )
+
+    req.write(JSON.stringify(druidQuery))
+    req.end()
+    return
+
+sqlRequester =({host, user, password, dataset}) ->
+  connection = mysql.createConnection({
+    host: 'localhost'
+    user: 'root'
+    password: 'root'
+    database: 'facet'
+  })
+
+  connection.connect()
+  return (sqlQuery, callback) ->
+    connection.query(sqlQuery, callback)
+    return
 
 
 app = express()
@@ -99,8 +127,15 @@ app.post '/driver/simple', (req, res) ->
   return
 
 # SQL
+sqlPass = sqlRequester({
+  host: 'localhost'
+  user: 'root'
+  password: 'root'
+  database: 'facet'
+})
 app.post '/pass/sql', (req, res) ->
-
+  { context, query } = req.body
+  sqlPass(query, respondWithResult(res))
   return
 
 app.post '/driver/sql', (req, res) ->

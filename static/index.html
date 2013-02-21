@@ -92,10 +92,10 @@
       //   prety: true
       // })(q)
 
-      var druidRequester = facet.ajaxPostDriver({
-        url: '/pass/druid',
-        prety: true
-      })
+      // var druidRequester = facet.ajaxPostDriver({
+      //   url: '/pass/druid',
+      //   prety: true
+      // })
 
       // "dimensions":
       //   ["dma_code","continent_code","geo","area_code","robot","country_name","network","city","namespace","anonymous","unpatrolled","page","postal_code","language","newpage","user","region_lookup"],
@@ -119,11 +119,35 @@
       //   console.log('got', err, result);
       // })
 
-      facet.ajaxPostDriver({
-        url: '/driver/druid',
-        context: { data: 'data1' },
+      // facet.ajaxPostDriver({
+      //   url: '/driver/druid',
+      //   context: { data: 'data1' },
+      //   prety: true
+      // })(druidQ, function(err, result) {
+      //   console.log('got', err, result);
+      // })
+
+      var sqlRequester = facet.ajaxPostDriver({
+        url: '/pass/sql',
         prety: true
-      })(druidQ, function(err, result) {
+      })
+
+      var sqlQ = [
+        { operation: 'apply', prop: 'Diamonds', aggregate: 'count' },
+        { operation: 'split', prop: 'Cut', bucket: 'natural', attribute: 'cut' },
+        { operation: 'apply', prop: 'Num', aggregate: 'count' },
+        { operation: 'apply', prop: 'AvgPrice', aggregate: 'average', attribute: 'price' },
+        { operation: 'combine', sort: { prop: 'AvgPrice', compare: 'natural', direction: 'DESC' } },
+        // { operation: 'split', prop: 'Page', bucket: 'natural', attribute: 'page' },
+        // { operation: 'apply', prop: 'Edits', aggregate: 'count' },
+        // { operation: 'combine', sort: { prop: 'Edits', compare: 'natural', direction: 'DESC' }, limit: 4 },
+      ];
+
+      var sqlDriver = facet.driver.sql({
+        requester: sqlRequester,
+        table: "diamonds",
+        filters: null
+      })(sqlQ, function(err, result) {
         console.log('got', err, result);
       })
     </script>

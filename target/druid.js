@@ -3,9 +3,7 @@
   var andFilters, async, condenseQuery, condensedQueryToDruid, druid, flatten, makeFilter,
     __slice = [].slice;
 
-  if (typeof require !== 'undefined') {
-    async = require('async');
-  }
+  async = window ? window.async : require('async');
 
   flatten = function(ar) {
     return Array.prototype.concat.apply([], ar);

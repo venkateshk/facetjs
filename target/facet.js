@@ -202,7 +202,25 @@
   };
 
   facet.stage = {
-    rectToPoint: function(xPos, yPos) {
+    rectToPoint: function(_arg) {
+      var bottom, fx, fy, left, right, top;
+      left = _arg.left, right = _arg.right, top = _arg.top, bottom = _arg.bottom;
+      if (((left != null) && (right != null)) || ((top != null) && (bottom != null))) {
+        throw new Error("Over-constrained");
+      }
+      if ((!(left != null) && !(right != null)) || (!(top != null) && !(bottom != null))) {
+        throw new Error("Under-constrained");
+      }
+      fx = left != null ? function(w) {
+        return w * left;
+      } : function(w) {
+        return w * (1 - right);
+      };
+      fy = top != null ? function(h) {
+        return h * top;
+      } : function(h) {
+        return h * (1 - bottom);
+      };
       return function(segment) {
         var stage;
         stage = segment.getStage();
@@ -211,8 +229,8 @@
         }
         segment.pushStage({
           type: 'point',
-          x: xPos * stage.width,
-          y: yPos * stage.height
+          x: fx(stage.width),
+          y: fy(stage.height)
         });
       };
     }
@@ -317,13 +335,16 @@
     };
 
     FacetJob.prototype.combine = function(_arg) {
-      var combine, filter, limit, sort, _ref;
+      var combine, filter, limit, sort, _base, _ref;
       _ref = _arg != null ? _arg : {}, filter = _ref.filter, sort = _ref.sort, limit = _ref.limit;
       combine = {
         operation: 'combine'
       };
       if (sort) {
         combine.sort = sort;
+        if ((_base = combine.sort).compare == null) {
+          _base.compare = 'natural';
+        }
       }
       if (limit != null) {
         combine.limit = limit;
@@ -343,9 +364,9 @@
       return this;
     };
 
-    FacetJob.prototype.pop = function() {
+    FacetJob.prototype.popStage = function() {
       this.ops.push({
-        operation: 'pop'
+        operation: 'popStage'
       });
       return this;
     };
@@ -379,8 +400,8 @@
       this.driver(query, function(err, res) {
         var cmd, layout, parentSegment, plot, segment, segmentGroup, segmentGroups, svg, transform, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _len6, _len7, _m, _n, _o, _p;
         if (err) {
-          alert("An error has occurred");
-          throw err;
+          alert("An error has occurred: " + err.message);
+          return;
         }
         svg = parent.append('svg').attr('width', width).attr('height', height);
         segmentGroups = [
@@ -440,7 +461,7 @@
                 }
               }
               break;
-            case 'pop':
+            case 'popStage':
               for (_m = 0, _len4 = segmentGroups.length; _m < _len4; _m++) {
                 segmentGroup = segmentGroups[_m];
                 for (_n = 0, _len5 = segmentGroup.length; _n < _len5; _n++) {
@@ -497,7 +518,16 @@
           callback(null, res);
         },
         error: function(xhr) {
-          callback(xhr.responseText, null);
+          var err, text;
+          text = xhr.responseText;
+          try {
+            err = JSON.parse(text);
+          } catch (e) {
+            err = {
+              message: text
+            };
+          }
+          callback(err, null);
         }
       });
     };

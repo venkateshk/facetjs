@@ -36,6 +36,8 @@
     return ret;
   })();
 
+  data.diamonds = require('../data/diamonds.js');
+
   druidPost = function(_arg) {
     var host, opts, path, port;
     host = _arg.host, port = _arg.port, path = _arg.path;

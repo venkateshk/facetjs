@@ -52,22 +52,22 @@ applyFns = {
 
   sum: ({attribute}) -> (ds) ->
     sum = 0
-    sum += d[attribute] for d in ds
+    sum += Number(d[attribute]) for d in ds
     return sum
 
   average: ({attribute}) -> (ds) ->
     sum = 0
-    sum += d[attribute] for d in ds
+    sum += Number(d[attribute]) for d in ds
     return sum / ds.length
 
   min: ({attribute}) -> (ds) ->
     min = +Infinity
-    min = Math.min(min, d[attribute]) for d in ds
+    min = Math.min(min, Number(d[attribute])) for d in ds
     return min
 
   max: ({attribute}) -> (ds) ->
     max = -Infinity
-    max = Math.max(max, d[attribute]) for d in ds
+    max = Math.max(max, Number(d[attribute])) for d in ds
     return max
 
   unique: ({attribute}) -> (ds) ->
@@ -116,14 +116,15 @@ simpleDriver = (data, query) ->
       when 'split'
         propName = cmd.prop
         throw new Error("'prop' not defined in apply") unless propName
-        splitFn = splitFns[cmd.bucket](cmd)
+        splitFn = splitFns[cmd.bucket]
         throw new Error("No such bucket `#{cmd.bucket}` in split") unless splitFn
+        bucketFn = splitFn(cmd)
         segmentGroups = flatten(segmentGroups).map (segment) ->
           keys = []
           buckets = {}
           bucketValue = {}
           for d in segment._raw
-            key = splitFn(d)
+            key = bucketFn(d)
             throw new Error("Bucket returned undefined") unless key?
             if not buckets[key]
               keys.push(key)
@@ -145,19 +146,21 @@ simpleDriver = (data, query) ->
       when 'apply'
         propName = cmd.prop
         throw new Error("'prop' not defined in apply") unless propName
-        applyFn = applyFns[cmd.aggregate](cmd)
+        applyFn = applyFns[cmd.aggregate]
         throw new Error("No such aggregate `#{cmd.aggregate}` in apply") unless applyFn
+        aggregatorFn = applyFn(cmd)
         for segmentGroup in segmentGroups
           for segment in segmentGroup
-            segment.prop[propName] = applyFn(segment._raw)
+            segment.prop[propName] = aggregatorFn(segment._raw)
 
       when 'combine'
         if cmd.sort
           for segmentGroup in segmentGroups
-            sortFn = sortFns[cmd.sort.compare](cmd.sort)
+            sortFn = sortFns[cmd.sort.compare]
             throw new Error("No such compare `#{cmd.sort.compare}` in combine.sort") unless sortFn
+            compareFn = sortFn(cmd.sort)
             for segmentGroup in segmentGroups
-              segmentGroup.sort(sortFn)
+              segmentGroup.sort(compareFn)
 
         if cmd.limit?
           for segmentGroup in segmentGroups
@@ -175,12 +178,10 @@ simpleDriver = (data, query) ->
 
 
 simple = (data) -> (query, callback) ->
-  callback ?= ->
   try
     result = simpleDriver(data, query)
   catch e
-    callback(e, null)
-    return
+    callback({ message: e.message, stack: e.stack }); return
 
   callback(null, result)
   return

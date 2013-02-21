@@ -81,7 +81,7 @@
         sum = 0;
         for (_i = 0, _len = ds.length; _i < _len; _i++) {
           d = ds[_i];
-          sum += d[attribute];
+          sum += Number(d[attribute]);
         }
         return sum;
       };
@@ -94,7 +94,7 @@
         sum = 0;
         for (_i = 0, _len = ds.length; _i < _len; _i++) {
           d = ds[_i];
-          sum += d[attribute];
+          sum += Number(d[attribute]);
         }
         return sum / ds.length;
       };
@@ -107,7 +107,7 @@
         min = +Infinity;
         for (_i = 0, _len = ds.length; _i < _len; _i++) {
           d = ds[_i];
-          min = Math.min(min, d[attribute]);
+          min = Math.min(min, Number(d[attribute]));
         }
         return min;
       };
@@ -120,7 +120,7 @@
         max = -Infinity;
         for (_i = 0, _len = ds.length; _i < _len; _i++) {
           d = ds[_i];
-          max = Math.max(max, d[attribute]);
+          max = Math.max(max, Number(d[attribute]));
         }
         return max;
       };
@@ -197,7 +197,7 @@
   };
 
   simpleDriver = function(data, query) {
-    var applyFn, cmd, propName, rootSegment, segment, segmentGroup, segmentGroups, sortFn, splitFn, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _len6, _len7, _m, _n, _o, _p;
+    var aggregatorFn, applyFn, bucketFn, cmd, compareFn, propName, rootSegment, segment, segmentGroup, segmentGroups, sortFn, splitFn, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _len6, _len7, _m, _n, _o, _p;
     rootSegment = {
       _raw: data,
       prop: {}
@@ -211,10 +211,11 @@
           if (!propName) {
             throw new Error("'prop' not defined in apply");
           }
-          splitFn = splitFns[cmd.bucket](cmd);
+          splitFn = splitFns[cmd.bucket];
           if (!splitFn) {
             throw new Error("No such bucket `" + cmd.bucket + "` in split");
           }
+          bucketFn = splitFn(cmd);
           segmentGroups = flatten(segmentGroups).map(function(segment) {
             var bucketValue, buckets, d, key, keys, _j, _len1, _ref;
             keys = [];
@@ -223,7 +224,7 @@
             _ref = segment._raw;
             for (_j = 0, _len1 = _ref.length; _j < _len1; _j++) {
               d = _ref[_j];
-              key = splitFn(d);
+              key = bucketFn(d);
               if (key == null) {
                 throw new Error("Bucket returned undefined");
               }
@@ -252,15 +253,16 @@
           if (!propName) {
             throw new Error("'prop' not defined in apply");
           }
-          applyFn = applyFns[cmd.aggregate](cmd);
+          applyFn = applyFns[cmd.aggregate];
           if (!applyFn) {
             throw new Error("No such aggregate `" + cmd.aggregate + "` in apply");
           }
+          aggregatorFn = applyFn(cmd);
           for (_j = 0, _len1 = segmentGroups.length; _j < _len1; _j++) {
             segmentGroup = segmentGroups[_j];
             for (_k = 0, _len2 = segmentGroup.length; _k < _len2; _k++) {
               segment = segmentGroup[_k];
-              segment.prop[propName] = applyFn(segment._raw);
+              segment.prop[propName] = aggregatorFn(segment._raw);
             }
           }
           break;
@@ -268,13 +270,14 @@
           if (cmd.sort) {
             for (_l = 0, _len3 = segmentGroups.length; _l < _len3; _l++) {
               segmentGroup = segmentGroups[_l];
-              sortFn = sortFns[cmd.sort.compare](cmd.sort);
+              sortFn = sortFns[cmd.sort.compare];
               if (!sortFn) {
                 throw new Error("No such compare `" + cmd.sort.compare + "` in combine.sort");
               }
+              compareFn = sortFn(cmd.sort);
               for (_m = 0, _len4 = segmentGroups.length; _m < _len4; _m++) {
                 segmentGroup = segmentGroups[_m];
-                segmentGroup.sort(sortFn);
+                segmentGroup.sort(compareFn);
               }
             }
           }
@@ -302,13 +305,13 @@
   simple = function(data) {
     return function(query, callback) {
       var result;
-      if (callback == null) {
-        callback = function() {};
-      }
       try {
         result = simpleDriver(data, query);
       } catch (e) {
-        callback(e, null);
+        callback({
+          message: e.message,
+          stack: e.stack
+        });
         return;
       }
       callback(null, result);

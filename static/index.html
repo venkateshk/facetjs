@@ -14,13 +14,10 @@
     <script src="simple.js"></script>
     <script src="sql.js"></script>
     <script src="druid.js"></script>
-    <title>Facet v0.2</title>
-  </head>
+    <title>Facet Examples (0.0.3)</title>
 
-  <body>
-    <div class="cont">
-    </div>
     <script>
+      // Some data
       window.data1 = (function() {
         var now, pick, w;
         pick = function(arr) {
@@ -41,6 +38,61 @@
         });
       })();
 
+      // The basics
+      var split = facet.split;
+      var apply = facet.apply;
+      var layout = facet.layout;
+      var plot = facet.plot;
+      var prop = facet.prop;
+      var sort = facet.sort;
+      var stage = facet.stage;
+    </script>
+  </head>
+
+  <body>
+    <div class="cont">
+      <h1>Number of diamonds by Cut (ordered by Avg Price)</h1>
+      <h2>Simple Driver (JS) in Node</h2>
+      <div id="ex1" class="example"></div>
+    </div>
+    <script>
+    (function() {
+      // {
+      //   "carat": "0.23",
+      //   "cut": "Ideal",
+      //   "color": "E",
+      //   "clarity": "SI2",
+      //   "depth": "61.5",
+      //   "table": "55",
+      //   "price": "326",
+      //   "x": "3.95",
+      //   "y": "3.98",
+      //   "z": "2.43"
+      // },
+
+      var simpleDriverNode = facet.ajaxPostDriver({
+        url: '/driver/simple',
+        context: { data: 'diamonds' },
+        prety: true
+      });
+
+      var rect1 = facet.visualize(simpleDriverNode)
+        .split('Cut', split.natural('cut'))
+        .apply('Count', apply.count())
+        .apply('AvgPrice', apply.average('price'))
+        .combine({ sort: { prop: 'AvgPrice', direction: 'DESC' }})
+        .layout(layout.vertical({ size: prop('Count'), gap: 3 }))
+        .plot(plot.rect({ color: 'none' }))
+        .stage(stage.rectToPoint({ top: 0.5, left: 0.5 }))
+          .plot(plot.text({ text: prop('Cut'), color: 'green' }))
+        .popStage()
+        .render('#ex1', 800, 600)
+
+    })();
+    </script>
+
+    <script>
+
       // var query = [
       //   { operation: 'apply', prop: 'SumScoreA', aggregate: 'sum', attribute: 'scoreA' },
       //   { operation: 'split', prop: 'Letter', bucket: 'natural', attribute: 'letter' },
@@ -56,13 +108,6 @@
       //   console.log(res);
       // });
 
-      var split = facet.split;
-      var apply = facet.apply;
-      var layout = facet.layout;
-      var plot = facet.plot;
-      var prop = facet.prop;
-      var sort = facet.sort;
-      var stage = facet.stage;
 
       var driver = simpleDriver;
       // var driver = facet.ajaxPostDriver({
@@ -71,13 +116,15 @@
       //   prety: true
       // });
 
-      var rect1 = facet.visualize(driver)
-        .split('Letter', split.natural('letter'))
-        .apply('avgScoreA', apply.average('scoreA'))
-        .layout(layout.vertical({ size: prop('avgScoreA'), gap: 5 }))
-        .plot(plot.rect({ color: 'none' }))
-        .stage(stage.rectToPoint(0.5, 0.5)).plot(plot.text({ text: prop('Letter'), color: 'green' })).pop()
-        .render('.cont', 800, 600)
+      // var rect1 = facet.visualize(driver)
+      //   .split('Letter', split.natural('letter'))
+      //   .apply('avgScoreA', apply.average('scoreA'))
+      //   .layout(layout.vertical({ size: prop('avgScoreA'), gap: 5 }))
+      //   .plot(plot.rect({ color: 'none' }))
+      //   .stage(stage.rectToPoint(0.5, 0.5))
+      //     .plot(plot.text({ text: prop('Letter'), color: 'green' }))
+      //   .popStage()
+      //   .render('.cont', 800, 600)
           // .split('Time', split.time('time', 'minute'))
           // .layout(layout.horizontal({ gap: 2 }))
           // .plot(plot.rect({ color: '#ccccff' }))

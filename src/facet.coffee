@@ -173,15 +173,27 @@ facet.layout = {
 # Arguments* -> Segment -> void
 
 facet.stage = {
-  rectToPoint: (xPos, yPos) -> (segment) ->
-    stage = segment.getStage()
-    throw new Error("Must have a rectangle stage (is #{stage.type})") unless stage.type is 'rectangle'
-    segment.pushStage({
-      type: 'point'
-      x: xPos * stage.width
-      y: yPos * stage.height
-    })
-    return
+  rectToPoint: ({left, right, top, bottom}) ->
+    # Make sure we are not over-constrained
+    if (left? and right?) or (top? and bottom?)
+      throw new Error("Over-constrained")
+
+    if (not left? and not right?) or (not top? and not bottom?)
+      throw new Error("Under-constrained")
+
+    fx = if left? then (w) -> w * left else (w) -> w * (1 - right)
+    fy = if top?  then (h) -> h * top  else (h) -> h * (1 - bottom)
+
+    return (segment) ->
+      stage = segment.getStage()
+      throw new Error("Must have a rectangle stage (is #{stage.type})") unless stage.type is 'rectangle'
+
+      segment.pushStage({
+        type: 'point'
+        x: fx(stage.width)
+        y: fy(stage.height)
+      })
+      return
 }
 
 # =============================================================
@@ -271,11 +283,13 @@ class FacetJob
     return this
 
   combine: ({ filter, sort, limit } = {}) ->
+    # ToDo: implement filter
     combine = {
       operation: 'combine'
     }
     if sort
       combine.sort = sort
+      combine.sort.compare ?= 'natural'
 
     if limit?
       combine.limit = limit
@@ -291,9 +305,9 @@ class FacetJob
     })
     return this
 
-  pop: ->
+  popStage: ->
     @ops.push({
-      operation: 'pop'
+      operation: 'popStage'
     })
     return this
 
@@ -315,8 +329,8 @@ class FacetJob
     query = operations.filter(({operation}) -> operation in ['split', 'apply', 'combine'])
     @driver query, (err, res) ->
       if err
-        alert("An error has occurred")
-        throw err
+        alert("An error has occurred: " + err.message)
+        return
 
       svg = parent.append('svg')
         .attr('width', width)
@@ -360,7 +374,7 @@ class FacetJob
               for segment in segmentGroup
                 transform(segment)
 
-          when 'pop'
+          when 'popStage'
             for segmentGroup in segmentGroups
               for segment in segmentGroup
                 segment.popStage()
@@ -396,6 +410,11 @@ facet.ajaxPostDriver = ({url, context, prety}) -> (query, callback) ->
       callback(null, res)
       return
     error: (xhr) ->
-      callback(xhr.responseText, null)
+      text = xhr.responseText
+      try
+        err = JSON.parse(text)
+      catch e
+        err = { message: text }
+      callback(err, null)
       return
   })

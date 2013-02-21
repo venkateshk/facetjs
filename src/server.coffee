@@ -23,20 +23,8 @@ data.data1 = do ->
     }
   return ret
 
-# data.diamonds = require('../data/diamonds.js')
-# {
-#   "": "1",
-#   "carat": "0.23",
-#   "cut": "Ideal",
-#   "color": "E",
-#   "clarity": "SI2",
-#   "depth": "61.5",
-#   "table": "55",
-#   "price": "326",
-#   "x": "3.95",
-#   "y": "3.98",
-#   "z": "2.43"
-# },
+data.diamonds = require('../data/diamonds.js')
+
 
 druidPost = ({host, port, path}) ->
   opts = {

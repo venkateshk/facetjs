@@ -86,6 +86,8 @@ condensedQueryToDruid = ({requester, dataSource, interval, filters, condensedQue
     # Nothing to do as we are not calculating anything (not true, fix this)
     callback(null, [{
       prop: {}
+      _interval: interval
+      _filters: filters
     }])
     return
 

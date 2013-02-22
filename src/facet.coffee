@@ -194,6 +194,17 @@ facet.layout = {
 # A function that transforms the stage from one form to another.
 # Arguments* -> Segment -> void
 
+boxPosition = (segment, stageWidth, left, width, right) ->
+  if left? and width? and right?
+    throw new Error("Over-constrained")
+
+  if left?
+    return if width? then [left(segment), width(segment)] else [left(segment), stageWidth - left(segment)]
+  else if right?
+    return if width? then [stageWidth - right(segment) - width(segment), width(segment)] else [0, stageWidth - right(segment)]
+  else
+    return if width? then [0, width(segment)] else [0, stageWidth]
+
 facet.stage = {
   rectToPoint: ({left, right, top, bottom}) ->
     # Make sure we are not over-constrained
@@ -216,6 +227,15 @@ facet.stage = {
         y: fy(stage.height)
       })
       return
+
+
+
+  # margin: ({left, width, right, top, height, bottom}) -> (segment) ->
+  #   stage = segment.getStage()
+  #   throw new Error("Must have a rectangle stage (is #{stage.type})") unless stage.type is 'rectangle'
+
+  #   [x, w] = boxPosition(segment, stage.width, left, width, right)
+  #   [y, h] = boxPosition(segment, stage.height, top, height, bottom)
 }
 
 # =============================================================
@@ -223,20 +243,8 @@ facet.stage = {
 # A function that takes a facet and
 # Arguments* -> Segment -> void
 
-boxPosition = (segment, stageWidth, left, width, right) ->
-  if left? and width? and right?
-    throw new Error("Over-constrained")
-
-  if left?
-    return if width? then [left(segment), width(segment)] else [left(segment), stageWidth - left(segment)]
-  else if right?
-    return if width? then [stageWidth - right(segment) - width(segment), width(segment)] else [0, stageWidth - right(segment)]
-  else
-    return if width? then [0, width(segment)] else [0, stageWidth]
-
-
 facet.plot = {
-  rect: ({left, width, right, top, height, bottom, stroke, fill}) -> (segment) ->
+  rect: ({left, width, right, top, height, bottom, stroke, fill, opacity}) -> (segment) ->
     stage = segment.getStage()
     throw new Error("Must have a rectangle stage (is #{stage.type})") unless stage.type is 'rectangle'
 
@@ -250,9 +258,10 @@ facet.plot = {
       .attr('height', h)
       .style('fill', fill)
       .style('stroke', stroke)
+      .style('opacity', opacity)
     return
 
-  text: ({color, text, anchor, baseline, angle}) -> (segment) ->
+  text: ({color, text, size, anchor, baseline, angle}) -> (segment) ->
     stage = segment.getStage()
     throw new Error("Must have a point stage (is #{stage.type})") unless stage.type is 'point'
     node = segment.node.append('text').datum(segment)
@@ -268,6 +277,7 @@ facet.plot = {
       )
 
     node
+      .style('font-size', size)
       .style('fill', color)
       .style('text-anchor', anchor)
       .text(text)
@@ -382,7 +392,7 @@ class FacetJob
     operations = @ops
     @driver @getQuery(), (err, res) ->
       if err
-        alert("An error has occurred: " + err.message)
+        alert("An error has occurred: " + if typeof err is 'string' then err else err.message)
         return
 
       svg = parent.append('svg')
@@ -452,7 +462,6 @@ facet.visualize = (driver) -> new FacetJob(driver)
 facet.driver = {}
 
 facet.ajaxPostDriver = ({url, context, prety}) -> (query, callback) ->
-  callback ?= ->
   return $.ajax({
     url
     type: 'POST'

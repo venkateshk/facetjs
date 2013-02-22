@@ -50,7 +50,11 @@
   </head>
 
   <body>
-  <!--
+
+    <div class="filler">
+      FACET
+    </div>
+
     <div class="cont">
       <h1>1. Number of diamonds by Cut (ordered by Avg Price)</h1>
       <h2>Simple Driver (JS) in Node / diamonds</h2>
@@ -214,12 +218,11 @@
         .render('#ex3', 800, 600)
     })();
     </script>
--->
 
     <div class="cont">
       <h1>4. Avg Price by Cut by Clarity</h1>
       <h2>SQL Driver in Node / diamonds</h2>
-      <div id="ex3" class="example"></div>
+      <div id="ex4" class="example"></div>
     </div>
     <script>
     (function() {
@@ -278,122 +281,159 @@
               angle: use.literal(-90)
             }))
           .popStage()
-          .render('#ex3', 800, 600)
+          .render('#ex4', 800, 600)
     })();
     </script>
 
 
-
-
-
+    <div class="cont">
+      <h1>5. Wiki Edits by Page by Language</h1>
+      <h2>Druid Driver in Client / wikipedia</h2>
+      <div id="ex5" class="example"></div>
+    </div>
     <script>
     (function() {
-      return;
-
-      // var query = [
-      //   { operation: 'apply', prop: 'SumScoreA', aggregate: 'sum', attribute: 'scoreA' },
-      //   { operation: 'split', prop: 'Letter', bucket: 'natural', attribute: 'letter' },
-      //   { operation: 'apply', prop: 'SumScoreA', aggregate: 'sum', attribute: 'scoreA' }
-      // ];
-      var simpleDriver = facet.driver.simple(data1);
-      // simpleDriver(query, function(err, res) {
-      //   if (err) {
-      //     console.log("ERROR");
-      //     throw err;
-      //   }
-
-      //   console.log(res);
-      // });
-
-
-      var driver = simpleDriver;
-      // var driver = facet.ajaxPostDriver({
-      //   url: '/driver/simple',
-      //   context: { data: 'data1' },
-      //   prety: true
-      // });
-
-      // var rect1 = facet.visualize(driver)
-      //   .split('Letter', split.natural('letter'))
-      //   .apply('avgScoreA', apply.average('scoreA'))
-      //   .layout(layout.vertical({ size: use.prop('avgScoreA'), gap: 5 }))
-      //   .plot(plot.rect({ color: 'none' }))
-      //   .stage(stage.rectToPoint(0.5, 0.5))
-      //     .plot(plot.text({ text: use.prop('Letter'), color: 'green' }))
-      //   .popStage()
-      //   .render('.cont', 800, 600)
-          // .split('Time', split.time('time', 'minute'))
-          // .layout(layout.horizontal({ gap: 2 }))
-          // .plot(plot.rect({ color: '#ccccff' }))
-          // .stage(stage.rectToPoint(0.5, 0.5)).plot(plot.text({ text: use.prop('Number'), color: 'red' })).pop()
-          // .render('.cont', 800, 600)
-
-
-      // q = {"intervals":["2013-02-04T00:00:00.000/2013-02-24T00:00:00.000"],"aggregations":[{"type":"doubleSum","name":"count","fieldName":"count"},{"type":"hyperUnique","name":"uniques","fieldName":"unique_users"},{"type":"doubleSum","name":"delta","fieldName":"delta"},{"type":"doubleSum","name":"added","fieldName":"added"},{"type":"doubleSum","name":"deleted","fieldName":"deleted"}],"postAggregations":[{"type":"arithmetic","name":"variation","fn":"-","fields":[{"type":"fieldAccess","name":"added","fieldName":"added"},{"type":"fieldAccess","name":"deleted","fieldName":"deleted"}]},{"type":"arithmetic","name":"average_variation","fn":"/","fields":[{"type":"fieldAccess","name":"variation","fieldName":"variation"},{"type":"fieldAccess","name":"count","fieldName":"count"}]}],"dataSource":"wikipedia_editstream","granularity":"hour","queryType":"timeseries"}
-
-      // facet.ajaxPostDriver({
-      //   url: '/pass/druid',
-      //   prety: true
-      // })(q)
+      // dimensions
+      // ["dma_code","continent_code","geo","area_code","robot","country_name","network","city","namespace","anonymous","unpatrolled","page","postal_code","language","newpage","user","region_lookup"]
+      // metrics
+      // ["count","added","variation","delta","delta_hist","unique_users","deleted"]}
 
       var druidRequester = facet.ajaxPostDriver({
         url: '/pass/druid',
         prety: true
-      })
+      });
 
-      // "dimensions":
-      //   ["dma_code","continent_code","geo","area_code","robot","country_name","network","city","namespace","anonymous","unpatrolled","page","postal_code","language","newpage","user","region_lookup"],
-      // "metrics":
-      //   ["count","added","variation","delta","delta_hist","unique_users","deleted"]
-      var druidQ = [
-        { operation: 'apply', prop: 'Edits', aggregate: 'count' },
-        { operation: 'split', prop: 'Language', bucket: 'natural', attribute: 'language' },
-        { operation: 'apply', prop: 'Edits', aggregate: 'count' },
-        { operation: 'combine', sort: { prop: 'Edits', compare: 'natural', direction: 'DESC' }, limit: 5 },
-        { operation: 'split', prop: 'Page', bucket: 'natural', attribute: 'page' },
-        { operation: 'apply', prop: 'Edits', aggregate: 'count' },
-        { operation: 'combine', sort: { prop: 'Edits', compare: 'natural', direction: 'DESC' }, limit: 4 },
-      ];
-      var druidDriver = facet.driver.druid({
+      var druidDriverClient = facet.driver.druid({
         requester: druidRequester,
         dataSource: "wikipedia_editstream",
         interval: [new Date(Date.UTC(2013, 2-1, 14, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 20, 0, 0, 0))],
         filters: null
-      })(druidQ, function(err, result) {
-        console.log('got', err, result);
-      })
+      });
 
-      // facet.ajaxPostDriver({
-      //   url: '/driver/druid',
-      //   context: { data: 'data1' },
-      //   prety: true
-      // })(druidQ, function(err, result) {
-      //   console.log('got', err, result);
-      // })
+      var scale = d3.scale.linear().domain([0, 1200]).range([0, 600])
 
-      // var sqlRequester = facet.ajaxPostDriver({
-      //   url: '/pass/sql',
-      //   prety: true
-      // })
+      var vis = facet.visualize(druidDriverClient)
+        .split('Language', split.natural('language'))
+        .apply('Edits', apply.count())
+        .combine({ sort: { prop: 'Edits', direction: 'DESC' }, limit: 4})
+        .layout(layout.vertical({ gap: 3 }))
+        .plot(plot.rect({
+          fill: use.literal('none'),
+          stroke: use.literal('black')
+        }))
+        .stage(stage.rectToPoint({ top: 0.03, left: 0.01 }))
+          .plot(plot.text({
+            text: use.prop('Language'),
+            baseline: use.literal('top'),
+            size: use.literal('30px')
+          }))
+        .popStage()
+        .stage(stage.rectToPoint({ top: 0.2, left: 0.01 }))
+          .plot(plot.text({
+            text: use.fn(use.prop('Edits'), function(d) { return 'Total edits: ' + d; }),
+            baseline: use.literal('top')
+          }))
+        .popStage()
+          .split('Page', split.natural('page'))
+          .apply('Edits', apply.count())
+          .combine({ sort: { prop: 'Edits', direction: 'DESC' }, limit: 4})
+          .layout(layout.vertical({ gap: 3 }))
+          .plot(plot.rect({
+            fill: use.literal('#f0f0f0'),
+            stroke: use.literal('#444444'),
+            left: use.literal(200),
+            width: use.fn(use.prop('Edits'), scale)
+          }))
+          .stage(stage.rectToPoint({ top: 0.5, left: 0.26 }))
+            .plot(plot.text({
+              text: use.fn(use.prop('Edits'), use.prop('Page'), function(e, p) {
+                return '(' + e + ') ' + p;
+              }),
+              baseline: use.literal('middle'),
+              size: use.literal('9px')
+            }))
+          .popStage()
+          .render('#ex5', 800, 600)
+    })();
+    </script>
 
-      // var sqlQ = [
-      //   { operation: 'apply', prop: 'Diamonds', aggregate: 'count' },
-      //   { operation: 'split', prop: 'Cut', bucket: 'natural', attribute: 'cut' },
-      //   { operation: 'apply', prop: 'Num', aggregate: 'count' },
-      //   { operation: 'apply', prop: 'AvgPrice', aggregate: 'average', attribute: 'price' },
-      //   { operation: 'combine', sort: { prop: 'AvgPrice', compare: 'natural', direction: 'DESC' } },
-      //   // { operation: 'split', prop: 'Page', bucket: 'natural', attribute: 'page' },
-      //   // { operation: 'apply', prop: 'Edits', aggregate: 'count' },
-      //   // { operation: 'combine', sort: { prop: 'Edits', compare: 'natural', direction: 'DESC' }, limit: 4 },
-      // ];
+    <div class="cont">
+      <h1>6. Wiki Edits by User by Page by Language</h1>
+      <h2>Druid Driver in Client / wikipedia</h2>
+      <div id="ex6" class="example"></div>
+    </div>
+    <script>
+    (function() {
+      // dimensions
+      // ["dma_code","continent_code","geo","area_code","robot","country_name","network","city","namespace","anonymous","unpatrolled","page","postal_code","language","newpage","user","region_lookup"]
+      // metrics
+      // ["count","added","variation","delta","delta_hist","unique_users","deleted"]}
 
-      // var sqlDriver = facet.driver.sql({
-      //   requester: sqlRequester,
-      //   table: "diamonds",
-      //   filters: null
-      // })(sqlQ, function(err, result) {
-      //   console.log('got', err, result);
-      // })
+      var druidDriverNode = facet.ajaxPostDriver({
+        url: '/driver/druid',
+        context: {
+          dataSource: "wikipedia_editstream",
+          interval: [new Date(Date.UTC(2013, 2-1, 14, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 20, 0, 0, 0))]
+        },
+        prety: true
+      });
+
+      var vis = facet.visualize(druidDriverNode)
+        .split('Language', split.natural('language'))
+        .apply('Edits', apply.count())
+        .combine({ sort: { prop: 'Edits', direction: 'DESC' }, limit: 4})
+        .layout(layout.vertical({ gap: 3 }))
+        .plot(plot.rect({
+          fill: use.literal('none'),
+          stroke: use.literal('black')
+        }))
+        .stage(stage.rectToPoint({ top: 0.03, left: 0.01 }))
+          .plot(plot.text({
+            text: use.prop('Language'),
+            baseline: use.literal('top'),
+            size: use.literal('20px')
+          }))
+        .popStage()
+          .split('Page', split.natural('page'))
+          .apply('Edits', apply.count())
+          .combine({ sort: { prop: 'Edits', direction: 'DESC' }, limit: 4})
+          .layout(layout.horizontal({ gap: 3 }))
+          .plot(plot.rect({
+            fill: use.literal('none'),
+            stroke: use.literal('green')
+          }))
+          .stage(stage.rectToPoint({ bottom: 0.01, left: 0.5 }))
+            .plot(plot.text({
+              text: use.fn(use.prop('Edits'), use.prop('Page'), function(e, p) {
+                var str = '(' + e + ') ' + p;
+                var lim = 40;
+                if (str.length > lim) {
+                  str = str.substring(0, lim) + '...'
+                }
+                return str;
+              }),
+              anchor: use.literal('middle'),
+              baseline: use.literal('bottom'),
+              size: use.literal('9px')
+            }))
+          .popStage()
+            .split('User', split.natural('user'))
+            .apply('Edits', apply.count())
+            .combine({ sort: { prop: 'Edits', direction: 'DESC' }, limit: 3})
+            .layout(layout.vertical({ gap: 1, size: use.prop('Edits') }))
+            .plot(plot.rect({
+              fill: use.literal('black'),
+              opacity: 0.15
+            }))
+            .stage(stage.rectToPoint({ bottom: 0.5, left: 0.5 }))
+              .plot(plot.text({
+                text: use.fn(use.prop('Edits'), function(e) { return '[' + e + ']'; }),
+                anchor: use.literal('middle'),
+                baseline: use.literal('center'),
+                size: use.literal('9px')
+              }))
+            .popStage()
+            .render('#ex6', 800, 600)
     })();
     </script>
   </body>

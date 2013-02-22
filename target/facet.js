@@ -240,6 +240,31 @@
     tile: function() {}
   };
 
+  boxPosition = function(segment, stageWidth, left, width, right) {
+    if ((left != null) && (width != null) && (right != null)) {
+      throw new Error("Over-constrained");
+    }
+    if (left != null) {
+      if (width != null) {
+        return [left(segment), width(segment)];
+      } else {
+        return [left(segment), stageWidth - left(segment)];
+      }
+    } else if (right != null) {
+      if (width != null) {
+        return [stageWidth - right(segment) - width(segment), width(segment)];
+      } else {
+        return [0, stageWidth - right(segment)];
+      }
+    } else {
+      if (width != null) {
+        return [0, width(segment)];
+      } else {
+        return [0, stageWidth];
+      }
+    }
+  };
+
   facet.stage = {
     rectToPoint: function(_arg) {
       var bottom, fx, fy, left, right, top;
@@ -275,35 +300,10 @@
     }
   };
 
-  boxPosition = function(segment, stageWidth, left, width, right) {
-    if ((left != null) && (width != null) && (right != null)) {
-      throw new Error("Over-constrained");
-    }
-    if (left != null) {
-      if (width != null) {
-        return [left(segment), width(segment)];
-      } else {
-        return [left(segment), stageWidth - left(segment)];
-      }
-    } else if (right != null) {
-      if (width != null) {
-        return [stageWidth - right(segment) - width(segment), width(segment)];
-      } else {
-        return [0, stageWidth - right(segment)];
-      }
-    } else {
-      if (width != null) {
-        return [0, width(segment)];
-      } else {
-        return [0, stageWidth];
-      }
-    }
-  };
-
   facet.plot = {
     rect: function(_arg) {
-      var bottom, fill, height, left, right, stroke, top, width;
-      left = _arg.left, width = _arg.width, right = _arg.right, top = _arg.top, height = _arg.height, bottom = _arg.bottom, stroke = _arg.stroke, fill = _arg.fill;
+      var bottom, fill, height, left, opacity, right, stroke, top, width;
+      left = _arg.left, width = _arg.width, right = _arg.right, top = _arg.top, height = _arg.height, bottom = _arg.bottom, stroke = _arg.stroke, fill = _arg.fill, opacity = _arg.opacity;
       return function(segment) {
         var h, stage, w, x, y, _ref, _ref1;
         stage = segment.getStage();
@@ -312,12 +312,12 @@
         }
         _ref = boxPosition(segment, stage.width, left, width, right), x = _ref[0], w = _ref[1];
         _ref1 = boxPosition(segment, stage.height, top, height, bottom), y = _ref1[0], h = _ref1[1];
-        segment.node.append('rect').datum(segment).attr('x', x).attr('y', y).attr('width', w).attr('height', h).style('fill', fill).style('stroke', stroke);
+        segment.node.append('rect').datum(segment).attr('x', x).attr('y', y).attr('width', w).attr('height', h).style('fill', fill).style('stroke', stroke).style('opacity', opacity);
       };
     },
     text: function(_arg) {
-      var anchor, angle, baseline, color, text;
-      color = _arg.color, text = _arg.text, anchor = _arg.anchor, baseline = _arg.baseline, angle = _arg.angle;
+      var anchor, angle, baseline, color, size, text;
+      color = _arg.color, text = _arg.text, size = _arg.size, anchor = _arg.anchor, baseline = _arg.baseline, angle = _arg.angle;
       return function(segment) {
         var node, stage, transformStr;
         stage = segment.getStage();
@@ -343,7 +343,7 @@
             }
           });
         }
-        node.style('fill', color).style('text-anchor', anchor).text(text);
+        node.style('font-size', size).style('fill', color).style('text-anchor', anchor).text(text);
       };
     },
     circle: function(_arg) {
@@ -488,7 +488,7 @@
       this.driver(this.getQuery(), function(err, res) {
         var cmd, layout, parentSegment, plot, segment, segmentGroup, segmentGroups, svg, transform, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _len6, _len7, _m, _n, _o, _p;
         if (err) {
-          alert("An error has occurred: " + err.message);
+          alert("An error has occurred: " + (typeof err === 'string' ? err : err.message));
           return;
         }
         svg = parent.append('svg').attr('width', width).attr('height', height);
@@ -590,9 +590,6 @@
     var context, prety, url;
     url = _arg.url, context = _arg.context, prety = _arg.prety;
     return function(query, callback) {
-      if (callback == null) {
-        callback = function() {};
-      }
       return $.ajax({
         url: url,
         type: 'POST',

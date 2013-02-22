@@ -171,8 +171,10 @@
     _ref = req.body, context = _ref.context, query = _ref.query;
     druidDriver({
       requester: druidPass,
-      dataSource: "wikipedia_editstream",
-      interval: [new Date(Date.UTC(2013, 2 - 1, 14, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 20, 0, 0, 0))],
+      dataSource: context.dataSource,
+      interval: context.interval.map(function(d) {
+        return new Date(d);
+      }),
       filters: null
     })(query, respondWithResult(res));
   });

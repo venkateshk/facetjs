@@ -151,8 +151,8 @@ app.post '/driver/druid', (req, res) ->
   { context, query } = req.body
   druidDriver({
     requester: druidPass
-    dataSource: "wikipedia_editstream"
-    interval: [new Date(Date.UTC(2013, 2-1, 14, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 20, 0, 0, 0))]
+    dataSource: context.dataSource
+    interval: context.interval.map((d) -> new Date(d))
     filters: null
   })(query, respondWithResult(res))
   return

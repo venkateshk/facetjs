@@ -103,7 +103,9 @@
     if (condensedQuery.applies.length === 0) {
       callback(null, [
         {
-          prop: {}
+          prop: {},
+          _interval: interval,
+          _filters: filters
         }
       ]);
       return;

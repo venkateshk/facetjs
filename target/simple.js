@@ -7,14 +7,14 @@
   };
 
   splitFns = {
-    natural: function(_arg) {
+    identity: function(_arg) {
       var attribute;
       attribute = _arg.attribute;
       return function(d) {
         return d[attribute];
       };
     },
-    even: function(_arg) {
+    continuous: function(_arg) {
       var attribute, offset, size;
       attribute = _arg.attribute, size = _arg.size, offset = _arg.offset;
       return function(d) {

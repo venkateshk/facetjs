@@ -64,15 +64,15 @@
   window.facet = facet = {};
 
   facet.split = {
-    natural: function(attribute) {
+    identity: function(attribute) {
       return {
-        bucket: 'natural',
+        bucket: 'identity',
         attribute: attribute
       };
     },
-    even: function(attribute, size, offset) {
+    continuous: function(attribute, size, offset) {
       return {
-        bucket: 'even',
+        bucket: 'continuous',
         attribute: attribute,
         size: size,
         offset: offset

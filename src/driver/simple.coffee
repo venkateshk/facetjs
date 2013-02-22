@@ -5,9 +5,9 @@ flatten = (ar) -> Array::concat.apply([], ar)
 # ===================================
 
 splitFns = {
-  natural: ({attribute}) -> (d) -> d[attribute]
+  identity: ({attribute}) -> (d) -> d[attribute]
 
-  even: ({attribute, size, offset}) -> (d) ->
+  continuous: ({attribute, size, offset}) -> (d) ->
     b = Math.floor((d[attribute] + offset) / size) * size
     return [b, b + size]
 

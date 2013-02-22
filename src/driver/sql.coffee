@@ -58,6 +58,33 @@ andFilters = (filters...) ->
     else
       filters.join(' AND ')
 
+timeBucketing = {
+  second: {
+    select: '%Y-%m-%dT%H:%i:%SZ'
+    group: '%Y-%m-%dT%H:%i:%SZ'
+  }
+  minute: {
+    select: '%Y-%m-%dT%H:%i:00Z'
+    group: '%Y-%m-%dT%H:%i'
+  }
+  hour: {
+    select: '%Y-%m-%dT%H:00:00Z'
+    group: '%Y-%m-%dT%H'
+  }
+  day: {
+    select: '%Y-%m-%dT00:00:00Z'
+    group: '%Y-%m-%d'
+  }
+  month: {
+    select: '%Y-%m-00T00:00:00Z'
+    group: '%Y-%m'
+  }
+  year: {
+    select: '%Y-00-00T00:00:00Z'
+    group: '%Y'
+  }
+}
+
 condensedQueryToSQL = ({requester, table, filters, condensedQuery}, callback) ->
   findApply = (applies, propName) ->
     for apply in applies
@@ -84,11 +111,16 @@ condensedQueryToSQL = ({requester, table, filters, condensedQuery}, callback) ->
   if split
     groupByPart = 'GROUP BY '
     switch split.bucket
-      when 'natural'
+      when 'identity'
         selectParts.push "`#{split.attribute}` AS \"#{split.prop}\""
         groupByPart += "`#{split.attribute}`"
 
+      when 'continuous'
+        callback("not implemented yet"); return
+
       when 'time'
+        # SELECT `time` AS "Time" FROM time_test GROUP BY DATE_FORMAT(`time`,'%Y-%m-%d')
+        # SELECT DATE_FORMAT(`time`,'%Y-%m-%dT%H:%i:%S') AS "Date" FROM time_test
         callback("not implemented yet"); return
 
   # apply
@@ -136,6 +168,9 @@ condensedQueryToSQL = ({requester, table, filters, condensedQuery}, callback) ->
       switch sort.compare
         when 'natural'
           orderByPart += "`#{sort.prop}` #{sort.direction}"
+
+        when 'caseInsensetive'
+          callback("not implemented yet"); return
 
         else
           callback("unsupported compare"); return

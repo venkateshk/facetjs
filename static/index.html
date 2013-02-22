@@ -62,6 +62,7 @@
     </div>
     <script>
     (function() {
+      return;
       // {
       //   "carat": "0.23",
       //   "cut": "Ideal",
@@ -113,6 +114,7 @@
     </div>
     <script>
     (function() {
+      return;
       // {
       //   "carat": "0.23",
       //   "cut": "Ideal",
@@ -170,6 +172,7 @@
     </div>
     <script>
     (function() {
+      return;
       // {
       //   "carat": "0.23",
       //   "cut": "Ideal",
@@ -226,6 +229,7 @@
     </div>
     <script>
     (function() {
+      //return;
       // {
       //   "carat": "0.23",
       //   "cut": "Ideal",
@@ -239,15 +243,32 @@
       //   "z": "2.43"
       // },
 
-      var sqlDriverNode = facet.ajaxPostDriver({
-        url: '/driver/sql',
-        context: { table: 'diamonds' },
+
+
+      // var sqlDriverNode = facet.ajaxPostDriver({
+      //   url: '/driver/sql',
+      //   context: { table: 'diamonds' },
+      //   prety: true
+      // });
+
+      var sqlRequester = facet.ajaxPostDriver({
+        url: '/pass/sql',
         prety: true
       });
 
+      var sqlDriverClient = facet.driver.sql({
+        requester: sqlRequester,
+        table: "diamonds",
+        filters: null
+      });
+
+
+
+
       var scale = d3.scale.linear().domain([0, 18000000]).range([0, 600])
 
-      var vis = facet.visualize(sqlDriverNode)
+      var vis = facet.visualize(sqlDriverClient)
+      .apply('TotalDiamondCount', apply.count())
         .split('Clarity', split.natural('clarity'))
         .apply('AvgPrice', apply.average('price'))
         .combine({ sort: { prop: 'AvgPrice', direction: 'DESC' }})
@@ -293,6 +314,7 @@
     </div>
     <script>
     (function() {
+      return;
       // dimensions
       // ["dma_code","continent_code","geo","area_code","robot","country_name","network","city","namespace","anonymous","unpatrolled","page","postal_code","language","newpage","user","region_lookup"]
       // metrics
@@ -364,6 +386,7 @@
     </div>
     <script>
     (function() {
+      return;
       // dimensions
       // ["dma_code","continent_code","geo","area_code","robot","country_name","network","city","namespace","anonymous","unpatrolled","page","postal_code","language","newpage","user","region_lookup"]
       // metrics

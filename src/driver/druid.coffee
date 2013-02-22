@@ -77,7 +77,7 @@ condensedQueryToDruid = ({requester, dataSource, interval, filters, condensedQue
     return
 
   toDruidInterval = (interval) ->
-    return interval[0].toISOString().replace('Z', '') + '/' + interval[1].toISOString().replace('Z', '')
+    return interval.map((d) -> d.toISOString().replace('Z', '')).join('/')
 
   if interval?.length isnt 2
     callback("Must have valid interval [start, end]"); return
@@ -100,7 +100,7 @@ condensedQueryToDruid = ({requester, dataSource, interval, filters, condensedQue
     druidQuery.filter = filters
 
   # split + combine
-  #invertCombineSort = false
+  invertApply = null
   if condensedQuery.split
     if not condensedQuery.combine?.sort
       callback("must have a sort combine for a split"); return
@@ -109,15 +109,22 @@ condensedQueryToDruid = ({requester, dataSource, interval, filters, condensedQue
       callback("must have a sort prop name"); return
 
     switch condensedQuery.split.bucket
-      when 'natural'
+      when 'identity'
         if findApply(condensedQuery.applies, combinePropName)
           if not condensedQuery.split.attribute
             callback("split must have an attribute"); return
           if not condensedQuery.split.prop
             callback("split must have a prop"); return
-          if condensedQuery.combine.sort.direction not in ['ASC', 'DESC']
+
+          sort = condensedQuery.combine.sort
+          if sort.direction not in ['ASC', 'DESC']
             callback("direction has to be 'ASC' or 'DESC'"); return
-          #invertCombineSort = condensedQuery.combine.sort.direction is 'ASC'
+
+          # figure out of wee need to invert and apply for a bottom N
+          if sort.direction is 'ASC'
+            invertApply = findApply(condensedQuery.applies, sort.prop)
+            if not invertApply
+              callback("no apply to invert for bottomN"); return
 
           druidQuery.queryType = "topN"
           druidQuery.granularity = "all"
@@ -159,46 +166,63 @@ condensedQueryToDruid = ({requester, dataSource, interval, filters, condensedQue
     for apply in condensedQuery.applies
       switch apply.aggregate
         when 'count'
-          countPropName = apply.prop
-          druidQuery.aggregations.push {
-            type: "count"
-            name: apply.prop
-          }
+          if apply isnt invertApply
+            countPropName = apply.prop
+            druidQuery.aggregations.push {
+              type: "count"
+              name: apply.prop
+            }
+          else
+            callback("not implemented yet"); return
 
         when 'sum'
-          druidQuery.aggregations.push {
-            type: "doubleSum"
-            name: apply.prop
-            fieldName: apply.attribute
-          }
+          if apply isnt invertApply
+            druidQuery.aggregations.push {
+              type: "doubleSum"
+              name: apply.prop
+              fieldName: apply.attribute
+            }
+          else
+            callback("not implemented yet"); return
 
         when 'average'
-          callback("not implemented correctly yet")
-          return
-          druidQuery.aggregations.push {
-            type: "doubleSum"
-            name: apply.prop
-            fieldName: apply.attribute
-          }
-          # Add postagg to do divide
+          if apply isnt invertApply
+            callback("not implemented correctly yet")
+            return
+            druidQuery.aggregations.push {
+              type: "doubleSum"
+              name: apply.prop
+              fieldName: apply.attribute
+            }
+            # Add postagg to do divide
+          else
+            callback("not implemented yet"); return
 
         when 'min'
-          druidQuery.aggregations.push {
-            type: "min"
-            name: apply.prop
-            fieldName: apply.attribute
-          }
+          if apply isnt invertApply
+            druidQuery.aggregations.push {
+              type: "min"
+              name: apply.prop
+              fieldName: apply.attribute
+            }
+          else
+            callback("not implemented yet"); return
 
         when 'max'
-          druidQuery.aggregations.push {
-            type: "max"
-            name: apply.prop
-            fieldName: apply.attribute
-          }
+          if apply isnt invertApply
+            druidQuery.aggregations.push {
+              type: "max"
+              name: apply.prop
+              fieldName: apply.attribute
+            }
+          else
+            callback("not implemented yet"); return
 
         when 'unique'
-          callback("not implemented yet")
-          return
+          if apply is invertApply
+            callback("not implemented yet"); return
+          else
+            callback("not implemented yet"); return
 
   requester druidQuery, (err, ds) ->
     if err
@@ -207,7 +231,7 @@ condensedQueryToDruid = ({requester, dataSource, interval, filters, condensedQue
 
     if condensedQuery.split
       switch condensedQuery.split.bucket
-        when 'natural'
+        when 'identity'
           if ds.length isnt 1
             callback("something went wrong")
             return

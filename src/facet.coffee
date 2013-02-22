@@ -46,13 +46,13 @@ window.facet = facet = {}
 # A split is a function that takes a row and returns a string-able thing.
 
 facet.split = {
-  natural: (attribute) -> {
-      bucket: 'natural'
+  identity: (attribute) -> {
+      bucket: 'identity'
       attribute
     }
 
-  even: (attribute, size, offset) -> {
-      bucket: 'even'
+  continuous: (attribute, size, offset) -> {
+      bucket: 'continuous'
       attribute
       size
       offset

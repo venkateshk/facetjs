@@ -73,7 +73,7 @@
   };
 
   condensedQueryToDruid = function(_arg, callback) {
-    var apply, bucketDuration, combinePropName, condensedQuery, countPropName, dataSource, druidQuery, filters, findApply, findCountApply, interval, requester, timePropName, toDruidInterval, _i, _len, _ref, _ref1, _ref2, _ref3;
+    var apply, bucketDuration, combinePropName, condensedQuery, countPropName, dataSource, druidQuery, filters, findApply, findCountApply, interval, invertApply, requester, sort, timePropName, toDruidInterval, _i, _len, _ref, _ref1, _ref2, _ref3;
     requester = _arg.requester, dataSource = _arg.dataSource, interval = _arg.interval, filters = _arg.filters, condensedQuery = _arg.condensedQuery;
     findApply = function(applies, propName) {
       var apply, _i, _len;
@@ -94,7 +94,9 @@
       }
     };
     toDruidInterval = function(interval) {
-      return interval[0].toISOString().replace('Z', '') + '/' + interval[1].toISOString().replace('Z', '');
+      return interval.map(function(d) {
+        return d.toISOString().replace('Z', '');
+      }).join('/');
     };
     if ((interval != null ? interval.length : void 0) !== 2) {
       callback("Must have valid interval [start, end]");
@@ -117,6 +119,7 @@
     if (filters) {
       druidQuery.filter = filters;
     }
+    invertApply = null;
     if (condensedQuery.split) {
       if (!((_ref = condensedQuery.combine) != null ? _ref.sort : void 0)) {
         callback("must have a sort combine for a split");
@@ -128,7 +131,7 @@
         return;
       }
       switch (condensedQuery.split.bucket) {
-        case 'natural':
+        case 'identity':
           if (findApply(condensedQuery.applies, combinePropName)) {
             if (!condensedQuery.split.attribute) {
               callback("split must have an attribute");
@@ -138,9 +141,17 @@
               callback("split must have a prop");
               return;
             }
-            if ((_ref1 = condensedQuery.combine.sort.direction) !== 'ASC' && _ref1 !== 'DESC') {
+            sort = condensedQuery.combine.sort;
+            if ((_ref1 = sort.direction) !== 'ASC' && _ref1 !== 'DESC') {
               callback("direction has to be 'ASC' or 'DESC'");
               return;
+            }
+            if (sort.direction === 'ASC') {
+              invertApply = findApply(condensedQuery.applies, sort.prop);
+              if (!invertApply) {
+                callback("no apply to invert for bottomN");
+                return;
+              }
             }
             druidQuery.queryType = "topN";
             druidQuery.granularity = "all";
@@ -190,45 +201,75 @@
         apply = _ref3[_i];
         switch (apply.aggregate) {
           case 'count':
-            countPropName = apply.prop;
-            druidQuery.aggregations.push({
-              type: "count",
-              name: apply.prop
-            });
+            if (apply !== invertApply) {
+              countPropName = apply.prop;
+              druidQuery.aggregations.push({
+                type: "count",
+                name: apply.prop
+              });
+            } else {
+              callback("not implemented yet");
+              return;
+            }
             break;
           case 'sum':
-            druidQuery.aggregations.push({
-              type: "doubleSum",
-              name: apply.prop,
-              fieldName: apply.attribute
-            });
+            if (apply !== invertApply) {
+              druidQuery.aggregations.push({
+                type: "doubleSum",
+                name: apply.prop,
+                fieldName: apply.attribute
+              });
+            } else {
+              callback("not implemented yet");
+              return;
+            }
             break;
           case 'average':
-            callback("not implemented correctly yet");
-            return;
-            druidQuery.aggregations.push({
-              type: "doubleSum",
-              name: apply.prop,
-              fieldName: apply.attribute
-            });
+            if (apply !== invertApply) {
+              callback("not implemented correctly yet");
+              return;
+              druidQuery.aggregations.push({
+                type: "doubleSum",
+                name: apply.prop,
+                fieldName: apply.attribute
+              });
+            } else {
+              callback("not implemented yet");
+              return;
+            }
             break;
           case 'min':
-            druidQuery.aggregations.push({
-              type: "min",
-              name: apply.prop,
-              fieldName: apply.attribute
-            });
+            if (apply !== invertApply) {
+              druidQuery.aggregations.push({
+                type: "min",
+                name: apply.prop,
+                fieldName: apply.attribute
+              });
+            } else {
+              callback("not implemented yet");
+              return;
+            }
             break;
           case 'max':
-            druidQuery.aggregations.push({
-              type: "max",
-              name: apply.prop,
-              fieldName: apply.attribute
-            });
+            if (apply !== invertApply) {
+              druidQuery.aggregations.push({
+                type: "max",
+                name: apply.prop,
+                fieldName: apply.attribute
+              });
+            } else {
+              callback("not implemented yet");
+              return;
+            }
             break;
           case 'unique':
-            callback("not implemented yet");
-            return;
+            if (apply === invertApply) {
+              callback("not implemented yet");
+              return;
+            } else {
+              callback("not implemented yet");
+              return;
+            }
         }
       }
     }
@@ -240,7 +281,7 @@
       }
       if (condensedQuery.split) {
         switch (condensedQuery.split.bucket) {
-          case 'natural':
+          case 'identity':
             if (ds.length !== 1) {
               callback("something went wrong");
               return;

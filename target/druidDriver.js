@@ -335,8 +335,7 @@
             }
             if (parentSegment) {
               parentSegment.splits = splits;
-              delete parentSegment._interval;
-              delete parentSegment._filters;
+              driverUtil.cleanSegment(parentSegment);
             } else {
               rootSegment = splits[0];
             }
@@ -360,16 +359,11 @@
         cmdIndex++;
         queryDruid(condenced, done);
       }, function(err) {
-        var segment, _i, _len;
         if (err) {
           callback(err);
           return;
         }
-        for (_i = 0, _len = segments.length; _i < _len; _i++) {
-          segment = segments[_i];
-          delete segment._interval;
-          delete segment._filters;
-        }
+        segments.forEach(driverUtil.cleanSegment);
         callback(null, rootSegment);
       });
     };

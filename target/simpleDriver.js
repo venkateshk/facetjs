@@ -211,7 +211,7 @@
   };
 
   computeQuery = function(data, query) {
-    var aggregatorFn, applyFn, bucketFn, cmd, compareFn, propName, rootSegment, segment, segmentGroup, segmentGroups, sortFn, splitFn, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _len6, _len7, _m, _n, _o, _p;
+    var aggregatorFn, applyFn, bucketFn, cmd, compareFn, propName, rootSegment, segment, segmentGroup, segmentGroups, sortFn, splitFn, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _len6, _m, _n, _o;
     if (!query) {
       throw new Error("query not given");
     }
@@ -261,7 +261,7 @@
                 prop: prop
               };
             });
-            delete segment._raw;
+            driverUtil.cleanSegment(segment);
             return segment.splits;
           });
           break;
@@ -311,10 +311,7 @@
     }
     for (_o = 0, _len6 = segmentGroups.length; _o < _len6; _o++) {
       segmentGroup = segmentGroups[_o];
-      for (_p = 0, _len7 = segmentGroup.length; _p < _len7; _p++) {
-        segment = segmentGroup[_p];
-        delete segment._raw;
-      }
+      segmentGroup.forEach(driverUtil.cleanSegment);
     }
     return rootSegment;
   };

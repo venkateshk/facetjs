@@ -208,7 +208,7 @@ exports = ({requester, table, filters}) -> (query, callback) ->
           # Make the results into segments and build the tree
           if parentSegment
             parentSegment.splits = splits
-            delete parentSegment._filters
+            driverUtil.cleanSegment(parentSegment)
           else
             rootSegment = splits[0]
           done(null, splits)
@@ -237,8 +237,7 @@ exports = ({requester, table, filters}) -> (query, callback) ->
         callback(err)
         return
       # Clean up the last segments
-      for segment in segments
-        delete segment._filters
+      segments.forEach(driverUtil.cleanSegment)
 
       callback(null, rootSegment)
       return

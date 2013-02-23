@@ -278,8 +278,7 @@ exports = ({requester, dataSource, timeAttribute, interval, filters}) ->
             # Make the results into segments and build the tree
             if parentSegment
               parentSegment.splits = splits
-              delete parentSegment._interval
-              delete parentSegment._filters
+              driverUtil.cleanSegment(parentSegment)
             else
               rootSegment = splits[0]
             done(null, splits)
@@ -308,9 +307,7 @@ exports = ({requester, dataSource, timeAttribute, interval, filters}) ->
           callback(err)
           return
         # Clean up the last segments
-        for segment in segments
-          delete segment._interval
-          delete segment._filters
+        segments.forEach(driverUtil.cleanSegment)
 
         callback(null, rootSegment)
         return

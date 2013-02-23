@@ -152,7 +152,7 @@ computeQuery = (data, query) ->
               prop
             }
           )
-          delete segment._raw
+          driverUtil.cleanSegment(segment)
           return segment.splits
 
       when 'apply'
@@ -183,8 +183,7 @@ computeQuery = (data, query) ->
 
   # Cleanup _raw data on last segment
   for segmentGroup in segmentGroups
-    for segment in segmentGroup
-      delete segment._raw
+    segmentGroup.forEach(driverUtil.cleanSegment)
 
   return rootSegment
 

@@ -13,12 +13,12 @@ if typeof exports is 'undefined'
 # -----------------------------------------------------
 
 
-
+# Flatten an array of array in to a single array
+# flatten([[1,3], [3,6,7]]) => [1,3,3,6,7]
 exports.flatten = (ar) -> Array::concat.apply([], ar)
 
-# ===================================
 
-# group the queries steps in to the logical queries that will need to be done
+# Group the queries steps in to the logical queries that will need to be done
 # output: [
 #   {
 #     split: { ... }
@@ -57,6 +57,13 @@ exports.condenseQuery = (query) ->
   condensed.push(curQuery)
   return condensed
 
+
+# Clean segment - remove everything in the segment that starts with and underscore
+exports.cleanSegment = (segment) ->
+  for key in segment
+    if key[0] is '_'
+      delete segment[key]
+  return
 
 # -----------------------------------------------------
 # Handle commonJS crap

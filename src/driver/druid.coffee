@@ -83,7 +83,7 @@ toDruidInterval = (interval) ->
 addApplies = (druidQuery, applies, invertApply) ->
   countPropName = null
   druidQuery.aggregations = []
-  for apply in condensedQuery.applies
+  for apply in applies
     switch apply.aggregate
       when 'count'
         if apply isnt invertApply
@@ -288,6 +288,7 @@ druid = ({requester, dataSource, timeAttribute, interval, filters}) ->
 
     rootSegment = null
     segments = [rootSegment]
+    # todo: change to rootSegments
 
     queryDruid = (condensed, done) ->
       # do the query in parallel

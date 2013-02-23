@@ -99,12 +99,11 @@
   };
 
   addApplies = function(druidQuery, applies, invertApply) {
-    var apply, countPropName, _i, _len, _ref;
+    var apply, countPropName, _i, _len;
     countPropName = null;
     druidQuery.aggregations = [];
-    _ref = condensedQuery.applies;
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      apply = _ref[_i];
+    for (_i = 0, _len = applies.length; _i < _len; _i++) {
+      apply = applies[_i];
       switch (apply.aggregate) {
         case 'count':
           if (apply !== invertApply) {

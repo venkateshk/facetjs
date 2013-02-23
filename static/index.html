@@ -62,7 +62,7 @@
     </div>
     <script>
     (function() {
-      return;
+      //return;
       // {
       //   "carat": "0.23",
       //   "cut": "Ideal",
@@ -83,7 +83,7 @@
       });
 
       var vis = facet.visualize(simpleDriverNode)
-        .split('Cut', split.natural('cut'))
+        .split('Cut', split.identity('cut'))
         .apply('Count', apply.count())
         .apply('AvgPrice', apply.average('price'))
         .combine({ sort: { prop: 'AvgPrice', direction: 'DESC' }})
@@ -114,7 +114,7 @@
     </div>
     <script>
     (function() {
-      return;
+      //return;
       // {
       //   "carat": "0.23",
       //   "cut": "Ideal",
@@ -140,7 +140,7 @@
       });
 
       var vis = facet.visualize(sqlDriverClient)
-        .split('Cut', split.natural('cut'))
+        .split('Cut', split.identity('cut'))
         .apply('Count', apply.count())
         .apply('AvgPrice', apply.average('price'))
         .combine({ sort: { prop: 'AvgPrice', direction: 'DESC' }})
@@ -172,7 +172,7 @@
     </div>
     <script>
     (function() {
-      return;
+      //return;
       // {
       //   "carat": "0.23",
       //   "cut": "Ideal",
@@ -200,7 +200,7 @@
       var scale = d3.scale.linear().domain([0, 74513487]).range([0, 600])
 
       var vis = facet.visualize(sqlDriverClient)
-        .split('Cut', split.natural('cut'))
+        .split('Cut', split.identity('cut'))
         .apply('AvgPrice', apply.average('price'))
         .combine({ sort: { prop: 'AvgPrice', direction: 'DESC' }})
         .layout(layout.horizontal({ gap: 3 }))
@@ -229,7 +229,7 @@
     </div>
     <script>
     (function() {
-      //return;
+      ////return;
       // {
       //   "carat": "0.23",
       //   "cut": "Ideal",
@@ -269,7 +269,7 @@
 
       var vis = facet.visualize(sqlDriverClient)
       .apply('TotalDiamondCount', apply.count())
-        .split('Clarity', split.natural('clarity'))
+        .split('Clarity', split.identity('clarity'))
         .apply('AvgPrice', apply.average('price'))
         .combine({ sort: { prop: 'AvgPrice', direction: 'DESC' }})
         .layout(layout.horizontal({ gap: 3 }))
@@ -284,7 +284,7 @@
             baseline: use.literal('top')
           }))
         .popStage()
-          .split('Cut', split.natural('cut'))
+          .split('Cut', split.identity('cut'))
           .apply('AvgPrice', apply.average('price'))
           .combine({ sort: { prop: 'AvgPrice', direction: 'DESC' }})
           .layout(layout.horizontal({ gap: 3 }))
@@ -314,7 +314,7 @@
     </div>
     <script>
     (function() {
-      return;
+      //return;
       // dimensions
       // ["dma_code","continent_code","geo","area_code","robot","country_name","network","city","namespace","anonymous","unpatrolled","page","postal_code","language","newpage","user","region_lookup"]
       // metrics
@@ -335,7 +335,7 @@
       var scale = d3.scale.linear().domain([0, 1200]).range([0, 600])
 
       var vis = facet.visualize(druidDriverClient)
-        .split('Language', split.natural('language'))
+        .split('Language', split.identity('language'))
         .apply('Edits', apply.count())
         .combine({ sort: { prop: 'Edits', direction: 'DESC' }, limit: 4})
         .layout(layout.vertical({ gap: 3 }))
@@ -356,7 +356,7 @@
             baseline: use.literal('top')
           }))
         .popStage()
-          .split('Page', split.natural('page'))
+          .split('Page', split.identity('page'))
           .apply('Edits', apply.count())
           .combine({ sort: { prop: 'Edits', direction: 'DESC' }, limit: 4})
           .layout(layout.vertical({ gap: 3 }))
@@ -386,7 +386,7 @@
     </div>
     <script>
     (function() {
-      return;
+      //return;
       // dimensions
       // ["dma_code","continent_code","geo","area_code","robot","country_name","network","city","namespace","anonymous","unpatrolled","page","postal_code","language","newpage","user","region_lookup"]
       // metrics
@@ -402,7 +402,7 @@
       });
 
       var vis = facet.visualize(druidDriverNode)
-        .split('Language', split.natural('language'))
+        .split('Language', split.identity('language'))
         .apply('Edits', apply.count())
         .combine({ sort: { prop: 'Edits', direction: 'DESC' }, limit: 4})
         .layout(layout.vertical({ gap: 3 }))
@@ -417,7 +417,7 @@
             size: use.literal('20px')
           }))
         .popStage()
-          .split('Page', split.natural('page'))
+          .split('Page', split.identity('page'))
           .apply('Edits', apply.count())
           .combine({ sort: { prop: 'Edits', direction: 'DESC' }, limit: 4})
           .layout(layout.horizontal({ gap: 3 }))
@@ -440,7 +440,7 @@
               size: use.literal('9px')
             }))
           .popStage()
-            .split('User', split.natural('user'))
+            .split('User', split.identity('user'))
             .apply('Edits', apply.count())
             .combine({ sort: { prop: 'Edits', direction: 'DESC' }, limit: 3})
             .layout(layout.vertical({ gap: 1, size: use.prop('Edits') }))

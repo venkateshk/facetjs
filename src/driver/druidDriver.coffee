@@ -1,49 +1,17 @@
-async = if typeof window isnt 'undefined' then window.async else require('async')
+rq = (module) ->
+  if typeof window is 'undefined'
+    return require(module)
+  else
+    moduleParts = module.split('/')
+    return window[moduleParts[moduleParts.length - 1]]
 
-# Utils
+async = rq('async')
+driverUtil = rq('./driverUtil')
 
-flatten = (ar) -> Array::concat.apply([], ar)
+if typeof exports is 'undefined'
+  exports = {}
 
-# ===================================
-
-# group the queries steps in to the logical queries that will need to be done
-# output: [
-#   {
-#     split: { ... }
-#     applies: [{ ... }, { ... }]
-#     combine: { ... }
-#   }
-#   ...
-# ]
-condenseQuery = (query) ->
-  curQuery = {
-    split: null
-    applies: []
-    combine: null
-  }
-  condensed = []
-  for cmd in query
-    switch cmd.operation
-      when 'split'
-        condensed.push(curQuery)
-        curQuery = {
-          split: cmd
-          applies: []
-          combine: null
-        }
-
-      when 'apply'
-        curQuery.applies.push(cmd)
-
-      when 'combine'
-        throw new Error("Can not have more than one combine") if curQuery.combine
-        curQuery.combine = cmd
-
-      else
-        throw new Error("Unknown operation '#{cmd.operation}'")
-
-  condensed.push(curQuery)
-  return condensed
+# -----------------------------------------------------
 
 makeFilter = (attribute, value) ->
   return {
@@ -281,10 +249,10 @@ condensedQueryToDruid = ({requester, dataSource, interval, filters, condensedQue
   return
 
 
-druid = ({requester, dataSource, timeAttribute, interval, filters}) ->
+exports = ({requester, dataSource, timeAttribute, interval, filters}) ->
   timeAttribute or= 'time'
   return (query, callback) ->
-    condensedQuery = condenseQuery(query)
+    condensedQuery = driverUtil.condenseQuery(query)
 
     rootSegment = null
     segments = [rootSegment]
@@ -321,7 +289,7 @@ druid = ({requester, dataSource, timeAttribute, interval, filters}) ->
           if err
             done(err)
             return
-          segments = flatten(results)
+          segments = driverUtil.flatten(results)
           done()
           return
       )
@@ -350,10 +318,6 @@ druid = ({requester, dataSource, timeAttribute, interval, filters}) ->
     return
 
 
-
-# Add where needed
-if facet?.driver?
-  facet.driver.druid = druid
-
-if typeof module isnt 'undefined' and typeof exports isnt 'undefined'
-  module.exports = druid
+# -----------------------------------------------------
+# Handle commonJS crap
+if typeof module is 'undefined' then window['druidDriver'] = exports else module.exports = exports

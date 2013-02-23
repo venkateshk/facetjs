@@ -8,11 +8,11 @@
 
   mysql = require('mysql');
 
-  simpleDriver = require('./simple.js');
+  simpleDriver = require('./simpleDriver');
 
-  druidDriver = require('./druid.js');
+  druidDriver = require('./druidDriver');
 
-  sqlDriver = require('./sql.js');
+  sqlDriver = require('./sqlDriver');
 
   data = {};
 

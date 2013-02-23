@@ -2,9 +2,9 @@ express = require('express')
 http = require('http')
 mysql = require('mysql')
 
-simpleDriver = require('./simple.js')
-druidDriver = require('./druid.js')
-sqlDriver = require('./sql.js')
+simpleDriver = require('./simpleDriver')
+druidDriver = require('./druidDriver')
+sqlDriver = require('./sqlDriver')
 
 data = {}
 data.data1 = do ->

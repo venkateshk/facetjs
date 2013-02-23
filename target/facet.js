@@ -584,9 +584,7 @@
     return new FacetJob(driver);
   };
 
-  facet.driver = {};
-
-  facet.ajaxPostDriver = function(_arg) {
+  facet.ajaxPoster = function(_arg) {
     var context, prety, url;
     url = _arg.url, context = _arg.context, prety = _arg.prety;
     return function(query, callback) {

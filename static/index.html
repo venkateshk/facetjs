@@ -11,9 +11,11 @@
     <script src="lib/d3.js"></script>
     <script src="lib/jquery-1.9.1.js"></script>
     <script src="facet.js"></script>
-    <script src="simple.js"></script>
-    <script src="sql.js"></script>
-    <script src="druid.js"></script>
+    <script src="driverUtil.js"></script>
+    <script src="simpleDriver.js"></script>
+    <script src="sqlDriver.js"></script>
+    <script src="druidDriver.js"></script>
+
     <title>Facet Examples (0.0.3)</title>
 
     <script>
@@ -76,7 +78,7 @@
       //   "z": "2.43"
       // },
 
-      var simpleDriverNode = facet.ajaxPostDriver({
+      var simpleDriverNode = facet.ajaxPoster({
         url: '/driver/simple',
         context: { data: 'diamonds' },
         prety: true
@@ -128,12 +130,12 @@
       //   "z": "2.43"
       // },
 
-      var sqlRequester = facet.ajaxPostDriver({
+      var sqlRequester = facet.ajaxPoster({
         url: '/pass/sql',
         prety: true
       });
 
-      var sqlDriverClient = facet.driver.sql({
+      var sqlDriverClient = sqlDriver({
         requester: sqlRequester,
         table: "diamonds",
         filters: null
@@ -186,12 +188,12 @@
       //   "z": "2.43"
       // },
 
-      var sqlRequester = facet.ajaxPostDriver({
+      var sqlRequester = facet.ajaxPoster({
         url: '/pass/sql',
         prety: true
       });
 
-      var sqlDriverClient = facet.driver.sql({
+      var sqlDriverClient = sqlDriver({
         requester: sqlRequester,
         table: "diamonds",
         filters: null
@@ -245,18 +247,18 @@
 
 
 
-      // var sqlDriverNode = facet.ajaxPostDriver({
+      // var sqlDriverNode = facet.ajaxPoster({
       //   url: '/driver/sql',
       //   context: { table: 'diamonds' },
       //   prety: true
       // });
 
-      var sqlRequester = facet.ajaxPostDriver({
+      var sqlRequester = facet.ajaxPoster({
         url: '/pass/sql',
         prety: true
       });
 
-      var sqlDriverClient = facet.driver.sql({
+      var sqlDriverClient = sqlDriver({
         requester: sqlRequester,
         table: "diamonds",
         filters: null
@@ -320,12 +322,12 @@
       // metrics
       // ["count","added","variation","delta","delta_hist","unique_users","deleted"]}
 
-      var druidRequester = facet.ajaxPostDriver({
+      var druidRequester = facet.ajaxPoster({
         url: '/pass/druid',
         prety: true
       });
 
-      var druidDriverClient = facet.driver.druid({
+      var druidDriverClient = druidDriver({
         requester: druidRequester,
         dataSource: "wikipedia_editstream",
         interval: [new Date(Date.UTC(2013, 2-1, 14, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 20, 0, 0, 0))],
@@ -392,7 +394,7 @@
       // metrics
       // ["count","added","variation","delta","delta_hist","unique_users","deleted"]}
 
-      var druidDriverNode = facet.ajaxPostDriver({
+      var druidDriverNode = facet.ajaxPoster({
         url: '/driver/druid',
         context: {
           dataSource: "wikipedia_editstream",

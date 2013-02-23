@@ -1,8 +1,18 @@
-# Utils
+rq = (module) ->
+  if typeof window is 'undefined'
+    return require(module)
+  else
+    moduleParts = module.split('/')
+    return window[moduleParts[moduleParts.length - 1]]
 
-flatten = (ar) -> Array::concat.apply([], ar)
+async = rq('async')
+driverUtil = rq('./driverUtil')
 
-# ===================================
+if typeof exports is 'undefined'
+  exports = {}
+
+# -----------------------------------------------------
+
 
 splitFns = {
   identity: ({attribute}) -> (d) -> d[attribute]
@@ -104,7 +114,7 @@ sortFns = {
 }
 
 
-simpleDriver = (data, query) ->
+computeQuery = (data, query) ->
   throw new Error("query not given") unless query
 
   rootSegment = {
@@ -121,7 +131,7 @@ simpleDriver = (data, query) ->
         splitFn = splitFns[cmd.bucket]
         throw new Error("No such bucket `#{cmd.bucket}` in split") unless splitFn
         bucketFn = splitFn(cmd)
-        segmentGroups = flatten(segmentGroups).map (segment) ->
+        segmentGroups = driverUtil.flatten(segmentGroups).map (segment) ->
           keys = []
           buckets = {}
           bucketValue = {}
@@ -179,19 +189,16 @@ simpleDriver = (data, query) ->
   return rootSegment
 
 
-simple = (data) -> (query, callback) ->
+exports = (data) -> (query, callback) ->
   try
-    result = simpleDriver(data, query)
+    result = computeQuery(data, query)
   catch e
     callback({ message: e.message, stack: e.stack }); return
 
   callback(null, result)
   return
 
-# Add where needed
-if facet?.driver?
-  facet.driver.simple = simple
-
-if typeof module isnt 'undefined' and typeof exports isnt 'undefined'
-  module.exports = simple
+# -----------------------------------------------------
+# Handle commonJS crap
+if typeof module is 'undefined' then window['simpleDriver'] = exports else module.exports = exports
 

@@ -458,10 +458,8 @@ class FacetJob
 
 facet.visualize = (driver) -> new FacetJob(driver)
 
-# Initialize drivers container
-facet.driver = {}
 
-facet.ajaxPostDriver = ({url, context, prety}) -> (query, callback) ->
+facet.ajaxPoster = ({url, context, prety}) -> (query, callback) ->
   return $.ajax({
     url
     type: 'POST'

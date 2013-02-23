@@ -114,139 +114,203 @@ addApplies = (druidQuery, applies, invertApply) ->
   return
 
 
-condensedQueryToDruid = ({requester, dataSource, interval, filters, condensedQuery}, callback) ->
+druidQuery = {
+  all: ({requester, dataSource, interval, filters, condensedQuery}, callback) ->
+    if interval?.length isnt 2
+      callback("Must have valid interval [start, end]"); return
 
-  if interval?.length isnt 2
-    callback("Must have valid interval [start, end]"); return
+    if condensedQuery.applies.length is 0
+      # Nothing to do as we are not calculating anything (not true, fix this)
+      callback(null, [{
+        prop: {}
+        _interval: interval
+        _filters: filters
+      }])
+      return
 
-  if condensedQuery.applies.length is 0
-    # Nothing to do as we are not calculating anything (not true, fix this)
-    callback(null, [{
-      prop: {}
-      _interval: interval
-      _filters: filters
-    }])
-    return
+    queryObj = {
+      dataSource
+      intervals: [toDruidInterval(interval)]
+      queryType: "timeseries"
+      granularity: "all"
+    }
 
-  druidQuery = {
-    dataSource
-    intervals: [toDruidInterval(interval)]
-  }
+    if filters
+      queryObj.filter = filters
 
-  if filters
-    druidQuery.filter = filters
-
-  # split + combine
-  invertApply = null
-  if condensedQuery.split
-    if not condensedQuery.combine?.sort
-      callback("must have a sort combine for a split"); return
-    combinePropName = condensedQuery.combine.sort.prop
-    if not combinePropName
-      callback("must have a sort prop name"); return
-
-    switch condensedQuery.split.bucket
-      when 'identity'
-        if findApply(condensedQuery.applies, combinePropName)
-          if not condensedQuery.split.attribute
-            callback("split must have an attribute"); return
-          if not condensedQuery.split.prop
-            callback("split must have a prop"); return
-
-          sort = condensedQuery.combine.sort
-          if sort.direction not in ['ASC', 'DESC']
-            callback("direction has to be 'ASC' or 'DESC'"); return
-
-          # figure out of wee need to invert and apply for a bottom N
-          if sort.direction is 'ASC'
-            invertApply = findApply(condensedQuery.applies, sort.prop)
-            if not invertApply
-              callback("no apply to invert for bottomN"); return
-
-          druidQuery.queryType = "topN"
-          druidQuery.granularity = "all"
-          druidQuery.dimension = {
-            type: 'default'
-            dimension: condensedQuery.split.attribute
-            outputName: condensedQuery.split.prop
-          }
-          druidQuery.threshold = condensedQuery.combine.limit or 10
-          druidQuery.metric = combinePropName
-        else
-          callback("not supported yet"); return
-
-      when 'time'
-        druidQuery.queryType = "timeseries"
-
-        timePropName = condensedQuery.split.prop
-        callback("Must sort on the time prop for now (temp)") if combinePropName isnt timePropName
+    # apply
+    if condensedQuery.applies.length > 0
+      try
+        addApplies(queryObj, condensedQuery.applies)
+      catch e
+        callback(e)
         return
 
-        bucketDuration = condensedQuery.split.duration
-        if not bucketDuration
-          callback("Must have duration for time bucket"); return
-        if not bucketDuration in ['second', 'minute', 'hour', 'day']
-          callback("Unsupported duration '#{bucketDuration}' in time bucket"); return
-        druidQuery.granularity = bucketDuration
+    requester queryObj, (err, ds) ->
+      if err
+        callback(err)
+        return
 
-      else
-        callback("Unsupported bucketing '#{condensedQuery.split.bucket}' in split"); return
-
-  else
-    druidQuery.queryType = "timeseries"
-    druidQuery.granularity = "all"
-
-  # apply
-  if condensedQuery.applies.length > 0
-    try
-      addApplies(druidQuery, condensedQuery.applies, invertApply)
-    catch e
-      callback(e)
-      return
-
-  requester druidQuery, (err, ds) ->
-    if err
-      callback(err)
-      return
-
-    if condensedQuery.split
-      switch condensedQuery.split.bucket
-        when 'identity'
-          if ds.length isnt 1
-            callback("something went wrong")
-            return
-          filterAttribute = condensedQuery.split.attribute
-          filterValueProp = condensedQuery.split.prop
-          splits = ds[0].result.map (prop) -> {
-            prop
-            _interval: interval
-            _filters: andFilters(filters, makeFilter(filterAttribute, prop[filterValueProp]))
-          }
-
-        when 'time'
-          # expand time into an interval
-          splits = [{
-            prop: { "not": "implemented yet" }
-            _interval: interval # wrong
-            _filters: filters
-          }]
-
-        else
-          callback("Unsupported bucketing '#{condensedQuery.split.bucket}' in split post process")
-          return
-    else
       if ds.length isnt 1
         callback("something went wrong")
         return
+
       splits = [{
         prop: ds[0].result
         _interval: interval
         _filters: filters
       }]
 
-    callback(null, splits)
+      callback(null, splits)
+      return
     return
-  return
+
+  timeseries: ({requester, dataSource, interval, filters, condensedQuery}, callback) ->
+    if interval?.length isnt 2
+      callback("Must have valid interval [start, end]"); return
+
+    if condensedQuery.applies.length is 0
+      # Nothing to do as we are not calculating anything (not true, fix this)
+      callback(null, [{
+        prop: {}
+        _interval: interval
+        _filters: filters
+      }])
+      return
+
+    queryObj = {
+      dataSource
+      intervals: [toDruidInterval(interval)]
+      queryType: "timeseries"
+    }
+
+    if filters
+      queryObj.filter = filters
+
+    # split + combine
+    if not condensedQuery.combine?.sort
+      callback("must have a sort combine for a split"); return
+    combinePropName = condensedQuery.combine.sort.prop
+    if not combinePropName
+      callback("must have a sort prop name"); return
+
+    timePropName = condensedQuery.split.prop
+    callback("Must sort on the time prop for now (temp)") if combinePropName isnt timePropName
+    return
+
+    bucketDuration = condensedQuery.split.duration
+    if not bucketDuration
+      callback("Must have duration for time bucket"); return
+    if not bucketDuration in ['second', 'minute', 'hour', 'day']
+      callback("Unsupported duration '#{bucketDuration}' in time bucket"); return
+    queryObj.granularity = bucketDuration
+
+    # apply
+    if condensedQuery.applies.length > 0
+      try
+        addApplies(queryObj, condensedQuery.applies)
+      catch e
+        callback(e)
+        return
+
+    requester queryObj, (err, ds) ->
+      if err
+        callback(err)
+        return
+
+      # expand time into an interval
+      splits = [{
+        prop: { "not": "implemented yet" }
+        _interval: interval # wrong
+        _filters: filters
+      }]
+
+      callback(null, splits)
+      return
+    return
+
+  topN: ({requester, dataSource, interval, filters, condensedQuery}, callback) ->
+    if interval?.length isnt 2
+      callback("Must have valid interval [start, end]"); return
+
+    if condensedQuery.applies.length is 0
+      # Nothing to do as we are not calculating anything (not true, fix this)
+      callback(null, [{
+        prop: {}
+        _interval: interval
+        _filters: filters
+      }])
+      return
+
+    queryObj = {
+      dataSource
+      intervals: [toDruidInterval(interval)]
+      queryType: "topN"
+      granularity: "all"
+    }
+
+    if filters
+      queryObj.filter = filters
+
+    # split + combine
+    if not condensedQuery.split.attribute
+      callback("split must have an attribute"); return
+    if not condensedQuery.split.prop
+      callback("split must have a prop"); return
+
+    sort = condensedQuery.combine.sort
+    if sort.direction not in ['ASC', 'DESC']
+      callback("direction has to be 'ASC' or 'DESC'"); return
+
+    # figure out of wee need to invert and apply for a bottom N
+    if sort.direction is 'DESC'
+      invertApply = null
+    else
+      invertApply = findApply(condensedQuery.applies, sort.prop)
+      if not invertApply
+        callback("no apply to invert for bottomN"); return
+
+    queryObj.dimension = {
+      type: 'default'
+      dimension: condensedQuery.split.attribute
+      outputName: condensedQuery.split.prop
+    }
+    queryObj.threshold = condensedQuery.combine.limit or 10
+    queryObj.metric = condensedQuery.combine.sort.prop
+
+    # apply
+    if condensedQuery.applies.length > 0
+      try
+        addApplies(queryObj, condensedQuery.applies, invertApply)
+      catch e
+        callback(e)
+        return
+
+    requester queryObj, (err, ds) ->
+      if err
+        callback(err)
+        return
+
+      if ds.length isnt 1
+        callback("something went wrong")
+        return
+
+      filterAttribute = condensedQuery.split.attribute
+      filterValueProp = condensedQuery.split.prop
+      splits = ds[0].result.map (prop) -> {
+        prop
+        _interval: interval
+        _filters: andFilters(filters, makeFilter(filterAttribute, prop[filterValueProp]))
+      }
+
+      callback(null, splits)
+      return
+    return
+
+  histogram: ({requester, dataSource, interval, filters, condensedQuery}, callback) ->
+    callback("not implemented yet")
+    return
+}
 
 
 exports = ({requester, dataSource, timeAttribute, interval, filters}) ->
@@ -256,34 +320,58 @@ exports = ({requester, dataSource, timeAttribute, interval, filters}) ->
 
     rootSegment = null
     segments = [rootSegment]
-    # todo: change to rootSegments
 
-    queryDruid = (condensed, done) ->
+    queryDruid = (condensedQuery, done) ->
+      if condensedQuery.split
+        switch condensedQuery.split.bucket
+          when 'identity'
+            if not condensedQuery.combine?.sort
+              done("must have a sort combine for a split"); return
+            combinePropName = condensedQuery.combine.sort.prop
+            if not combinePropName
+              done("must have a sort prop name"); return
+
+            if findApply(condensedQuery.applies, combinePropName)
+              queryFn = druidQuery.topN
+            else
+              done('not implemented yet'); return
+          when 'time'
+            queryFn = druidQuery.timeseries
+          when 'continuous'
+            queryFn = druidQuery.histogram
+          else
+            done('unsupported query'); return
+      else
+        queryFn = druidQuery.all
+
+      queryForSegment = (parentSegment, done) ->
+        queryFn({
+          requester
+          dataSource
+          interval: if parentSegment then parentSegment._interval else interval
+          filters: if parentSegment then parentSegment._filters else filters
+          condensedQuery
+        }, (err, splits) ->
+          if err
+            done(err)
+            return
+          # Make the results into segments and build the tree
+          if parentSegment
+            parentSegment.splits = splits
+            driverUtil.cleanSegment(parentSegment)
+          else
+            rootSegment = splits[0]
+          done(null, splits)
+          return
+        )
+        return
+
       # do the query in parallel
       QUERY_LIMIT = 10
       queryFns = async.mapLimit(
         segments
         QUERY_LIMIT
-        (parentSegment, done) ->
-          condensedQueryToDruid({
-            requester
-            dataSource
-            interval: if parentSegment then parentSegment._interval else interval
-            filters: if parentSegment then parentSegment._filters else filters
-            condensedQuery: condensed
-          }, (err, splits) ->
-            if err
-              done(err)
-              return
-            # Make the results into segments and build the tree
-            if parentSegment
-              parentSegment.splits = splits
-              driverUtil.cleanSegment(parentSegment)
-            else
-              rootSegment = splits[0]
-            done(null, splits)
-            return
-          )
+        queryForSegment
         (err, results) ->
           if err
             done(err)

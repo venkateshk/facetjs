@@ -79,19 +79,30 @@ condensedQueryToSQL = ({requester, table, filters, condensedQuery}, callback) ->
   # split
   split = condensedQuery.split
   if split
+    selectPart = ''
     groupByPart = 'GROUP BY '
     switch split.bucket
       when 'identity'
-        selectParts.push "`#{split.attribute}` AS \"#{split.prop}\""
+        selectPart  += "`#{split.attribute}`"
         groupByPart += "`#{split.attribute}`"
 
       when 'continuous'
-        callback("not implemented yet"); return
+        selectPart  += "FLOOR((`#{split.attribute}` + #{split.offset}) / #{split.size}) * #{split.size}"
+        groupByPart += "FLOOR((`#{split.attribute}` + #{split.offset}) / #{split.size}) * #{split.size}"
 
       when 'time'
-        # SELECT `time` AS "Time" FROM time_test GROUP BY DATE_FORMAT(`time`,'%Y-%m-%d')
-        # SELECT DATE_FORMAT(`time`,'%Y-%m-%dT%H:%i:%S') AS "Date" FROM time_test
-        callback("not implemented yet"); return
+        bucketDuration = split.duration
+        bucketSpec = timeBucketing[bucketDuration]
+        if not bucketSpec
+          callback("unsupported time bucketing duration '#{bucketDuration}'"); return
+        selectPart  += "DATE_FORMAT(`#{split.attribute}`, '#{bucketSpec.select}')"
+        groupByPart += "DATE_FORMAT(`#{split.attribute}`, '#{bucketSpec.group}')"
+
+      else
+        callback("unsupported bucketing policy '#{split.bucket}'"); return
+
+    selectPart += " AS \"#{split.prop}\""
+    selectParts.push(selectPart)
 
   # apply
   for apply in condensedQuery.applies

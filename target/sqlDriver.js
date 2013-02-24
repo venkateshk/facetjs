@@ -69,7 +69,7 @@
   };
 
   condensedQueryToSQL = function(_arg, callback) {
-    var apply, combine, condensedQuery, filterPart, filters, findApply, findCountApply, groupByPart, limitPart, orderByPart, requester, selectParts, sort, split, sqlQuery, table, _i, _len, _ref, _ref1;
+    var apply, bucketDuration, bucketSpec, combine, condensedQuery, filterPart, filters, findApply, findCountApply, groupByPart, limitPart, orderByPart, requester, selectPart, selectParts, sort, split, sqlQuery, table, _i, _len, _ref, _ref1;
     requester = _arg.requester, table = _arg.table, filters = _arg.filters, condensedQuery = _arg.condensedQuery;
     findApply = function(applies, propName) {
       var apply, _i, _len;
@@ -101,19 +101,33 @@
     groupByPart = null;
     split = condensedQuery.split;
     if (split) {
+      selectPart = '';
       groupByPart = 'GROUP BY ';
       switch (split.bucket) {
         case 'identity':
-          selectParts.push("`" + split.attribute + "` AS \"" + split.prop + "\"");
+          selectPart += "`" + split.attribute + "`";
           groupByPart += "`" + split.attribute + "`";
           break;
         case 'continuous':
-          callback("not implemented yet");
-          return;
+          selectPart += "FLOOR((`" + split.attribute + "` + " + split.offset + ") / " + split.size + ") * " + split.size;
+          groupByPart += "FLOOR((`" + split.attribute + "` + " + split.offset + ") / " + split.size + ") * " + split.size;
+          break;
         case 'time':
-          callback("not implemented yet");
+          bucketDuration = split.duration;
+          bucketSpec = timeBucketing[bucketDuration];
+          if (!bucketSpec) {
+            callback("unsupported time bucketing duration '" + bucketDuration + "'");
+            return;
+          }
+          selectPart += "DATE_FORMAT(`" + split.attribute + "`, '" + bucketSpec.select + "')";
+          groupByPart += "DATE_FORMAT(`" + split.attribute + "`, '" + bucketSpec.group + "')";
+          break;
+        default:
+          callback("unsupported bucketing policy '" + split.bucket + "'");
           return;
       }
+      selectPart += " AS \"" + split.prop + "\"";
+      selectParts.push(selectPart);
     }
     _ref = condensedQuery.applies;
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {

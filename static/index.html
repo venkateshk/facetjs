@@ -16,7 +16,7 @@
     <script src="sqlDriver.js"></script>
     <script src="druidDriver.js"></script>
 
-    <title>Facet Examples (0.0.3)</title>
+    <title>Facet Examples (0.0.4)</title>
 
     <script>
       // Some data
@@ -44,10 +44,12 @@
       var split = facet.split;
       var apply = facet.apply;
       var layout = facet.layout;
+      var scale = facet.scale;
       var plot = facet.plot;
       var use = facet.use;
       var sort = facet.sort;
       var stage = facet.stage;
+
     </script>
   </head>
 
@@ -64,7 +66,7 @@
     </div>
     <script>
     (function() {
-      //return;
+      return;
       // {
       //   "carat": "0.23",
       //   "cut": "Ideal",
@@ -116,7 +118,7 @@
     </div>
     <script>
     (function() {
-      //return;
+      return;
       // {
       //   "carat": "0.23",
       //   "cut": "Ideal",
@@ -199,18 +201,17 @@
         filters: null
       });
 
-      var scale = d3.scale.linear().domain([0, 74513487]).range([0, 600])
-
       var vis = facet.visualize(sqlDriverClient)
         .split('Cut', split.identity('cut'))
         .apply('AvgPrice', apply.average('price'))
         .combine({ sort: { prop: 'AvgPrice', direction: 'descending' }})
         .layout(layout.horizontal({ gap: 3 }))
+        .scale('vert', scale.linear({include: 0, domain: use.prop('AvgPrice'), range: 'height'}))
         .plot(plot.rect({
           fill: use.literal('#f0f0f0'),
           stroke: use.scale.color('Cut'),
           bottom: use.literal(0),
-          height: use.fn(use.prop('AvgPrice'), scale)
+          height: use.scaled('vert', use.prop('AvgPrice'))
         }))
         .stage(stage.rectToPoint({ bottom: 6 }))
           .plot(plot.text({
@@ -264,11 +265,6 @@
         filters: null
       });
 
-
-
-
-      var scale = d3.scale.linear().domain([0, 18000000]).range([0, 600])
-
       var vis = facet.visualize(sqlDriverClient)
       .apply('TotalDiamondCount', apply.count())
         .split('Clarity', split.identity('clarity'))
@@ -290,11 +286,12 @@
           .apply('AvgPrice', apply.average('price'))
           .combine({ sort: { prop: 'AvgPrice', direction: 'descending' }})
           .layout(layout.horizontal({ gap: 3 }))
+          .scale('vert', 2, scale.linear({include: 0, domain: use.prop('AvgPrice'), range: 'height'}))
           .plot(plot.rect({
             fill: use.literal('#f0f0f0'),
             stroke: use.scale.color('Cut'),
             bottom: use.literal(0),
-            height: use.fn(use.prop('AvgPrice'), scale)
+            height: use.scaled('vert', use.prop('AvgPrice'))
           }))
           .stage(stage.rectToPoint({ bottom: 6 }))
             .plot(plot.text({
@@ -316,7 +313,7 @@
     </div>
     <script>
     (function() {
-      //return;
+      return;
       // dimensions
       // ["dma_code","continent_code","geo","area_code","robot","country_name","network","city","namespace","anonymous","unpatrolled","page","postal_code","language","newpage","user","region_lookup"]
       // metrics
@@ -388,7 +385,7 @@
     </div>
     <script>
     (function() {
-      //return;
+      return;
       // dimensions
       // ["dma_code","continent_code","geo","area_code","robot","country_name","network","city","namespace","anonymous","unpatrolled","page","postal_code","language","newpage","user","region_lookup"]
       // metrics

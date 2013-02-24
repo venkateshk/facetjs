@@ -19,6 +19,7 @@ class Segment
   constructor: ({ @parent, @node, stage, @prop, @splits }) ->
     throw "invalid stage" unless typeof stage?.type is 'string'
     @_stageStack = [stage]
+    @scale = {}
 
   getStage: ->
     return @_stageStack[@_stageStack.length - 1]
@@ -122,6 +123,9 @@ facet.use = {
     throw new TypeError("second argument must be a function") unless typeof fn is 'function'
     return fn.apply(this, args.map((arg) -> arg(segment)))
 
+  scaled: (scaleName, acc) -> (segment) ->
+    return segment.scale[scaleName](acc(segment))
+
   scale: {
     color: (propName) ->
       s = d3.scale.category10()
@@ -187,6 +191,57 @@ facet.layout = {
 
   tile: ->
     return
+}
+
+# =============================================================
+# SCALE
+# A function that makes a scale and adds it to the segment.
+# Arguments* -> Segment -> void
+
+getCousinSegments = (segment, distance) ->
+  # Find and all relevant segments, first find the source
+  sourceSegment = segment
+  i = 0
+  while i < distance
+    sourceSegment = sourceSegment.parent
+    throw new Error("gone to far") unless sourceSegment
+    i++
+
+  # Get all of sources children on my level (my cousins)
+  cousinSegments = [sourceSegment]
+  i = 0
+  while i < distance
+    cousinSegments = flatten(cousinSegments.map((s) -> s.splits))
+    i++
+
+  return cousinSegments
+
+facet.scale = {
+  linear: ({domain, range, include}) ->
+    throw new Error("bad range") unless range in ['width', 'height']
+    rangeFn = (segment) -> segment.getStage()[range]
+
+    return (segments) ->
+      domainMin = Infinity
+      domainMax = -Infinity
+      rangeTo = Infinity
+
+      if include?
+        domainMin = Math.min(domainMin, include)
+        domainMax = Math.max(domainMax, include)
+
+      for segment in segments
+        domainValue = domain(segment)
+        domainMin = Math.min(domainMin, domainValue)
+        domainMax = Math.max(domainMax, domainValue)
+        rangeTo = Math.min(rangeTo, rangeFn(segment))
+
+      if not (isFinite(domainMin) and isFinite(domainMax) and isFinite(rangeTo))
+        throw new Error("we went into infinites")
+
+      return d3.scale.linear()
+        .domain([domainMin, domainMax])
+        .range([0, rangeTo])
 }
 
 # =============================================================
@@ -320,12 +375,14 @@ facet.sort = {
 class FacetJob
   constructor: (@driver) ->
     @ops = []
+    @knownProps = {}
 
   split: (propName, split) ->
     split = _.clone(split)
     split.operation = 'split'
     split.prop = propName
     @ops.push(split)
+    @knownProps[propName] = true
     return this
 
   layout: (layout) ->
@@ -341,6 +398,20 @@ class FacetJob
     apply.operation = 'apply'
     apply.prop = propName
     @ops.push(apply)
+    @knownProps[propName] = true
+    return this
+
+  scale: (name, distance, scale) ->
+    if not scale? and typeof distance is 'function'
+      scale = distance
+      distance = 1
+
+    @ops.push({
+      operation: 'scale'
+      name
+      distance
+      scale
+    })
     return this
 
   combine: ({ filter, sort, limit } = {}) ->
@@ -349,6 +420,8 @@ class FacetJob
       operation: 'combine'
     }
     if sort
+      if not @knownProps[sort.prop]
+        throw new Error("can not sort on unknown prop '#{sort.prop}'")
       combine.sort = sort
       combine.sort.compare ?= 'natural'
 
@@ -411,7 +484,7 @@ class FacetJob
         switch cmd.operation
           when 'split'
             segmentGroups = flatten(segmentGroups).map((segment) ->
-              return segment.splits.map (sp) ->
+              return segment.splits = segment.splits.map (sp) ->
                 return new Segment({
                   parent: segment
                   node: segment.node.append('g')
@@ -422,7 +495,18 @@ class FacetJob
             )
 
           when 'apply', 'combine'
-            null # Do nothing, there is nothing to do on the client for those two :-)
+            null # Do nothing, there is nothing to do on the renderer for those two :-)
+
+          when 'scale'
+            { name, distance, scale } = cmd
+            for segmentGroup in segmentGroups
+              for segment in segmentGroup
+                # We may have already defined this scale on this segment
+                continue if segment.scale[name]
+                unifiedSegments = getCousinSegments(segment, distance)
+                scaleFn = scale(unifiedSegments)
+                for unifiedSegment in unifiedSegments
+                  unifiedSegment.scale[name] = scaleFn
 
           when 'layout'
             { layout } = cmd

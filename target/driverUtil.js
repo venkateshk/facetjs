@@ -57,9 +57,8 @@
   };
 
   exports.cleanSegment = function(segment) {
-    var key, _i, _len;
-    for (_i = 0, _len = segment.length; _i < _len; _i++) {
-      key = segment[_i];
+    var key;
+    for (key in segment) {
       if (key[0] === '_') {
         delete segment[key];
       }

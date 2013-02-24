@@ -60,7 +60,7 @@ exports.condenseQuery = (query) ->
 
 # Clean segment - remove everything in the segment that starts with and underscore
 exports.cleanSegment = (segment) ->
-  for key in segment
+  for key of segment
     if key[0] is '_'
       delete segment[key]
   return

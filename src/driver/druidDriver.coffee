@@ -49,19 +49,26 @@ toDruidInterval = (interval) ->
 
 
 addApplies = (druidQuery, applies, invertApply) ->
-  countPropName = null
+  applies = applies.slice()
   druidQuery.aggregations = []
+  druidQuery.postAggregations = []
   for apply in applies
     switch apply.aggregate
       when 'count'
         if apply isnt invertApply
-          countPropName = apply.prop
           druidQuery.aggregations.push {
             type: "count"
             name: apply.prop
           }
         else
-          throw new Error("not implemented yet")
+          druidQuery.aggregations.push {
+            type: "javascript"
+            name: '_' + apply.prop
+            fieldNames: []
+            script: 'function aggregate(c)    { return c - 1; };
+                     function combine(p1, p2) { return p1 + p2; };
+                     function reset()         { return 0; };'
+          }
 
       when 'sum'
         if apply isnt invertApply
@@ -71,18 +78,48 @@ addApplies = (druidQuery, applies, invertApply) ->
             fieldName: apply.attribute
           }
         else
-          throw new Error("not implemented yet")
+          druidQuery.aggregations.push {
+            type: "javascript"
+            name: '_' + apply.prop
+            fieldNames: [apply.attribute]
+            script: 'function aggregate(c, v) { return c - v; };
+                     function combine(p1, p2) { return p1 + p2; };
+                     function reset()         { return 0; };'
+          }
 
       when 'average'
         if apply isnt invertApply
-          callback("not implemented correctly yet")
-          return
-          druidQuery.aggregations.push {
-            type: "doubleSum"
-            name: apply.prop
-            fieldName: apply.attribute
+          # Ether use an existing count or make a temp one
+          countApply = findCountApply(applies)
+          if not countApply
+            applies.push(countApply = {
+              operation: 'apply'
+              aggregate: 'count'
+              name: '_count'
+            })
+
+          sumApply = null
+          for a in applies
+            if a.aggregate is 'sum' and a.attribute is apply.attribute
+              sumApply = a
+              break
+          if not sumApply
+            applies.push(sumApply = {
+              operation: 'apply'
+              aggregate: 'sum'
+              name: '_sum_' + apply.attribute
+              attribute: apply.attribute
+            })
+
+          druidQuery.postAggregations.push {
+            type: "arithmetic"
+            name: invertApply.prop
+            fn: "/"
+            fields: [
+              { type: "fieldAccess", fieldName: sumApply.prop }
+              { type: "fieldAccess", fieldName: countApply.prop }
+            ]
           }
-          # Add postagg to do divide
         else
           throw new Error("not implemented yet")
 
@@ -94,7 +131,14 @@ addApplies = (druidQuery, applies, invertApply) ->
             fieldName: apply.attribute
           }
         else
-          throw new Error("not implemented yet")
+          druidQuery.aggregations.push {
+            type: "javascript"
+            name: '_' + apply.prop
+            fieldNames: [apply.attribute]
+            script: 'function aggregate(c, v) { return Math.max(c, -v); };
+                     function combine(p1, p2) { return Math.min(p1, p2); };
+                     function reset()         { return -Infinity; };'
+          }
 
       when 'max'
         if apply isnt invertApply
@@ -104,13 +148,31 @@ addApplies = (druidQuery, applies, invertApply) ->
             fieldName: apply.attribute
           }
         else
-          throw new Error("not implemented yet")
+          druidQuery.aggregations.push {
+            type: "javascript"
+            name: '_' + apply.prop
+            fieldNames: [apply.attribute]
+            script: 'function aggregate(c, v) { return Math.min(c, -v); };
+                     function combine(p1, p2) { return Math.max(p1, p2); };
+                     function reset()         { return Infinity; };'
+          }
 
       when 'unique'
         if apply is invertApply
           throw new Error("not implemented yet")
         else
           throw new Error("not implemented yet")
+
+    if invertApply
+      druidQuery.postAggregations.push {
+        type: "arithmetic"
+        name: invertApply.prop
+        fn: "*"
+        fields: [
+          { type: "fieldAccess", fieldName: '_' + invertApply.prop }
+          { type: "constant", value: -1 }
+        ]
+      }
   return
 
 

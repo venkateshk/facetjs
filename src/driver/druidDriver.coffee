@@ -375,8 +375,9 @@ druidQuery = {
 }
 
 
-exports = ({requester, dataSource, timeAttribute, interval, filters}) ->
+exports = ({requester, dataSource, timeAttribute, aproximate, interval, filters}) ->
   timeAttribute or= 'time'
+  aproximate ?= true
   return (query, callback) ->
     condensedQuery = driverUtil.condenseQuery(query)
 
@@ -393,7 +394,7 @@ exports = ({requester, dataSource, timeAttribute, interval, filters}) ->
             if not combinePropName
               done("must have a sort prop name"); return
 
-            if findApply(condensedQuery.applies, combinePropName)
+            if findApply(condensedQuery.applies, combinePropName) and aproximate
               queryFn = druidQuery.topN
             else
               done('not implemented yet'); return

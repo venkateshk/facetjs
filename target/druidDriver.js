@@ -446,9 +446,12 @@
   };
 
   exports = function(_arg) {
-    var dataSource, filters, interval, requester, timeAttribute;
-    requester = _arg.requester, dataSource = _arg.dataSource, timeAttribute = _arg.timeAttribute, interval = _arg.interval, filters = _arg.filters;
+    var aproximate, dataSource, filters, interval, requester, timeAttribute;
+    requester = _arg.requester, dataSource = _arg.dataSource, timeAttribute = _arg.timeAttribute, aproximate = _arg.aproximate, interval = _arg.interval, filters = _arg.filters;
     timeAttribute || (timeAttribute = 'time');
+    if (aproximate == null) {
+      aproximate = true;
+    }
     return function(query, callback) {
       var cmdIndex, condensedQuery, queryDruid, rootSegment, segments;
       condensedQuery = driverUtil.condenseQuery(query);
@@ -468,7 +471,7 @@
                 done("must have a sort prop name");
                 return;
               }
-              if (findApply(condensedQuery.applies, combinePropName)) {
+              if (findApply(condensedQuery.applies, combinePropName) && aproximate) {
                 queryFn = druidQuery.topN;
               } else {
                 done('not implemented yet');

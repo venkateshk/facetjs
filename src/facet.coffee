@@ -201,21 +201,21 @@ boxPosition = (segment, stageWidth, left, width, right) ->
   if left?
     return if width? then [left(segment), width(segment)] else [left(segment), stageWidth - left(segment)]
   else if right?
-    return if width? then [stageWidth - right(segment) - width(segment), width(segment)] else [0, stageWidth - right(segment)]
+    return if width?
+      [stageWidth - right(segment) - width(segment), width(segment)]
+    else
+      [0, stageWidth - right(segment)]
   else
     return if width? then [0, width(segment)] else [0, stageWidth]
 
 facet.stage = {
-  rectToPoint: ({left, right, top, bottom}) ->
+  rectToPoint: ({left, right, top, bottom} = {}) ->
     # Make sure we are not over-constrained
     if (left? and right?) or (top? and bottom?)
       throw new Error("Over-constrained")
 
-    if (not left? and not right?) or (not top? and not bottom?)
-      throw new Error("Under-constrained")
-
-    fx = if left? then (w) -> w * left else (w) -> w * (1 - right)
-    fy = if top?  then (h) -> h * top  else (h) -> h * (1 - bottom)
+    fx = if left? then (w) -> left else if right?  then (w) -> w - right  else (w) -> w / 2
+    fy = if top?  then (h) -> top  else if bottom? then (h) -> h - bottom else (h) -> h / 2
 
     return (segment) ->
       stage = segment.getStage()
@@ -366,9 +366,9 @@ class FacetJob
     })
     return this
 
-  popStage: ->
+  unstage: ->
     @ops.push({
-      operation: 'popStage'
+      operation: 'unstage'
     })
     return this
 
@@ -437,7 +437,7 @@ class FacetJob
               for segment in segmentGroup
                 transform(segment)
 
-          when 'popStage'
+          when 'unstage'
             for segmentGroup in segmentGroups
               for segment in segmentGroup
                 segment.popStage()

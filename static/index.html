@@ -94,7 +94,7 @@
           fill: use.literal('#f0f0f0'),
           stroke: use.scale.color('Cut')
         }))
-        .stage(stage.rectToPoint({ top: 0.5, left: 0.5 }))
+        .stage(stage.rectToPoint())
           .plot(plot.text({
             text: use.fn(
               use.prop('Cut'), use.prop('Count'),
@@ -104,7 +104,7 @@
             anchor: use.literal('middle'),
             baseline: use.literal('center')
           }))
-        .popStage()
+        .unstage()
         .render('#ex1', 800, 600)
     })();
     </script>
@@ -151,7 +151,7 @@
           fill: use.literal('#f0f0f0'),
           stroke: use.scale.color('Cut')
         }))
-        .stage(stage.rectToPoint({ top: 0.5, left: 0.5 }))
+        .stage(stage.rectToPoint())
           .plot(plot.text({
             text: use.fn(
               use.prop('Cut'), use.prop('Count'),
@@ -161,7 +161,7 @@
             anchor: use.literal('middle'),
             baseline: use.literal('center')
           }))
-        .popStage()
+        .unstage()
         .render('#ex2', 800, 600)
     })();
     </script>
@@ -212,14 +212,14 @@
           bottom: use.literal(0),
           height: use.fn(use.prop('AvgPrice'), scale)
         }))
-        .stage(stage.rectToPoint({ bottom: 0.01, left: 0.5 }))
+        .stage(stage.rectToPoint({ bottom: 6 }))
           .plot(plot.text({
             text: use.prop('Cut'),
             color: use.scale.color('Cut'),
             anchor: use.literal('middle'),
             baseline: use.literal('bottom')
           }))
-        .popStage()
+        .unstage()
         .render('#ex3', 800, 600)
     })();
     </script>
@@ -279,13 +279,13 @@
           fill: use.literal('none'),
           stroke: use.literal('black')
         }))
-        .stage(stage.rectToPoint({ top: 0.01, left: 0.5 }))
+        .stage(stage.rectToPoint({ top: 6 }))
           .plot(plot.text({
             text: use.prop('Clarity'),
             anchor: use.literal('middle'),
             baseline: use.literal('top')
           }))
-        .popStage()
+        .unstage()
           .split('Cut', split.identity('cut'))
           .apply('AvgPrice', apply.average('price'))
           .combine({ sort: { prop: 'AvgPrice', direction: 'DESC' }})
@@ -296,14 +296,14 @@
             bottom: use.literal(0),
             height: use.fn(use.prop('AvgPrice'), scale)
           }))
-          .stage(stage.rectToPoint({ bottom: 0.01, left: 0.5 }))
+          .stage(stage.rectToPoint({ bottom: 6 }))
             .plot(plot.text({
               text: use.prop('Cut'),
               color: use.scale.color('Cut'),
               baseline: use.literal('center'),
               angle: use.literal(-90)
             }))
-          .popStage()
+          .unstage()
           .render('#ex4', 800, 600)
     })();
     </script>
@@ -345,19 +345,19 @@
           fill: use.literal('none'),
           stroke: use.literal('black')
         }))
-        .stage(stage.rectToPoint({ top: 0.03, left: 0.01 }))
+        .stage(stage.rectToPoint({ top: 10, left: 8 }))
           .plot(plot.text({
             text: use.prop('Language'),
             baseline: use.literal('top'),
             size: use.literal('30px')
           }))
-        .popStage()
-        .stage(stage.rectToPoint({ top: 0.2, left: 0.01 }))
+        .unstage()
+        .stage(stage.rectToPoint({ top: 40, left: 8 }))
           .plot(plot.text({
             text: use.fn(use.prop('Edits'), function(d) { return 'Total edits: ' + d; }),
             baseline: use.literal('top')
           }))
-        .popStage()
+        .unstage()
           .split('Page', split.identity('page'))
           .apply('Edits', apply.count())
           .combine({ sort: { prop: 'Edits', direction: 'DESC' }, limit: 4})
@@ -368,7 +368,7 @@
             left: use.literal(200),
             width: use.fn(use.prop('Edits'), scale)
           }))
-          .stage(stage.rectToPoint({ top: 0.5, left: 0.26 }))
+          .stage(stage.rectToPoint({ left: 200 }))
             .plot(plot.text({
               text: use.fn(use.prop('Edits'), use.prop('Page'), function(e, p) {
                 return '(' + e + ') ' + p;
@@ -376,7 +376,7 @@
               baseline: use.literal('middle'),
               size: use.literal('9px')
             }))
-          .popStage()
+          .unstage()
           .render('#ex5', 800, 600)
     })();
     </script>
@@ -412,13 +412,13 @@
           fill: use.literal('none'),
           stroke: use.literal('black')
         }))
-        .stage(stage.rectToPoint({ top: 0.03, left: 0.01 }))
+        .stage(stage.rectToPoint({ top: 10, left: 8 }))
           .plot(plot.text({
             text: use.prop('Language'),
             baseline: use.literal('top'),
             size: use.literal('20px')
           }))
-        .popStage()
+        .unstage()
           .split('Page', split.identity('page'))
           .apply('Edits', apply.count())
           .combine({ sort: { prop: 'Edits', direction: 'DESC' }, limit: 4})
@@ -427,7 +427,7 @@
             fill: use.literal('none'),
             stroke: use.literal('green')
           }))
-          .stage(stage.rectToPoint({ bottom: 0.01, left: 0.5 }))
+          .stage(stage.rectToPoint({ bottom: 6 }))
             .plot(plot.text({
               text: use.fn(use.prop('Edits'), use.prop('Page'), function(e, p) {
                 var str = '(' + e + ') ' + p;
@@ -441,7 +441,7 @@
               baseline: use.literal('bottom'),
               size: use.literal('9px')
             }))
-          .popStage()
+          .unstage()
             .split('User', split.identity('user'))
             .apply('Edits', apply.count())
             .combine({ sort: { prop: 'Edits', direction: 'DESC' }, limit: 3})
@@ -450,14 +450,14 @@
               fill: use.literal('black'),
               opacity: 0.15
             }))
-            .stage(stage.rectToPoint({ bottom: 0.5, left: 0.5 }))
+            .stage(stage.rectToPoint())
               .plot(plot.text({
                 text: use.fn(use.prop('Edits'), function(e) { return '[' + e + ']'; }),
                 anchor: use.literal('middle'),
                 baseline: use.literal('center'),
                 size: use.literal('9px')
               }))
-            .popStage()
+            .unstage()
             .render('#ex6', 800, 600)
     })();
     </script>

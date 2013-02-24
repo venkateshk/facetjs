@@ -267,23 +267,24 @@
 
   facet.stage = {
     rectToPoint: function(_arg) {
-      var bottom, fx, fy, left, right, top;
-      left = _arg.left, right = _arg.right, top = _arg.top, bottom = _arg.bottom;
+      var bottom, fx, fy, left, right, top, _ref;
+      _ref = _arg != null ? _arg : {}, left = _ref.left, right = _ref.right, top = _ref.top, bottom = _ref.bottom;
       if (((left != null) && (right != null)) || ((top != null) && (bottom != null))) {
         throw new Error("Over-constrained");
       }
-      if ((!(left != null) && !(right != null)) || (!(top != null) && !(bottom != null))) {
-        throw new Error("Under-constrained");
-      }
       fx = left != null ? function(w) {
-        return w * left;
+        return left;
+      } : right != null ? function(w) {
+        return w - right;
       } : function(w) {
-        return w * (1 - right);
+        return w / 2;
       };
       fy = top != null ? function(h) {
-        return h * top;
+        return top;
+      } : bottom != null ? function(h) {
+        return h - bottom;
       } : function(h) {
-        return h * (1 - bottom);
+        return h / 2;
       };
       return function(segment) {
         var stage;
@@ -449,9 +450,9 @@
       return this;
     };
 
-    FacetJob.prototype.popStage = function() {
+    FacetJob.prototype.unstage = function() {
       this.ops.push({
-        operation: 'popStage'
+        operation: 'unstage'
       });
       return this;
     };
@@ -549,7 +550,7 @@
                 }
               }
               break;
-            case 'popStage':
+            case 'unstage':
               for (_m = 0, _len4 = segmentGroups.length; _m < _len4; _m++) {
                 segmentGroup = segmentGroups[_m];
                 for (_n = 0, _len5 = segmentGroup.length; _n < _len5; _n++) {

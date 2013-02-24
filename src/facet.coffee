@@ -300,13 +300,13 @@ facet.plot = {
 # SORT
 
 facet.sort = {
-  natural: (attribute, direction = 'ASC') -> {
+  natural: (attribute, direction = 'ascending') -> {
     compare: 'natural'
     attribute
     direction
   }
 
-  caseInsensetive: (attribute, direction = 'ASC') -> {
+  caseInsensetive: (attribute, direction = 'ascending') -> {
     compare: 'caseInsensetive'
     attribute
     direction

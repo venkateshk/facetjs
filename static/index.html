@@ -88,7 +88,7 @@
         .split('Cut', split.identity('cut'))
         .apply('Count', apply.count())
         .apply('AvgPrice', apply.average('price'))
-        .combine({ sort: { prop: 'AvgPrice', direction: 'DESC' }})
+        .combine({ sort: { prop: 'AvgPrice', direction: 'descending' }})
         .layout(layout.vertical({ size: use.prop('Count'), gap: 3 }))
         .plot(plot.rect({
           fill: use.literal('#f0f0f0'),
@@ -145,7 +145,7 @@
         .split('Cut', split.identity('cut'))
         .apply('Count', apply.count())
         .apply('AvgPrice', apply.average('price'))
-        .combine({ sort: { prop: 'AvgPrice', direction: 'DESC' }})
+        .combine({ sort: { prop: 'AvgPrice', direction: 'descending' }})
         .layout(layout.vertical({ size: use.prop('Count'), gap: 3 }))
         .plot(plot.rect({
           fill: use.literal('#f0f0f0'),
@@ -204,7 +204,7 @@
       var vis = facet.visualize(sqlDriverClient)
         .split('Cut', split.identity('cut'))
         .apply('AvgPrice', apply.average('price'))
-        .combine({ sort: { prop: 'AvgPrice', direction: 'DESC' }})
+        .combine({ sort: { prop: 'AvgPrice', direction: 'descending' }})
         .layout(layout.horizontal({ gap: 3 }))
         .plot(plot.rect({
           fill: use.literal('#f0f0f0'),
@@ -273,7 +273,7 @@
       .apply('TotalDiamondCount', apply.count())
         .split('Clarity', split.identity('clarity'))
         .apply('AvgPrice', apply.average('price'))
-        .combine({ sort: { prop: 'AvgPrice', direction: 'DESC' }})
+        .combine({ sort: { prop: 'AvgPrice', direction: 'descending' }})
         .layout(layout.horizontal({ gap: 3 }))
         .plot(plot.rect({
           fill: use.literal('none'),
@@ -288,7 +288,7 @@
         .unstage()
           .split('Cut', split.identity('cut'))
           .apply('AvgPrice', apply.average('price'))
-          .combine({ sort: { prop: 'AvgPrice', direction: 'DESC' }})
+          .combine({ sort: { prop: 'AvgPrice', direction: 'descending' }})
           .layout(layout.horizontal({ gap: 3 }))
           .plot(plot.rect({
             fill: use.literal('#f0f0f0'),
@@ -339,7 +339,7 @@
       var vis = facet.visualize(druidDriverClient)
         .split('Language', split.identity('language'))
         .apply('Edits', apply.count())
-        .combine({ sort: { prop: 'Edits', direction: 'DESC' }, limit: 4})
+        .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 4})
         .layout(layout.vertical({ gap: 3 }))
         .plot(plot.rect({
           fill: use.literal('none'),
@@ -360,7 +360,7 @@
         .unstage()
           .split('Page', split.identity('page'))
           .apply('Edits', apply.count())
-          .combine({ sort: { prop: 'Edits', direction: 'DESC' }, limit: 4})
+          .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 4})
           .layout(layout.vertical({ gap: 3 }))
           .plot(plot.rect({
             fill: use.literal('#f0f0f0'),
@@ -406,7 +406,7 @@
       var vis = facet.visualize(druidDriverNode)
         .split('Language', split.identity('language'))
         .apply('Edits', apply.count())
-        .combine({ sort: { prop: 'Edits', direction: 'DESC' }, limit: 4})
+        .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 4})
         .layout(layout.vertical({ gap: 3 }))
         .plot(plot.rect({
           fill: use.literal('none'),
@@ -421,7 +421,7 @@
         .unstage()
           .split('Page', split.identity('page'))
           .apply('Edits', apply.count())
-          .combine({ sort: { prop: 'Edits', direction: 'DESC' }, limit: 4})
+          .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 4})
           .layout(layout.horizontal({ gap: 3 }))
           .plot(plot.rect({
             fill: use.literal('none'),
@@ -444,7 +444,7 @@
           .unstage()
             .split('User', split.identity('user'))
             .apply('Edits', apply.count())
-            .combine({ sort: { prop: 'Edits', direction: 'DESC' }, limit: 3})
+            .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 3})
             .layout(layout.vertical({ gap: 1, size: use.prop('Edits') }))
             .plot(plot.rect({
               fill: use.literal('black'),

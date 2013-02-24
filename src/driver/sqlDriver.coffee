@@ -55,6 +55,11 @@ timeBucketing = {
   }
 }
 
+directionMap = {
+  ascending:  'ASC'
+  descending: 'DESC'
+}
+
 condensedQueryToSQL = ({requester, table, filters, condensedQuery}, callback) ->
   findApply = (applies, propName) ->
     for apply in applies
@@ -141,14 +146,15 @@ condensedQueryToSQL = ({requester, table, filters, condensedQuery}, callback) ->
         callback("must have a sort prop name"); return
       if not sort.direction
         callback("must have a sort direction"); return
-      if sort.direction not in ['ASC', 'DESC']
-        callback("direction has to be 'ASC' or 'DESC'"); return
+      sqlDirection = directionMap[sort.direction]
+      if not sqlDirection
+        callback("direction has to be 'ascending' or 'descending'"); return
 
       orderByPart = 'ORDER BY '
 
       switch sort.compare
         when 'natural'
-          orderByPart += "`#{sort.prop}` #{sort.direction}"
+          orderByPart += "`#{sort.prop}` #{sqlDirection}"
 
         when 'caseInsensetive'
           callback("not implemented yet"); return

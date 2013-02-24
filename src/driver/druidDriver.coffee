@@ -326,11 +326,11 @@ druidQuery = {
       callback("split must have a prop"); return
 
     sort = condensedQuery.combine.sort
-    if sort.direction not in ['ASC', 'DESC']
-      callback("direction has to be 'ASC' or 'DESC'"); return
+    if sort.direction not in ['ascending', 'descending']
+      callback("direction has to be 'ascending' or 'descending'"); return
 
     # figure out of wee need to invert and apply for a bottom N
-    if sort.direction is 'DESC'
+    if sort.direction is 'descending'
       invertApply = null
     else
       invertApply = findApply(condensedQuery.applies, sort.prop)

@@ -91,26 +91,24 @@ applyFns = {
     return count
 }
 
+compareFns = {
+  ascending: (a, b) ->
+    return if a < b then -1 else if a > b then 1 else if a >= b then 0 else NaN
 
-ascending = (a, b) ->
-  return if a < b then -1 else if a > b then 1 else if a >= b then 0 else NaN
-
-descending = (a, b) ->
-  return if b < a then -1 else if b > a then 1 else if b >= a then 0 else NaN
-
+  descending: (a, b) ->
+    return if b < a then -1 else if b > a then 1 else if b >= a then 0 else NaN
+}
 
 sortFns = {
   natural: ({prop, direction}) ->
-    direction = direction.toUpperCase()
-    throw "direction has to be 'ASC' or 'DESC'" unless direction is 'ASC' or direction is 'DESC'
-    cmpFn = if direction is 'ASC' then ascending else descending
-    return (a, b) -> cmpFn(a.prop[prop], b.prop[prop])
+    compareFn = compareFns[direction]
+    throw "direction has to be 'ascending' or 'descending'" unless compareFn
+    return (a, b) -> compareFn(a.prop[prop], b.prop[prop])
 
   caseInsensetive: ({prop, direction}) ->
-    direction = direction.toUpperCase()
-    throw "direction has to be 'ASC' or 'DESC'" unless direction is 'ASC' or direction is 'DESC'
-    cmpFn = if direction is 'ASC' then ascending else descending
-    return (a, b) -> cmpFn(String(a.prop[prop]).toLowerCase(), String(b.prop[prop]).toLowerCase())
+    compareFn = compareFns[direction]
+    throw "direction has to be 'ascending' or 'descending'" unless compareFn
+    return (a, b) -> compareFn(String(a.prop[prop]).toLowerCase(), String(b.prop[prop]).toLowerCase())
 }
 
 

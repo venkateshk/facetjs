@@ -364,7 +364,7 @@
   facet.sort = {
     natural: function(attribute, direction) {
       if (direction == null) {
-        direction = 'ASC';
+        direction = 'ascending';
       }
       return {
         compare: 'natural',
@@ -374,7 +374,7 @@
     },
     caseInsensetive: function(attribute, direction) {
       if (direction == null) {
-        direction = 'ASC';
+        direction = 'ascending';
       }
       return {
         compare: 'caseInsensetive',

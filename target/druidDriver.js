@@ -392,11 +392,11 @@
         return;
       }
       sort = condensedQuery.combine.sort;
-      if ((_ref = sort.direction) !== 'ASC' && _ref !== 'DESC') {
-        callback("direction has to be 'ASC' or 'DESC'");
+      if ((_ref = sort.direction) !== 'ascending' && _ref !== 'descending') {
+        callback("direction has to be 'ascending' or 'descending'");
         return;
       }
-      if (sort.direction === 'DESC') {
+      if (sort.direction === 'descending') {
         invertApply = null;
       } else {
         invertApply = findApply(condensedQuery.applies, sort.prop);

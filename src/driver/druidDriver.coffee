@@ -159,7 +159,12 @@ addApplies = (druidQuery, applies, invertApply) ->
 
       when 'unique'
         if apply is invertApply
-          throw new Error("not implemented yet")
+          # ToDo: add a throw here in case the user us using open source druid
+          druidQuery.aggregations.push {
+            type: "hyperUnique"
+            name: apply.prop
+            fieldName: apply.attribute
+          }
         else
           throw new Error("not implemented yet")
 

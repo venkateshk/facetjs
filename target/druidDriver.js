@@ -199,7 +199,11 @@
           break;
         case 'unique':
           if (apply === invertApply) {
-            throw new Error("not implemented yet");
+            druidQuery.aggregations.push({
+              type: "hyperUnique",
+              name: apply.prop,
+              fieldName: apply.attribute
+            });
           } else {
             throw new Error("not implemented yet");
           }

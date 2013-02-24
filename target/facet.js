@@ -272,16 +272,26 @@
     linear: function(_arg) {
       var domain, include, range, rangeFn;
       domain = _arg.domain, range = _arg.range, include = _arg.include;
-      if (range !== 'width' && range !== 'height') {
+      if (range === 'width' || range === 'height') {
+        rangeFn = function(segment) {
+          return [0, segment.getStage()[range]];
+        };
+      } else if (typeof range === 'number') {
+        rangeFn = function() {
+          return [0, range];
+        };
+      } else if (Array.isArray(range) && range.length === 2) {
+        rangeFn = function() {
+          return range;
+        };
+      } else {
         throw new Error("bad range");
       }
-      rangeFn = function(segment) {
-        return segment.getStage()[range];
-      };
       return function(segments) {
-        var domainMax, domainMin, domainValue, rangeTo, segment, _i, _len;
+        var domainMax, domainMin, domainValue, rangeFrom, rangeTo, rangeValue, segment, _i, _len;
         domainMin = Infinity;
         domainMax = -Infinity;
+        rangeFrom = -Infinity;
         rangeTo = Infinity;
         if (include != null) {
           domainMin = Math.min(domainMin, include);
@@ -292,12 +302,14 @@
           domainValue = domain(segment);
           domainMin = Math.min(domainMin, domainValue);
           domainMax = Math.max(domainMax, domainValue);
-          rangeTo = Math.min(rangeTo, rangeFn(segment));
+          rangeValue = rangeFn(segment);
+          rangeFrom = rangeValue[0];
+          rangeTo = Math.min(rangeTo, rangeValue[1]);
         }
-        if (!(isFinite(domainMin) && isFinite(domainMax) && isFinite(rangeTo))) {
+        if (!(isFinite(domainMin) && isFinite(domainMax) && isFinite(rangeFrom) && isFinite(rangeTo))) {
           throw new Error("we went into infinites");
         }
-        return d3.scale.linear().domain([domainMin, domainMax]).range([0, rangeTo]);
+        return d3.scale.linear().domain([domainMin, domainMax]).range([rangeFrom, rangeTo]);
       };
     }
   };

@@ -313,7 +313,7 @@
     </div>
     <script>
     (function() {
-      return;
+      //return;
       // dimensions
       // ["dma_code","continent_code","geo","area_code","robot","country_name","network","city","namespace","anonymous","unpatrolled","page","postal_code","language","newpage","user","region_lookup"]
       // metrics
@@ -331,7 +331,16 @@
         filters: null
       });
 
-      var scale = d3.scale.linear().domain([0, 1200]).range([0, 600])
+      function formatEditsAndPage(edits, page) {
+        var str = '(' + edits + ') ' + page;
+        var lim = 100;
+        if (str.length > lim) {
+          str = str.substring(0, lim) + '...';
+        }
+        return str;
+      }
+
+      //var scale = d3.scale.linear().domain([0, 1200]).range([0, 600])
 
       var vis = facet.visualize(druidDriverClient)
         .split('Language', split.identity('language'))
@@ -359,17 +368,16 @@
           .apply('Edits', apply.count())
           .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 4})
           .layout(layout.vertical({ gap: 3 }))
+          .scale('horiz', 2, scale.linear({ domain: use.prop('Edits'), include: 0, range: [0, 600] }))
           .plot(plot.rect({
             fill: use.literal('#f0f0f0'),
             stroke: use.literal('#444444'),
             left: use.literal(200),
-            width: use.fn(use.prop('Edits'), scale)
+            width: use.scaled('horiz', use.prop('Edits'))
           }))
           .stage(stage.rectToPoint({ left: 200 }))
             .plot(plot.text({
-              text: use.fn(use.prop('Edits'), use.prop('Page'), function(e, p) {
-                return '(' + e + ') ' + p;
-              }),
+              text: use.fn(use.prop('Edits'), use.prop('Page'), formatEditsAndPage),
               baseline: use.literal('middle'),
               size: use.literal('9px')
             }))
@@ -385,7 +393,7 @@
     </div>
     <script>
     (function() {
-      return;
+      //return;
       // dimensions
       // ["dma_code","continent_code","geo","area_code","robot","country_name","network","city","namespace","anonymous","unpatrolled","page","postal_code","language","newpage","user","region_lookup"]
       // metrics
@@ -399,6 +407,15 @@
         },
         prety: true
       });
+
+      function formatEditsAndPage(edits, page) {
+        var str = '(' + edits + ') ' + page;
+        var lim = 40;
+        if (str.length > lim) {
+          str = str.substring(0, lim) + '...';
+        }
+        return str;
+      }
 
       var vis = facet.visualize(druidDriverNode)
         .split('Language', split.identity('language'))
@@ -426,14 +443,7 @@
           }))
           .stage(stage.rectToPoint({ bottom: 6 }))
             .plot(plot.text({
-              text: use.fn(use.prop('Edits'), use.prop('Page'), function(e, p) {
-                var str = '(' + e + ') ' + p;
-                var lim = 40;
-                if (str.length > lim) {
-                  str = str.substring(0, lim) + '...'
-                }
-                return str;
-              }),
+              text: use.fn(use.prop('Edits'), use.prop('Page'), formatEditsAndPage),
               anchor: use.literal('middle'),
               baseline: use.literal('bottom'),
               size: use.literal('9px')

@@ -218,12 +218,19 @@ getCousinSegments = (segment, distance) ->
 
 facet.scale = {
   linear: ({domain, range, include}) ->
-    throw new Error("bad range") unless range in ['width', 'height']
-    rangeFn = (segment) -> segment.getStage()[range]
+    if range in ['width', 'height']
+      rangeFn = (segment) -> [0, segment.getStage()[range]]
+    else if typeof range is 'number'
+      rangeFn = -> [0, range]
+    else if Array.isArray(range) and range.length is 2
+      rangeFn = -> range
+    else
+      throw new Error("bad range")
 
     return (segments) ->
       domainMin = Infinity
       domainMax = -Infinity
+      rangeFrom = -Infinity
       rangeTo = Infinity
 
       if include?
@@ -234,14 +241,17 @@ facet.scale = {
         domainValue = domain(segment)
         domainMin = Math.min(domainMin, domainValue)
         domainMax = Math.max(domainMax, domainValue)
-        rangeTo = Math.min(rangeTo, rangeFn(segment))
 
-      if not (isFinite(domainMin) and isFinite(domainMax) and isFinite(rangeTo))
+        rangeValue = rangeFn(segment)
+        rangeFrom = rangeValue[0]
+        rangeTo = Math.min(rangeTo, rangeValue[1])
+
+      if not (isFinite(domainMin) and isFinite(domainMax) and isFinite(rangeFrom) and isFinite(rangeTo))
         throw new Error("we went into infinites")
 
       return d3.scale.linear()
         .domain([domainMin, domainMax])
-        .range([0, rangeTo])
+        .range([rangeFrom, rangeTo])
 }
 
 # =============================================================

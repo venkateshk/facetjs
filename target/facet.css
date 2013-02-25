@@ -1,0 +1,33 @@
+/* line 1, ../src/style/facet.scss */
+html {
+  font-family: Helvetica,Arial,freesans,clean,sans-serif;
+}
+
+/* line 5, ../src/style/facet.scss */
+.filler {
+  text-align: center;
+  margin-top: 300px;
+  margin-bottom: 400px;
+  font-size: 180px;
+}
+
+/* line 12, ../src/style/facet.scss */
+.cont {
+  padding-bottom: 150px;
+  border-bottom: 1px solid black;
+}
+/* line 16, ../src/style/facet.scss */
+.cont h1 {
+  margin: 0;
+  font-size: 30px;
+}
+/* line 21, ../src/style/facet.scss */
+.cont h2 {
+  margin: 0;
+  font-size: 18px;
+  color: gray;
+}
+/* line 27, ../src/style/facet.scss */
+.cont .example {
+  margin-top: 8px;
+}

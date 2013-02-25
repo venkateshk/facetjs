@@ -1,3 +1,4 @@
 #!/bin/bash
 #sass --watch public/sass:public/_ &
 coffee --compile --watch --output target src/server.coffee src/facet.coffee src/driver/* &
+compass watch --sass-dir src/style/ --css-dir target/ &

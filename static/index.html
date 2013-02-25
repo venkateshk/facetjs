@@ -1,9 +1,6 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <!--
-    Forgive me but this is a prototype :-)
-    -->
     <link rel="stylesheet/less" type="text/css" href="facet.less">
     <script src="lib/less-1.3.0.min.js"></script>
     <script src="lib/underscore.js"></script>
@@ -19,27 +16,6 @@
     <title>Facet Examples (0.0.4)</title>
 
     <script>
-      // Some data
-      window.data1 = (function() {
-        var now, pick, w;
-        pick = function(arr) {
-          return arr[Math.floor(Math.random() * arr.length)];
-        };
-        now = Date.now();
-        w = 100;
-        return d3.range(400).map(function(i) {
-          return {
-            id: i,
-            time: new Date(now + i * 13 * 1000),
-            letter: 'ABC'[Math.floor(3 * i / 400)],
-            number: pick([1, 10, 3, 4]),
-            scoreA: i * Math.random() * Math.random(),
-            scoreB: 10 * Math.random(),
-            walk: w += Math.random() - 0.5 + 0.02
-          };
-        });
-      })();
-
       // The basics
       var split = facet.split;
       var apply = facet.apply;
@@ -339,8 +315,6 @@
         }
         return str;
       }
-
-      //var scale = d3.scale.linear().domain([0, 1200]).range([0, 600])
 
       var vis = facet.visualize(druidDriverClient)
         .split('Language', split.identity('language'))

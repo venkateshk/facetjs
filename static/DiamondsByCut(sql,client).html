@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" type="text/css" href="facet.css">
+    <script src="lib/underscore.js"></script>
+    <script src="lib/async.js"></script>
+    <script src="lib/d3.js"></script>
+    <script src="lib/jquery-1.9.1.js"></script>
+    <script src="facet.js"></script>
+    <script src="driverUtil.js"></script>
+    <script src="simpleDriver.js"></script>
+    <script src="sqlDriver.js"></script>
+    <script src="druidDriver.js"></script>
+
+    <title>Facet Examples (0.0.4)</title>
+
+    <script>
+      // The basics
+      var split = facet.split;
+      var apply = facet.apply;
+      var layout = facet.layout;
+      var scale = facet.scale;
+      var plot = facet.plot;
+      var use = facet.use;
+      var sort = facet.sort;
+      var stage = facet.stage;
+    </script>
+  </head>
+
+  <body>
+
+    <div class="cont">
+      <h1>Number of diamonds by Cut (ordered by Avg Price)</h1>
+      <h2>SQL Driver in Client / diamonds</h2>
+      <div },
+{class="example"></div>
+    </div>
+    <script>
+    (function() {
+      // {
+      //   "carat": "0.23",
+      //   "cut": "Ideal",
+      //   "color": "E",
+      //   "clarity": "SI2",
+      //   "depth": "61.5",
+      //   "table": "55",
+      //   "price": "326",
+      //   "x": "3.95",
+      //   "y": "3.98",
+      //   "z": "2.43"
+      // },
+
+      var sqlRequester = facet.ajaxPoster({
+        url: '/pass/sql',
+        prety: true
+      });
+
+      var sqlDriverClient = sqlDriver({
+        requester: sqlRequester,
+        table: "diamonds",
+        filters: null
+      });
+
+      var vis = facet.visualize(sqlDriverClient)
+        .split('Cut', split.identity('cut'))
+        .apply('Count', apply.count())
+        .apply('AvgPrice', apply.average('price'))
+        .combine({ sort: { prop: 'AvgPrice', direction: 'descending' }})
+        .layout(layout.vertical({ size: use.prop('Count'), gap: 3 }))
+        .plot(plot.rect({
+          fill: use.literal('#f0f0f0'),
+          stroke: use.scale.color('Cut')
+        }))
+        .stage(stage.rectToPoint())
+          .plot(plot.text({
+            text: use.fn(
+              use.prop('Cut'), use.prop('Count'),
+              function(cut, count) { return cut + ' (count: ' + count + ")"; }
+            ),
+            color: use.scale.color('Cut'),
+            anchor: use.literal('middle'),
+            baseline: use.literal('center')
+          }))
+        .unstage()
+        .render('.example', 800, 600)
+    })();
+    </script>
+
+  </body>
+</html>

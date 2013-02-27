@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" type="text/css" href="facet.css">
+    <script src="lib/underscore.js"></script>
+    <script src="lib/async.js"></script>
+    <script src="lib/d3.js"></script>
+    <script src="lib/jquery-1.9.1.js"></script>
+    <script src="facet.js"></script>
+    <script src="driverUtil.js"></script>
+    <script src="simpleDriver.js"></script>
+    <script src="sqlDriver.js"></script>
+    <script src="druidDriver.js"></script>
+
+    <title>Facet Examples (0.0.4)</title>
+
+    <script>
+      // The basics
+      var split = facet.split;
+      var apply = facet.apply;
+      var layout = facet.layout;
+      var scale = facet.scale;
+      var plot = facet.plot;
+      var use = facet.use;
+      var sort = facet.sort;
+      var stage = facet.stage;
+    </script>
+  </head>
+
+  <body>
+
+    <div class="cont">
+      <h1>Wiki Edits by Page by Language</h1>
+      <h2>Druid Driver in Client / wikipedia</h2>
+      <div },
+{class="example"></div>
+    </div>
+    <script>
+    (function() {
+      // dimensions
+      // ["dma_code","continent_code","geo","area_code","robot","country_name","network","city","namespace","anonymous","unpatrolled","page","postal_code","language","newpage","user","region_lookup"]
+      // metrics
+      // ["count","added","variation","delta","delta_hist","unique_users","deleted"]}
+
+      var druidRequester = facet.ajaxPoster({
+        url: '/pass/druid',
+        prety: true
+      });
+
+      var druidDriverClient = druidDriver({
+        requester: druidRequester,
+        dataSource: "wikipedia_editstream",
+        interval: [new Date(Date.UTC(2013, 2-1, 14, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 20, 0, 0, 0))],
+        filters: null
+      });
+
+      function formatEditsAndPage(edits, page) {
+        var str = '(' + edits + ') ' + page;
+        var lim = 100;
+        if (str.length > lim) {
+          str = str.substring(0, lim) + '...';
+        }
+        return str;
+      }
+
+      var vis = facet.visualize(druidDriverClient)
+        .split('Language', split.identity('language'))
+        .apply('Edits', apply.count())
+        .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 4})
+        .layout(layout.vertical({ gap: 3 }))
+        .plot(plot.rect({
+          fill: use.literal('none'),
+          stroke: use.literal('black')
+        }))
+        .stage(stage.rectToPoint({ top: 10, left: 8 }))
+          .plot(plot.text({
+            text: use.prop('Language'),
+            baseline: use.literal('top'),
+            size: use.literal('30px')
+          }))
+        .unstage()
+        .stage(stage.rectToPoint({ top: 40, left: 8 }))
+          .plot(plot.text({
+            text: use.fn(use.prop('Edits'), function(d) { return 'Total edits: ' + d; }),
+            baseline: use.literal('top')
+          }))
+        .unstage()
+          .split('Page', split.identity('page'))
+          .apply('Edits', apply.count())
+          .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 4})
+          .layout(layout.vertical({ gap: 3 }))
+          .scale('horiz', 2, scale.linear({ domain: use.prop('Edits'), include: 0, range: [0, 600] }))
+          .plot(plot.rect({
+            fill: use.literal('#f0f0f0'),
+            stroke: use.literal('#444444'),
+            left: use.literal(200),
+            width: use.scaled('horiz', use.prop('Edits'))
+          }))
+          .stage(stage.rectToPoint({ left: 200 }))
+            .plot(plot.text({
+              text: use.fn(use.prop('Edits'), use.prop('Page'), formatEditsAndPage),
+              baseline: use.literal('middle'),
+              size: use.literal('9px')
+            }))
+          .unstage()
+          .render('.example', 800, 600)
+    })();
+    </script>
+  </body>
+</html>

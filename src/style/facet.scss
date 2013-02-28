@@ -1,12 +1,10 @@
 html {
   font-family: Helvetica,Arial,freesans,clean,sans-serif;
-}
+  height: 100%;
 
-.filler {
-  text-align: center;
-  margin-top: 300px;
-  margin-bottom: 400px;
-  font-size: 180px;
+  body {
+    height: 100%;
+  }
 }
 
 .cont {
@@ -30,5 +28,45 @@ html {
     svg {
       //border: 1px solid black;
     }
+  }
+}
+
+.test-cont {
+  position: relative;
+  height: 100%;
+
+  textarea#input {
+    position: absolute;
+    top: 0;
+    bottom: 40px;
+    width: 48%;
+    margin: 0;
+    font-family: monospace;
+    font-size: 14px;
+  }
+
+  pre#output {
+    position: absolute;
+    top: 0;
+    bottom: 40px;
+    right: 0;
+    width: 48%;
+    border: 1px solid black;
+    margin: 0;
+    font-family: monospace;
+    font-size: 14px;
+    overflow: scroll;
+  }
+
+  button#send {
+    position: absolute;
+    bottom: 13px;
+    left: 50%;
+    margin-left: -20px;
+  }
+
+  div.button-bar {
+    position: absolute;
+    bottom: 13px;
   }
 }

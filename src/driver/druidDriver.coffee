@@ -206,8 +206,8 @@ druidQuery = {
       callback("must have a sort prop name"); return
 
     timePropName = condensedQuery.split.prop
-    callback("Must sort on the time prop for now (temp)") if combinePropName isnt timePropName
-    return
+    if combinePropName isnt timePropName
+      callback("Must sort on the time prop for now (temp)"); return
 
     bucketDuration = condensedQuery.split.duration
     if not bucketDuration
@@ -229,12 +229,32 @@ druidQuery = {
         callback(err)
         return
 
-      # expand time into an interval
-      splits = [{
-        prop: { "not": "implemented yet" }
-        _interval: interval # wrong
-        _filters: filters
-      }]
+      # ToDo: re-factor this
+      durationMap = {
+        second: 1000
+        minute: 60 * 1000
+        hour: 60 * 60 * 1000
+        day: 24 * 60 * 60 * 1000
+      }
+
+      if condensedQuery.combine.sort.direction is 'descending'
+        ds.reverse()
+
+      if condensedQuery.combine.limit?
+        limit = condensedQuery.combine.limit
+        ds.splice(limit, ds.length - limit)
+
+      splits = ds.map (d) ->
+        timestampStart = new Date(d.timestamp)
+        timestampEnd = new Date(timestampStart.valueOf() + durationMap[bucketDuration])
+        split = {
+          prop: d.result
+          _interval: [timestampStart, timestampEnd]
+          _filters: filters
+        }
+
+        split.prop[timePropName] = [timestampStart, timestampEnd]
+        return split
 
       callback(null, splits)
       return

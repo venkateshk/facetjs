@@ -251,8 +251,8 @@
       timePropName = condensedQuery.split.prop;
       if (combinePropName !== timePropName) {
         callback("Must sort on the time prop for now (temp)");
+        return;
       }
-      return;
       bucketDuration = condensedQuery.split.duration;
       if (!bucketDuration) {
         callback("Must have duration for time bucket");
@@ -272,20 +272,36 @@
         }
       }
       requester(queryObj, function(err, ds) {
-        var splits;
+        var durationMap, limit, splits;
         if (err) {
           callback(err);
           return;
         }
-        splits = [
-          {
-            prop: {
-              "not": "implemented yet"
-            },
-            _interval: interval,
+        durationMap = {
+          second: 1000,
+          minute: 60 * 1000,
+          hour: 60 * 60 * 1000,
+          day: 24 * 60 * 60 * 1000
+        };
+        if (condensedQuery.combine.sort.direction === 'descending') {
+          ds.reverse();
+        }
+        if (condensedQuery.combine.limit != null) {
+          limit = condensedQuery.combine.limit;
+          ds.splice(limit, ds.length - limit);
+        }
+        splits = ds.map(function(d) {
+          var split, timestampEnd, timestampStart;
+          timestampStart = new Date(d.timestamp);
+          timestampEnd = new Date(timestampStart.valueOf() + durationMap[bucketDuration]);
+          split = {
+            prop: d.result,
+            _interval: [timestampStart, timestampEnd],
             _filters: filters
-          }
-        ];
+          };
+          split.prop[timePropName] = [timestampStart, timestampEnd];
+          return split;
+        });
         callback(null, splits);
       });
     },

@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" type="text/css" href="facet.css">
+    <script src="lib/underscore.js"></script>
+    <script src="lib/async.js"></script>
+    <script src="lib/d3.js"></script>
+    <script src="lib/jquery-1.9.1.js"></script>
+    <script src="facet.js"></script>
+    <script src="driverUtil.js"></script>
+    <script src="simpleDriver.js"></script>
+    <script src="sqlDriver.js"></script>
+    <script src="druidDriver.js"></script>
+
+    <title>Split-Apply-Combine Test</title>
+  </head>
+
+  <body>
+
+    <div class="test-cont">
+      <textarea id="input">[
+  {
+    "operation": "split",
+    "bucket": "time",
+    "duration": "hour",
+    "attribute": "time",
+    "prop": "Time"
+  },
+  {
+    "operation": "apply",
+    "aggregate": "sum",
+    "attribute": "count",
+    "prop": "Count"
+  },
+  {
+    "operation": "combine",
+    "sort": {
+      "compare": "natural",
+      "direction": "ascending",
+      "prop": "Time"
+    },
+    "limit": 4
+  },
+  {
+    "operation": "split",
+    "bucket": "identity",
+    "attribute": "page",
+    "prop": "Page"
+  },
+  {
+    "operation": "apply",
+    "aggregate": "sum",
+    "attribute": "count",
+    "prop": "Count"
+  },
+  {
+    "operation": "combine",
+    "sort": {
+      "compare": "natural",
+      "direction": "descending",
+      "prop": "Count"
+    },
+    "limit": 2
+  }
+]</textarea>
+      <pre id="output"></pre>
+      <button id="send">Send</button>
+      <div class="button-bar">
+        <button id="add-split">Add Split</button>
+        <button id="add-apply">Add Apply</button>
+        <button id="add-combine">Add Combine</button>
+        <button id="pop-last">Pop Last</button>
+      </div>
+    </div>
+    <script>
+    (function() {
+      // var sqlRequester = facet.ajaxPoster({
+      //   url: '/pass/sql',
+      //   prety: true
+      // });
+
+      // var sqlDriverClient = sqlDriver({
+      //   requester: sqlRequester,
+      //   table: "diamonds",
+      //   filters: null
+      // });
+
+      var druidRequester = facet.ajaxPoster({
+        url: '/pass/druid',
+        prety: true
+      });
+
+      var druidDriverClient = druidDriver({
+        requester: druidRequester,
+        dataSource: "wikipedia_editstream",
+        interval: [
+          new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)),
+          new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))
+        ],
+        filters: null
+      });
+
+      var addObj = function(obj) {
+        return function() {
+          var input = d3.select("#input").property("value");
+
+          if (input == '') return;
+
+          try {
+            input = JSON.parse(input);
+          } catch (e) {
+            return;
+          }
+
+          if (!Array.isArray(input)) return;
+          input.push(obj);
+
+          d3.select("#input")
+            .property("value", JSON.stringify(input, null, 2))
+        }
+      }
+
+
+      d3.select("#add-split")
+        .on('click', addObj({
+          operation: "split",
+          bucket: "identity",
+          attribute: "???",
+          prop: "???"
+        }))
+
+      d3.select("#add-apply")
+        .on('click', addObj({
+          operation: "apply",
+          aggregate: "sum",
+          attribute: "???",
+          prop: "???"
+        }))
+
+      d3.select("#add-combine")
+        .on('click', addObj({
+          operation: "combine",
+          sort: {
+            compare: "natural",
+            direction: "descending",
+            prop: "???"
+          },
+          limit: 5
+        }))
+
+      d3.select("#pop-last")
+        .on('click', function() {
+          var input = d3.select("#input").property("value");
+
+          if (input == '') return;
+
+          try {
+            input = JSON.parse(input);
+          } catch (e) {
+            return;
+          }
+
+          if (!Array.isArray(input)) return;
+          if (input.length < 1) return;
+          input.pop();
+
+          d3.select("#input")
+            .property("value", JSON.stringify(input, null, 2))
+        })
+
+      d3.select('#send')
+        .on('click', function() {
+          var driver = druidDriverClient;
+          var input = d3.select("#input").property("value");
+
+          if (input == '') return;
+
+          try {
+            input = JSON.parse(input);
+          } catch (e) {
+            d3.select("#output")
+              .text("Could not parse JSON");
+            return;
+          }
+
+          console.log("Sending...")
+          driver(input, function(err, res) {
+            console.log("Got result!")
+            if (err) {
+              d3.select("#output")
+                .text("An error occurred:\n" + err);
+              return;
+            }
+
+            d3.select("#output")
+              .text(JSON.stringify(res, null, 2));
+          })
+        })
+    })();
+    </script>
+
+  </body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -38,6 +38,8 @@ druidPost = ({host, port, path}) ->
     }
   }
   return (druidQuery, callback) ->
+    druidQuery = new Buffer(JSON.stringify(druidQuery), 'utf-8')
+    opts.headers['content-length'] = druidQuery.length
     req = http.request(opts, (response) ->
       # response.statusCode
       # response.headers
@@ -70,7 +72,7 @@ druidPost = ({host, port, path}) ->
       return
     )
 
-    req.write(JSON.stringify(druidQuery))
+    req.write(druidQuery.toString('utf-8'))
     req.end()
     return
 
@@ -139,8 +141,11 @@ app.post '/driver/sql', (req, res) ->
 
 # Druid
 druidPass = druidPost({
-  host: '10.60.134.138'
-  port: 8080
+  #host: '10.60.134.138'
+  #port: 8080
+  #path: '/druid/v2/'
+  host: 'druid-rave.metamx.com'
+  port: 80
   path: '/druid/v2/'
 })
 app.post '/pass/druid', (req, res) ->

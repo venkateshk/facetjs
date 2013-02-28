@@ -54,6 +54,8 @@
     };
     return function(druidQuery, callback) {
       var req;
+      druidQuery = new Buffer(JSON.stringify(druidQuery), 'utf-8');
+      opts.headers['content-length'] = druidQuery.length;
       req = http.request(opts, function(response) {
         var chunks;
         response.setEncoding('utf8');
@@ -79,7 +81,7 @@
           callback(null, chunks);
         });
       });
-      req.write(JSON.stringify(druidQuery));
+      req.write(druidQuery.toString('utf-8'));
       req.end();
     };
   };
@@ -157,8 +159,8 @@
   });
 
   druidPass = druidPost({
-    host: '10.60.134.138',
-    port: 8080,
+    host: 'druid-rave.metamx.com',
+    port: 80,
     path: '/druid/v2/'
   });
 

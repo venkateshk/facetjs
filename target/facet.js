@@ -805,4 +805,14 @@
     };
   };
 
+  facet.verboseProxy = function(driver) {
+    return function(query, callback) {
+      console.log('Query:', query);
+      driver(query, function(err, res) {
+        console.log('Result:', res);
+        callback(err, res);
+      });
+    };
+  };
+
 }).call(this);

@@ -37,7 +37,7 @@ html {
 
   textarea#input {
     position: absolute;
-    top: 0;
+    top: 27px;
     bottom: 40px;
     width: 48%;
     margin: 0;
@@ -47,7 +47,7 @@ html {
 
   pre#output {
     position: absolute;
-    top: 0;
+    top: 27px;
     bottom: 40px;
     right: 0;
     width: 48%;
@@ -68,5 +68,32 @@ html {
   div.button-bar {
     position: absolute;
     bottom: 13px;
+    left: 0;
+  }
+
+  div.time-show {
+    position: absolute;
+    bottom: 17px;
+    right: 0;
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -37,7 +37,7 @@ html body {
 /* line 38, ../src/style/facet.scss */
 .test-cont textarea#input {
   position: absolute;
-  top: 0;
+  top: 27px;
   bottom: 40px;
   width: 48%;
   margin: 0;
@@ -47,7 +47,7 @@ html body {
 /* line 48, ../src/style/facet.scss */
 .test-cont pre#output {
   position: absolute;
-  top: 0;
+  top: 27px;
   bottom: 40px;
   right: 0;
   width: 48%;
@@ -68,4 +68,11 @@ html body {
 .test-cont div.button-bar {
   position: absolute;
   bottom: 13px;
+  left: 0;
+}
+/* line 74, ../src/style/facet.scss */
+.test-cont div.time-show {
+  position: absolute;
+  bottom: 17px;
+  right: 0;
 }

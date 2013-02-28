@@ -63,6 +63,13 @@
     "limit": 2
   }
 ]</textarea>
+      <div class="driver-selector">
+        <label for="driver">Driver:</label>
+        <select id="driver">
+          <option selected>Druid</option>
+          <option>SQL</option>
+        </select>
+      </div>
       <pre id="output"></pre>
       <button id="send">Send</button>
       <div class="button-bar">
@@ -71,20 +78,23 @@
         <button id="add-combine">Add Combine</button>
         <button id="pop-last">Pop Last</button>
       </div>
+      <div class="time-show"></div>
     </div>
     <script>
     (function() {
-      // var sqlRequester = facet.ajaxPoster({
-      //   url: '/pass/sql',
-      //   prety: true
-      // });
+      // SQL
+      var sqlRequester = facet.ajaxPoster({
+        url: '/pass/sql',
+        prety: true
+      });
 
-      // var sqlDriverClient = sqlDriver({
-      //   requester: sqlRequester,
-      //   table: "diamonds",
-      //   filters: null
-      // });
+      var sqlDriverClient = sqlDriver({
+        requester: sqlRequester,
+        table: "wiki",
+        filters: null
+      });
 
+      // DRUID
       var druidRequester = facet.ajaxPoster({
         url: '/pass/druid',
         prety: true
@@ -97,7 +107,11 @@
           new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)),
           new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))
         ],
-        filters: null
+        filters: {
+          type: 'selector',
+          dimension: 'namespace',
+          value: 'article'
+        }
       });
 
       var addObj = function(obj) {
@@ -170,7 +184,8 @@
 
       d3.select('#send')
         .on('click', function() {
-          var driver = druidDriverClient;
+          var driverStr = d3.select("#driver").property("value")
+          var driver = driverStr == 'Druid' ? druidDriverClient : sqlDriverClient;
           var input = d3.select("#input").property("value");
 
           if (input == '') return;
@@ -183,14 +198,19 @@
             return;
           }
 
-          console.log("Sending...")
+          var start = Date.now();
           driver(input, function(err, res) {
-            console.log("Got result!")
             if (err) {
               d3.select("#output")
                 .text("An error occurred:\n" + err);
+              d3.select('.time-show')
+                .text("Query had an error");
               return;
             }
+
+            var taken = Date.now() - start;
+            d3.select('.time-show')
+              .text('Query took ' + taken + 'ms');
 
             d3.select("#output")
               .text(JSON.stringify(res, null, 2));

@@ -311,6 +311,49 @@
         }
         return d3.scale.linear().domain([domainMin, domainMax]).range([rangeFrom, rangeTo]);
       };
+    },
+    log: function(_arg) {
+      var domain, include, range, rangeFn;
+      domain = _arg.domain, range = _arg.range, include = _arg.include;
+      if (range === 'width' || range === 'height') {
+        rangeFn = function(segment) {
+          return [0, segment.getStage()[range]];
+        };
+      } else if (typeof range === 'number') {
+        rangeFn = function() {
+          return [0, range];
+        };
+      } else if (Array.isArray(range) && range.length === 2) {
+        rangeFn = function() {
+          return range;
+        };
+      } else {
+        throw new Error("bad range");
+      }
+      return function(segments) {
+        var domainMax, domainMin, domainValue, rangeFrom, rangeTo, rangeValue, segment, _i, _len;
+        domainMin = Infinity;
+        domainMax = -Infinity;
+        rangeFrom = -Infinity;
+        rangeTo = Infinity;
+        if (include != null) {
+          domainMin = Math.min(domainMin, include);
+          domainMax = Math.max(domainMax, include);
+        }
+        for (_i = 0, _len = segments.length; _i < _len; _i++) {
+          segment = segments[_i];
+          domainValue = domain(segment);
+          domainMin = Math.min(domainMin, domainValue);
+          domainMax = Math.max(domainMax, domainValue);
+          rangeValue = rangeFn(segment);
+          rangeFrom = rangeValue[0];
+          rangeTo = Math.min(rangeTo, rangeValue[1]);
+        }
+        if (!(isFinite(domainMin) && isFinite(domainMax) && isFinite(rangeFrom) && isFinite(rangeTo))) {
+          throw new Error("we went into infinites");
+        }
+        return d3.scale.log().domain([domainMin, domainMax]).range([rangeFrom, rangeTo]);
+      };
     }
   };
 
@@ -372,6 +415,39 @@
           y: fy(stage.height)
         });
       };
+    },
+    toPoint: function(_arg) {
+      var bottom, fx, fy, left, right, top, _ref;
+      _ref = _arg != null ? _arg : {}, left = _ref.left, right = _ref.right, top = _ref.top, bottom = _ref.bottom;
+      if (((left != null) && (right != null)) || ((top != null) && (bottom != null))) {
+        throw new Error("Over-constrained");
+      }
+      fx = left != null ? function(w, s) {
+        return left(s);
+      } : right != null ? function(w, s) {
+        return w - right(s);
+      } : function(w, s) {
+        return w / 2;
+      };
+      fy = top != null ? function(h, s) {
+        return top(s);
+      } : bottom != null ? function(h, s) {
+        return h - bottom(s);
+      } : function(h, s) {
+        return h / 2;
+      };
+      return function(segment) {
+        var stage;
+        stage = segment.getStage();
+        if (stage.type !== 'rectangle') {
+          throw new Error("Must have a rectangle stage (is " + stage.type + ")");
+        }
+        segment.pushStage({
+          type: 'point',
+          x: fx(stage.width, segment),
+          y: fy(stage.height, segment)
+        });
+      };
     }
   };
 
@@ -422,15 +498,15 @@
       };
     },
     circle: function(_arg) {
-      var fill, stroke;
-      stroke = _arg.stroke, fill = _arg.fill;
+      var fill, radius, stroke;
+      radius = _arg.radius, stroke = _arg.stroke, fill = _arg.fill;
       return function(segment) {
         var stage;
         stage = segment.getStage();
         if (stage.type !== 'point') {
           throw new Error("Must have a point stage (is " + stage.type + ")");
         }
-        segment.node.append('text').datum(segment).attr('cx', stage.x).attr('cy', stage.y).attr('dy', '.71em').style('fill', fill).style('stroke', stroke).text(text);
+        segment.node.append('circle').datum(segment).attr('cx', stage.x).attr('cy', stage.y).attr('r', radius).style('fill', fill).style('stroke', stroke);
       };
     }
   };

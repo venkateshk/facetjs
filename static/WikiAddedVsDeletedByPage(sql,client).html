@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" type="text/css" href="facet.css">
+    <script src="lib/underscore.js"></script>
+    <script src="lib/async.js"></script>
+    <script src="lib/d3.js"></script>
+    <script src="lib/jquery-1.9.1.js"></script>
+    <script src="facet.js"></script>
+    <script src="driverUtil.js"></script>
+    <script src="simpleDriver.js"></script>
+    <script src="sqlDriver.js"></script>
+    <script src="druidDriver.js"></script>
+
+    <title>Facet Examples (0.0.4)</title>
+
+    <script>
+      // The basics
+      var split = facet.split;
+      var apply = facet.apply;
+      var layout = facet.layout;
+      var scale = facet.scale;
+      var plot = facet.plot;
+      var use = facet.use;
+      var sort = facet.sort;
+      var stage = facet.stage;
+    </script>
+  </head>
+
+  <body>
+
+    <div class="cont">
+      <h1>Wiki Added Vs Deleted Page</h1>
+      <h2>SQL Driver in Client / wikipedia</h2>
+      <div class="example"></div>
+    </div>
+    <script>
+    (function() {
+      // dimensions
+      // ["dma_code","continent_code","geo","area_code","robot","country_name","network","city","namespace","anonymous","unpatrolled","page","postal_code","language","newpage","user","region_lookup"]
+      // metrics
+      // ["count","added","variation","delta","delta_hist","unique_users","deleted"]}
+
+      var sqlRequester = facet.ajaxPoster({
+        url: '/pass/sql',
+        prety: true
+      });
+
+      var sqlDriverClient = sqlDriver({
+        requester: sqlRequester,
+        table: "wiki",
+        filters: null
+      });
+
+      function formatEditsAndPage(edits, page) {
+        var str = '(' + edits + ') ' + page;
+        var lim = 40;
+        if (str.length > lim) {
+          str = str.substring(0, lim) + '...';
+        }
+        return str;
+      }
+
+      var vis = facet.visualize(sqlDriverClient)
+        .split('Page', split.identity('page'))
+        .apply('Edits', apply.count())
+        .apply('Added', apply.sum('added'))
+        .apply('Deleted', apply.sum('deleted'))
+        .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 50})
+        .plot(plot.rect({
+          fill: use.literal('none'),
+          stroke: use.literal('black')
+        }))
+        .scale('horiz', scale.linear({domain: use.prop('Added'), range: 'width'}))
+        .scale('vert',  scale.linear({domain: use.prop('Deleted'), range: 'height'}))
+        .stage(stage.toPoint({ top: use.scaled('horiz', use.prop('Added')), left: use.scaled('vert', use.prop('Deleted')) }))
+          .plot(plot.circle({
+            radius: use.literal(5),
+            fill: use.literal('none'),
+            stroke: use.literal('black'),
+          }))
+        .unstage()
+        .render('.example', 800, 600)
+
+        // .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 4})
+        // .layout(layout.vertical({ gap: 3 }))
+        // .plot(plot.rect({
+        //   fill: use.literal('none'),
+        //   stroke: use.literal('black')
+        // }))
+        // .stage(stage.rectToPoint({ top: 10, left: 8 }))
+        //   .plot(plot.text({
+        //     text: use.prop('Language'),
+        //     baseline: use.literal('top'),
+        //     size: use.literal('20px')
+        //   }))
+        // .unstage()
+        //   .split('Page', split.identity('page'))
+        //   .apply('Edits', apply.count())
+        //   .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 4})
+        //   .layout(layout.horizontal({ gap: 3 }))
+        //   .plot(plot.rect({
+        //     fill: use.literal('none'),
+        //     stroke: use.literal('green')
+        //   }))
+        //   .stage(stage.rectToPoint({ bottom: 6 }))
+        //     .plot(plot.text({
+        //       text: use.fn(use.prop('Edits'), use.prop('Page'), formatEditsAndPage),
+        //       anchor: use.literal('middle'),
+        //       baseline: use.literal('bottom'),
+        //       size: use.literal('9px')
+        //     }))
+        //   .unstage()
+        //     .split('User', split.identity('user'))
+        //     .apply('Edits', apply.count())
+        //     .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 3})
+        //     .layout(layout.vertical({ gap: 1, size: use.prop('Edits') }))
+        //     .plot(plot.rect({
+        //       fill: use.literal('black'),
+        //       opacity: 0.15
+        //     }))
+        //     .stage(stage.rectToPoint())
+        //       .plot(plot.text({
+        //         text: use.fn(use.prop('Edits'), function(e) { return '[' + e + ']'; }),
+        //         anchor: use.literal('middle'),
+        //         baseline: use.literal('center'),
+        //         size: use.literal('9px')
+        //       }))
+        //     .unstage()
+        //     .render('.example', 800, 600)
+    })();
+    </script>
+  </body>
+</html>

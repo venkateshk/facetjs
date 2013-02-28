@@ -74,7 +74,7 @@
     }).join('/');
   };
 
-  addApplies = function(druidQuery, applies, invertApply) {
+  addApplies = function(druidQuery, applies) {
     var a, apply, countApply, sumApply, _i, _j, _len, _len1;
     applies = applies.slice();
     druidQuery.aggregations = [];
@@ -83,146 +83,78 @@
       apply = applies[_i];
       switch (apply.aggregate) {
         case 'count':
-          if (apply !== invertApply) {
-            druidQuery.aggregations.push({
-              type: "count",
-              name: apply.prop
-            });
-          } else {
-            druidQuery.aggregations.push({
-              type: "javascript",
-              name: '_' + apply.prop,
-              fieldNames: [],
-              script: 'function aggregate(c)    { return c - 1; };\
-                     function combine(p1, p2) { return p1 + p2; };\
-                     function reset()         { return 0; };'
-            });
-          }
+          druidQuery.aggregations.push({
+            type: "count",
+            name: apply.prop
+          });
           break;
         case 'sum':
-          if (apply !== invertApply) {
-            druidQuery.aggregations.push({
-              type: "doubleSum",
-              name: apply.prop,
-              fieldName: apply.attribute
-            });
-          } else {
-            druidQuery.aggregations.push({
-              type: "javascript",
-              name: '_' + apply.prop,
-              fieldNames: [apply.attribute],
-              script: 'function aggregate(c, v) { return c - v; };\
-                     function combine(p1, p2) { return p1 + p2; };\
-                     function reset()         { return 0; };'
-            });
-          }
+          druidQuery.aggregations.push({
+            type: "doubleSum",
+            name: apply.prop,
+            fieldName: apply.attribute
+          });
           break;
         case 'average':
-          if (apply !== invertApply) {
-            countApply = findCountApply(applies);
-            if (!countApply) {
-              applies.push(countApply = {
-                operation: 'apply',
-                aggregate: 'count',
-                name: '_count'
-              });
-            }
-            sumApply = null;
-            for (_j = 0, _len1 = applies.length; _j < _len1; _j++) {
-              a = applies[_j];
-              if (a.aggregate === 'sum' && a.attribute === apply.attribute) {
-                sumApply = a;
-                break;
-              }
-            }
-            if (!sumApply) {
-              applies.push(sumApply = {
-                operation: 'apply',
-                aggregate: 'sum',
-                name: '_sum_' + apply.attribute,
-                attribute: apply.attribute
-              });
-            }
-            druidQuery.postAggregations.push({
-              type: "arithmetic",
-              name: invertApply.prop,
-              fn: "/",
-              fields: [
-                {
-                  type: "fieldAccess",
-                  fieldName: sumApply.prop
-                }, {
-                  type: "fieldAccess",
-                  fieldName: countApply.prop
-                }
-              ]
+          countApply = findCountApply(applies);
+          if (!countApply) {
+            applies.push(countApply = {
+              operation: 'apply',
+              aggregate: 'count',
+              name: '_count'
             });
-          } else {
-            throw new Error("not implemented yet");
           }
+          sumApply = null;
+          for (_j = 0, _len1 = applies.length; _j < _len1; _j++) {
+            a = applies[_j];
+            if (a.aggregate === 'sum' && a.attribute === apply.attribute) {
+              sumApply = a;
+              break;
+            }
+          }
+          if (!sumApply) {
+            applies.push(sumApply = {
+              operation: 'apply',
+              aggregate: 'sum',
+              name: '_sum_' + apply.attribute,
+              attribute: apply.attribute
+            });
+          }
+          druidQuery.postAggregations.push({
+            type: "arithmetic",
+            name: invertApply.prop,
+            fn: "/",
+            fields: [
+              {
+                type: "fieldAccess",
+                fieldName: sumApply.prop
+              }, {
+                type: "fieldAccess",
+                fieldName: countApply.prop
+              }
+            ]
+          });
           break;
         case 'min':
-          if (apply !== invertApply) {
-            druidQuery.aggregations.push({
-              type: "min",
-              name: apply.prop,
-              fieldName: apply.attribute
-            });
-          } else {
-            druidQuery.aggregations.push({
-              type: "javascript",
-              name: '_' + apply.prop,
-              fieldNames: [apply.attribute],
-              script: 'function aggregate(c, v) { return Math.max(c, -v); };\
-                     function combine(p1, p2) { return Math.min(p1, p2); };\
-                     function reset()         { return -Infinity; };'
-            });
-          }
+          druidQuery.aggregations.push({
+            type: "min",
+            name: apply.prop,
+            fieldName: apply.attribute
+          });
           break;
         case 'max':
-          if (apply !== invertApply) {
-            druidQuery.aggregations.push({
-              type: "max",
-              name: apply.prop,
-              fieldName: apply.attribute
-            });
-          } else {
-            druidQuery.aggregations.push({
-              type: "javascript",
-              name: '_' + apply.prop,
-              fieldNames: [apply.attribute],
-              script: 'function aggregate(c, v) { return Math.min(c, -v); };\
-                     function combine(p1, p2) { return Math.max(p1, p2); };\
-                     function reset()         { return Infinity; };'
-            });
-          }
+          druidQuery.aggregations.push({
+            type: "max",
+            name: apply.prop,
+            fieldName: apply.attribute
+          });
           break;
         case 'unique':
-          if (apply === invertApply) {
-            druidQuery.aggregations.push({
-              type: "hyperUnique",
-              name: apply.prop,
-              fieldName: apply.attribute
-            });
-          } else {
-            throw new Error("not implemented yet");
-          }
-      }
-      if (invertApply) {
-        druidQuery.postAggregations.push({
-          type: "arithmetic",
-          name: invertApply.prop,
-          fn: "*",
-          fields: [
-            {
-              type: "fieldAccess",
-              fieldName: '_' + invertApply.prop
-            }, {
-              type: "constant",
-              value: -1
-            }
-          ]
-        });
+          druidQuery.aggregations.push({
+            type: "hyperUnique",
+            name: apply.prop,
+            fieldName: apply.attribute
+          });
       }
     }
   };
@@ -411,7 +343,7 @@
         outputName: condensedQuery.split.prop
       };
       queryObj.threshold = condensedQuery.combine.limit || 10;
-      queryObj.metric = condensedQuery.combine.sort.prop;
+      queryObj.metric = (invertApply ? '_inv_' : '') + condensedQuery.combine.sort.prop;
       if (condensedQuery.applies.length > 0) {
         try {
           addApplies(queryObj, condensedQuery.applies, invertApply);
@@ -419,6 +351,22 @@
           callback(e);
           return;
         }
+      }
+      if (invertApply) {
+        druidQuery.postAggregations.push({
+          type: "arithmetic",
+          name: '_inv_' + invertApply.prop,
+          fn: "*",
+          fields: [
+            {
+              type: "fieldAccess",
+              fieldName: invertApply.prop
+            }, {
+              type: "constant",
+              value: -1
+            }
+          ]
+        });
       }
       requester(queryObj, function(err, ds) {
         var filterAttribute, filterValueProp, splits;

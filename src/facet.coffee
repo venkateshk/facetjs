@@ -252,6 +252,42 @@ facet.scale = {
       return d3.scale.linear()
         .domain([domainMin, domainMax])
         .range([rangeFrom, rangeTo])
+
+  log: ({domain, range, include}) ->
+    if range in ['width', 'height']
+      rangeFn = (segment) -> [0, segment.getStage()[range]]
+    else if typeof range is 'number'
+      rangeFn = -> [0, range]
+    else if Array.isArray(range) and range.length is 2
+      rangeFn = -> range
+    else
+      throw new Error("bad range")
+
+    return (segments) ->
+      domainMin = Infinity
+      domainMax = -Infinity
+      rangeFrom = -Infinity
+      rangeTo = Infinity
+
+      if include?
+        domainMin = Math.min(domainMin, include)
+        domainMax = Math.max(domainMax, include)
+
+      for segment in segments
+        domainValue = domain(segment)
+        domainMin = Math.min(domainMin, domainValue)
+        domainMax = Math.max(domainMax, domainValue)
+
+        rangeValue = rangeFn(segment)
+        rangeFrom = rangeValue[0]
+        rangeTo = Math.min(rangeTo, rangeValue[1])
+
+      if not (isFinite(domainMin) and isFinite(domainMax) and isFinite(rangeFrom) and isFinite(rangeTo))
+        throw new Error("we went into infinites")
+
+      return d3.scale.log()
+        .domain([domainMin, domainMax])
+        .range([rangeFrom, rangeTo])
 }
 
 # =============================================================
@@ -293,7 +329,24 @@ facet.stage = {
       })
       return
 
+  toPoint: ({left, right, top, bottom} = {}) ->
+    # Make sure we are not over-constrained
+    if (left? and right?) or (top? and bottom?)
+      throw new Error("Over-constrained")
 
+    fx = if left? then (w, s) -> left(s) else if right?  then (w, s) -> w - right(s)  else (w, s) -> w / 2
+    fy = if top?  then (h, s) -> top(s)  else if bottom? then (h, s) -> h - bottom(s) else (h, s) -> h / 2
+
+    return (segment) ->
+      stage = segment.getStage()
+      throw new Error("Must have a rectangle stage (is #{stage.type})") unless stage.type is 'rectangle'
+
+      segment.pushStage({
+        type: 'point'
+        x: fx(stage.width, segment)
+        y: fy(stage.height, segment)
+      })
+      return
 
   # margin: ({left, width, right, top, height, bottom}) -> (segment) ->
   #   stage = segment.getStage()
@@ -348,16 +401,15 @@ facet.plot = {
       .text(text)
     return
 
-  circle: ({stroke, fill}) -> (segment) ->
+  circle: ({radius, stroke, fill}) -> (segment) ->
     stage = segment.getStage()
     throw new Error("Must have a point stage (is #{stage.type})") unless stage.type is 'point'
-    segment.node.append('text').datum(segment)
+    segment.node.append('circle').datum(segment)
       .attr('cx', stage.x)
       .attr('cy', stage.y)
-      .attr('dy', '.71em')
+      .attr('r', radius)
       .style('fill', fill)
       .style('stroke', stroke)
-      .text(text)
     return
 }
 
@@ -572,3 +624,12 @@ facet.ajaxPoster = ({url, context, prety}) -> (query, callback) ->
       callback(err, null)
       return
   })
+
+facet.verboseProxy = (driver) -> (query, callback) ->
+  console.log('Query:', query)
+  driver(query, (err, res) ->
+    console.log('Result:', res)
+    callback(err, res)
+    return
+  )
+  return

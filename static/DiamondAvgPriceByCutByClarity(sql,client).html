@@ -31,8 +31,7 @@
     <div class="cont">
       <h1>Avg Price by Cut by Clarity</h1>
       <h2>SQL Driver in Client / diamonds</h2>
-      <div },
-{class="example"></div>
+      <div class="example"></div>
     </div>
     <script>
     (function() {
@@ -61,7 +60,6 @@
       });
 
       var vis = facet.visualize(sqlDriverClient)
-      .apply('TotalDiamondCount', apply.count())
         .split('Clarity', split.identity('clarity'))
         .apply('AvgPrice', apply.average('price'))
         .combine({ sort: { prop: 'AvgPrice', direction: 'descending' }})

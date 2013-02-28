@@ -31,7 +31,7 @@
 
     <div class="cont">
       <h1>Wiki Edits by User by Page by Language</h1>
-      <h2>Druid Driver in Node / wikipedia</h2>
+      <h2>SQL Driver in Client / wikipedia</h2>
       <div class="example"></div>
     </div>
     <script>
@@ -41,13 +41,15 @@
       // metrics
       // ["count","added","variation","delta","delta_hist","unique_users","deleted"]}
 
-      var druidDriverNode = facet.ajaxPoster({
-        url: '/driver/druid',
-        context: {
-          dataSource: "wikipedia_editstream",
-          interval: [new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))],
-        },
+      var sqlRequester = facet.ajaxPoster({
+        url: '/pass/sql',
         prety: true
+      });
+
+      var sqlDriverClient = sqlDriver({
+        requester: sqlRequester,
+        table: "wiki",
+        filters: null
       });
 
       function formatEditsAndPage(edits, page) {
@@ -59,9 +61,9 @@
         return str;
       }
 
-      var vis = facet.visualize(druidDriverNode)
+      var vis = facet.visualize(sqlDriverClient)
         .split('Language', split.identity('language'))
-        .apply('Edits', apply.sum('count')) // ToDo: find out why?!?!
+        .apply('Edits', apply.count())
         .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 4})
         .layout(layout.vertical({ gap: 3 }))
         .plot(plot.rect({
@@ -76,7 +78,7 @@
           }))
         .unstage()
           .split('Page', split.identity('page'))
-          .apply('Edits', apply.sum('count'))
+          .apply('Edits', apply.count())
           .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 4})
           .layout(layout.horizontal({ gap: 3 }))
           .plot(plot.rect({
@@ -92,7 +94,7 @@
             }))
           .unstage()
             .split('User', split.identity('user'))
-            .apply('Edits', apply.sum('count'))
+            .apply('Edits', apply.count())
             .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 3})
             .layout(layout.vertical({ gap: 1, size: use.prop('Edits') }))
             .plot(plot.rect({

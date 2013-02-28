@@ -318,7 +318,7 @@ druidQuery = {
         return
 
     if invertApply
-      druidQuery.postAggregations.push {
+      queryObj.postAggregations.push {
         type: "arithmetic"
         name: '_inv_' + invertApply.prop
         fn: "*"

@@ -57,10 +57,16 @@
   };
 
   exports.cleanSegment = function(segment) {
-    var key;
+    var key, prop;
     for (key in segment) {
       if (key[0] === '_') {
         delete segment[key];
+      }
+    }
+    prop = segment.prop;
+    for (key in prop) {
+      if (key[0] === '_') {
+        delete prop[key];
       }
     }
   };

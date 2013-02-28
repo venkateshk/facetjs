@@ -63,6 +63,12 @@ exports.cleanSegment = (segment) ->
   for key of segment
     if key[0] is '_'
       delete segment[key]
+
+  prop = segment.prop
+  for key of prop
+    if key[0] is '_'
+      delete prop[key]
+
   return
 
 # -----------------------------------------------------

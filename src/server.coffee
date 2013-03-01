@@ -141,12 +141,12 @@ app.post '/driver/sql', (req, res) ->
 
 # Druid
 druidPass = druidPost({
-  #host: '10.60.134.138'
-  #port: 8080
-  #path: '/druid/v2/'
-  host: 'druid-rave.metamx.com'
-  port: 80
+  host: '10.60.134.138'
+  port: 8080
   path: '/druid/v2/'
+  # host: 'druid-rave.metamx.com'
+  # port: 80
+  # path: '/druid/v2/'
 })
 app.post '/pass/druid', (req, res) ->
   { context, query } = req.body

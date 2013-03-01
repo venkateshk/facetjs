@@ -53,24 +53,23 @@ html body {
   width: 48%;
   border: 1px solid black;
   margin: 0;
-  font-family: monospace;
   font-size: 14px;
   overflow: scroll;
 }
-/* line 61, ../src/style/facet.scss */
+/* line 60, ../src/style/facet.scss */
 .test-cont button#send {
   position: absolute;
   bottom: 13px;
   left: 50%;
   margin-left: -20px;
 }
-/* line 68, ../src/style/facet.scss */
+/* line 67, ../src/style/facet.scss */
 .test-cont div.button-bar {
   position: absolute;
   bottom: 13px;
   left: 0;
 }
-/* line 74, ../src/style/facet.scss */
+/* line 73, ../src/style/facet.scss */
 .test-cont div.time-show {
   position: absolute;
   bottom: 17px;

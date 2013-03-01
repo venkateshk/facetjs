@@ -75,12 +75,13 @@
   };
 
   addApplies = function(druidQuery, applies) {
-    var a, apply, countApply, sumApply, _i, _j, _len, _len1;
+    var a, apply, applyIdx, countApply, sumApply, _i, _len;
     applies = applies.slice();
     druidQuery.aggregations = [];
     druidQuery.postAggregations = [];
-    for (_i = 0, _len = applies.length; _i < _len; _i++) {
-      apply = applies[_i];
+    applyIdx = 0;
+    while (applyIdx < applies.length) {
+      apply = applies[applyIdx++];
       switch (apply.aggregate) {
         case 'count':
           druidQuery.aggregations.push({
@@ -101,12 +102,12 @@
             applies.push(countApply = {
               operation: 'apply',
               aggregate: 'count',
-              name: '_count'
+              prop: '_count'
             });
           }
           sumApply = null;
-          for (_j = 0, _len1 = applies.length; _j < _len1; _j++) {
-            a = applies[_j];
+          for (_i = 0, _len = applies.length; _i < _len; _i++) {
+            a = applies[_i];
             if (a.aggregate === 'sum' && a.attribute === apply.attribute) {
               sumApply = a;
               break;
@@ -116,13 +117,13 @@
             applies.push(sumApply = {
               operation: 'apply',
               aggregate: 'sum',
-              name: '_sum_' + apply.attribute,
+              prop: '_sum_' + apply.attribute,
               attribute: apply.attribute
             });
           }
           druidQuery.postAggregations.push({
             type: "arithmetic",
-            name: invertApply.prop,
+            name: apply.prop,
             fn: "/",
             fields: [
               {
@@ -383,6 +384,9 @@
             }
           ]
         });
+      }
+      if (queryObj.postAggregations.length === 0) {
+        delete queryObj.postAggregations;
       }
       requester(queryObj, function(err, ds) {
         var filterAttribute, filterValueProp, splits;

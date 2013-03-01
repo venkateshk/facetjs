@@ -52,7 +52,9 @@ addApplies = (druidQuery, applies) ->
   applies = applies.slice()
   druidQuery.aggregations = []
   druidQuery.postAggregations = []
-  for apply in applies
+  applyIdx = 0
+  while applyIdx < applies.length # Note that the apply list can grow
+    apply = applies[applyIdx++]
     switch apply.aggregate
       when 'count'
         druidQuery.aggregations.push {
@@ -75,9 +77,10 @@ addApplies = (druidQuery, applies) ->
           applies.push(countApply = {
             operation: 'apply'
             aggregate: 'count'
-            name: '_count'
+            prop: '_count'
           })
 
+        # Ether use an existing sum or make a temp one
         sumApply = null
         for a in applies
           if a.aggregate is 'sum' and a.attribute is apply.attribute
@@ -87,13 +90,13 @@ addApplies = (druidQuery, applies) ->
           applies.push(sumApply = {
             operation: 'apply'
             aggregate: 'sum'
-            name: '_sum_' + apply.attribute
+            prop: '_sum_' + apply.attribute
             attribute: apply.attribute
           })
 
         druidQuery.postAggregations.push {
           type: "arithmetic"
-          name: invertApply.prop
+          name: apply.prop
           fn: "/"
           fields: [
             { type: "fieldAccess", fieldName: sumApply.prop }
@@ -293,7 +296,7 @@ druidQuery = {
     if sort.direction not in ['ascending', 'descending']
       callback("direction has to be 'ascending' or 'descending'"); return
 
-    # figure out of wee need to invert and apply for a bottom N
+    # figure out of wee need to invert and apply for a bottomN
     if sort.direction is 'descending'
       invertApply = null
     else
@@ -327,6 +330,9 @@ druidQuery = {
           { type: "constant", value: -1 }
         ]
       }
+
+    if queryObj.postAggregations.length is 0
+      delete queryObj.postAggregations
 
     requester queryObj, (err, ds) ->
       if err

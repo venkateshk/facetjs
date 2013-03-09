@@ -1,0 +1,77 @@
+/* line 1, ../src/style/facet.scss */
+html {
+  font-family: Helvetica,Arial,freesans,clean,sans-serif;
+  height: 100%;
+}
+/* line 5, ../src/style/facet.scss */
+html body {
+  height: 100%;
+}
+
+/* line 10, ../src/style/facet.scss */
+.cont {
+  padding-bottom: 150px;
+  border-bottom: 1px solid black;
+}
+/* line 14, ../src/style/facet.scss */
+.cont h1 {
+  margin: 0;
+  font-size: 30px;
+}
+/* line 19, ../src/style/facet.scss */
+.cont h2 {
+  margin: 0;
+  font-size: 18px;
+  color: gray;
+}
+/* line 25, ../src/style/facet.scss */
+.cont .example {
+  margin-top: 8px;
+}
+
+/* line 34, ../src/style/facet.scss */
+.test-cont {
+  position: relative;
+  height: 100%;
+}
+/* line 38, ../src/style/facet.scss */
+.test-cont textarea#input {
+  position: absolute;
+  top: 27px;
+  bottom: 40px;
+  width: 48%;
+  margin: 0;
+  font-family: monospace;
+  font-size: 14px;
+}
+/* line 48, ../src/style/facet.scss */
+.test-cont pre#output {
+  position: absolute;
+  top: 27px;
+  bottom: 40px;
+  right: 0;
+  width: 48%;
+  border: 1px solid black;
+  margin: 0;
+  font-size: 14px;
+  overflow: scroll;
+}
+/* line 60, ../src/style/facet.scss */
+.test-cont button#send {
+  position: absolute;
+  bottom: 13px;
+  left: 50%;
+  margin-left: -20px;
+}
+/* line 67, ../src/style/facet.scss */
+.test-cont div.button-bar {
+  position: absolute;
+  bottom: 13px;
+  left: 0;
+}
+/* line 73, ../src/style/facet.scss */
+.test-cont div.time-show {
+  position: absolute;
+  bottom: 17px;
+  right: 0;
+}

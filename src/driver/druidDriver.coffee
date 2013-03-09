@@ -62,7 +62,6 @@ addApplies = (druidQuery, applies) ->
           name: apply.prop
         }
 
-
       when 'sum'
         druidQuery.aggregations.push {
           type: "doubleSum"

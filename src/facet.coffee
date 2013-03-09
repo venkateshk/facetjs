@@ -15,9 +15,12 @@ flatten = (ar) -> Array::concat.apply([], ar)
 
 # =============================================================
 
+isValidStage = (stage) ->
+  return Boolean(stage and typeof stage.type is 'string' and stage.node)
+
 class Segment
-  constructor: ({ @parent, @node, stage, @prop, @splits }) ->
-    throw "invalid stage" unless typeof stage?.type is 'string'
+  constructor: ({ @parent, stage, @prop, @splits }) ->
+    throw "invalid stage" unless isValidStage(stage)
     @_stageStack = [stage]
     @scale = {}
 
@@ -25,12 +28,12 @@ class Segment
     return @_stageStack[@_stageStack.length - 1]
 
   setStage: (stage) ->
-    throw "invalid stage" unless typeof stage?.type is 'string'
+    throw "invalid stage" unless isValidStage(stage)
     @_stageStack[@_stageStack.length - 1] = stage
     return
 
   pushStage: (stage) ->
-    throw "invalid stage" unless typeof stage?.type is 'string'
+    throw "invalid stage" unless isValidStage(stage)
     @_stageStack.push(stage)
     return
 
@@ -167,16 +170,17 @@ stripeTile = (dim1, dim2) ->
     for segment, i in segmentGroup
       curDim1 = dim1s[i]
 
-      segmentStage = { type: 'rectangle' }
+      segmentStage = {
+        node: segment.getStage().node
+          .attr('transform', makeTransform(dim1, dimSoFar))
+          .attr(dim1, curDim1)
+          .attr(dim2, parentDim2)
+        type: 'rectangle'
+      }
       segmentStage[dim1] = curDim1
       segmentStage[dim2] = parentDim2
 
       segment.setStage(segmentStage)
-
-      segment.node
-        .attr('transform', makeTransform(dim1, dimSoFar))
-        .attr(dim1, curDim1)
-        .attr(dim2, parentDim2)
 
       dimSoFar += curDim1 + gap
 
@@ -324,11 +328,12 @@ facet.stage = {
 
       segment.pushStage({
         type: 'point'
-        x: fx(stage.width)
-        y: fy(stage.height)
+        node: stage.node.append('g')
+          .attr('transform', "translate(#{fx(stage.width)}, #{fy(stage.height)})")
       })
       return
 
+  # ToDo: Depicate (merge with rectToPoint)
   toPoint: ({left, right, top, bottom} = {}) ->
     # Make sure we are not over-constrained
     if (left? and right?) or (top? and bottom?)
@@ -343,8 +348,8 @@ facet.stage = {
 
       segment.pushStage({
         type: 'point'
-        x: fx(stage.width, segment)
-        y: fy(stage.height, segment)
+        node: stage.node.append('g')
+          .attr('transform', "translate(#{fx(stage.width, segment)}, #{fy(stage.height, segment)})")
       })
       return
 
@@ -354,6 +359,20 @@ facet.stage = {
 
   #   [x, w] = boxPosition(segment, stage.width, left, width, right)
   #   [y, h] = boxPosition(segment, stage.height, top, height, bottom)
+
+  # move
+
+  # rotate
+
+  # rectToLine
+
+  # lineToRect
+
+  # pointToRect
+
+  # lineToPoint
+
+  # pointToLine
 }
 
 # =============================================================
@@ -369,7 +388,7 @@ facet.plot = {
     [x, w] = boxPosition(segment, stage.width, left, width, right)
     [y, h] = boxPosition(segment, stage.height, top, height, bottom)
 
-    segment.node.append('rect').datum(segment)
+    stage.node.append('rect').datum(segment)
       .attr('x', x)
       .attr('y', y)
       .attr('width', w)
@@ -382,11 +401,10 @@ facet.plot = {
   text: ({color, text, size, anchor, baseline, angle}) -> (segment) ->
     stage = segment.getStage()
     throw new Error("Must have a point stage (is #{stage.type})") unless stage.type is 'point'
-    node = segment.node.append('text').datum(segment)
+    node = stage.node.append('text').datum(segment)
 
-    transformStr = "translate(#{stage.x}, #{stage.y})"
-    transformStr += " rotate(#{angle(segment)})" if angle?
-    node.attr('transform', transformStr)
+    if angle?
+      node.attr('transform', "rotate(#{angle(segment)})")
 
     if typeof baseline is 'function'
       node.attr('dy', (segment) ->
@@ -404,9 +422,7 @@ facet.plot = {
   circle: ({radius, stroke, fill}) -> (segment) ->
     stage = segment.getStage()
     throw new Error("Must have a point stage (is #{stage.type})") unless stage.type is 'point'
-    segment.node.append('circle').datum(segment)
-      .attr('cx', stage.x)
-      .attr('cy', stage.y)
+    stage.node.append('circle').datum(segment)
       .attr('r', radius)
       .style('fill', fill)
       .style('stroke', stroke)
@@ -417,13 +433,13 @@ facet.plot = {
 # SORT
 
 facet.sort = {
-  natural: (attribute, direction = 'ascending') -> {
+  natural: (attribute, direction = 'descending') -> {
     compare: 'natural'
     attribute
     direction
   }
 
-  caseInsensetive: (attribute, direction = 'ascending') -> {
+  caseInsensetive: (attribute, direction = 'descending') -> {
     compare: 'caseInsensetive'
     attribute
     direction
@@ -524,20 +540,24 @@ class FacetJob
     throw new Error("could not find the provided selector") if parent.empty()
     throw new Error("bad size: #{width} x #{height}") unless width and height
 
+    svg = parent.append('svg')
+      .attr('width', width)
+      .attr('height', height)
+
     operations = @ops
     @driver @getQuery(), (err, res) ->
       if err
         alert("An error has occurred: " + if typeof err is 'string' then err else err.message)
         return
 
-      svg = parent.append('svg')
-        .attr('width', width)
-        .attr('height', height)
-
       segmentGroups = [[new Segment({
         parent: null
-        node: svg
-        stage: { type: 'rectangle', width, height }
+        stage: {
+          node: svg
+          type: 'rectangle'
+          width
+          height
+        }
         prop: res.prop
         splits: res.splits
       })]]
@@ -547,10 +567,11 @@ class FacetJob
           when 'split'
             segmentGroups = flatten(segmentGroups).map((segment) ->
               return segment.splits = segment.splits.map (sp) ->
+                stage = _.clone(segment.getStage())
+                stage.node = stage.node.append('g')
                 return new Segment({
                   parent: segment
-                  node: segment.node.append('g')
-                  stage: segment.getStage()
+                  stage: stage
                   prop: sp.prop
                   splits: sp.splits
                 })

@@ -32,6 +32,10 @@ module.exports = (grunt) ->
         tasks: ['coffee']
       }
     }
+
+    compass: {
+
+    }
   }
 
   grunt.loadNpmTasks('grunt-contrib-watch')

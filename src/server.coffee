@@ -80,7 +80,7 @@ sqlRequester =({host, user, password, dataset}) ->
   connection = mysql.createConnection({
     host: 'localhost'
     user: 'root'
-    password: 'root'
+    password: ''
     database: 'facet'
   })
 

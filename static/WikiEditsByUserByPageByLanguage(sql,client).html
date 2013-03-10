@@ -61,7 +61,7 @@
         return str;
       }
 
-      var vis = facet.define('.example', 800, 600, sqlDriverClient)
+      facet.define('.example', 800, 600, sqlDriverClient)
         .split('Language', split.identity('language'))
         .apply('Edits', apply.count())
         .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 4})

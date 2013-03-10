@@ -115,8 +115,13 @@ wrapLiteral = (arg) ->
 
 getProp = (segment, propName) ->
   if not segment
-    throw new Error("No such prop name '#{propName}'")
+    throw new Error("No such prop '#{propName}'")
   return segment.prop[propName] ? getProp(segment.parent, propName)
+
+getScale = (segment, scaleName) ->
+  if not segment
+    throw new Error("No such scale '#{scaleName}'")
+  return segment.scale[scaleName] ? getScale(segment.parent, scaleName)
 
 facet.use = {
   prop: (propName) -> (segment) ->
@@ -130,7 +135,7 @@ facet.use = {
     return fn.apply(this, args.map((arg) -> arg(segment)))
 
   scaled: (scaleName, acc) -> (segment) ->
-    return segment.scale[scaleName](acc(segment))
+    return getScale(segment, scaleName)(acc(segment))
 
   scale: {
     color: (propName) ->
@@ -200,26 +205,8 @@ facet.layout = {
 # A function that makes a scale and adds it to the segment.
 # Arguments* -> Segment -> void
 
-getCousinSegments = (segment, distance) ->
-  # Find and all relevant segments, first find the source
-  sourceSegment = segment
-  i = 0
-  while i < distance
-    sourceSegment = sourceSegment.parent
-    throw new Error("gone to far") unless sourceSegment
-    i++
-
-  # Get all of sources children on my level (my cousins)
-  cousinSegments = [sourceSegment]
-  i = 0
-  while i < distance
-    cousinSegments = flatten(cousinSegments.map((s) -> s.splits))
-    i++
-
-  return cousinSegments
-
 facet.scale = {
-  linear: ({domain, range, include}) ->
+  linear: () -> (segments, {include, domain, range}) ->
     domain = wrapLiteral(domain)
 
     if range in ['width', 'height']
@@ -231,33 +218,32 @@ facet.scale = {
     else
       throw new Error("bad range")
 
-    return (segments) ->
-      domainMin = Infinity
-      domainMax = -Infinity
-      rangeFrom = -Infinity
-      rangeTo = Infinity
+    domainMin = Infinity
+    domainMax = -Infinity
+    rangeFrom = -Infinity
+    rangeTo = Infinity
 
-      if include?
-        domainMin = Math.min(domainMin, include)
-        domainMax = Math.max(domainMax, include)
+    if include?
+      domainMin = Math.min(domainMin, include)
+      domainMax = Math.max(domainMax, include)
 
-      for segment in segments
-        domainValue = domain(segment)
-        domainMin = Math.min(domainMin, domainValue)
-        domainMax = Math.max(domainMax, domainValue)
+    for segment in segments
+      domainValue = domain(segment)
+      domainMin = Math.min(domainMin, domainValue)
+      domainMax = Math.max(domainMax, domainValue)
 
-        rangeValue = rangeFn(segment)
-        rangeFrom = rangeValue[0]
-        rangeTo = Math.min(rangeTo, rangeValue[1])
+      rangeValue = rangeFn(segment)
+      rangeFrom = rangeValue[0]
+      rangeTo = Math.min(rangeTo, rangeValue[1])
 
-      if not (isFinite(domainMin) and isFinite(domainMax) and isFinite(rangeFrom) and isFinite(rangeTo))
-        throw new Error("we went into infinites")
+    if not (isFinite(domainMin) and isFinite(domainMax) and isFinite(rangeFrom) and isFinite(rangeTo))
+      throw new Error("we went into infinites")
 
-      return d3.scale.linear()
-        .domain([domainMin, domainMax])
-        .range([rangeFrom, rangeTo])
+    return d3.scale.linear()
+      .domain([domainMin, domainMax])
+      .range([rangeFrom, rangeTo])
 
-  log: ({domain, range, include}) ->
+  log: ({plusOne}) -> ({domain, range, include}) ->
     domain = wrapLiteral(domain)
 
     if range in ['width', 'height']
@@ -476,7 +462,7 @@ class FacetJob
     return this
 
   layout: (layout) ->
-    throw new TypeError("Layout must be a function") unless typeof layout is 'function'
+    throw new TypeError("layout must be a function") unless typeof layout is 'function'
     @ops.push({
       operation: 'layout'
       layout
@@ -491,16 +477,20 @@ class FacetJob
     @knownProps[propName] = true
     return this
 
-  scale: (name, distance, scale) ->
-    if not scale? and typeof distance is 'function'
-      scale = distance
-      distance = 1
-
+  scale: (name, scale) ->
+    throw new TypeError("scale must be a function") unless typeof scale is 'function'
     @ops.push({
       operation: 'scale'
       name
-      distance
       scale
+    })
+    return this
+
+  train: (name, param) ->
+    @ops.push({
+      operation: 'train'
+      name
+      param
     })
     return this
 
@@ -594,15 +584,34 @@ class FacetJob
             null # Do nothing, there is nothing to do on the renderer for those two :-)
 
           when 'scale'
-            { name, distance, scale } = cmd
+            { name, scale } = cmd
             for segmentGroup in segmentGroups
               for segment in segmentGroup
-                # We may have already defined this scale on this segment
-                continue if segment.scale[name]
-                unifiedSegments = getCousinSegments(segment, distance)
-                scaleFn = scale(unifiedSegments)
-                for unifiedSegment in unifiedSegments
-                  unifiedSegment.scale[name] = scaleFn
+                segment.scale[name] = {
+                  train: scale
+                }
+
+          when 'train'
+            { name, param } = cmd
+
+            sourceSegment = segmentGroups[0][0]
+            hops = 0
+            while true
+              sourceSegment = sourceSegment.parent
+              throw new Error("can not find scale '#{name}'") unless sourceSegment
+              hops++
+              break if sourceSegment.scale[name]
+
+            # Get all of sources children on my level (my cousins)
+            unifiedSegments = [sourceSegment]
+            while hops > 0
+              unifiedSegments = flatten(unifiedSegments.map((s) -> s.splits))
+              hops--
+
+            if not sourceSegment.scale[name].train
+              throw new Error("Scale '#{name}' already trained")
+
+            sourceSegment.scale[name] = sourceSegment.scale[name].train(unifiedSegments, param)
 
           when 'layout'
             { layout } = cmd

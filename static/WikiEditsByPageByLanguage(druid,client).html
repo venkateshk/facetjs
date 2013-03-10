@@ -62,47 +62,48 @@
         return str;
       }
 
-      var vis = facet.define('.example', 800, 600, druidDriverClient)
-        .split('Language', split.identity('language'))
-        .apply('Edits', apply.count())
-        .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 4})
-        .layout(layout.vertical({ gap: 3 }))
-        .plot(plot.rect({
-          fill: 'none',
-          stroke: 'black'
-        }))
-        .stage(stage.rectangle.point({ top: 10, left: 8 }))
-          .plot(plot.text({
-            text: use.prop('Language'),
-            baseline: 'top',
-            size: '30px'
-          }))
-        .unstage()
-        .stage(stage.rectangle.point({ top: 40, left: 8 }))
-          .plot(plot.text({
-            text: use.fn(use.prop('Edits'), function(d) { return 'Total edits: ' + d; }),
-            baseline: 'top'
-          }))
-        .unstage()
-          .split('Page', split.identity('page'))
+      facet.define('.example', 800, 600, druidDriverClient)
+        .scale('horiz', scale.linear())
+          .split('Language', split.identity('language'))
           .apply('Edits', apply.count())
           .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 4})
           .layout(layout.vertical({ gap: 3 }))
-          .scale('horiz', 2, scale.linear({ domain: use.prop('Edits'), include: 0, range: [0, 600] }))
           .plot(plot.rect({
-            fill: '#f0f0f0',
-            stroke: '#444444',
-            left: 200,
-            width: use.scaled('horiz', use.prop('Edits'))
+            fill: 'none',
+            stroke: 'black'
           }))
-          .stage(stage.rectangle.point({ left: 200 }))
+          .stage(stage.rectangle.point({ top: 10, left: 8 }))
             .plot(plot.text({
-              text: use.fn(use.prop('Edits'), use.prop('Page'), formatEditsAndPage),
-              baseline: 'middle',
-              size: '9px'
+              text: use.prop('Language'),
+              baseline: 'top',
+              size: '30px'
             }))
           .unstage()
-          .render()
+          .stage(stage.rectangle.point({ top: 40, left: 8 }))
+            .plot(plot.text({
+              text: use.fn(use.prop('Edits'), function(d) { return 'Total edits: ' + d; }),
+              baseline: 'top'
+            }))
+          .unstage()
+            .split('Page', split.identity('page'))
+            .apply('Edits', apply.count())
+            .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 4})
+            .layout(layout.vertical({ gap: 3 }))
+            .train('horiz', { domain: use.prop('Edits'), include: 0, range: [0, 600] })
+            .plot(plot.rect({
+              fill: '#f0f0f0',
+              stroke: '#444444',
+              left: 200,
+              width: use.scaled('horiz', use.prop('Edits'))
+            }))
+            .stage(stage.rectangle.point({ left: 200 }))
+              .plot(plot.text({
+                text: use.fn(use.prop('Edits'), use.prop('Page'), formatEditsAndPage),
+                baseline: 'middle',
+                size: '9px'
+              }))
+            .unstage()
+            .render()
     })();
     </script>
   </body>

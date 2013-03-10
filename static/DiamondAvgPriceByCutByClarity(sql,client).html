@@ -59,42 +59,43 @@
         filters: null
       });
 
-      var vis = facet.define('.example', 800, 600, sqlDriverClient)
-        .split('Clarity', split.identity('clarity'))
-        .apply('AvgPrice', apply.average('price'))
-        .combine({ sort: { prop: 'AvgPrice', direction: 'descending' }})
-        .layout(layout.horizontal({ gap: 3 }))
-        .plot(plot.rect({
-          fill: 'none',
-          stroke: 'black'
-        }))
-        .stage(stage.rectangle.point({ top: 6 }))
-          .plot(plot.text({
-            text: use.prop('Clarity'),
-            anchor: 'middle',
-            baseline: 'top'
-          }))
-        .unstage()
-          .split('Cut', split.identity('cut'))
+      facet.define('.example', 800, 600,  sqlDriverClient)
+        .scale('vert', scale.linear())
+          .split('Clarity', split.identity('clarity'))
           .apply('AvgPrice', apply.average('price'))
           .combine({ sort: { prop: 'AvgPrice', direction: 'descending' }})
           .layout(layout.horizontal({ gap: 3 }))
-          .scale('vert', 2, scale.linear({include: 0, domain: use.prop('AvgPrice'), range: 'height'}))
           .plot(plot.rect({
-            fill: '#f0f0f0',
-            stroke: use.scale.color('Cut'),
-            bottom: 0,
-            height: use.scaled('vert', use.prop('AvgPrice'))
+            fill: 'none',
+            stroke: 'black'
           }))
-          .stage(stage.rectangle.point({ bottom: 6 }))
+          .stage(stage.rectangle.point({ top: 6 }))
             .plot(plot.text({
-              text: use.prop('Cut'),
-              color: use.scale.color('Cut'),
-              baseline: 'center',
-              angle: -90
+              text: use.prop('Clarity'),
+              anchor: 'middle',
+              baseline: 'top'
             }))
           .unstage()
-          .render()
+            .split('Cut', split.identity('cut'))
+            .apply('AvgPrice', apply.average('price'))
+            .combine({ sort: { prop: 'AvgPrice', direction: 'descending' }})
+            .layout(layout.horizontal({ gap: 3 }))
+            .train('vert', {include: 0, domain: use.prop('AvgPrice'), range: 'height'})
+            .plot(plot.rect({
+              fill: '#f0f0f0',
+              stroke: use.scale.color('Cut'),
+              bottom: 0,
+              height: use.scaled('vert', use.prop('AvgPrice'))
+            }))
+            .stage(stage.rectangle.point({ bottom: 6 }))
+              .plot(plot.text({
+                text: use.prop('Cut'),
+                color: use.scale.color('Cut'),
+                baseline: 'center',
+                angle: -90
+              }))
+            .unstage()
+            .render()
     })();
     </script>
   </body>

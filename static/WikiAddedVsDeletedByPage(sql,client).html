@@ -61,26 +61,28 @@
         return str;
       }
 
-      var vis = facet.define('.example', 800, 600, sqlDriverClient)
-        .split('Page', split.identity('page'))
-        .apply('Edits', apply.count())
-        .apply('Added', apply.sum('added'))
-        .apply('Deleted', apply.sum('deleted'))
-        .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 50})
-        .plot(plot.rect({
-          fill: 'none',
-          stroke: 'black'
-        }))
-        .scale('horiz', scale.linear({domain: use.prop('Added'), range: 'width'}))
-        .scale('vert',  scale.linear({domain: use.prop('Deleted'), range: 'height'}))
-        .stage(stage.rectangle.point({ top: use.scaled('horiz', use.prop('Added')), left: use.scaled('vert', use.prop('Deleted')) }))
-          .plot(plot.circle({
-            radius: 5,
+      facet.define('.example', 800, 600, sqlDriverClient)
+        .scale('horiz', scale.linear())
+        .scale('vert',  scale.linear())
+          .split('Page', split.identity('page'))
+          .apply('Edits', apply.count())
+          .apply('Added', apply.sum('added'))
+          .apply('Deleted', apply.sum('deleted'))
+          .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 50})
+          .plot(plot.rect({
             fill: 'none',
-            stroke: 'black',
+            stroke: 'black'
           }))
-        .unstage()
-        .render()
+          .train('horiz', {domain: use.prop('Added'), range: 'width'})
+          .train('vert',  {domain: use.prop('Deleted'), range: 'height'})
+          .stage(stage.rectangle.point({ top: use.scaled('horiz', use.prop('Added')), left: use.scaled('vert', use.prop('Deleted')) }))
+            .plot(plot.circle({
+              radius: 5,
+              fill: 'none',
+              stroke: 'black',
+            }))
+          .unstage()
+          .render()
 
         // .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 4})
         // .layout(layout.vertical({ gap: 3 }))

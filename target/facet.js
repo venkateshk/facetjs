@@ -109,7 +109,7 @@
     },
     average: function(attribute) {
       return {
-        aggregate: 'sum',
+        aggregate: 'average',
         attribute: attribute
       };
     },
@@ -538,7 +538,10 @@
 
     FacetJob.name = 'FacetJob';
 
-    function FacetJob(driver) {
+    function FacetJob(selector, width, height, driver) {
+      this.selector = selector;
+      this.width = width;
+      this.height = height;
       this.driver = driver;
       this.ops = [];
       this.knownProps = {};
@@ -646,16 +649,16 @@
       });
     };
 
-    FacetJob.prototype.render = function(selector, width, height) {
+    FacetJob.prototype.render = function() {
       var operations, parent, svg;
-      parent = d3.select(selector);
+      parent = d3.select(this.selector);
       if (parent.empty()) {
         throw new Error("could not find the provided selector");
       }
       if (!(width && height)) {
         throw new Error("bad size: " + width + " x " + height);
       }
-      svg = parent.append('svg').attr('width', width).attr('height', height);
+      svg = parent.append('svg').attr('width', this.width).attr('height', this.height);
       operations = this.ops;
       this.driver(this.getQuery(), function(err, res) {
         var cmd, distance, layout, name, parentSegment, plot, scale, scaleFn, segment, segmentGroup, segmentGroups, transform, unifiedSegment, unifiedSegments, _i, _j, _k, _l, _len, _len1, _len10, _len2, _len3, _len4, _len5, _len6, _len7, _len8, _len9, _m, _n, _o, _p, _q, _r, _s;
@@ -771,8 +774,8 @@
 
   })();
 
-  facet.visualize = function(driver) {
-    return new FacetJob(driver);
+  facet.define = function(selector, width, height, driver) {
+    return new FacetJob(selector, width, height, driver);
   };
 
   facet.ajaxPoster = function(_arg) {

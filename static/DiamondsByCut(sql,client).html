@@ -60,7 +60,7 @@
         filters: null
       });
 
-      facet.visualize(sqlDriverClient)
+      facet.define('.example', 800, 600, sqlDriverClient)
         .split('Cut', split.identity('cut'))
         .apply('Count', apply.count())
         .apply('AvgPrice', apply.average('price'))
@@ -81,7 +81,7 @@
             baseline: use.literal('center')
           }))
         .unstage()
-        .render('.example', 800, 600)
+        .render()
     })();
     </script>
 

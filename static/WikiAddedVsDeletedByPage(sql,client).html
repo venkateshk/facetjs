@@ -61,7 +61,7 @@
         return str;
       }
 
-      var vis = facet.visualize(sqlDriverClient)
+      var vis = facet.define('.example', 800, 600, sqlDriverClient)
         .split('Page', split.identity('page'))
         .apply('Edits', apply.count())
         .apply('Added', apply.sum('added'))
@@ -80,7 +80,7 @@
             stroke: use.literal('black'),
           }))
         .unstage()
-        .render('.example', 800, 600)
+        .render()
 
         // .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 4})
         // .layout(layout.vertical({ gap: 3 }))
@@ -127,7 +127,7 @@
         //         size: use.literal('9px')
         //       }))
         //     .unstage()
-        //     .render('.example', 800, 600)
+        //     .render()
     })();
     </script>
   </body>

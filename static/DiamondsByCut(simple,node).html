@@ -55,7 +55,7 @@
         prety: true
       });
 
-      var vis = facet.visualize(simpleDriverNode)
+      var vis = facet.define('.example', 800, 600, simpleDriverNode)
         .split('Cut', split.identity('cut'))
         .apply('Count', apply.count())
         .apply('AvgPrice', apply.average('price'))
@@ -76,7 +76,7 @@
             baseline: use.literal('center')
           }))
         .unstage()
-        .render('.example', 800, 600)
+        .render()
     })();
     </script>
 

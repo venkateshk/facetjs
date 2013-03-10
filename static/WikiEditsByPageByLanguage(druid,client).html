@@ -62,7 +62,7 @@
         return str;
       }
 
-      var vis = facet.visualize(druidDriverClient)
+      var vis = facet.define('.example', 800, 600, druidDriverClient)
         .split('Language', split.identity('language'))
         .apply('Edits', apply.count())
         .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 4})
@@ -102,7 +102,7 @@
               size: use.literal('9px')
             }))
           .unstage()
-          .render('.example', 800, 600)
+          .render()
     })();
     </script>
   </body>

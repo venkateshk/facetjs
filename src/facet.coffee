@@ -86,7 +86,7 @@ facet.apply = {
   }
 
   average: (attribute) -> {
-    aggregate: 'sum'
+    aggregate: 'average'
     attribute
   }
 
@@ -451,7 +451,7 @@ facet.sort = {
 # main
 
 class FacetJob
-  constructor: (@driver) ->
+  constructor: (@selector, @width, @height, @driver) ->
     @ops = []
     @knownProps = {}
 
@@ -535,14 +535,14 @@ class FacetJob
   getQuery: ->
     return @ops.filter(({operation}) -> operation in ['split', 'apply', 'combine'])
 
-  render: (selector, width, height) ->
-    parent = d3.select(selector)
+  render: ->
+    parent = d3.select(@selector)
     throw new Error("could not find the provided selector") if parent.empty()
     throw new Error("bad size: #{width} x #{height}") unless width and height
 
     svg = parent.append('svg')
-      .attr('width', width)
-      .attr('height', height)
+      .attr('width', @width)
+      .attr('height', @height)
 
     operations = @ops
     @driver @getQuery(), (err, res) ->
@@ -623,7 +623,8 @@ class FacetJob
     return this
 
 
-facet.visualize = (driver) -> new FacetJob(driver)
+facet.define = (selector, width, height, driver) ->
+  return new FacetJob(selector, width, height, driver)
 
 
 facet.ajaxPoster = ({url, context, prety}) -> (query, callback) ->

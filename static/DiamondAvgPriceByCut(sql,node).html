@@ -60,7 +60,7 @@
         filters: null
       });
 
-      var vis = facet.visualize(sqlDriverClient)
+      var vis = facet.define('.example', 800, 600, sqlDriverClient)
         .split('Cut', split.identity('cut'))
         .apply('AvgPrice', apply.average('price'))
         .combine({ sort: { prop: 'AvgPrice', direction: 'descending' }})
@@ -80,7 +80,7 @@
             baseline: use.literal('bottom')
           }))
         .unstage()
-        .render('.example', 800, 600)
+        .render()
     })();
     </script>
   </body>

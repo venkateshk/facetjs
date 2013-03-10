@@ -601,10 +601,10 @@ class FacetJob
             sourceSegment = segmentGroups[0][0]
             hops = 0
             while true
-              sourceSegment = sourceSegment.parent
-              throw new Error("can not find scale '#{name}'") unless sourceSegment
-              hops++
               break if sourceSegment.scale[name]
+              sourceSegment = sourceSegment.parent
+              hops++
+              throw new Error("can not find scale '#{name}'") unless sourceSegment
 
             # Get all of sources children on my level (my cousins)
             unifiedSegments = [sourceSegment]

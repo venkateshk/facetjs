@@ -719,13 +719,13 @@
               sourceSegment = segmentGroups[0][0];
               hops = 0;
               while (true) {
-                sourceSegment = sourceSegment.parent;
-                if (!sourceSegment) {
-                  throw new Error("can not find scale '" + name + "'");
-                }
-                hops++;
                 if (sourceSegment.scale[name]) {
                   break;
+                }
+                sourceSegment = sourceSegment.parent;
+                hops++;
+                if (!sourceSegment) {
+                  throw new Error("can not find scale '" + name + "'");
                 }
               }
               unifiedSegments = [sourceSegment];

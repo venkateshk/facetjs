@@ -62,18 +62,18 @@
         .combine({ sort: { prop: 'AvgPrice', direction: 'descending' }})
         .layout(layout.vertical({ size: use.prop('Count'), gap: 3 }))
         .plot(plot.rect({
-          fill: use.literal('#f0f0f0'),
+          fill: '#f0f0f0',
           stroke: use.scale.color('Cut')
         }))
-        .stage(stage.rectToPoint())
+        .stage(stage.rectangle.point())
           .plot(plot.text({
             text: use.fn(
               use.prop('Cut'), use.prop('Count'),
               function(cut, count) { return cut + ' (count: ' + count + ")"; }
             ),
             color: use.scale.color('Cut'),
-            anchor: use.literal('middle'),
-            baseline: use.literal('center')
+            anchor: 'middle',
+            baseline: 'center'
           }))
         .unstage()
         .render()

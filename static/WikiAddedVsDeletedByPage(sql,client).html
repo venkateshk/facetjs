@@ -68,16 +68,16 @@
         .apply('Deleted', apply.sum('deleted'))
         .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 50})
         .plot(plot.rect({
-          fill: use.literal('none'),
-          stroke: use.literal('black')
+          fill: 'none',
+          stroke: 'black'
         }))
         .scale('horiz', scale.linear({domain: use.prop('Added'), range: 'width'}))
         .scale('vert',  scale.linear({domain: use.prop('Deleted'), range: 'height'}))
-        .stage(stage.toPoint({ top: use.scaled('horiz', use.prop('Added')), left: use.scaled('vert', use.prop('Deleted')) }))
+        .stage(stage.rectangle.point({ top: use.scaled('horiz', use.prop('Added')), left: use.scaled('vert', use.prop('Deleted')) }))
           .plot(plot.circle({
-            radius: use.literal(5),
-            fill: use.literal('none'),
-            stroke: use.literal('black'),
+            radius: 5,
+            fill: 'none',
+            stroke: 'black',
           }))
         .unstage()
         .render()
@@ -85,14 +85,14 @@
         // .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 4})
         // .layout(layout.vertical({ gap: 3 }))
         // .plot(plot.rect({
-        //   fill: use.literal('none'),
-        //   stroke: use.literal('black')
+        //   fill: 'none',
+        //   stroke: 'black'
         // }))
-        // .stage(stage.rectToPoint({ top: 10, left: 8 }))
+        // .stage(stage.rectangle.point({ top: 10, left: 8 }))
         //   .plot(plot.text({
         //     text: use.prop('Language'),
-        //     baseline: use.literal('top'),
-        //     size: use.literal('20px')
+        //     baseline: 'top',
+        //     size: '20px'
         //   }))
         // .unstage()
         //   .split('Page', split.identity('page'))
@@ -100,15 +100,15 @@
         //   .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 4})
         //   .layout(layout.horizontal({ gap: 3 }))
         //   .plot(plot.rect({
-        //     fill: use.literal('none'),
-        //     stroke: use.literal('green')
+        //     fill: 'none',
+        //     stroke: 'green'
         //   }))
-        //   .stage(stage.rectToPoint({ bottom: 6 }))
+        //   .stage(stage.rectangle.point({ bottom: 6 }))
         //     .plot(plot.text({
         //       text: use.fn(use.prop('Edits'), use.prop('Page'), formatEditsAndPage),
-        //       anchor: use.literal('middle'),
-        //       baseline: use.literal('bottom'),
-        //       size: use.literal('9px')
+        //       anchor: 'middle',
+        //       baseline: 'bottom',
+        //       size: '9px'
         //     }))
         //   .unstage()
         //     .split('User', split.identity('user'))
@@ -116,15 +116,15 @@
         //     .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 3})
         //     .layout(layout.vertical({ gap: 1, size: use.prop('Edits') }))
         //     .plot(plot.rect({
-        //       fill: use.literal('black'),
+        //       fill: 'black',
         //       opacity: 0.15
         //     }))
-        //     .stage(stage.rectToPoint())
+        //     .stage(stage.rectangle.point())
         //       .plot(plot.text({
         //         text: use.fn(use.prop('Edits'), function(e) { return '[' + e + ']'; }),
-        //         anchor: use.literal('middle'),
-        //         baseline: use.literal('center'),
-        //         size: use.literal('9px')
+        //         anchor: 'middle',
+        //         baseline: 'center',
+        //         size: '9px'
         //       }))
         //     .unstage()
         //     .render()

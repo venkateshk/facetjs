@@ -110,6 +110,9 @@ facet.apply = {
 # USE
 # Extracts the property and other things from a segment
 
+wrapLiteral = (arg) ->
+  return if typeof arg in ['undefined', 'function'] then arg else facet.use.literal(arg)
+
 getProp = (segment, propName) ->
   if not segment
     throw new Error("No such prop name '#{propName}'")
@@ -154,7 +157,7 @@ stripeTile = (dim1, dim2) ->
 
   return ({ gap, size } = {}) -> (parentSegment, segmentGroup) ->
     gap or= 0
-    size or= -> 1
+    size = wrapLiteral(size ? 1)
     n = segmentGroup.length
     parentStage = parentSegment.getStage()
     if parentStage.type isnt 'rectangle'
@@ -222,6 +225,8 @@ getCousinSegments = (segment, distance) ->
 
 facet.scale = {
   linear: ({domain, range, include}) ->
+    domain = wrapLiteral(domain)
+
     if range in ['width', 'height']
       rangeFn = (segment) -> [0, segment.getStage()[range]]
     else if typeof range is 'number'
@@ -258,6 +263,8 @@ facet.scale = {
         .range([rangeFrom, rangeTo])
 
   log: ({domain, range, include}) ->
+    domain = wrapLiteral(domain)
+
     if range in ['width', 'height']
       rangeFn = (segment) -> [0, segment.getStage()[range]]
     else if typeof range is 'number'
@@ -300,58 +307,45 @@ facet.scale = {
 # Arguments* -> Segment -> void
 
 boxPosition = (segment, stageWidth, left, width, right) ->
-  if left? and width? and right?
+  if left and width and right
     throw new Error("Over-constrained")
 
-  if left?
-    return if width? then [left(segment), width(segment)] else [left(segment), stageWidth - left(segment)]
+  if left
+    return if width then [left(segment), width(segment)] else [left(segment), stageWidth - left(segment)]
   else if right?
-    return if width?
+    return if width
       [stageWidth - right(segment) - width(segment), width(segment)]
     else
       [0, stageWidth - right(segment)]
   else
-    return if width? then [0, width(segment)] else [0, stageWidth]
+    return if width then [0, width(segment)] else [0, stageWidth]
 
 facet.stage = {
-  rectToPoint: ({left, right, top, bottom} = {}) ->
-    # Make sure we are not over-constrained
-    if (left? and right?) or (top? and bottom?)
-      throw new Error("Over-constrained")
+  rectangle: {
+    point: ({left, right, top, bottom} = {}) ->
+      left = wrapLiteral(left)
+      right = wrapLiteral(right)
+      top = wrapLiteral(top)
+      bottom = wrapLiteral(bottom)
 
-    fx = if left? then (w) -> left else if right?  then (w) -> w - right  else (w) -> w / 2
-    fy = if top?  then (h) -> top  else if bottom? then (h) -> h - bottom else (h) -> h / 2
+      # Make sure we are not over-constrained
+      if (left and right) or (top and bottom)
+        throw new Error("Over-constrained")
 
-    return (segment) ->
-      stage = segment.getStage()
-      throw new Error("Must have a rectangle stage (is #{stage.type})") unless stage.type is 'rectangle'
+      fx = if left then (w, s) -> left(s) else if right  then (w, s) -> w - right(s)  else (w, s) -> w / 2
+      fy = if top  then (h, s) -> top(s)  else if bottom then (h, s) -> h - bottom(s) else (h, s) -> h / 2
 
-      segment.pushStage({
-        type: 'point'
-        node: stage.node.append('g')
-          .attr('transform', "translate(#{fx(stage.width)}, #{fy(stage.height)})")
-      })
-      return
+      return (segment) ->
+        stage = segment.getStage()
+        throw new Error("Must have a rectangle stage (is #{stage.type})") unless stage.type is 'rectangle'
 
-  # ToDo: Depicate (merge with rectToPoint)
-  toPoint: ({left, right, top, bottom} = {}) ->
-    # Make sure we are not over-constrained
-    if (left? and right?) or (top? and bottom?)
-      throw new Error("Over-constrained")
-
-    fx = if left? then (w, s) -> left(s) else if right?  then (w, s) -> w - right(s)  else (w, s) -> w / 2
-    fy = if top?  then (h, s) -> top(s)  else if bottom? then (h, s) -> h - bottom(s) else (h, s) -> h / 2
-
-    return (segment) ->
-      stage = segment.getStage()
-      throw new Error("Must have a rectangle stage (is #{stage.type})") unless stage.type is 'rectangle'
-
-      segment.pushStage({
-        type: 'point'
-        node: stage.node.append('g')
-          .attr('transform', "translate(#{fx(stage.width, segment)}, #{fy(stage.height, segment)})")
-      })
-      return
+        segment.pushStage({
+          type: 'point'
+          node: stage.node.append('g')
+            .attr('transform', "translate(#{fx(stage.width, segment)}, #{fy(stage.height, segment)})")
+        })
+        return
+  }
 
   # margin: ({left, width, right, top, height, bottom}) -> (segment) ->
   #   stage = segment.getStage()
@@ -381,52 +375,75 @@ facet.stage = {
 # Arguments* -> Segment -> void
 
 facet.plot = {
-  rect: ({left, width, right, top, height, bottom, stroke, fill, opacity}) -> (segment) ->
-    stage = segment.getStage()
-    throw new Error("Must have a rectangle stage (is #{stage.type})") unless stage.type is 'rectangle'
+  rect: ({left, width, right, top, height, bottom, stroke, fill, opacity}) ->
+    left = wrapLiteral(left)
+    width = wrapLiteral(width)
+    right = wrapLiteral(right)
+    top = wrapLiteral(top)
+    height = wrapLiteral(height)
+    bottom = wrapLiteral(bottom)
+    fill = wrapLiteral(fill)
+    opacity = wrapLiteral(opacity)
 
-    [x, w] = boxPosition(segment, stage.width, left, width, right)
-    [y, h] = boxPosition(segment, stage.height, top, height, bottom)
+    return (segment) ->
+      stage = segment.getStage()
+      throw new Error("Must have a rectangle stage (is #{stage.type})") unless stage.type is 'rectangle'
 
-    stage.node.append('rect').datum(segment)
-      .attr('x', x)
-      .attr('y', y)
-      .attr('width', w)
-      .attr('height', h)
-      .style('fill', fill)
-      .style('stroke', stroke)
-      .style('opacity', opacity)
-    return
+      [x, w] = boxPosition(segment, stage.width, left, width, right)
+      [y, h] = boxPosition(segment, stage.height, top, height, bottom)
 
-  text: ({color, text, size, anchor, baseline, angle}) -> (segment) ->
-    stage = segment.getStage()
-    throw new Error("Must have a point stage (is #{stage.type})") unless stage.type is 'point'
-    node = stage.node.append('text').datum(segment)
+      stage.node.append('rect').datum(segment)
+        .attr('x', x)
+        .attr('y', y)
+        .attr('width', w)
+        .attr('height', h)
+        .style('fill', fill)
+        .style('stroke', stroke)
+        .style('opacity', opacity)
+      return
 
-    if angle?
-      node.attr('transform', "rotate(#{angle(segment)})")
+  text: ({color, text, size, anchor, baseline, angle}) ->
+    color = wrapLiteral(color)
+    text = wrapLiteral(text)
+    size = wrapLiteral(size)
+    anchor = wrapLiteral(anchor)
+    baseline = wrapLiteral(baseline)
+    angle = wrapLiteral(angle)
 
-    if typeof baseline is 'function'
-      node.attr('dy', (segment) ->
-        bv = baseline.call(this, segment)
-        return if bv is 'top' then '.71em' else if bv is 'center' then '.35em' else null
-      )
+    return (segment) ->
+      stage = segment.getStage()
+      throw new Error("Must have a point stage (is #{stage.type})") unless stage.type is 'point'
+      myNode = stage.node.append('text').datum(segment)
 
-    node
-      .style('font-size', size)
-      .style('fill', color)
-      .style('text-anchor', anchor)
-      .text(text)
-    return
+      if angle
+        myNode.attr('transform', "rotate(#{angle(segment)})")
 
-  circle: ({radius, stroke, fill}) -> (segment) ->
-    stage = segment.getStage()
-    throw new Error("Must have a point stage (is #{stage.type})") unless stage.type is 'point'
-    stage.node.append('circle').datum(segment)
-      .attr('r', radius)
-      .style('fill', fill)
-      .style('stroke', stroke)
-    return
+      if baseline
+        myNode.attr('dy', (segment) ->
+          baselineValue = baseline(segment)
+          return if baselineValue is 'top' then '.71em' else if baselineValue is 'center' then '.35em' else null
+        )
+
+      myNode
+        .style('font-size', size)
+        .style('fill', color)
+        .style('text-anchor', anchor)
+        .text(text)
+      return
+
+  circle: ({radius, stroke, fill}) ->
+    radius = wrapLiteral(radius)
+    stroke = wrapLiteral(stroke)
+    fill = wrapLiteral(fill)
+
+    return (segment) ->
+      stage = segment.getStage()
+      throw new Error("Must have a point stage (is #{stage.type})") unless stage.type is 'point'
+      stage.node.append('circle').datum(segment)
+        .attr('r', radius)
+        .style('fill', fill)
+        .style('stroke', stroke)
+      return
 }
 
 # =============================================================
@@ -537,12 +554,13 @@ class FacetJob
 
   render: ->
     parent = d3.select(@selector)
+    width = @width
+    height = @height
     throw new Error("could not find the provided selector") if parent.empty()
-    throw new Error("bad size: #{width} x #{height}") unless width and height
 
     svg = parent.append('svg')
-      .attr('width', @width)
-      .attr('height', @height)
+      .attr('width', width)
+      .attr('height', height)
 
     operations = @ops
     @driver @getQuery(), (err, res) ->
@@ -624,6 +642,7 @@ class FacetJob
 
 
 facet.define = (selector, width, height, driver) ->
+  throw new Error("bad size: #{width} x #{height}") unless width and height
   return new FacetJob(selector, width, height, driver)
 
 

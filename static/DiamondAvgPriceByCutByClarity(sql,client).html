@@ -65,14 +65,14 @@
         .combine({ sort: { prop: 'AvgPrice', direction: 'descending' }})
         .layout(layout.horizontal({ gap: 3 }))
         .plot(plot.rect({
-          fill: use.literal('none'),
-          stroke: use.literal('black')
+          fill: 'none',
+          stroke: 'black'
         }))
-        .stage(stage.rectToPoint({ top: 6 }))
+        .stage(stage.rectangle.point({ top: 6 }))
           .plot(plot.text({
             text: use.prop('Clarity'),
-            anchor: use.literal('middle'),
-            baseline: use.literal('top')
+            anchor: 'middle',
+            baseline: 'top'
           }))
         .unstage()
           .split('Cut', split.identity('cut'))
@@ -81,17 +81,17 @@
           .layout(layout.horizontal({ gap: 3 }))
           .scale('vert', 2, scale.linear({include: 0, domain: use.prop('AvgPrice'), range: 'height'}))
           .plot(plot.rect({
-            fill: use.literal('#f0f0f0'),
+            fill: '#f0f0f0',
             stroke: use.scale.color('Cut'),
-            bottom: use.literal(0),
+            bottom: 0,
             height: use.scaled('vert', use.prop('AvgPrice'))
           }))
-          .stage(stage.rectToPoint({ bottom: 6 }))
+          .stage(stage.rectangle.point({ bottom: 6 }))
             .plot(plot.text({
               text: use.prop('Cut'),
               color: use.scale.color('Cut'),
-              baseline: use.literal('center'),
-              angle: use.literal(-90)
+              baseline: 'center',
+              angle: -90
             }))
           .unstage()
           .render()

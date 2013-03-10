@@ -181,21 +181,16 @@
         }));
       };
     },
-    scaled: function(scaleName, acc) {
+    scale: function(scaleName, use) {
       return function(segment) {
-        return getScale(segment, scaleName)(acc(segment));
+        var scale;
+        scale = getScale(segment, scaleName);
+        if (scale.train) {
+          throw new Error("'" + scaleName + "' scale is untrained");
+        }
+        use || (use = scale.use);
+        return scale.fn(use(segment));
       };
-    },
-    scale: {
-      color: function(propName) {
-        var s;
-        s = d3.scale.category10();
-        return function(segment) {
-          var v;
-          v = getProp(segment, propName);
-          return s(v);
-        };
-      }
     }
   };
 
@@ -300,14 +295,17 @@
         if (!(isFinite(domainMin) && isFinite(domainMax) && isFinite(rangeFrom) && isFinite(rangeTo))) {
           throw new Error("we went into infinites");
         }
-        return d3.scale.linear().domain([domainMin, domainMax]).range([rangeFrom, rangeTo]);
+        return {
+          fn: d3.scale.linear().domain([domainMin, domainMax]).range([rangeFrom, rangeTo]),
+          use: domain
+        };
       };
     },
     log: function(_arg) {
       var plusOne;
       plusOne = _arg.plusOne;
-      return function(_arg1) {
-        var domain, include, range, rangeFn;
+      return function(segments, _arg1) {
+        var domain, domainMax, domainMin, domainValue, include, range, rangeFn, rangeFrom, rangeTo, rangeValue, segment, _i, _len;
         domain = _arg1.domain, range = _arg1.range, include = _arg1.include;
         domain = wrapLiteral(domain);
         if (range === 'width' || range === 'height') {
@@ -325,29 +323,40 @@
         } else {
           throw new Error("bad range");
         }
-        return function(segments) {
-          var domainMax, domainMin, domainValue, rangeFrom, rangeTo, rangeValue, segment, _i, _len;
-          domainMin = Infinity;
-          domainMax = -Infinity;
-          rangeFrom = -Infinity;
-          rangeTo = Infinity;
-          if (include != null) {
-            domainMin = Math.min(domainMin, include);
-            domainMax = Math.max(domainMax, include);
-          }
-          for (_i = 0, _len = segments.length; _i < _len; _i++) {
-            segment = segments[_i];
-            domainValue = domain(segment);
-            domainMin = Math.min(domainMin, domainValue);
-            domainMax = Math.max(domainMax, domainValue);
-            rangeValue = rangeFn(segment);
-            rangeFrom = rangeValue[0];
-            rangeTo = Math.min(rangeTo, rangeValue[1]);
-          }
-          if (!(isFinite(domainMin) && isFinite(domainMax) && isFinite(rangeFrom) && isFinite(rangeTo))) {
-            throw new Error("we went into infinites");
-          }
-          return d3.scale.log().domain([domainMin, domainMax]).range([rangeFrom, rangeTo]);
+        domainMin = Infinity;
+        domainMax = -Infinity;
+        rangeFrom = -Infinity;
+        rangeTo = Infinity;
+        if (include != null) {
+          domainMin = Math.min(domainMin, include);
+          domainMax = Math.max(domainMax, include);
+        }
+        for (_i = 0, _len = segments.length; _i < _len; _i++) {
+          segment = segments[_i];
+          domainValue = domain(segment);
+          domainMin = Math.min(domainMin, domainValue);
+          domainMax = Math.max(domainMax, domainValue);
+          rangeValue = rangeFn(segment);
+          rangeFrom = rangeValue[0];
+          rangeTo = Math.min(rangeTo, rangeValue[1]);
+        }
+        if (!(isFinite(domainMin) && isFinite(domainMax) && isFinite(rangeFrom) && isFinite(rangeTo))) {
+          throw new Error("we went into infinites");
+        }
+        return {
+          fn: d3.scale.log().domain([domainMin, domainMax]).range([rangeFrom, rangeTo]),
+          use: domain
+        };
+      };
+    },
+    color: function() {
+      return function(segments, _arg) {
+        var domain;
+        domain = _arg.domain;
+        domain = wrapLiteral(domain);
+        return {
+          fn: d3.scale.category10().domain(segments.map(domain)),
+          use: domain
         };
       };
     }

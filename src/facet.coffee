@@ -134,16 +134,11 @@ facet.use = {
     throw new TypeError("second argument must be a function") unless typeof fn is 'function'
     return fn.apply(this, args.map((arg) -> arg(segment)))
 
-  scaled: (scaleName, acc) -> (segment) ->
-    return getScale(segment, scaleName)(acc(segment))
-
-  scale: {
-    color: (propName) ->
-      s = d3.scale.category10()
-      return (segment) ->
-        v = getProp(segment, propName)
-        return s(v)
-  }
+  scale: (scaleName, use) -> (segment) ->
+    scale = getScale(segment, scaleName)
+    throw new Error("'#{scaleName}' scale is untrained") if scale.train
+    use or= scale.use
+    return scale.fn(use(segment))
 }
 
 # =============================================================
@@ -239,11 +234,12 @@ facet.scale = {
     if not (isFinite(domainMin) and isFinite(domainMax) and isFinite(rangeFrom) and isFinite(rangeTo))
       throw new Error("we went into infinites")
 
-    return d3.scale.linear()
-      .domain([domainMin, domainMax])
-      .range([rangeFrom, rangeTo])
+    return {
+      fn: d3.scale.linear().domain([domainMin, domainMax]).range([rangeFrom, rangeTo])
+      use: domain
+    }
 
-  log: ({plusOne}) -> ({domain, range, include}) ->
+  log: ({plusOne}) -> (segments, {domain, range, include}) ->
     domain = wrapLiteral(domain)
 
     if range in ['width', 'height']
@@ -255,31 +251,39 @@ facet.scale = {
     else
       throw new Error("bad range")
 
-    return (segments) ->
-      domainMin = Infinity
-      domainMax = -Infinity
-      rangeFrom = -Infinity
-      rangeTo = Infinity
+    domainMin = Infinity
+    domainMax = -Infinity
+    rangeFrom = -Infinity
+    rangeTo = Infinity
 
-      if include?
-        domainMin = Math.min(domainMin, include)
-        domainMax = Math.max(domainMax, include)
+    if include?
+      domainMin = Math.min(domainMin, include)
+      domainMax = Math.max(domainMax, include)
 
-      for segment in segments
-        domainValue = domain(segment)
-        domainMin = Math.min(domainMin, domainValue)
-        domainMax = Math.max(domainMax, domainValue)
+    for segment in segments
+      domainValue = domain(segment)
+      domainMin = Math.min(domainMin, domainValue)
+      domainMax = Math.max(domainMax, domainValue)
 
-        rangeValue = rangeFn(segment)
-        rangeFrom = rangeValue[0]
-        rangeTo = Math.min(rangeTo, rangeValue[1])
+      rangeValue = rangeFn(segment)
+      rangeFrom = rangeValue[0]
+      rangeTo = Math.min(rangeTo, rangeValue[1])
 
-      if not (isFinite(domainMin) and isFinite(domainMax) and isFinite(rangeFrom) and isFinite(rangeTo))
-        throw new Error("we went into infinites")
+    if not (isFinite(domainMin) and isFinite(domainMax) and isFinite(rangeFrom) and isFinite(rangeTo))
+      throw new Error("we went into infinites")
 
-      return d3.scale.log()
-        .domain([domainMin, domainMax])
-        .range([rangeFrom, rangeTo])
+    return {
+      fn: d3.scale.log().domain([domainMin, domainMax]).range([rangeFrom, rangeTo])
+      use: domain
+    }
+
+  color: () -> (segments, {domain}) ->
+    domain = wrapLiteral(domain)
+
+    return {
+      fn: d3.scale.category10().domain(segments.map(domain))
+      use: domain
+    }
 }
 
 # =============================================================

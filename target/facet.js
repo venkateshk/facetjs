@@ -208,10 +208,10 @@
     return function(_arg) {
       var gap, size, _ref;
       _ref = _arg != null ? _arg : {}, gap = _ref.gap, size = _ref.size;
+      gap || (gap = 0);
+      size = wrapLiteral(size != null ? size : 1);
       return function(parentSegment, segmentGroup) {
         var availableDim1, dim1s, dimSoFar, maxGap, n, parentDim1, parentDim2, parentStage;
-        gap || (gap = 0);
-        size = wrapLiteral(size != null ? size : 1);
         n = segmentGroup.length;
         parentStage = parentSegment.getStage();
         if (parentStage.type !== 'rectangle') {

@@ -151,10 +151,11 @@ divideLength = (length, sizes) ->
   lengthPerSize = length / totalSize
   return sizes.map((size) -> size * lengthPerSize)
 
-stripeTile = (dim1, dim2) ->
-  return ({ gap, size } = {}) -> (parentSegment, segmentGroup) ->
-    gap or= 0
-    size = wrapLiteral(size ? 1)
+stripeTile = (dim1, dim2) -> ({ gap, size } = {}) ->
+  gap or= 0
+  size = wrapLiteral(size ? 1)
+
+  return (parentSegment, segmentGroup) ->
     n = segmentGroup.length
     parentStage = parentSegment.getStage()
     if parentStage.type isnt 'rectangle'

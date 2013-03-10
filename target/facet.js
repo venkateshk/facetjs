@@ -205,19 +205,11 @@
   };
 
   stripeTile = function(dim1, dim2) {
-    var makeTransform;
-    makeTransform = function(dim, value) {
-      if (dim === 'width') {
-        return "translate(" + value + ",0)";
-      } else {
-        return "translate(0," + value + ")";
-      }
-    };
     return function(_arg) {
       var gap, size, _ref;
       _ref = _arg != null ? _arg : {}, gap = _ref.gap, size = _ref.size;
       return function(parentSegment, segmentGroup) {
-        var availableDim1, curDim1, dim1s, dimSoFar, i, maxGap, n, parentDim1, parentDim2, parentStage, segment, segmentStage, _i, _len;
+        var availableDim1, dim1s, dimSoFar, maxGap, n, parentDim1, parentDim2, parentStage;
         gap || (gap = 0);
         size = wrapLiteral(size != null ? size : 1);
         n = segmentGroup.length;
@@ -232,18 +224,20 @@
         availableDim1 = parentDim1 - gap * (n - 1);
         dim1s = divideLength(availableDim1, segmentGroup.map(size));
         dimSoFar = 0;
-        for (i = _i = 0, _len = segmentGroup.length; _i < _len; i = ++_i) {
-          segment = segmentGroup[i];
+        return segmentGroup.map(function(segment, i) {
+          var curDim1, psudoStage;
           curDim1 = dim1s[i];
-          segmentStage = {
-            node: segment.getStage().node.attr('transform', makeTransform(dim1, dimSoFar)).attr(dim1, curDim1).attr(dim2, parentDim2),
-            type: 'rectangle'
+          psudoStage = {
+            type: 'rectangle',
+            x: 0,
+            y: 0
           };
-          segmentStage[dim1] = curDim1;
-          segmentStage[dim2] = parentDim2;
-          segment.setStage(segmentStage);
+          psudoStage[dim1 === 'width' ? 'x' : 'y'] = dimSoFar;
+          psudoStage[dim1] = curDim1;
+          psudoStage[dim2] = parentDim2;
           dimSoFar += curDim1 + gap;
-        }
+          return psudoStage;
+        });
       };
     };
   };
@@ -660,7 +654,7 @@
       svg = parent.append('svg').attr('width', width).attr('height', height);
       operations = this.ops;
       this.driver(this.getQuery(), function(err, res) {
-        var cmd, distance, layout, name, parentSegment, plot, scale, scaleFn, segment, segmentGroup, segmentGroups, transform, unifiedSegment, unifiedSegments, _i, _j, _k, _l, _len, _len1, _len10, _len2, _len3, _len4, _len5, _len6, _len7, _len8, _len9, _m, _n, _o, _p, _q, _r, _s;
+        var cmd, distance, i, layout, name, newStage, parentSegment, plot, psudoStage, psudoStages, scale, scaleFn, segment, segmentGroup, segmentGroups, stage, transform, unifiedSegment, unifiedSegments, _i, _j, _k, _l, _len, _len1, _len10, _len11, _len2, _len3, _len4, _len5, _len6, _len7, _len8, _len9, _m, _n, _o, _p, _q, _r, _s, _t;
         if (err) {
           alert("An error has occurred: " + (typeof err === 'string' ? err : err.message));
           return;
@@ -729,34 +723,44 @@
                 if (!parentSegment) {
                   throw new Error("You must split before calling layout");
                 }
-                layout(parentSegment, segmentGroup);
+                psudoStages = layout(parentSegment, segmentGroup);
+                for (i = _n = 0, _len5 = segmentGroup.length; _n < _len5; i = ++_n) {
+                  segment = segmentGroup[i];
+                  psudoStage = psudoStages[i];
+                  stage = segment.getStage();
+                  newStage = _.clone(psudoStage);
+                  delete newStage.x;
+                  delete newStage.y;
+                  newStage.node = stage.node.attr('transform', "translate(" + psudoStage.x + "," + psudoStage.y + ")");
+                  segment.setStage(newStage);
+                }
               }
               break;
             case 'stage':
               transform = cmd.transform;
-              for (_n = 0, _len5 = segmentGroups.length; _n < _len5; _n++) {
-                segmentGroup = segmentGroups[_n];
-                for (_o = 0, _len6 = segmentGroup.length; _o < _len6; _o++) {
-                  segment = segmentGroup[_o];
+              for (_o = 0, _len6 = segmentGroups.length; _o < _len6; _o++) {
+                segmentGroup = segmentGroups[_o];
+                for (_p = 0, _len7 = segmentGroup.length; _p < _len7; _p++) {
+                  segment = segmentGroup[_p];
                   transform(segment);
                 }
               }
               break;
             case 'unstage':
-              for (_p = 0, _len7 = segmentGroups.length; _p < _len7; _p++) {
-                segmentGroup = segmentGroups[_p];
-                for (_q = 0, _len8 = segmentGroup.length; _q < _len8; _q++) {
-                  segment = segmentGroup[_q];
+              for (_q = 0, _len8 = segmentGroups.length; _q < _len8; _q++) {
+                segmentGroup = segmentGroups[_q];
+                for (_r = 0, _len9 = segmentGroup.length; _r < _len9; _r++) {
+                  segment = segmentGroup[_r];
                   segment.popStage();
                 }
               }
               break;
             case 'plot':
               plot = cmd.plot;
-              for (_r = 0, _len9 = segmentGroups.length; _r < _len9; _r++) {
-                segmentGroup = segmentGroups[_r];
-                for (_s = 0, _len10 = segmentGroup.length; _s < _len10; _s++) {
-                  segment = segmentGroup[_s];
+              for (_s = 0, _len10 = segmentGroups.length; _s < _len10; _s++) {
+                segmentGroup = segmentGroups[_s];
+                for (_t = 0, _len11 = segmentGroup.length; _t < _len11; _t++) {
+                  segment = segmentGroup[_t];
                   plot(segment);
                 }
               }

@@ -152,9 +152,6 @@ divideLength = (length, sizes) ->
   return sizes.map((size) -> size * lengthPerSize)
 
 stripeTile = (dim1, dim2) ->
-  makeTransform = (dim, value) ->
-    return if dim is 'width' then "translate(#{value},0)" else "translate(0,#{value})"
-
   return ({ gap, size } = {}) -> (parentSegment, segmentGroup) ->
     gap or= 0
     size = wrapLiteral(size ? 1)
@@ -170,24 +167,21 @@ stripeTile = (dim1, dim2) ->
     dim1s = divideLength(availableDim1, segmentGroup.map(size))
 
     dimSoFar = 0
-    for segment, i in segmentGroup
+    return segmentGroup.map((segment, i) ->
       curDim1 = dim1s[i]
 
-      segmentStage = {
-        node: segment.getStage().node
-          .attr('transform', makeTransform(dim1, dimSoFar))
-          .attr(dim1, curDim1)
-          .attr(dim2, parentDim2)
+      psudoStage = {
         type: 'rectangle'
+        x: 0
+        y: 0
       }
-      segmentStage[dim1] = curDim1
-      segmentStage[dim2] = parentDim2
-
-      segment.setStage(segmentStage)
+      psudoStage[if dim1 is 'width' then 'x' else 'y'] = dimSoFar
+      psudoStage[dim1] = curDim1
+      psudoStage[dim2] = parentDim2
 
       dimSoFar += curDim1 + gap
-
-    return
+      return psudoStage
+    )
 
 facet.layout = {
   overlap: () -> {}
@@ -614,7 +608,15 @@ class FacetJob
             for segmentGroup in segmentGroups
               parentSegment = segmentGroup[0].parent
               throw new Error("You must split before calling layout") unless parentSegment
-              layout(parentSegment, segmentGroup)
+              psudoStages = layout(parentSegment, segmentGroup)
+              for segment, i in segmentGroup
+                psudoStage = psudoStages[i]
+                stage = segment.getStage()
+                newStage = _.clone(psudoStage)
+                delete newStage.x
+                delete newStage.y
+                newStage.node = stage.node.attr('transform', "translate(#{psudoStage.x},#{psudoStage.y})")
+                segment.setStage(newStage)
 
           when 'stage'
             { transform } = cmd

@@ -201,7 +201,7 @@ facet.layout = {
 # Arguments* -> Segment -> void
 
 facet.scale = {
-  linear: () -> (segments, {include, domain, range}) ->
+  linear: ({nice}) -> (segments, {include, domain, range}) ->
     domain = wrapLiteral(domain)
 
     if range in ['width', 'height']
@@ -234,8 +234,15 @@ facet.scale = {
     if not (isFinite(domainMin) and isFinite(domainMax) and isFinite(rangeFrom) and isFinite(rangeTo))
       throw new Error("we went into infinites")
 
+    scaleFn = d3.scale.linear()
+      .domain([domainMin, domainMax])
+      .range([rangeFrom, rangeTo])
+
+    if nice
+      scaleFn.nice()
+
     return {
-      fn: d3.scale.linear().domain([domainMin, domainMax]).range([rangeFrom, rangeTo])
+      fn: scaleFn
       use: domain
     }
 
@@ -305,7 +312,30 @@ boxPosition = (segment, stageWidth, left, width, right) ->
   else
     return if width then [0, width(segment)] else [0, stageWidth]
 
+# ToDo: rename to transform
 facet.stage = {
+  point: {
+    point: ->
+      throw "not implemented yet"
+
+    line: ->
+      throw "not implemented yet"
+
+    rectangle: ->
+      throw "not implemented yet"
+  }
+
+  line: {
+    point: ->
+      throw "not implemented yet"
+
+    line: ->
+      throw "not implemented yet"
+
+    rectangle: ->
+      throw "not implemented yet"
+  }
+
   rectangle: {
     point: ({left, right, top, bottom} = {}) ->
       left = wrapLiteral(left)
@@ -330,6 +360,20 @@ facet.stage = {
             .attr('transform', "translate(#{fx(stage.width, segment)}, #{fy(stage.height, segment)})")
         })
         return
+
+    line: ->
+      throw "not implemented yet"
+
+    rectangle: ->
+      throw "not implemented yet"
+  }
+
+  polygon: {
+    point: ->
+      throw "not implemented yet"
+
+    polygon: ->
+      throw "not implemented yet"
   }
 
   # margin: ({left, width, right, top, height, bottom}) -> (segment) ->

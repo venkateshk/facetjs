@@ -60,7 +60,7 @@
       });
 
       facet.define('.example', 800, 600,  sqlDriverClient)
-        .scale('vert', scale.linear())
+        .scale('vert', scale.linear({ nice: true }))
         .scale('color', scale.color())
           .split('Clarity', split.identity('clarity'))
           .apply('AvgPrice', apply.average('price'))

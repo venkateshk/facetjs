@@ -255,10 +255,12 @@
   };
 
   facet.scale = {
-    linear: function() {
-      return function(segments, _arg) {
-        var domain, domainMax, domainMin, domainValue, include, range, rangeFn, rangeFrom, rangeTo, rangeValue, segment, _i, _len;
-        include = _arg.include, domain = _arg.domain, range = _arg.range;
+    linear: function(_arg) {
+      var nice;
+      nice = _arg.nice;
+      return function(segments, _arg1) {
+        var domain, domainMax, domainMin, domainValue, include, range, rangeFn, rangeFrom, rangeTo, rangeValue, scaleFn, segment, _i, _len;
+        include = _arg1.include, domain = _arg1.domain, range = _arg1.range;
         domain = wrapLiteral(domain);
         if (range === 'width' || range === 'height') {
           rangeFn = function(segment) {
@@ -295,8 +297,12 @@
         if (!(isFinite(domainMin) && isFinite(domainMax) && isFinite(rangeFrom) && isFinite(rangeTo))) {
           throw new Error("we went into infinites");
         }
+        scaleFn = d3.scale.linear().domain([domainMin, domainMax]).range([rangeFrom, rangeTo]);
+        if (nice) {
+          scaleFn.nice();
+        }
         return {
-          fn: d3.scale.linear().domain([domainMin, domainMax]).range([rangeFrom, rangeTo]),
+          fn: scaleFn,
           use: domain
         };
       };
@@ -388,6 +394,28 @@
   };
 
   facet.stage = {
+    point: {
+      point: function() {
+        throw "not implemented yet";
+      },
+      line: function() {
+        throw "not implemented yet";
+      },
+      rectangle: function() {
+        throw "not implemented yet";
+      }
+    },
+    line: {
+      point: function() {
+        throw "not implemented yet";
+      },
+      line: function() {
+        throw "not implemented yet";
+      },
+      rectangle: function() {
+        throw "not implemented yet";
+      }
+    },
     rectangle: {
       point: function(_arg) {
         var bottom, fx, fy, left, right, top, _ref;
@@ -424,6 +452,20 @@
             node: stage.node.append('g').attr('transform', "translate(" + (fx(stage.width, segment)) + ", " + (fy(stage.height, segment)) + ")")
           });
         };
+      },
+      line: function() {
+        throw "not implemented yet";
+      },
+      rectangle: function() {
+        throw "not implemented yet";
+      }
+    },
+    polygon: {
+      point: function() {
+        throw "not implemented yet";
+      },
+      polygon: function() {
+        throw "not implemented yet";
       }
     }
   };

@@ -386,16 +386,6 @@ facet.stage = {
   # move
 
   # rotate
-
-  # rectToLine
-
-  # lineToRect
-
-  # pointToRect
-
-  # lineToPoint
-
-  # pointToLine
 }
 
 # =============================================================

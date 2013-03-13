@@ -15,6 +15,31 @@ flatten = (ar) -> Array::concat.apply([], ar)
 
 # =============================================================
 
+class Interval
+  constructor: (@start, @end) ->
+    return
+
+  transform: (fn) ->
+    null
+
+  valueOf: ->
+    return @end - @start
+
+Interval.fromArray = (arr) ->
+  throw new Error("Interval must have length of 2 (is: #{arr.length})") unless arr.length is 2
+  [start, end] = arr
+  startType = typeof start
+  endType = typeof end
+  if startType is 'string' and endType is 'string'
+    startDate = new Date(start)
+    throw new Error("bad start date '#{start}'") if isNaN(startDate.valueOf())
+    endDate = new Date(end)
+    throw new Error("bad end date '#{end}'") if isNaN(endDate.valueOf())
+    return new Interval(startDate, endDate)
+
+  return new Interval(start, end)
+
+
 isValidStage = (stage) ->
   return Boolean(stage and typeof stage.type is 'string' and stage.node)
 
@@ -354,12 +379,11 @@ facet.stage = {
         stage = segment.getStage()
         throw new Error("Must have a rectangle stage (is #{stage.type})") unless stage.type is 'rectangle'
 
-        segment.pushStage({
+        return {
           type: 'point'
-          node: stage.node.append('g')
-            .attr('transform', "translate(#{fx(stage.width, segment)}, #{fy(stage.height, segment)})")
-        })
-        return
+          x: fx(stage.width, segment)
+          y: fy(stage.height, segment)
+        }
 
     line: ->
       throw "not implemented yet"
@@ -659,18 +683,29 @@ class FacetJob
               psudoStages = layout(parentSegment, segmentGroup)
               for segment, i in segmentGroup
                 psudoStage = psudoStages[i]
+                stageX = psudoStage.x
+                stageY = psudoStage.y
                 stage = segment.getStage()
-                newStage = _.clone(psudoStage)
-                delete newStage.x
-                delete newStage.y
-                newStage.node = stage.node.attr('transform', "translate(#{psudoStage.x},#{psudoStage.y})")
-                segment.setStage(newStage)
+                delete psudoStage.x
+                delete psudoStage.y
+                psudoStage.node = stage.node
+                  .attr('transform', "translate(#{stageX},#{stageY})")
+                segment.setStage(psudoStage)
 
           when 'stage'
             { transform } = cmd
             for segmentGroup in segmentGroups
               for segment in segmentGroup
-                transform(segment)
+                psudoStage = transform(segment)
+                stageX = psudoStage.x
+                stageY = psudoStage.y
+                stage = segment.getStage()
+                delete psudoStage.x
+                delete psudoStage.y
+                psudoStage.node = stage.node.append('g')
+                  .attr('transform', "translate(#{stageX},#{stageY})")
+                segment.pushStage(psudoStage)
+
 
           when 'unstage'
             for segmentGroup in segmentGroups

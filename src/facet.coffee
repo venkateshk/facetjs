@@ -328,14 +328,33 @@ boxPosition = (segment, stageWidth, left, width, right) ->
     throw new Error("Over-constrained")
 
   if left
-    return if width then [left(segment), width(segment)] else [left(segment), stageWidth - left(segment)]
-  else if right?
-    return if width
-      [stageWidth - right(segment) - width(segment), width(segment)]
+    leftValue = left(segment)
+    if leftValue instanceof Interval
+      throw new Error("Over-constrained by width") if width
+      return [leftValue.start, leftValue.end - leftValue.start]
     else
-      [0, stageWidth - right(segment)]
+      if width
+        widthValue = width(segment).valueOf()
+        return [leftValue, widthValue]
+      else
+        return [leftValue, stageWidth - leftValue]
+  else if right
+    rightValue = right(segment)
+    if rightValue instanceof Interval
+      throw new Error("Over-constrained by width") if width
+      return [stageWidth - rightValue.start, rightValue.end - rightValue.start]
+    else
+      if width
+        widthValue = width(segment).valueOf()
+        return [stageWidth - rightValue - widthValue, widthValue]
+      else
+        return [0, stageWidth - rightValue]
   else
-    return if width then [0, width(segment)] else [0, stageWidth]
+    if width
+      widthValue = width(segment).valueOf()
+      return [(stageWidth - widthValue) / 2, widthValue]
+    else
+      return [0, stageWidth]
 
 # ToDo: rename to transform
 facet.stage = {
@@ -631,14 +650,17 @@ class FacetJob
         switch cmd.operation
           when 'split'
             segmentGroups = flatten(segmentGroups).map((segment) ->
-              return segment.splits = segment.splits.map (sp) ->
+              return segment.splits = segment.splits.map ({ prop, splits }) ->
                 stage = _.clone(segment.getStage())
                 stage.node = stage.node.append('g')
+                for key, value of prop
+                  if Array.isArray(value)
+                    prop[key] = Interval.fromArray(value)
                 return new Segment({
                   parent: segment
                   stage: stage
-                  prop: sp.prop
-                  splits: sp.splits
+                  prop
+                  splits
                 })
             )
 

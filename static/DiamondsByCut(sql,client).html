@@ -23,7 +23,7 @@
       var plot = facet.plot;
       var use = facet.use;
       var sort = facet.sort;
-      var stage = facet.stage;
+      var transform = facet.transform;
     </script>
   </head>
 
@@ -72,7 +72,7 @@
             fill: '#f0f0f0',
             stroke: use.scale('color')
           }))
-          .stage(stage.rectangle.point())
+          .transform(transform.rectangle.point())
             .plot(plot.text({
               text: use.fn(
                 use.prop('Cut'), use.prop('Count'),
@@ -82,7 +82,7 @@
               anchor: 'middle',
               baseline: 'center'
             }))
-          .unstage()
+          .untransform()
           .render()
     })();
     </script>

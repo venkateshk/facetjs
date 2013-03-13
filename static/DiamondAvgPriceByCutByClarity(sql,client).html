@@ -23,7 +23,7 @@
       var plot = facet.plot;
       var use = facet.use;
       var sort = facet.sort;
-      var stage = facet.stage;
+      var transform = facet.transform;
     </script>
   </head>
 
@@ -70,13 +70,13 @@
             fill: 'none',
             stroke: 'black'
           }))
-          .stage(stage.rectangle.point({ top: 6 }))
+          .transform(transform.rectangle.point({ top: 6 }))
             .plot(plot.text({
               text: use.prop('Clarity'),
               anchor: 'middle',
               baseline: 'top'
             }))
-          .unstage()
+          .untransform()
             .split('Cut', split.identity('cut'))
             .apply('AvgPrice', apply.average('price'))
             .combine({ sort: { prop: 'AvgPrice', direction: 'descending' }})
@@ -89,14 +89,14 @@
               bottom: 0,
               height: use.scale('vert')
             }))
-            .stage(stage.rectangle.point({ bottom: 6 }))
+            .transform(transform.rectangle.point({ bottom: 6 }))
               .plot(plot.text({
                 text: use.prop('Cut'),
                 color: use.scale('color'),
                 baseline: 'center',
                 angle: -90
               }))
-            .unstage()
+            .untransform()
             .render()
     })();
     </script>

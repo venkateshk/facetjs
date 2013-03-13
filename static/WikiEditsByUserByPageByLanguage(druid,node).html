@@ -23,7 +23,7 @@
       var plot = facet.plot;
       var use = facet.use;
       var sort = facet.sort;
-      var stage = facet.stage;
+      var transform = facet.transform;
     </script>
   </head>
 
@@ -68,13 +68,13 @@
           fill: 'none',
           stroke: 'black'
         }))
-        .stage(stage.rectangle.point({ top: 10, left: 8 }))
+        .transform(transform.rectangle.point({ top: 10, left: 8 }))
           .plot(plot.text({
             text: use.prop('Language'),
             baseline: 'top',
             size: '20px'
           }))
-        .unstage()
+        .untransform()
           .split('Page', split.identity('page'))
           .apply('Edits', apply.sum('count'))
           .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 4})
@@ -83,14 +83,14 @@
             fill: 'none',
             stroke: 'green'
           }))
-          .stage(stage.rectangle.point({ bottom: 6 }))
+          .transform(transform.rectangle.point({ bottom: 6 }))
             .plot(plot.text({
               text: use.fn(use.prop('Edits'), use.prop('Page'), formatEditsAndPage),
               anchor: 'middle',
               baseline: 'bottom',
               size: '9px'
             }))
-          .unstage()
+          .untransform()
             .split('User', split.identity('user'))
             .apply('Edits', apply.sum('count'))
             .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 3})
@@ -99,14 +99,14 @@
               fill: 'black',
               opacity: 0.15
             }))
-            .stage(stage.rectangle.point())
+            .transform(transform.rectangle.point())
               .plot(plot.text({
                 text: use.fn(use.prop('Edits'), function(e) { return '[' + e + ']'; }),
                 anchor: 'middle',
                 baseline: 'center',
                 size: '9px'
               }))
-            .unstage()
+            .untransform()
             .render()
     })();
     </script>

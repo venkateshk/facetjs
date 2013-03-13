@@ -164,6 +164,11 @@ facet.use = {
     throw new Error("'#{scaleName}' scale is untrained") if scale.train
     use or= scale.use
     return scale.fn(use(segment))
+
+  interval: (start, end) ->
+    start = wrapLiteral(start)
+    end = wrapLiteral(end)
+    return (segment) -> new Interval(start(segment), end(segment))
 }
 
 # =============================================================
@@ -356,13 +361,13 @@ boxPosition = (segment, stageWidth, left, width, right) ->
     else
       return [0, stageWidth]
 
-# ToDo: rename to transform
-facet.stage = {
+
+facet.transform = {
   point: {
     point: ->
       throw "not implemented yet"
 
-    line: ->
+    line: ({length}) ->
       throw "not implemented yet"
 
     rectangle: ->
@@ -592,17 +597,17 @@ class FacetJob
     @ops.push(combine)
     return this
 
-  stage: (transform) ->
+  transform: (transform) ->
     throw new TypeError("transform must be a function") unless typeof transform is 'function'
     @ops.push({
-      operation: 'stage'
+      operation: 'transform'
       transform
     })
     return this
 
-  unstage: ->
+  untransform: ->
     @ops.push({
-      operation: 'unstage'
+      operation: 'untransform'
     })
     return this
 
@@ -714,7 +719,7 @@ class FacetJob
                   .attr('transform', "translate(#{stageX},#{stageY})")
                 segment.setStage(psudoStage)
 
-          when 'stage'
+          when 'transform'
             { transform } = cmd
             for segmentGroup in segmentGroups
               for segment in segmentGroup
@@ -729,7 +734,7 @@ class FacetJob
                 segment.pushStage(psudoStage)
 
 
-          when 'unstage'
+          when 'untransform'
             for segmentGroup in segmentGroups
               for segment in segmentGroup
                 segment.popStage()

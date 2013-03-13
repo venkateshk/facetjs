@@ -235,6 +235,13 @@
         use || (use = scale.use);
         return scale.fn(use(segment));
       };
+    },
+    interval: function(start, end) {
+      start = wrapLiteral(start);
+      end = wrapLiteral(end);
+      return function(segment) {
+        return new Interval(start(segment), end(segment));
+      };
     }
   };
 
@@ -457,12 +464,14 @@
     }
   };
 
-  facet.stage = {
+  facet.transform = {
     point: {
       point: function() {
         throw "not implemented yet";
       },
-      line: function() {
+      line: function(_arg) {
+        var length;
+        length = _arg.length;
         throw "not implemented yet";
       },
       rectangle: function() {
@@ -718,20 +727,20 @@
       return this;
     };
 
-    FacetJob.prototype.stage = function(transform) {
+    FacetJob.prototype.transform = function(transform) {
       if (typeof transform !== 'function') {
         throw new TypeError("transform must be a function");
       }
       this.ops.push({
-        operation: 'stage',
+        operation: 'transform',
         transform: transform
       });
       return this;
     };
 
-    FacetJob.prototype.unstage = function() {
+    FacetJob.prototype.untransform = function() {
       this.ops.push({
-        operation: 'unstage'
+        operation: 'untransform'
       });
       return this;
     };
@@ -876,7 +885,7 @@
                 }
               }
               break;
-            case 'stage':
+            case 'transform':
               transform = cmd.transform;
               for (_n = 0, _len5 = segmentGroups.length; _n < _len5; _n++) {
                 segmentGroup = segmentGroups[_n];
@@ -893,7 +902,7 @@
                 }
               }
               break;
-            case 'unstage':
+            case 'untransform':
               for (_p = 0, _len7 = segmentGroups.length; _p < _len7; _p++) {
                 segmentGroup = segmentGroups[_p];
                 for (_q = 0, _len8 = segmentGroup.length; _q < _len8; _q++) {

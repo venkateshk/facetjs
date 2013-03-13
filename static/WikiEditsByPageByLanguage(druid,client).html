@@ -23,7 +23,7 @@
       var plot = facet.plot;
       var use = facet.use;
       var sort = facet.sort;
-      var stage = facet.stage;
+      var transform = facet.transform;
     </script>
   </head>
 
@@ -72,19 +72,19 @@
             fill: 'none',
             stroke: 'black'
           }))
-          .stage(stage.rectangle.point({ top: 10, left: 8 }))
+          .transform(transform.rectangle.point({ top: 10, left: 8 }))
             .plot(plot.text({
               text: use.prop('Language'),
               baseline: 'top',
               size: '30px'
             }))
-          .unstage()
-          .stage(stage.rectangle.point({ top: 40, left: 8 }))
+          .untransform()
+          .transform(transform.rectangle.point({ top: 40, left: 8 }))
             .plot(plot.text({
               text: use.fn(use.prop('Edits'), function(d) { return 'Total edits: ' + d; }),
               baseline: 'top'
             }))
-          .unstage()
+          .untransform()
             .split('Page', split.identity('page'))
             .apply('Edits', apply.count())
             .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 4})
@@ -96,13 +96,13 @@
               left: 200,
               width: use.scale('horiz')
             }))
-            .stage(stage.rectangle.point({ left: 200 }))
+            .transform(transform.rectangle.point({ left: 200 }))
               .plot(plot.text({
                 text: use.fn(use.prop('Edits'), use.prop('Page'), formatEditsAndPage),
                 baseline: 'middle',
                 size: '9px'
               }))
-            .unstage()
+            .untransform()
             .render()
     })();
     </script>

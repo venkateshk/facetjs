@@ -101,13 +101,17 @@ class FacetJob
     height = @height
     throw new Error("could not find the provided selector") if parent.empty()
 
-    svg = parent.append('svg')
-      .attr('width', width)
-      .attr('height', height)
+    svg = parent.append('svg').attr {
+      class: 'facet loading'
+      width
+      height
+    }
 
     operations = @ops
     @driver @getQuery(), (err, res) ->
+      svg.classed('loading', false)
       if err
+        svg.classed('error', true)
         alert("An error has occurred: " + if typeof err is 'string' then err else err.message)
         return
 

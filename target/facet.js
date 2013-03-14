@@ -785,11 +785,17 @@
       if (parent.empty()) {
         throw new Error("could not find the provided selector");
       }
-      svg = parent.append('svg').attr('width', width).attr('height', height);
+      svg = parent.append('svg').attr({
+        "class": 'facet loading',
+        width: width,
+        height: height
+      });
       operations = this.ops;
       this.driver(this.getQuery(), function(err, res) {
         var cmd, hops, i, layout, name, param, parentSegment, plot, psudoStage, psudoStages, scale, segment, segmentGroup, segmentGroups, sourceSegment, stage, stageX, stageY, transform, unifiedSegments, _i, _j, _k, _l, _len, _len1, _len10, _len2, _len3, _len4, _len5, _len6, _len7, _len8, _len9, _m, _n, _o, _p, _q, _r, _s;
+        svg.classed('loading', false);
         if (err) {
+          svg.classed('error', true);
           alert("An error has occurred: " + (typeof err === 'string' ? err : err.message));
           return;
         }

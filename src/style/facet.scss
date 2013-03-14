@@ -7,6 +7,16 @@ html {
   }
 }
 
+svg.facet {
+  &.loading {
+    border: 1px solid black;
+  }
+
+  &.error {
+    border: 1px solid red;
+  }
+}
+
 .cont {
   padding-bottom: 150px;
   border-bottom: 1px solid black;

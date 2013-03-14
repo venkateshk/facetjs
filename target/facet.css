@@ -8,33 +8,42 @@ html body {
   height: 100%;
 }
 
-/* line 10, ../src/style/facet.scss */
+/* line 11, ../src/style/facet.scss */
+svg.facet.loading {
+  border: 1px solid black;
+}
+/* line 15, ../src/style/facet.scss */
+svg.facet.error {
+  border: 1px solid red;
+}
+
+/* line 20, ../src/style/facet.scss */
 .cont {
   padding-bottom: 150px;
   border-bottom: 1px solid black;
 }
-/* line 14, ../src/style/facet.scss */
+/* line 24, ../src/style/facet.scss */
 .cont h1 {
   margin: 0;
   font-size: 30px;
 }
-/* line 19, ../src/style/facet.scss */
+/* line 29, ../src/style/facet.scss */
 .cont h2 {
   margin: 0;
   font-size: 18px;
   color: gray;
 }
-/* line 25, ../src/style/facet.scss */
+/* line 35, ../src/style/facet.scss */
 .cont .example {
   margin-top: 8px;
 }
 
-/* line 34, ../src/style/facet.scss */
+/* line 44, ../src/style/facet.scss */
 .test-cont {
   position: relative;
   height: 100%;
 }
-/* line 38, ../src/style/facet.scss */
+/* line 48, ../src/style/facet.scss */
 .test-cont textarea#input {
   position: absolute;
   top: 27px;
@@ -44,7 +53,7 @@ html body {
   font-family: monospace;
   font-size: 14px;
 }
-/* line 48, ../src/style/facet.scss */
+/* line 58, ../src/style/facet.scss */
 .test-cont pre#output {
   position: absolute;
   top: 27px;
@@ -56,20 +65,20 @@ html body {
   font-size: 14px;
   overflow: scroll;
 }
-/* line 60, ../src/style/facet.scss */
+/* line 70, ../src/style/facet.scss */
 .test-cont button#send {
   position: absolute;
   bottom: 13px;
   left: 50%;
   margin-left: -20px;
 }
-/* line 67, ../src/style/facet.scss */
+/* line 77, ../src/style/facet.scss */
 .test-cont div.button-bar {
   position: absolute;
   bottom: 13px;
   left: 0;
 }
-/* line 73, ../src/style/facet.scss */
+/* line 83, ../src/style/facet.scss */
 .test-cont div.time-show {
   position: absolute;
   bottom: 17px;

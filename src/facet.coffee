@@ -326,7 +326,7 @@ facet.scale = {
 # =============================================================
 # TRANSFORM STAGE
 # A function that transforms the stage from one form to another.
-# Arguments* -> Segment -> void
+# Arguments* -> Segment -> PsudoStage
 
 boxPosition = (segment, stageWidth, left, width, right) ->
   if left and width and right
@@ -538,16 +538,22 @@ class FacetJob
   constructor: (@selector, @width, @height, @driver) ->
     @ops = []
     @knownProps = {}
+    @hasSplit = false
+    @hasTransformed = false
 
   split: (propName, split) ->
     split = _.clone(split)
     split.operation = 'split'
     split.prop = propName
     @ops.push(split)
+    @hasSplit = true
+    @hasTransformed = false
     @knownProps[propName] = true
     return this
 
   layout: (layout) ->
+    throw new Error("Must split before calling layout") unless @hasSplit
+    throw new Error("Can not layout after a transform") if @hasTransformed
     throw new TypeError("layout must be a function") unless typeof layout is 'function'
     @ops.push({
       operation: 'layout'
@@ -603,6 +609,7 @@ class FacetJob
       operation: 'transform'
       transform
     })
+    @hasTransformed = true
     return this
 
   untransform: ->
@@ -706,7 +713,7 @@ class FacetJob
             { layout } = cmd
             for segmentGroup in segmentGroups
               parentSegment = segmentGroup[0].parent
-              throw new Error("You must split before calling layout") unless parentSegment
+              throw new Error("must split before calling layout") unless parentSegment
               psudoStages = layout(parentSegment, segmentGroup)
               for segment, i in segmentGroup
                 psudoStage = psudoStages[i]

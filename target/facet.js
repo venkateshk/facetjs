@@ -653,6 +653,8 @@
       this.driver = driver;
       this.ops = [];
       this.knownProps = {};
+      this.hasSplit = false;
+      this.hasTransformed = false;
     }
 
     FacetJob.prototype.split = function(propName, split) {
@@ -660,11 +662,19 @@
       split.operation = 'split';
       split.prop = propName;
       this.ops.push(split);
+      this.hasSplit = true;
+      this.hasTransformed = false;
       this.knownProps[propName] = true;
       return this;
     };
 
     FacetJob.prototype.layout = function(layout) {
+      if (!this.hasSplit) {
+        throw new Error("Must split before calling layout");
+      }
+      if (this.hasTransformed) {
+        throw new Error("Can not layout after a transform");
+      }
       if (typeof layout !== 'function') {
         throw new TypeError("layout must be a function");
       }
@@ -735,6 +745,7 @@
         operation: 'transform',
         transform: transform
       });
+      this.hasTransformed = true;
       return this;
     };
 
@@ -869,7 +880,7 @@
                 segmentGroup = segmentGroups[_l];
                 parentSegment = segmentGroup[0].parent;
                 if (!parentSegment) {
-                  throw new Error("You must split before calling layout");
+                  throw new Error("must split before calling layout");
                 }
                 psudoStages = layout(parentSegment, segmentGroup);
                 for (i = _m = 0, _len4 = segmentGroup.length; _m < _len4; i = ++_m) {

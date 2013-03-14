@@ -1,3 +1,18 @@
 #!/bin/bash
-coffee --compile --output target src/server.coffee src/facet.coffee src/driver/*
 compass compile --sass-dir src/style/ --css-dir target/
+coffee --compile --lint --output target src/server.coffee src/driver/*
+coffee --compile --lint --output target --join target/facet.js \
+  src/facet/init.coffee \
+  src/facet/utils.coffee \
+  src/facet/interval.coffee \
+  src/facet/segment.coffee \
+  src/facet/split.coffee \
+  src/facet/apply.coffee \
+  src/facet/combine.coffee \
+  src/facet/use.coffee \
+  src/facet/scale.coffee \
+  src/facet/layout.coffee \
+  src/facet/transform.coffee \
+  src/facet/plot.coffee \
+  src/facet/facet.coffee \
+  src/facet/proxy.coffee

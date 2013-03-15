@@ -1,3 +1,5 @@
 "use strict"
 
-window.facet = facet = {}
+window.facet = facet = {
+  version: '0.2.1'
+}

@@ -5,7 +5,9 @@
   var FacetJob, Interval, Segment, arraySubclass, checkStage, divideLength, facet, flatten, getProp, getScale, isValidStage, lineOnLine, lineOnPoint, pointOnLine, pointOnPoint, stripeTile, wrapLiteral,
     __slice = [].slice;
 
-  window.facet = facet = {};
+  window.facet = facet = {
+    version: '0.2.1'
+  };
 
   arraySubclass = [].__proto__ ? function(array, prototype) {
     array.__proto__ = prototype;

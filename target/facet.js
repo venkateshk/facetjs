@@ -485,13 +485,57 @@
     },
     horizontal: stripeTile('width', 'height'),
     vertical: stripeTile('height', 'width'),
-    tile: function() {}
+    horizontalScale: function(_arg) {
+      var flip, scale, use;
+      scale = _arg.scale, use = _arg.use, flip = _arg.flip;
+      return function(parentSegment, segmentGroup) {
+        var parentHeight, parentStage, parentWidth, scaleObj;
+        parentStage = parentSegment.getStage();
+        if (parentStage.type !== 'rectangle') {
+          throw new Error("Must have a rectangular stage (is " + parentStage.type + ")");
+        }
+        parentWidth = parentStage.width;
+        parentHeight = parentStage.height;
+        scaleObj = getScale(segmentGroup[0], scale);
+        use || (use = scaleObj.use);
+        return segmentGroup.map(function(segment, i) {
+          var int, width, x;
+          int = scaleObj.fn(use(segment));
+          x = int.start;
+          width = int.end - int.start;
+          if (flip) {
+            x = parentWidth - x - width;
+          }
+          return {
+            type: 'rectangle',
+            x: x,
+            y: 0,
+            width: width,
+            height: parentHeight
+          };
+        });
+      };
+    },
+    tile: function() {
+      throw "not implemented yet";
+    }
   };
 
   boxPosition = function(left, width, right, widthName) {
     var flip, fn;
-    if (left && width && right) {
-      throw new Error("Over-constrained");
+    if (left && right) {
+      if (width) {
+        throw new Error("Over-constrained");
+      }
+      return function(segment, stageWidth) {
+        var leftValue, rightValue;
+        leftValue = left(segment);
+        rightValue = right(segment);
+        if (leftValue instanceof Interval || rightValue instanceof Interval) {
+          throw new Error("Over-constrained by interval");
+        }
+        return [leftValue, stageWidth - leftValue - rightValue];
+      };
     }
     flip = false;
     if (right && !left) {

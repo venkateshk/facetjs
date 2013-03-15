@@ -61,11 +61,17 @@
       });
 
       facet.define('.example', 800, 600, facet.verboseDriver(sqlDriverClient))
+        .transform(transform.rectangle.rectangle({left: 10, right: 10, top: 10, bottom: 10}))
+        .scale('horiz', scale.linear())
         .scale('vert', scale.linear())
           .split('Carat', split.continuous('carat', 0.1))
           .apply('AvgPrice', apply.average('price'))
           .combine({ sort: { prop: 'Carat', direction: 'ascending' }})
-          .layout(layout.horizontal({ gap: 3 }))
+          .train('horiz', {
+            domain: use.prop('Carat'),
+            range: use.stage('width')
+          })
+          .layout(layout.horizontalScale({ scale: 'horiz' }))
           .train('vert', {
             include: 0,
             domain: use.prop('AvgPrice'),

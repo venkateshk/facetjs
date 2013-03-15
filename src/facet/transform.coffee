@@ -3,8 +3,14 @@
 
 
 boxPosition = (left, width, right, widthName) ->
-  if left and width and right
-    throw new Error("Over-constrained")
+  if left and right
+    throw new Error("Over-constrained") if width
+    return (segment, stageWidth) ->
+      leftValue = left(segment)
+      rightValue = right(segment)
+      if leftValue instanceof Interval or rightValue instanceof Interval
+        throw new Error("Over-constrained by interval")
+      return [leftValue, stageWidth - leftValue - rightValue]
 
   flip = false
   if right and not left

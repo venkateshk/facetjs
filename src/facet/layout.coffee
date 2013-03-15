@@ -46,6 +46,34 @@ facet.layout = {
 
   vertical: stripeTile('height', 'width')
 
+  horizontalScale: ({ scale, use, flip }) ->
+    return (parentSegment, segmentGroup) ->
+      parentStage = parentSegment.getStage()
+      if parentStage.type isnt 'rectangle'
+        throw new Error("Must have a rectangular stage (is #{parentStage.type})")
+      parentWidth = parentStage.width
+      parentHeight = parentStage.height
+
+      scaleObj = getScale(segmentGroup[0], scale)
+      use or= scaleObj.use
+
+      return segmentGroup.map((segment, i) ->
+        int = scaleObj.fn(use(segment))
+
+        x = int.start
+        width = int.end - int.start
+        if flip
+          x = parentWidth - x - width
+
+        return {
+          type: 'rectangle'
+          x
+          y: 0
+          width
+          height: parentHeight
+        }
+      )
+
   tile: ->
-    return
+    throw "not implemented yet"
 }

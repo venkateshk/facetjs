@@ -1,38 +1,48 @@
 # A function that transforms the stage from one form to another.
 # Arguments* -> Segment -> PsudoStage
 
-boxPosition = (segment, stageWidth, left, width, right) ->
+
+boxPosition = (left, width, right, widthName) ->
   if left and width and right
     throw new Error("Over-constrained")
 
-  if left
-    leftValue = left(segment)
-    if leftValue instanceof Interval
-      throw new Error("Over-constrained by width") if width
-      return [leftValue.start, leftValue.end - leftValue.start]
+  flip = false
+  if right and not left
+    # Exploit the symmetry between left and right
+    left = right
+    flip = true
+
+  fn = if width
+    if left
+      (segment, stageWidth) ->
+        leftValue = left(segment)
+        if leftValue instanceof Interval
+          throw new Error("Over-constrained by #{widthName}")
+        else
+          widthValue = width(segment).valueOf()
+          return [leftValue, widthValue]
     else
-      if width
+      (segment, stageWidth) ->
         widthValue = width(segment).valueOf()
-        return [leftValue, widthValue]
-      else
-        return [leftValue, stageWidth - leftValue]
-  else if right
-    rightValue = right(segment)
-    if rightValue instanceof Interval
-      throw new Error("Over-constrained by width") if width
-      return [stageWidth - rightValue.start, rightValue.end - rightValue.start]
-    else
-      if width
-        widthValue = width(segment).valueOf()
-        return [stageWidth - rightValue - widthValue, widthValue]
-      else
-        return [0, stageWidth - rightValue]
+        return [(stageWidth - widthValue) / 2, widthValue]
   else
-    if width
-      widthValue = width(segment).valueOf()
-      return [(stageWidth - widthValue) / 2, widthValue]
+    if left
+      (segment, stageWidth) ->
+        leftValue = left(segment)
+        if leftValue instanceof Interval
+          return [leftValue.start, leftValue.end - leftValue.start]
+        else
+          return [leftValue, stageWidth - leftValue]
     else
-      return [0, stageWidth]
+      (segment, stageWidth) -> [0, stageWidth]
+
+  if flip
+    return (segment, stageWidth) ->
+      pos = fn(segment, stageWidth)
+      pos[0] = stageWidth - pos[0] - pos[1]
+      return pos
+  else
+    return fn
 
 
 facet.transform = {
@@ -85,8 +95,32 @@ facet.transform = {
     line: ->
       throw "not implemented yet"
 
-    rectangle: ->
-      throw "not implemented yet"
+    rectangle: ({left, width, right, top, height, bottom}) ->
+      left = wrapLiteral(left)
+      width = wrapLiteral(width)
+      right = wrapLiteral(right)
+      top = wrapLiteral(top)
+      height = wrapLiteral(height)
+      bottom = wrapLiteral(bottom)
+
+      fx = boxPosition(left, width, right, 'width')
+      fy = boxPosition(top, height, bottom, 'height')
+
+      return (segment) ->
+        stage = segment.getStage()
+        throw new Error("Must have a rectangle stage (is #{stage.type})") unless stage.type is 'rectangle'
+
+        [x, w] = fx(segment, stage.width)
+        [y, h] = fy(segment, stage.height)
+
+        return {
+          type: 'rectangle'
+          x
+          y
+          width: w
+          height: h
+        }
+        return
   }
 
   polygon: {

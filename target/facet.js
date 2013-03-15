@@ -273,7 +273,7 @@
   facet.scale = {
     linear: function(_arg) {
       var nice;
-      nice = _arg.nice;
+      nice = (_arg != null ? _arg : {}).nice;
       return function(segments, _arg1) {
         var domain, domainMax, domainMin, domainValue, include, range, rangeFn, rangeFrom, rangeTo, rangeValue, scaleFn, segment, _i, _len;
         include = _arg1.include, domain = _arg1.domain, range = _arg1.range;
@@ -444,48 +444,49 @@
     tile: function() {}
   };
 
-  boxPosition = function(segment, stageWidth, left, width, right) {
-    var leftValue, rightValue, widthValue;
+  boxPosition = function(left, width, right, widthName) {
+    var flip, fn;
     if (left && width && right) {
       throw new Error("Over-constrained");
     }
-    if (left) {
+    flip = false;
+    if (right && !left) {
+      left = right;
+      flip = true;
+    }
+    fn = width ? left ? function(segment, stageWidth) {
+      var leftValue, widthValue;
       leftValue = left(segment);
       if (leftValue instanceof Interval) {
-        if (width) {
-          throw new Error("Over-constrained by width");
-        }
+        throw new Error("Over-constrained by " + widthName);
+      } else {
+        widthValue = width(segment).valueOf();
+        return [leftValue, widthValue];
+      }
+    } : function(segment, stageWidth) {
+      var widthValue;
+      widthValue = width(segment).valueOf();
+      return [(stageWidth - widthValue) / 2, widthValue];
+    } : left ? function(segment, stageWidth) {
+      var leftValue;
+      leftValue = left(segment);
+      if (leftValue instanceof Interval) {
         return [leftValue.start, leftValue.end - leftValue.start];
       } else {
-        if (width) {
-          widthValue = width(segment).valueOf();
-          return [leftValue, widthValue];
-        } else {
-          return [leftValue, stageWidth - leftValue];
-        }
+        return [leftValue, stageWidth - leftValue];
       }
-    } else if (right) {
-      rightValue = right(segment);
-      if (rightValue instanceof Interval) {
-        if (width) {
-          throw new Error("Over-constrained by width");
-        }
-        return [stageWidth - rightValue.start, rightValue.end - rightValue.start];
-      } else {
-        if (width) {
-          widthValue = width(segment).valueOf();
-          return [stageWidth - rightValue - widthValue, widthValue];
-        } else {
-          return [0, stageWidth - rightValue];
-        }
-      }
+    } : function(segment, stageWidth) {
+      return [0, stageWidth];
+    };
+    if (flip) {
+      return function(segment, stageWidth) {
+        var pos;
+        pos = fn(segment, stageWidth);
+        pos[0] = stageWidth - pos[0] - pos[1];
+        return pos;
+      };
     } else {
-      if (width) {
-        widthValue = width(segment).valueOf();
-        return [(stageWidth - widthValue) / 2, widthValue];
-      } else {
-        return [0, stageWidth];
-      }
+      return fn;
     }
   };
 
@@ -555,8 +556,33 @@
       line: function() {
         throw "not implemented yet";
       },
-      rectangle: function() {
-        throw "not implemented yet";
+      rectangle: function(_arg) {
+        var bottom, fx, fy, height, left, right, top, width;
+        left = _arg.left, width = _arg.width, right = _arg.right, top = _arg.top, height = _arg.height, bottom = _arg.bottom;
+        left = wrapLiteral(left);
+        width = wrapLiteral(width);
+        right = wrapLiteral(right);
+        top = wrapLiteral(top);
+        height = wrapLiteral(height);
+        bottom = wrapLiteral(bottom);
+        fx = boxPosition(left, width, right, 'width');
+        fy = boxPosition(top, height, bottom, 'height');
+        return function(segment) {
+          var h, stage, w, x, y, _ref, _ref1;
+          stage = segment.getStage();
+          if (stage.type !== 'rectangle') {
+            throw new Error("Must have a rectangle stage (is " + stage.type + ")");
+          }
+          _ref = fx(segment, stage.width), x = _ref[0], w = _ref[1];
+          _ref1 = fy(segment, stage.height), y = _ref1[0], h = _ref1[1];
+          return {
+            type: 'rectangle',
+            x: x,
+            y: y,
+            width: w,
+            height: h
+          };
+        };
       }
     },
     polygon: {
@@ -570,33 +596,26 @@
   };
 
   facet.plot = {
-    rect: function(_arg) {
-      var bottom, fill, height, left, opacity, right, stroke, top, width;
-      left = _arg.left, width = _arg.width, right = _arg.right, top = _arg.top, height = _arg.height, bottom = _arg.bottom, stroke = _arg.stroke, fill = _arg.fill, opacity = _arg.opacity;
-      left = wrapLiteral(left);
-      width = wrapLiteral(width);
-      right = wrapLiteral(right);
-      top = wrapLiteral(top);
-      height = wrapLiteral(height);
-      bottom = wrapLiteral(bottom);
+    box: function(_arg) {
+      var fill, opacity, stroke;
+      stroke = _arg.stroke, fill = _arg.fill, opacity = _arg.opacity;
+      stroke = wrapLiteral(stroke);
       fill = wrapLiteral(fill);
       opacity = wrapLiteral(opacity);
       return function(segment) {
-        var h, stage, w, x, y, _ref, _ref1;
+        var stage;
         stage = segment.getStage();
         if (stage.type !== 'rectangle') {
-          throw new Error("Must have a rectangle stage (is " + stage.type + ")");
+          throw new Error("Box must have a rectangle stage (is " + stage.type + ")");
         }
-        _ref = boxPosition(segment, stage.width, left, width, right), x = _ref[0], w = _ref[1];
-        _ref1 = boxPosition(segment, stage.height, top, height, bottom), y = _ref1[0], h = _ref1[1];
-        stage.node.append('rect').datum(segment).attr('x', x).attr('y', y).attr('width', w).attr('height', h).style('fill', fill).style('stroke', stroke).style('opacity', opacity);
+        stage.node.append('rect').datum(segment).attr('width', stage.width).attr('height', stage.height).style('fill', fill).style('stroke', stroke).style('opacity', opacity);
       };
     },
-    text: function(_arg) {
+    label: function(_arg) {
       var anchor, angle, baseline, color, size, text;
       color = _arg.color, text = _arg.text, size = _arg.size, anchor = _arg.anchor, baseline = _arg.baseline, angle = _arg.angle;
       color = wrapLiteral(color);
-      text = wrapLiteral(text);
+      text = wrapLiteral(text != null ? text : 'Label');
       size = wrapLiteral(size);
       anchor = wrapLiteral(anchor);
       baseline = wrapLiteral(baseline);
@@ -605,7 +624,7 @@
         var myNode, stage;
         stage = segment.getStage();
         if (stage.type !== 'point') {
-          throw new Error("Must have a point stage (is " + stage.type + ")");
+          throw new Error("Label must have a point stage (is " + stage.type + ")");
         }
         myNode = stage.node.append('text').datum(segment);
         if (angle) {
@@ -630,14 +649,14 @@
     circle: function(_arg) {
       var fill, radius, stroke;
       radius = _arg.radius, stroke = _arg.stroke, fill = _arg.fill;
-      radius = wrapLiteral(radius);
+      radius = wrapLiteral(radius != null ? radius : 5);
       stroke = wrapLiteral(stroke);
       fill = wrapLiteral(fill);
       return function(segment) {
         var stage;
         stage = segment.getStage();
         if (stage.type !== 'point') {
-          throw new Error("Must have a point stage (is " + stage.type + ")");
+          throw new Error("Circle must have a point stage (is " + stage.type + ")");
         }
         stage.node.append('circle').datum(segment).attr('r', radius).style('fill', fill).style('stroke', stroke);
       };

@@ -69,7 +69,7 @@
           .apply('Added', apply.sum('added'))
           .apply('Deleted', apply.sum('deleted'))
           .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 50})
-          .plot(plot.rect({
+          .plot(plot.box({
             fill: 'none',
             stroke: 'black'
           }))
@@ -84,52 +84,6 @@
           .untransform()
           .render()
 
-        // .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 4})
-        // .layout(layout.vertical({ gap: 3 }))
-        // .plot(plot.rect({
-        //   fill: 'none',
-        //   stroke: 'black'
-        // }))
-        // .transform(transform.rectangle.point({ top: 10, left: 8 }))
-        //   .plot(plot.text({
-        //     text: use.prop('Language'),
-        //     baseline: 'top',
-        //     size: '20px'
-        //   }))
-        // .untransform()
-        //   .split('Page', split.identity('page'))
-        //   .apply('Edits', apply.count())
-        //   .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 4})
-        //   .layout(layout.horizontal({ gap: 3 }))
-        //   .plot(plot.rect({
-        //     fill: 'none',
-        //     stroke: 'green'
-        //   }))
-        //   .transform(transform.rectangle.point({ bottom: 6 }))
-        //     .plot(plot.text({
-        //       text: use.fn(use.prop('Edits'), use.prop('Page'), formatEditsAndPage),
-        //       anchor: 'middle',
-        //       baseline: 'bottom',
-        //       size: '9px'
-        //     }))
-        //   .untransform()
-        //     .split('User', split.identity('user'))
-        //     .apply('Edits', apply.count())
-        //     .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 3})
-        //     .layout(layout.vertical({ gap: 1, size: use.prop('Edits') }))
-        //     .plot(plot.rect({
-        //       fill: 'black',
-        //       opacity: 0.15
-        //     }))
-        //     .transform(transform.rectangle.point())
-        //       .plot(plot.text({
-        //         text: use.fn(use.prop('Edits'), function(e) { return '[' + e + ']'; }),
-        //         anchor: 'middle',
-        //         baseline: 'center',
-        //         size: '9px'
-        //       }))
-        //     .untransform()
-        //     .render()
     })();
     </script>
   </body>

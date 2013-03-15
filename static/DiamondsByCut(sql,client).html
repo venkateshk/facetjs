@@ -68,12 +68,12 @@
           .combine({ sort: { prop: 'AvgPrice', direction: 'descending' }})
           .layout(layout.vertical({ size: use.prop('Count'), gap: 3 }))
           .train('color', {domain: use.prop('Cut')})
-          .plot(plot.rect({
+          .plot(plot.box({
             fill: '#f0f0f0',
             stroke: use.scale('color')
           }))
           .transform(transform.rectangle.point())
-            .plot(plot.text({
+            .plot(plot.label({
               text: use.fn(
                 use.prop('Cut'), use.prop('Count'),
                 function(cut, count) { return cut + ' (count: ' + count + ")"; }

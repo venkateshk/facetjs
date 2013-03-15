@@ -66,12 +66,12 @@
           .apply('AvgPrice', apply.average('price'))
           .combine({ sort: { prop: 'AvgPrice', direction: 'descending' }})
           .layout(layout.horizontal({ gap: 3 }))
-          .plot(plot.rect({
+          .plot(plot.box({
             fill: 'none',
             stroke: 'black'
           }))
           .transform(transform.rectangle.point({ top: 6 }))
-            .plot(plot.text({
+            .plot(plot.label({
               text: use.prop('Clarity'),
               anchor: 'middle',
               baseline: 'top'
@@ -83,21 +83,22 @@
             .layout(layout.horizontal({ gap: 3 }))
             .train('vert', {include: 0, domain: use.prop('AvgPrice'), range: 'height'})
             .train('color', {domain: use.prop('Cut')})
-            .plot(plot.rect({
-              fill: '#f0f0f0',
-              stroke: use.scale('color'),
+            .transform(transform.rectangle.rectangle({
               bottom: 0,
-              height: use.scale('vert')
+              height: use.scale('vert'),
             }))
-            .transform(transform.rectangle.point({ bottom: 6 }))
-              .plot(plot.text({
-                text: use.prop('Cut'),
-                color: use.scale('color'),
-                baseline: 'center',
-                angle: -90
+              .plot(plot.box({
+                fill: '#f0f0f0',
+                stroke: use.scale('color')
               }))
-            .untransform()
-            .render()
+              .transform(transform.rectangle.point({ bottom: 6 }))
+                .plot(plot.label({
+                  text: use.prop('Cut'),
+                  color: use.scale('color'),
+                  baseline: 'center',
+                  angle: -90
+                }))
+                .render()
     })();
     </script>
   </body>

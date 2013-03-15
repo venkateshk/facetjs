@@ -68,19 +68,19 @@
           .apply('Edits', apply.count())
           .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 4})
           .layout(layout.vertical({ gap: 3 }))
-          .plot(plot.rect({
+          .plot(plot.box({
             fill: 'none',
             stroke: 'black'
           }))
           .transform(transform.rectangle.point({ top: 10, left: 8 }))
-            .plot(plot.text({
+            .plot(plot.label({
               text: use.prop('Language'),
               baseline: 'top',
               size: '30px'
             }))
           .untransform()
           .transform(transform.rectangle.point({ top: 40, left: 8 }))
-            .plot(plot.text({
+            .plot(plot.label({
               text: use.fn(use.prop('Edits'), function(d) { return 'Total edits: ' + d; }),
               baseline: 'top'
             }))
@@ -89,21 +89,26 @@
             .apply('Edits', apply.count())
             .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 4})
             .layout(layout.vertical({ gap: 3 }))
-            .train('horiz', { domain: use.prop('Edits'), include: 0, range: [0, 600] })
-            .plot(plot.rect({
-              fill: '#f0f0f0',
-              stroke: '#444444',
-              left: 200,
-              width: use.scale('horiz')
-            }))
-            .transform(transform.rectangle.point({ left: 200 }))
-              .plot(plot.text({
-                text: use.fn(use.prop('Edits'), use.prop('Page'), formatEditsAndPage),
-                baseline: 'middle',
-                size: '9px'
+            .transform(transform.rectangle.rectangle({ left: 200 }))
+              .train('horiz', { domain: use.prop('Edits'), include: 0, range: 'width' })
+              .transform(transform.rectangle.rectangle({
+                left: 0,
+                height: use.scale('vert')
               }))
-            .untransform()
-            .render()
+                .plot(plot.box({
+                  fill: '#f0f0f0',
+                  stroke: '#444444',
+                }))
+                .transform(transform.rectangle.point({ left: 200 }))
+                  .plot(plot.label({
+                    text: use.fn(
+                      use.prop('Edits'), use.prop('Page'),
+                      formatEditsAndPage
+                    ),
+                    baseline: 'middle',
+                    size: '9px'
+                  }))
+                  .render()
     })();
     </script>
   </body>

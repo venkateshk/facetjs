@@ -2,7 +2,7 @@
 # Arguments* -> Segment -> void
 
 facet.scale = {
-  linear: ({nice}) -> (segments, {include, domain, range}) ->
+  linear: ({nice} = {}) -> (segments, {include, domain, range}) ->
     domain = wrapLiteral(domain)
 
     if range in ['width', 'height']

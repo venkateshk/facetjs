@@ -2,36 +2,26 @@
 # Arguments* -> Segment -> void
 
 facet.plot = {
-  rect: ({left, width, right, top, height, bottom, stroke, fill, opacity}) ->
-    left = wrapLiteral(left)
-    width = wrapLiteral(width)
-    right = wrapLiteral(right)
-    top = wrapLiteral(top)
-    height = wrapLiteral(height)
-    bottom = wrapLiteral(bottom)
+  box: ({stroke, fill, opacity}) ->
+    stroke = wrapLiteral(stroke)
     fill = wrapLiteral(fill)
     opacity = wrapLiteral(opacity)
 
     return (segment) ->
       stage = segment.getStage()
-      throw new Error("Must have a rectangle stage (is #{stage.type})") unless stage.type is 'rectangle'
-
-      [x, w] = boxPosition(segment, stage.width, left, width, right)
-      [y, h] = boxPosition(segment, stage.height, top, height, bottom)
+      throw new Error("Box must have a rectangle stage (is #{stage.type})") unless stage.type is 'rectangle'
 
       stage.node.append('rect').datum(segment)
-        .attr('x', x)
-        .attr('y', y)
-        .attr('width', w)
-        .attr('height', h)
+        .attr('width', stage.width)
+        .attr('height', stage.height)
         .style('fill', fill)
         .style('stroke', stroke)
         .style('opacity', opacity)
       return
 
-  text: ({color, text, size, anchor, baseline, angle}) ->
+  label: ({color, text, size, anchor, baseline, angle}) ->
     color = wrapLiteral(color)
-    text = wrapLiteral(text)
+    text = wrapLiteral(text ? 'Label')
     size = wrapLiteral(size)
     anchor = wrapLiteral(anchor)
     baseline = wrapLiteral(baseline)
@@ -39,7 +29,7 @@ facet.plot = {
 
     return (segment) ->
       stage = segment.getStage()
-      throw new Error("Must have a point stage (is #{stage.type})") unless stage.type is 'point'
+      throw new Error("Label must have a point stage (is #{stage.type})") unless stage.type is 'point'
       myNode = stage.node.append('text').datum(segment)
 
       if angle
@@ -59,13 +49,13 @@ facet.plot = {
       return
 
   circle: ({radius, stroke, fill}) ->
-    radius = wrapLiteral(radius)
+    radius = wrapLiteral(radius ? 5)
     stroke = wrapLiteral(stroke)
     fill = wrapLiteral(fill)
 
     return (segment) ->
       stage = segment.getStage()
-      throw new Error("Must have a point stage (is #{stage.type})") unless stage.type is 'point'
+      throw new Error("Circle must have a point stage (is #{stage.type})") unless stage.type is 'point'
       stage.node.append('circle').datum(segment)
         .attr('r', radius)
         .style('fill', fill)

@@ -60,7 +60,7 @@
         filters: null
       });
 
-      facet.define('.example', 800, 600, facet.verboseDriver(sqlDriverClient))
+      facet.define('.example', 800, 600, sqlDriverClient)
         .transform(transform.rectangle.rectangle({left: 10, right: 10, top: 10, bottom: 10}))
         .scale('horiz', scale.linear())
         .scale('vert', scale.linear())

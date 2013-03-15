@@ -89,7 +89,7 @@
             .train('color', {domain: use.prop('Cut')})
             .transform(transform.rectangle.rectangle({
               bottom: 0,
-              height: use.scale('vert'),
+              height: use.scale('vert')
             }))
               .plot(plot.box({
                 fill: '#f0f0f0',
@@ -100,7 +100,7 @@
                   text: use.prop('Cut'),
                   color: use.scale('color'),
                   baseline: 'center',
-                  angle: -90
+                  angle: 90
                 }))
                 .render()
     })();

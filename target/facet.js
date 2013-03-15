@@ -298,7 +298,7 @@
       var nice;
       nice = (_arg != null ? _arg : {}).nice;
       return function(segments, _arg1) {
-        var domain, domainMax, domainMin, domainValue, include, range, rangeFrom, rangeTo, rangeValue, scaleFn, segment, _i, _len;
+        var basicScale, domain, domainMax, domainMin, domainValue, include, range, rangeFrom, rangeTo, rangeValue, scaleFn, segment, _i, _len;
         include = _arg1.include, domain = _arg1.domain, range = _arg1.range;
         domain = wrapLiteral(domain);
         range = wrapLiteral(range);
@@ -332,10 +332,17 @@
         if (!(isFinite(domainMin) && isFinite(domainMax) && isFinite(rangeFrom) && isFinite(rangeTo))) {
           throw new Error("we went into infinites");
         }
-        scaleFn = d3.scale.linear().domain([domainMin, domainMax]).range([rangeFrom, rangeTo]);
+        basicScale = d3.scale.linear().domain([domainMin, domainMax]).range([rangeFrom, rangeTo]);
         if (nice) {
-          scaleFn.nice();
+          basicScale.nice();
         }
+        scaleFn = function(x) {
+          if (x instanceof Interval) {
+            return new Interval(basicScale(x.start), basicScale(x.end));
+          } else {
+            return basicScale(x);
+          }
+        };
         return {
           fn: scaleFn,
           use: domain
@@ -346,7 +353,7 @@
       var plusOne;
       plusOne = _arg.plusOne;
       return function(segments, _arg1) {
-        var domain, domainMax, domainMin, domainValue, include, range, rangeFrom, rangeTo, rangeValue, segment, _i, _len;
+        var basicScale, domain, domainMax, domainMin, domainValue, include, range, rangeFrom, rangeTo, rangeValue, scaleFn, segment, _i, _len;
         domain = _arg1.domain, range = _arg1.range, include = _arg1.include;
         domain = wrapLiteral(domain);
         range = wrapLiteral(range);
@@ -380,8 +387,16 @@
         if (!(isFinite(domainMin) && isFinite(domainMax) && isFinite(rangeFrom) && isFinite(rangeTo))) {
           throw new Error("we went into infinites");
         }
+        basicScale = d3.scale.log().domain([domainMin, domainMax]).range([rangeFrom, rangeTo]);
+        scaleFn = function(x) {
+          if (x instanceof Interval) {
+            return new Interval(basicScale(x.start), basicScale(x.end));
+          } else {
+            return x;
+          }
+        };
         return {
-          fn: d3.scale.log().domain([domainMin, domainMax]).range([rangeFrom, rangeTo]),
+          fn: scaleFn,
           use: domain
         };
       };
@@ -643,7 +658,7 @@
         }
         myNode = stage.node.append('text').datum(segment);
         if (angle) {
-          myNode.attr('transform', "rotate(" + (angle(segment)) + ")");
+          myNode.attr('transform', "rotate(" + (-angle(segment)) + ")");
         }
         if (baseline) {
           myNode.attr('dy', function(segment) {

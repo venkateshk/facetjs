@@ -1,5 +1,5 @@
 # A function that makes a scale and adds it to the segment.
-# Arguments* -> Segment -> void
+# Arguments* -> Segment -> { fn, use }
 
 facet.scale = {
   linear: ({nice} = {}) -> (segments, {include, domain, range}) ->
@@ -35,12 +35,18 @@ facet.scale = {
     if not (isFinite(domainMin) and isFinite(domainMax) and isFinite(rangeFrom) and isFinite(rangeTo))
       throw new Error("we went into infinites")
 
-    scaleFn = d3.scale.linear()
+    basicScale = d3.scale.linear()
       .domain([domainMin, domainMax])
       .range([rangeFrom, rangeTo])
 
     if nice
-      scaleFn.nice()
+      basicScale.nice()
+
+    scaleFn = (x) ->
+      if x instanceof Interval
+        return new Interval(basicScale(x.start), basicScale(x.end))
+      else
+        return basicScale(x)
 
     return {
       fn: scaleFn
@@ -80,8 +86,18 @@ facet.scale = {
     if not (isFinite(domainMin) and isFinite(domainMax) and isFinite(rangeFrom) and isFinite(rangeTo))
       throw new Error("we went into infinites")
 
+    basicScale = d3.scale.log()
+      .domain([domainMin, domainMax])
+      .range([rangeFrom, rangeTo])
+
+    scaleFn = (x) ->
+      if x instanceof Interval
+        return new Interval(basicScale(x.start), basicScale(x.end))
+      else
+        return x
+
     return {
-      fn: d3.scale.log().domain([domainMin, domainMax]).range([rangeFrom, rangeTo])
+      fn: scaleFn
       use: domain
     }
 

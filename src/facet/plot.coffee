@@ -33,7 +33,7 @@ facet.plot = {
       myNode = stage.node.append('text').datum(segment)
 
       if angle
-        myNode.attr('transform', "rotate(#{angle(segment)})")
+        myNode.attr('transform', "rotate(#{-angle(segment)})")
 
       if baseline
         myNode.attr('dy', (segment) ->

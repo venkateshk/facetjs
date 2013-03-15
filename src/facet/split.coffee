@@ -6,7 +6,10 @@ facet.split = {
       attribute
     }
 
-  continuous: (attribute, size, offset) -> {
+  continuous: (attribute, size, offset) ->
+    throw new Error("continuous split must have #{size}") unless size
+    offset ?= 0
+    return {
       bucket: 'continuous'
       attribute
       size

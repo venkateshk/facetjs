@@ -41,6 +41,14 @@
       return this.end - this.start;
     };
 
+    Interval.prototype.toString = function() {
+      if (this.start instanceof Date) {
+        return "[" + (this.start.toISOString()) + ", " + (this.end.toISOString()) + ")";
+      } else {
+        return "[" + (this.start.toPrecision(3)) + ", " + (this.end.toPrecision(3)) + ")";
+      }
+    };
+
     return Interval;
 
   })();
@@ -122,6 +130,12 @@
       };
     },
     continuous: function(attribute, size, offset) {
+      if (!size) {
+        throw new Error("continuous split must have " + size);
+      }
+      if (offset == null) {
+        offset = 0;
+      }
       return {
         bucket: 'continuous',
         attribute: attribute,
@@ -1040,7 +1054,7 @@
     };
   };
 
-  facet.verboseProxy = function(driver) {
+  facet.verboseDriver = function(driver) {
     return function(query, callback) {
       console.log('Query:', query);
       driver(query, function(err, res) {

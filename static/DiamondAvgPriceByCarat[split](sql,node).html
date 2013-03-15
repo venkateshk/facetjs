@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" type="text/css" href="facet.css">
+    <script src="lib/underscore.js"></script>
+    <script src="lib/async.js"></script>
+    <script src="lib/d3.v3.js"></script>
+    <script src="lib/jquery-1.9.1.js"></script>
+    <script src="facet.js"></script>
+    <script src="driverUtil.js"></script>
+    <script src="simpleDriver.js"></script>
+    <script src="sqlDriver.js"></script>
+    <script src="druidDriver.js"></script>
+
+    <title>Facet Examples (0.0.4)</title>
+
+    <script>
+      // The basics
+      var split = facet.split;
+      var apply = facet.apply;
+      var layout = facet.layout;
+      var scale = facet.scale;
+      var plot = facet.plot;
+      var use = facet.use;
+      var sort = facet.sort;
+      var transform = facet.transform;
+    </script>
+  </head>
+
+  <body>
+
+    <div class="cont">
+      <h1>Diamond Avg Price by Cut</h1>
+      <h2>SQL Driver in Client / diamonds</h2>
+      <div class="example"></div>
+    </div>
+    <script>
+    (function() {
+      // {
+      //   "carat": "0.23",
+      //   "cut": "Ideal",
+      //   "color": "E",
+      //   "clarity": "SI2",
+      //   "depth": "61.5",
+      //   "table": "55",
+      //   "price": "326",
+      //   "x": "3.95",
+      //   "y": "3.98",
+      //   "z": "2.43"
+      // },
+
+      var sqlRequester = facet.ajaxPoster({
+        url: '/pass/sql',
+        prety: true
+      });
+
+      var sqlDriverClient = sqlDriver({
+        requester: sqlRequester,
+        table: "diamonds",
+        filters: null
+      });
+
+      facet.define('.example', 800, 600, facet.verboseDriver(sqlDriverClient))
+        .scale('vert', scale.linear())
+          .split('Carat', split.continuous('carat', 0.1))
+          .apply('AvgPrice', apply.average('price'))
+          .combine({ sort: { prop: 'Carat', direction: 'ascending' }})
+          .layout(layout.horizontal({ gap: 3 }))
+          .train('vert', {
+            include: 0,
+            domain: use.prop('AvgPrice'),
+            range: use.stage('height')
+          })
+          .transform(transform.rectangle.rectangle({
+            bottom: 0,
+            height: use.scale('vert')
+          }))
+            .plot(plot.box({
+              fill: '#f0f0f0',
+              stroke: 'black'
+            }))
+            .transform(transform.rectangle.point({ bottom: 6 }))
+              .plot(plot.label({
+                text: use.prop('Carat'),
+                baseline: 'center',
+                angle: 90
+              }))
+              .render()
+    })();
+    </script>
+  </body>
+</html>

@@ -16,7 +16,10 @@ if typeof exports is 'undefined'
 
 
 makeFilter = (attribute, value) ->
-  return "`#{attribute}`=\"#{value}\"" # ToDo: escape
+  if Array.isArray(value)
+    return "#{value[0]} <= #{escAttribute(attribute)} AND #{escAttribute(attribute)} < #{value[0]}"
+  else
+    return "#{escAttribute(attribute)} = \"#{value}\"" # ToDo: escape the value
 
 andFilters = (filters...) ->
   filters = filters.filter((filter) -> filter?)
@@ -60,6 +63,8 @@ directionMap = {
   descending: 'DESC'
 }
 
+escAttribute = (attribute) -> "`#{attribute}`"
+
 condensedQueryToSQL = ({requester, table, filters, condensedQuery}, callback) ->
   findApply = (applies, propName) ->
     for apply in applies
@@ -88,20 +93,20 @@ condensedQueryToSQL = ({requester, table, filters, condensedQuery}, callback) ->
     groupByPart = 'GROUP BY '
     switch split.bucket
       when 'identity'
-        selectPart  += "`#{split.attribute}`"
-        groupByPart += "`#{split.attribute}`"
+        selectPart  += "#{escAttribute(split.attribute)}"
+        groupByPart += "#{escAttribute(split.attribute)}"
 
       when 'continuous'
-        selectPart  += "FLOOR((`#{split.attribute}` + #{split.offset}) / #{split.size}) * #{split.size}"
-        groupByPart += "FLOOR((`#{split.attribute}` + #{split.offset}) / #{split.size}) * #{split.size}"
+        selectPart  += "FLOOR((#{escAttribute(split.attribute)} + #{split.offset}) / #{split.size}) * #{split.size} + (#{split.size} / 2)"
+        groupByPart += "FLOOR((#{escAttribute(split.attribute)} + #{split.offset}) / #{split.size}) * #{split.size}"
 
       when 'time'
         bucketDuration = split.duration
         bucketSpec = timeBucketing[bucketDuration]
         if not bucketSpec
           callback("unsupported time bucketing duration '#{bucketDuration}'"); return
-        selectPart  += "DATE_FORMAT(`#{split.attribute}`, '#{bucketSpec.select}')"
-        groupByPart += "DATE_FORMAT(`#{split.attribute}`, '#{bucketSpec.group}')"
+        selectPart  += "DATE_FORMAT(#{escAttribute(split.attribute)}, '#{bucketSpec.select}')"
+        groupByPart += "DATE_FORMAT(#{escAttribute(split.attribute)}, '#{bucketSpec.group}')"
 
       else
         callback("unsupported bucketing policy '#{split.bucket}'"); return
@@ -116,19 +121,19 @@ condensedQueryToSQL = ({requester, table, filters, condensedQuery}, callback) ->
         selectParts.push "COUNT(*) AS \"#{apply.prop}\""
 
       when 'sum'
-        selectParts.push "SUM(`#{apply.attribute}`) AS \"#{apply.prop}\""
+        selectParts.push "SUM(#{escAttribute(apply.attribute)}) AS \"#{apply.prop}\""
 
       when 'average'
-        selectParts.push "AVG(`#{apply.attribute}`) AS \"#{apply.prop}\""
+        selectParts.push "AVG(#{escAttribute(apply.attribute)}) AS \"#{apply.prop}\""
 
       when 'min'
-        selectParts.push "MIN(`#{apply.attribute}`) AS \"#{apply.prop}\""
+        selectParts.push "MIN(#{escAttribute(apply.attribute)}) AS \"#{apply.prop}\""
 
       when 'max'
-        selectParts.push "MAX(`#{apply.attribute}`) AS \"#{apply.prop}\""
+        selectParts.push "MAX(#{escAttribute(apply.attribute)}) AS \"#{apply.prop}\""
 
       when 'unique'
-        selectParts.push "COUNT(DISTINCT `#{apply.attribute}`) AS \"#{apply.prop}\""
+        selectParts.push "COUNT(DISTINCT #{escAttribute(apply.attribute)}) AS \"#{apply.prop}\""
 
   # filter
   filterPart = null
@@ -154,7 +159,7 @@ condensedQueryToSQL = ({requester, table, filters, condensedQuery}, callback) ->
 
       switch sort.compare
         when 'natural'
-          orderByPart += "`#{sort.prop}` #{sqlDirection}"
+          orderByPart += "#{escAttribute(sort.prop)} #{sqlDirection}"
 
         when 'caseInsensetive'
           callback("not implemented yet"); return
@@ -170,7 +175,7 @@ condensedQueryToSQL = ({requester, table, filters, condensedQuery}, callback) ->
   sqlQuery = [
     'SELECT'
     selectParts.join(', ')
-    "FROM `#{table}`"
+    "FROM #{escAttribute(table)}"
     filterPart
     groupByPart
     orderByPart
@@ -183,11 +188,18 @@ condensedQueryToSQL = ({requester, table, filters, condensedQuery}, callback) ->
       return
 
     if condensedQuery.split
-      filterAttribute = condensedQuery.split.attribute
-      filterValueProp = condensedQuery.split.prop
+      splitAttribute = condensedQuery.split.attribute
+      splitProp = condensedQuery.split.prop
+
+      if condensedQuery.split.bucket = 'continuous'
+        splitHalfSize = condensedQuery.split.size / 2
+        for d in ds
+          mid = d[splitProp]
+          d[splitProp] = [mid - splitHalfSize, mid + splitHalfSize]
+
       splits = ds.map (prop) -> {
         prop
-        _filters: andFilters(filters, makeFilter(filterAttribute, prop[filterValueProp]))
+        _filters: andFilters(filters, makeFilter(splitAttribute, prop[splitProp]))
       }
     else
       splits = ds.map (prop) -> {

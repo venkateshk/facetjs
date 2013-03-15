@@ -18,7 +18,7 @@ facet.ajaxPoster = ({url, context, prety}) -> (query, callback) ->
       return
   })
 
-facet.verboseProxy = (driver) -> (query, callback) ->
+facet.verboseDriver = (driver) -> (query, callback) ->
   console.log('Query:', query)
   driver(query, (err, res) ->
     console.log('Result:', res)

@@ -8,6 +8,12 @@ class Interval
   valueOf: ->
     return @end - @start
 
+  toString: ->
+    if @start instanceof Date
+      return "[#{@start.toISOString()}, #{@end.toISOString()})"
+    else
+      return "[#{@start.toPrecision(3)}, #{@end.toPrecision(3)})"
+
 Interval.fromArray = (arr) ->
   throw new Error("Interval must have length of 2 (is: #{arr.length})") unless arr.length is 2
   [start, end] = arr

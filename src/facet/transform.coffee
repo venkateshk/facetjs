@@ -1,8 +1,43 @@
 # A function that transforms the stage from one form to another.
 # Arguments* -> Segment -> PsudoStage
 
+pointOnPoint = (left, right) ->
+  left = wrapLiteral(left)
+  right = wrapLiteral(right)
 
-boxPosition = (left, width, right, widthName) ->
+  if left
+    if right
+      throw new Error("Over-constrained")
+    else
+      return left
+  else
+    if right
+      return (segment) -> -right(segment)
+    else
+      return () -> 0
+
+
+pointOnLine = (left, right) ->
+  left = wrapLiteral(left)
+  right = wrapLiteral(right)
+
+  if left
+    if right
+      throw new Error("Over-constrained")
+    else
+      return (segment, stageWidth) -> left(segment)
+  else
+    if right
+      return (segment, stageWidth) -> stageWidth - right(segment)
+    else
+      return (segment, stageWidth) -> stageWidth / 2
+
+
+lineOnLine = (left, width, right, dimName) ->
+  left = wrapLiteral(left)
+  width = wrapLiteral(width)
+  right = wrapLiteral(right)
+
   if left and right
     throw new Error("Over-constrained") if width
     return (segment, stageWidth) ->
@@ -23,7 +58,7 @@ boxPosition = (left, width, right, widthName) ->
       (segment, stageWidth) ->
         leftValue = left(segment)
         if leftValue instanceof Interval
-          throw new Error("Over-constrained by #{widthName}")
+          throw new Error("Over-constrained by #{dimName}")
         else
           widthValue = width(segment).valueOf()
           return [leftValue, widthValue]
@@ -51,16 +86,115 @@ boxPosition = (left, width, right, widthName) ->
     return fn
 
 
+lineOnPoint = (left, width, right, dimName) ->
+  left = wrapLiteral(left)
+  width = wrapLiteral(width)
+  right = wrapLiteral(right)
+
+  if left and right
+    throw new Error("Over-constrained") if width
+    return (segment, stageWidth) ->
+      leftValue = left(segment)
+      rightValue = right(segment)
+      if leftValue instanceof Interval or rightValue instanceof Interval
+        throw new Error("Over-constrained by interval")
+      return [-leftValue, leftValue + rightValue]
+
+  flip = false
+  if left and not right
+    # Exploit the symmetry between left and right
+    right = left
+    flip = true
+
+  fn = if width
+    if right
+      (segment) ->
+        rightValue = right(segment)
+        if rightValue instanceof Interval
+          throw new Error("Over-constrained by #{dimName}")
+        else
+          widthValue = width(segment).valueOf()
+          return [rightValue, widthValue]
+    else
+      (segment) ->
+        widthValue = width(segment).valueOf()
+        return [-widthValue / 2, widthValue]
+  else
+    if right
+      (segment) ->
+        rightValue = right(segment)
+        if rightValue instanceof Interval
+          return [rightValue.start, rightValue.end - rightValue.start]
+        else
+          return [0, rightValue]
+    else
+      throw new Error("Under-constrained")
+
+  if flip
+    return (segment) ->
+      pos = fn(segment)
+      pos[0] = -pos[0] - pos[1]
+      return pos
+  else
+    return fn
+
+
+
+checkStage = (stage, requiredType) ->
+  if stage.type isnt requiredType
+    throw new Error("Must have a #{requiredType} stage (is #{stage.type})")
+  return
+
+
 facet.transform = {
   point: {
-    point: ->
-      throw "not implemented yet"
+    point: ({left, right, top, bottom} = {}) ->
+      fx = pointOnPoint(left, right)
+      fy = pointOnPoint(top, bottom)
 
-    line: ({length}) ->
-      throw "not implemented yet"
+      return (segment) ->
+        stage = segment.getStage()
+        checkStage(stage, 'point')
 
-    rectangle: ->
-      throw "not implemented yet"
+        return {
+          type: 'point'
+          x: fx(segment, stage.width)
+          y: fy(segment, stage.height)
+        }
+
+    line: ({left, width, right} = {}) ->
+      fx = lineOnPoint(left, width, right, 'width')
+
+      return (segment) ->
+        stage = segment.getStage()
+        checkStage(stage, 'point')
+
+        [x, w] = fx(segment, stage.width)
+
+        return {
+          type: 'line'
+          x
+          width: w
+        }
+
+    rectangle: ({left, width, right, top, height, bottom} = {}) ->
+      fx = lineOnPoint(left, width, right, 'width')
+      fy = lineOnPoint(top, height, bottom, 'height')
+
+      return (segment) ->
+        stage = segment.getStage()
+        checkStage(stage, 'point')
+
+        [x, w] = fx(segment, stage.width)
+        [y, h] = fy(segment, stage.height)
+
+        return {
+          type: 'rectangle'
+          x
+          y
+          width: w
+          height: h
+        }
   }
 
   line: {
@@ -76,45 +210,29 @@ facet.transform = {
 
   rectangle: {
     point: ({left, right, top, bottom} = {}) ->
-      left = wrapLiteral(left)
-      right = wrapLiteral(right)
-      top = wrapLiteral(top)
-      bottom = wrapLiteral(bottom)
-
-      # Make sure we are not over-constrained
-      if (left and right) or (top and bottom)
-        throw new Error("Over-constrained")
-
-      fx = if left then (w, s) -> left(s) else if right  then (w, s) -> w - right(s)  else (w, s) -> w / 2
-      fy = if top  then (h, s) -> top(s)  else if bottom then (h, s) -> h - bottom(s) else (h, s) -> h / 2
+      fx = pointOnLine(left, right)
+      fy = pointOnLine(top, bottom)
 
       return (segment) ->
         stage = segment.getStage()
-        throw new Error("Must have a rectangle stage (is #{stage.type})") unless stage.type is 'rectangle'
+        checkStage(stage, 'rectangle')
 
         return {
           type: 'point'
-          x: fx(stage.width, segment)
-          y: fy(stage.height, segment)
+          x: fx(segment, stage.width)
+          y: fy(segment, stage.height)
         }
 
     line: ->
       throw "not implemented yet"
 
-    rectangle: ({left, width, right, top, height, bottom}) ->
-      left = wrapLiteral(left)
-      width = wrapLiteral(width)
-      right = wrapLiteral(right)
-      top = wrapLiteral(top)
-      height = wrapLiteral(height)
-      bottom = wrapLiteral(bottom)
-
-      fx = boxPosition(left, width, right, 'width')
-      fy = boxPosition(top, height, bottom, 'height')
+    rectangle: ({left, width, right, top, height, bottom} = {}) ->
+      fx = lineOnLine(left, width, right, 'width')
+      fy = lineOnLine(top, height, bottom, 'height')
 
       return (segment) ->
         stage = segment.getStage()
-        throw new Error("Must have a rectangle stage (is #{stage.type})") unless stage.type is 'rectangle'
+        checkStage(stage, 'rectangle')
 
         [x, w] = fx(segment, stage.width)
         [y, h] = fy(segment, stage.height)
@@ -126,7 +244,6 @@ facet.transform = {
           width: w
           height: h
         }
-        return
   }
 
   polygon: {

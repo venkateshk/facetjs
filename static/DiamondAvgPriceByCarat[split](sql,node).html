@@ -60,6 +60,10 @@
         filters: null
       });
 
+      function intervalToString(int) {
+        return int.start.toFixed(1) + ' - ' + int.end.toFixed(1)
+      }
+
       facet.define('.example', 800, 600, sqlDriverClient)
         .transform(transform.rectangle.rectangle({left: 10, right: 10, top: 10, bottom: 10}))
         .scale('vert', scale.linear())
@@ -82,7 +86,7 @@
             }))
             .transform(transform.rectangle.point({ bottom: 6 }))
               .plot(plot.label({
-                text: use.prop('Carat'),
+                text: use.fn(use.prop('Carat'), intervalToString),
                 baseline: 'center',
                 angle: 90
               }))

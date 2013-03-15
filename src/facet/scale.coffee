@@ -4,15 +4,7 @@
 facet.scale = {
   linear: ({nice} = {}) -> (segments, {include, domain, range}) ->
     domain = wrapLiteral(domain)
-
-    if range in ['width', 'height']
-      rangeFn = (segment) -> [0, segment.getStage()[range]]
-    else if typeof range is 'number'
-      rangeFn = -> [0, range]
-    else if Array.isArray(range) and range.length is 2
-      rangeFn = -> range
-    else
-      throw new Error("bad range")
+    range = wrapLiteral(range)
 
     domainMin = Infinity
     domainMax = -Infinity
@@ -25,12 +17,20 @@ facet.scale = {
 
     for segment in segments
       domainValue = domain(segment)
-      domainMin = Math.min(domainMin, domainValue)
-      domainMax = Math.max(domainMax, domainValue)
+      if domainValue instanceof Interval
+        domainMin = Math.min(domainMin, domainValue.start)
+        domainMax = Math.max(domainMax, domainValue.end)
+      else
+        domainMin = Math.min(domainMin, domainValue)
+        domainMax = Math.max(domainMax, domainValue)
 
-      rangeValue = rangeFn(segment)
-      rangeFrom = rangeValue[0]
-      rangeTo = Math.min(rangeTo, rangeValue[1])
+      rangeValue = range(segment)
+      if rangeValue instanceof Interval
+        rangeFrom = rangeValue.start # really?
+        rangeTo = Math.min(rangeTo, rangeValue.end)
+      else
+        rangeFrom = 0
+        rangeTo = Math.min(rangeTo, rangeValue)
 
     if not (isFinite(domainMin) and isFinite(domainMax) and isFinite(rangeFrom) and isFinite(rangeTo))
       throw new Error("we went into infinites")
@@ -49,15 +49,7 @@ facet.scale = {
 
   log: ({plusOne}) -> (segments, {domain, range, include}) ->
     domain = wrapLiteral(domain)
-
-    if range in ['width', 'height']
-      rangeFn = (segment) -> [0, segment.getStage()[range]]
-    else if typeof range is 'number'
-      rangeFn = -> [0, range]
-    else if Array.isArray(range) and range.length is 2
-      rangeFn = -> range
-    else
-      throw new Error("bad range")
+    range = wrapLiteral(range)
 
     domainMin = Infinity
     domainMax = -Infinity
@@ -70,12 +62,20 @@ facet.scale = {
 
     for segment in segments
       domainValue = domain(segment)
-      domainMin = Math.min(domainMin, domainValue)
-      domainMax = Math.max(domainMax, domainValue)
+      if domainValue instanceof Interval
+        domainMin = Math.min(domainMin, domainValue.start)
+        domainMax = Math.max(domainMax, domainValue.end)
+      else
+        domainMin = Math.min(domainMin, domainValue)
+        domainMax = Math.max(domainMax, domainValue)
 
-      rangeValue = rangeFn(segment)
-      rangeFrom = rangeValue[0]
-      rangeTo = Math.min(rangeTo, rangeValue[1])
+      rangeValue = range(segment)
+      if rangeValue instanceof Interval
+        rangeFrom = rangeValue.start # really?
+        rangeTo = Math.min(rangeTo, rangeValue.end)
+      else
+        rangeFrom = 0
+        rangeTo = Math.min(rangeTo, rangeValue)
 
     if not (isFinite(domainMin) and isFinite(domainMax) and isFinite(rangeFrom) and isFinite(rangeTo))
       throw new Error("we went into infinites")

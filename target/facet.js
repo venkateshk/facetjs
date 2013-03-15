@@ -228,14 +228,55 @@
   };
 
   facet.use = {
+    literal: function(value) {
+      return function() {
+        return value;
+      };
+    },
     prop: function(propName) {
+      if (!propName) {
+        throw new Error("must specify prop name");
+      }
+      if (typeof propName !== 'string') {
+        throw new TypeError("prop name must be a string");
+      }
       return function(segment) {
         return getProp(segment, propName);
       };
     },
-    literal: function(value) {
-      return function() {
-        return value;
+    scale: function(scaleName, use) {
+      if (!scaleName) {
+        throw new Error("must specify scale name");
+      }
+      if (typeof scaleName !== 'string') {
+        throw new TypeError("scale name must be a string");
+      }
+      return function(segment) {
+        var scale;
+        scale = getScale(segment, scaleName);
+        if (scale.train) {
+          throw new Error("'" + scaleName + "' scale is untrained");
+        }
+        use || (use = scale.use);
+        return scale.fn(use(segment));
+      };
+    },
+    stage: function(attr) {
+      if (typeof attr !== 'string') {
+        throw new Error("must specify attr");
+      }
+      if (attr === 'type') {
+        throw new Error("attr can not be 'type'");
+      }
+      return function(segment) {
+        return segment.getStage()[attr];
+      };
+    },
+    interval: function(start, end) {
+      start = wrapLiteral(start);
+      end = wrapLiteral(end);
+      return function(segment) {
+        return new Interval(start(segment), end(segment));
       };
     },
     fn: function() {
@@ -249,24 +290,6 @@
           return arg(segment);
         }));
       };
-    },
-    scale: function(scaleName, use) {
-      return function(segment) {
-        var scale;
-        scale = getScale(segment, scaleName);
-        if (scale.train) {
-          throw new Error("'" + scaleName + "' scale is untrained");
-        }
-        use || (use = scale.use);
-        return scale.fn(use(segment));
-      };
-    },
-    interval: function(start, end) {
-      start = wrapLiteral(start);
-      end = wrapLiteral(end);
-      return function(segment) {
-        return new Interval(start(segment), end(segment));
-      };
     }
   };
 
@@ -275,24 +298,10 @@
       var nice;
       nice = (_arg != null ? _arg : {}).nice;
       return function(segments, _arg1) {
-        var domain, domainMax, domainMin, domainValue, include, range, rangeFn, rangeFrom, rangeTo, rangeValue, scaleFn, segment, _i, _len;
+        var domain, domainMax, domainMin, domainValue, include, range, rangeFrom, rangeTo, rangeValue, scaleFn, segment, _i, _len;
         include = _arg1.include, domain = _arg1.domain, range = _arg1.range;
         domain = wrapLiteral(domain);
-        if (range === 'width' || range === 'height') {
-          rangeFn = function(segment) {
-            return [0, segment.getStage()[range]];
-          };
-        } else if (typeof range === 'number') {
-          rangeFn = function() {
-            return [0, range];
-          };
-        } else if (Array.isArray(range) && range.length === 2) {
-          rangeFn = function() {
-            return range;
-          };
-        } else {
-          throw new Error("bad range");
-        }
+        range = wrapLiteral(range);
         domainMin = Infinity;
         domainMax = -Infinity;
         rangeFrom = -Infinity;
@@ -304,11 +313,21 @@
         for (_i = 0, _len = segments.length; _i < _len; _i++) {
           segment = segments[_i];
           domainValue = domain(segment);
-          domainMin = Math.min(domainMin, domainValue);
-          domainMax = Math.max(domainMax, domainValue);
-          rangeValue = rangeFn(segment);
-          rangeFrom = rangeValue[0];
-          rangeTo = Math.min(rangeTo, rangeValue[1]);
+          if (domainValue instanceof Interval) {
+            domainMin = Math.min(domainMin, domainValue.start);
+            domainMax = Math.max(domainMax, domainValue.end);
+          } else {
+            domainMin = Math.min(domainMin, domainValue);
+            domainMax = Math.max(domainMax, domainValue);
+          }
+          rangeValue = range(segment);
+          if (rangeValue instanceof Interval) {
+            rangeFrom = rangeValue.start;
+            rangeTo = Math.min(rangeTo, rangeValue.end);
+          } else {
+            rangeFrom = 0;
+            rangeTo = Math.min(rangeTo, rangeValue);
+          }
         }
         if (!(isFinite(domainMin) && isFinite(domainMax) && isFinite(rangeFrom) && isFinite(rangeTo))) {
           throw new Error("we went into infinites");
@@ -327,24 +346,10 @@
       var plusOne;
       plusOne = _arg.plusOne;
       return function(segments, _arg1) {
-        var domain, domainMax, domainMin, domainValue, include, range, rangeFn, rangeFrom, rangeTo, rangeValue, segment, _i, _len;
+        var domain, domainMax, domainMin, domainValue, include, range, rangeFrom, rangeTo, rangeValue, segment, _i, _len;
         domain = _arg1.domain, range = _arg1.range, include = _arg1.include;
         domain = wrapLiteral(domain);
-        if (range === 'width' || range === 'height') {
-          rangeFn = function(segment) {
-            return [0, segment.getStage()[range]];
-          };
-        } else if (typeof range === 'number') {
-          rangeFn = function() {
-            return [0, range];
-          };
-        } else if (Array.isArray(range) && range.length === 2) {
-          rangeFn = function() {
-            return range;
-          };
-        } else {
-          throw new Error("bad range");
-        }
+        range = wrapLiteral(range);
         domainMin = Infinity;
         domainMax = -Infinity;
         rangeFrom = -Infinity;
@@ -356,11 +361,21 @@
         for (_i = 0, _len = segments.length; _i < _len; _i++) {
           segment = segments[_i];
           domainValue = domain(segment);
-          domainMin = Math.min(domainMin, domainValue);
-          domainMax = Math.max(domainMax, domainValue);
-          rangeValue = rangeFn(segment);
-          rangeFrom = rangeValue[0];
-          rangeTo = Math.min(rangeTo, rangeValue[1]);
+          if (domainValue instanceof Interval) {
+            domainMin = Math.min(domainMin, domainValue.start);
+            domainMax = Math.max(domainMax, domainValue.end);
+          } else {
+            domainMin = Math.min(domainMin, domainValue);
+            domainMax = Math.max(domainMax, domainValue);
+          }
+          rangeValue = range(segment);
+          if (rangeValue instanceof Interval) {
+            rangeFrom = rangeValue.start;
+            rangeTo = Math.min(rangeTo, rangeValue.end);
+          } else {
+            rangeFrom = 0;
+            rangeTo = Math.min(rangeTo, rangeValue);
+          }
         }
         if (!(isFinite(domainMin) && isFinite(domainMax) && isFinite(rangeFrom) && isFinite(rangeTo))) {
           throw new Error("we went into infinites");

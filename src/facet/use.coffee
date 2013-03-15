@@ -14,24 +14,36 @@ getScale = (segment, scaleName) ->
   return segment.scale[scaleName] ? getScale(segment.parent, scaleName)
 
 facet.use = {
-  prop: (propName) -> (segment) ->
-    return getProp(segment, propName)
-
   literal: (value) -> () ->
     return value
 
-  fn: (args..., fn) -> (segment) ->
-    throw new TypeError("second argument must be a function") unless typeof fn is 'function'
-    return fn.apply(this, args.map((arg) -> arg(segment)))
+  prop: (propName) ->
+    throw new Error("must specify prop name") unless propName
+    throw new TypeError("prop name must be a string") unless typeof propName is 'string'
+    return (segment) ->
+      return getProp(segment, propName)
 
-  scale: (scaleName, use) -> (segment) ->
-    scale = getScale(segment, scaleName)
-    throw new Error("'#{scaleName}' scale is untrained") if scale.train
-    use or= scale.use
-    return scale.fn(use(segment))
+  scale: (scaleName, use) ->
+    throw new Error("must specify scale name") unless scaleName
+    throw new TypeError("scale name must be a string") unless typeof scaleName is 'string'
+    return (segment) ->
+      scale = getScale(segment, scaleName)
+      throw new Error("'#{scaleName}' scale is untrained") if scale.train
+      use or= scale.use
+      return scale.fn(use(segment))
+
+  stage: (attr) ->
+    throw new Error("must specify attr") unless typeof attr is 'string'
+    throw new Error("attr can not be 'type'") if attr is 'type'
+    return (segment) ->
+      return segment.getStage()[attr]
 
   interval: (start, end) ->
     start = wrapLiteral(start)
     end = wrapLiteral(end)
     return (segment) -> new Interval(start(segment), end(segment))
+
+  fn: (args..., fn) -> (segment) ->
+    throw new TypeError("second argument must be a function") unless typeof fn is 'function'
+    return fn.apply(this, args.map((arg) -> arg(segment)))
 }

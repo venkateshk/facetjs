@@ -73,8 +73,8 @@
             fill: 'none',
             stroke: 'black'
           }))
-          .train('horiz', {domain: use.prop('Added'), range: 'width'})
-          .train('vert',  {domain: use.prop('Deleted'), range: 'height'})
+          .train('horiz', {domain: use.prop('Added'), range: use.stage('width')})
+          .train('vert',  {domain: use.prop('Deleted'), range: use.stage('height')})
           .transform(transform.rectangle.point({ top: use.scale('horiz'), left: use.scale('vert') }))
             .plot(plot.circle({
               radius: 5,

@@ -26,17 +26,19 @@ stripeTile = (dim1, dim2) -> ({ gap, size } = {}) ->
     return segmentGroup.map((segment, i) ->
       curDim1 = dim1s[i]
 
-      psudoStage = {
-        type: 'rectangle'
+      pseudoStage = {
         x: 0
         y: 0
+        stage: {
+          type: 'rectangle'
+        }
       }
-      psudoStage[if dim1 is 'width' then 'x' else 'y'] = dimSoFar
-      psudoStage[dim1] = curDim1
-      psudoStage[dim2] = parentDim2
+      pseudoStage[if dim1 is 'width' then 'x' else 'y'] = dimSoFar
+      pseudoStage.stage[dim1] = curDim1
+      pseudoStage.stage[dim2] = parentDim2
 
       dimSoFar += curDim1 + gap
-      return psudoStage
+      return pseudoStage
     )
 
 facet.layout = {
@@ -66,11 +68,13 @@ facet.layout = {
           x = parentWidth - x - width
 
         return {
-          type: 'rectangle'
           x
           y: 0
-          width
-          height: parentHeight
+          stage: {
+            type: 'rectangle'
+            width
+            height: parentHeight
+          }
         }
       )
 

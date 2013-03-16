@@ -183,31 +183,21 @@ class FacetJob
             for segmentGroup in segmentGroups
               parentSegment = segmentGroup[0].parent
               throw new Error("must split before calling layout") unless parentSegment
-              psudoStages = layout(parentSegment, segmentGroup)
+              pseudoStages = layout(parentSegment, segmentGroup)
               for segment, i in segmentGroup
-                psudoStage = psudoStages[i]
-                stageX = psudoStage.x
-                stageY = psudoStage.y
-                stage = segment.getStage()
-                delete psudoStage.x
-                delete psudoStage.y
-                psudoStage.node = stage.node
-                  .attr('transform', "translate(#{stageX},#{stageY})")
-                segment.setStage(psudoStage)
+                pseudoStage = pseudoStages[i]
+                pseudoStage.stage.node = segment.getStage().node
+                  .attr('transform', "translate(#{pseudoStage.x},#{pseudoStage.y})")
+                segment.setStage(pseudoStage.stage)
 
           when 'transform'
             { transform } = cmd
             for segmentGroup in segmentGroups
               for segment in segmentGroup
-                psudoStage = transform(segment)
-                stageX = psudoStage.x
-                stageY = psudoStage.y
-                stage = segment.getStage()
-                delete psudoStage.x
-                delete psudoStage.y
-                psudoStage.node = stage.node.append('g')
-                  .attr('transform', "translate(#{stageX},#{stageY})")
-                segment.pushStage(psudoStage)
+                pseudoStage = transform(segment)
+                pseudoStage.stage.node = segment.getStage().node.append('g')
+                  .attr('transform', "translate(#{pseudoStage.x},#{pseudoStage.y})")
+                segment.pushStage(pseudoStage.stage)
 
 
           when 'untransform'

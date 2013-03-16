@@ -464,18 +464,20 @@
         dim1s = divideLength(availableDim1, segmentGroup.map(size));
         dimSoFar = 0;
         return segmentGroup.map(function(segment, i) {
-          var curDim1, psudoStage;
+          var curDim1, pseudoStage;
           curDim1 = dim1s[i];
-          psudoStage = {
-            type: 'rectangle',
+          pseudoStage = {
             x: 0,
-            y: 0
+            y: 0,
+            stage: {
+              type: 'rectangle'
+            }
           };
-          psudoStage[dim1 === 'width' ? 'x' : 'y'] = dimSoFar;
-          psudoStage[dim1] = curDim1;
-          psudoStage[dim2] = parentDim2;
+          pseudoStage[dim1 === 'width' ? 'x' : 'y'] = dimSoFar;
+          pseudoStage.stage[dim1] = curDim1;
+          pseudoStage.stage[dim2] = parentDim2;
           dimSoFar += curDim1 + gap;
-          return psudoStage;
+          return pseudoStage;
         });
       };
     };
@@ -509,11 +511,13 @@
             x = parentWidth - x - width;
           }
           return {
-            type: 'rectangle',
             x: x,
             y: 0,
-            width: width,
-            height: parentHeight
+            stage: {
+              type: 'rectangle',
+              width: width,
+              height: parentHeight
+            }
           };
         });
       };
@@ -523,12 +527,13 @@
     }
   };
 
-  pointOnPoint = function(left, right) {
-    left = wrapLiteral(left);
-    right = wrapLiteral(right);
+  pointOnPoint = function(args, leftName, rightName) {
+    var left, right;
+    left = wrapLiteral(args[leftName]);
+    right = wrapLiteral(args[rightName]);
     if (left) {
       if (right) {
-        throw new Error("Over-constrained");
+        throw new Error("Over-constrained by " + leftName + " and " + rightName);
       } else {
         return left;
       }
@@ -545,12 +550,13 @@
     }
   };
 
-  pointOnLine = function(left, right) {
-    left = wrapLiteral(left);
-    right = wrapLiteral(right);
+  pointOnLine = function(args, leftName, rightName) {
+    var left, right;
+    left = wrapLiteral(args[leftName]);
+    right = wrapLiteral(args[rightName]);
     if (left) {
       if (right) {
-        throw new Error("Over-constrained");
+        throw new Error("Over-constrained by " + leftName + " and " + rightName);
       } else {
         return function(segment, stageWidth) {
           return left(segment);
@@ -569,14 +575,14 @@
     }
   };
 
-  lineOnLine = function(left, width, right, dimName) {
-    var flip, fn;
-    left = wrapLiteral(left);
-    width = wrapLiteral(width);
-    right = wrapLiteral(right);
+  lineOnLine = function(args, leftName, widthName, rightName) {
+    var flip, fn, left, right, width;
+    left = wrapLiteral(args[leftName]);
+    width = wrapLiteral(args[widthName]);
+    right = wrapLiteral(args[rightName]);
     if (left && right) {
       if (width) {
-        throw new Error("Over-constrained");
+        throw new Error("Over-constrained by " + widthName);
       }
       return function(segment, stageWidth) {
         var leftValue, rightValue;
@@ -591,13 +597,14 @@
     flip = false;
     if (right && !left) {
       left = right;
+      leftName = rightName;
       flip = true;
     }
     fn = width ? left ? function(segment, stageWidth) {
       var leftValue, widthValue;
       leftValue = left(segment);
       if (leftValue instanceof Interval) {
-        throw new Error("Over-constrained by " + dimName);
+        throw new Error("Over-constrained by " + widthName);
       } else {
         widthValue = width(segment).valueOf();
         return [leftValue, widthValue];
@@ -629,14 +636,14 @@
     }
   };
 
-  lineOnPoint = function(left, width, right, dimName) {
-    var flip, fn;
-    left = wrapLiteral(left);
-    width = wrapLiteral(width);
-    right = wrapLiteral(right);
+  lineOnPoint = function(args, leftName, widthName, rightName) {
+    var flip, fn, left, right, width;
+    left = wrapLiteral(args[leftName]);
+    width = wrapLiteral(args[widthName]);
+    right = wrapLiteral(args[rightName]);
     if (left && right) {
       if (width) {
-        throw new Error("Over-constrained");
+        throw new Error("Over-constrained by " + widthName);
       }
       return function(segment, stageWidth) {
         var leftValue, rightValue;
@@ -651,6 +658,7 @@
     flip = false;
     if (left && !right) {
       right = left;
+      rightName = leftName;
       flip = true;
     }
     fn = (function() {
@@ -660,7 +668,7 @@
             var rightValue, widthValue;
             rightValue = right(segment);
             if (rightValue instanceof Interval) {
-              throw new Error("Over-constrained by " + dimName);
+              throw new Error("Over-constrained by " + widthName);
             } else {
               widthValue = width(segment).valueOf();
               return [rightValue, widthValue];
@@ -685,7 +693,7 @@
             }
           };
         } else {
-          throw new Error("Under-constrained");
+          throw new Error("Under-constrained, must have ether " + leftName + ", " + widthName + " or " + rightName);
         }
       }
     })();
@@ -709,55 +717,68 @@
 
   facet.transform = {
     point: {
-      point: function(_arg) {
-        var bottom, fx, fy, left, right, top, _ref;
-        _ref = _arg != null ? _arg : {}, left = _ref.left, right = _ref.right, top = _ref.top, bottom = _ref.bottom;
-        fx = pointOnPoint(left, right);
-        fy = pointOnPoint(top, bottom);
+      point: function(args) {
+        var fx, fy;
+        if (args == null) {
+          args = {};
+        }
+        fx = pointOnPoint(args, 'left', 'right');
+        fy = pointOnPoint(args, 'top', 'bottom');
         return function(segment) {
           var stage;
           stage = segment.getStage();
           checkStage(stage, 'point');
           return {
-            type: 'point',
             x: fx(segment, stage.width),
-            y: fy(segment, stage.height)
+            y: fy(segment, stage.height),
+            stage: {
+              type: 'point'
+            }
           };
         };
       },
-      line: function(_arg) {
-        var fx, left, right, width, _ref;
-        _ref = _arg != null ? _arg : {}, left = _ref.left, width = _ref.width, right = _ref.right;
-        fx = lineOnPoint(left, width, right, 'width');
+      line: function(args) {
+        var fx;
+        if (args == null) {
+          args = {};
+        }
+        fx = lineOnPoint(args, 'left', 'width', 'right');
         return function(segment) {
-          var stage, w, x, _ref1;
+          var stage, w, x, _ref;
           stage = segment.getStage();
           checkStage(stage, 'point');
-          _ref1 = fx(segment, stage.width), x = _ref1[0], w = _ref1[1];
+          _ref = fx(segment, stage.width), x = _ref[0], w = _ref[1];
           return {
-            type: 'line',
             x: x,
-            width: w
+            y: 0,
+            stage: {
+              type: 'line',
+              length: w
+            }
           };
         };
       },
-      rectangle: function(_arg) {
-        var bottom, fx, fy, height, left, right, top, width, _ref;
-        _ref = _arg != null ? _arg : {}, left = _ref.left, width = _ref.width, right = _ref.right, top = _ref.top, height = _ref.height, bottom = _ref.bottom;
-        fx = lineOnPoint(left, width, right, 'width');
-        fy = lineOnPoint(top, height, bottom, 'height');
+      rectangle: function(args) {
+        var fx, fy;
+        if (args == null) {
+          args = {};
+        }
+        fx = lineOnPoint(args, 'left', 'width', 'right');
+        fy = lineOnPoint(args, 'top', 'height', 'bottom');
         return function(segment) {
-          var h, stage, w, x, y, _ref1, _ref2;
+          var h, stage, w, x, y, _ref, _ref1;
           stage = segment.getStage();
           checkStage(stage, 'point');
-          _ref1 = fx(segment, stage.width), x = _ref1[0], w = _ref1[1];
-          _ref2 = fy(segment, stage.height), y = _ref2[0], h = _ref2[1];
+          _ref = fx(segment, stage.width), x = _ref[0], w = _ref[1];
+          _ref1 = fy(segment, stage.height), y = _ref1[0], h = _ref1[1];
           return {
-            type: 'rectangle',
             x: x,
             y: y,
-            width: w,
-            height: h
+            stage: {
+              type: 'rectangle',
+              width: w,
+              height: h
+            }
           };
         };
       }
@@ -774,42 +795,50 @@
       }
     },
     rectangle: {
-      point: function(_arg) {
-        var bottom, fx, fy, left, right, top, _ref;
-        _ref = _arg != null ? _arg : {}, left = _ref.left, right = _ref.right, top = _ref.top, bottom = _ref.bottom;
-        fx = pointOnLine(left, right);
-        fy = pointOnLine(top, bottom);
+      point: function(args) {
+        var fx, fy;
+        if (args == null) {
+          args = {};
+        }
+        fx = pointOnLine(args, 'left', 'right');
+        fy = pointOnLine(args, 'top', 'bottom');
         return function(segment) {
           var stage;
           stage = segment.getStage();
           checkStage(stage, 'rectangle');
           return {
-            type: 'point',
             x: fx(segment, stage.width),
-            y: fy(segment, stage.height)
+            y: fy(segment, stage.height),
+            stage: {
+              type: 'point'
+            }
           };
         };
       },
       line: function() {
         throw "not implemented yet";
       },
-      rectangle: function(_arg) {
-        var bottom, fx, fy, height, left, right, top, width, _ref;
-        _ref = _arg != null ? _arg : {}, left = _ref.left, width = _ref.width, right = _ref.right, top = _ref.top, height = _ref.height, bottom = _ref.bottom;
-        fx = lineOnLine(left, width, right, 'width');
-        fy = lineOnLine(top, height, bottom, 'height');
+      rectangle: function(args) {
+        var fx, fy;
+        if (args == null) {
+          args = {};
+        }
+        fx = lineOnLine(args, 'left', 'width', 'right');
+        fy = lineOnLine(args, 'top', 'height', 'bottom');
         return function(segment) {
-          var h, stage, w, x, y, _ref1, _ref2;
+          var h, stage, w, x, y, _ref, _ref1;
           stage = segment.getStage();
           checkStage(stage, 'rectangle');
-          _ref1 = fx(segment, stage.width), x = _ref1[0], w = _ref1[1];
-          _ref2 = fy(segment, stage.height), y = _ref2[0], h = _ref2[1];
+          _ref = fx(segment, stage.width), x = _ref[0], w = _ref[1];
+          _ref1 = fy(segment, stage.height), y = _ref1[0], h = _ref1[1];
           return {
-            type: 'rectangle',
             x: x,
             y: y,
-            width: w,
-            height: h
+            stage: {
+              type: 'rectangle',
+              width: w,
+              height: h
+            }
           };
         };
       }
@@ -1040,7 +1069,7 @@
       });
       operations = this.ops;
       this.driver(this.getQuery(), function(err, res) {
-        var cmd, hops, i, layout, name, param, parentSegment, plot, psudoStage, psudoStages, scale, segment, segmentGroup, segmentGroups, sourceSegment, stage, stageX, stageY, transform, unifiedSegments, _i, _j, _k, _l, _len, _len1, _len10, _len2, _len3, _len4, _len5, _len6, _len7, _len8, _len9, _m, _n, _o, _p, _q, _r, _s;
+        var cmd, hops, i, layout, name, param, parentSegment, plot, pseudoStage, pseudoStages, scale, segment, segmentGroup, segmentGroups, sourceSegment, transform, unifiedSegments, _i, _j, _k, _l, _len, _len1, _len10, _len2, _len3, _len4, _len5, _len6, _len7, _len8, _len9, _m, _n, _o, _p, _q, _r, _s;
         svg.classed('loading', false);
         if (err) {
           svg.classed('error', true);
@@ -1138,17 +1167,12 @@
                 if (!parentSegment) {
                   throw new Error("must split before calling layout");
                 }
-                psudoStages = layout(parentSegment, segmentGroup);
+                pseudoStages = layout(parentSegment, segmentGroup);
                 for (i = _m = 0, _len4 = segmentGroup.length; _m < _len4; i = ++_m) {
                   segment = segmentGroup[i];
-                  psudoStage = psudoStages[i];
-                  stageX = psudoStage.x;
-                  stageY = psudoStage.y;
-                  stage = segment.getStage();
-                  delete psudoStage.x;
-                  delete psudoStage.y;
-                  psudoStage.node = stage.node.attr('transform', "translate(" + stageX + "," + stageY + ")");
-                  segment.setStage(psudoStage);
+                  pseudoStage = pseudoStages[i];
+                  pseudoStage.stage.node = segment.getStage().node.attr('transform', "translate(" + pseudoStage.x + "," + pseudoStage.y + ")");
+                  segment.setStage(pseudoStage.stage);
                 }
               }
               break;
@@ -1158,14 +1182,9 @@
                 segmentGroup = segmentGroups[_n];
                 for (_o = 0, _len6 = segmentGroup.length; _o < _len6; _o++) {
                   segment = segmentGroup[_o];
-                  psudoStage = transform(segment);
-                  stageX = psudoStage.x;
-                  stageY = psudoStage.y;
-                  stage = segment.getStage();
-                  delete psudoStage.x;
-                  delete psudoStage.y;
-                  psudoStage.node = stage.node.append('g').attr('transform', "translate(" + stageX + "," + stageY + ")");
-                  segment.pushStage(psudoStage);
+                  pseudoStage = transform(segment);
+                  pseudoStage.stage.node = segment.getStage().node.append('g').attr('transform', "translate(" + pseudoStage.x + "," + pseudoStage.y + ")");
+                  segment.pushStage(pseudoStage.stage);
                 }
               }
               break;

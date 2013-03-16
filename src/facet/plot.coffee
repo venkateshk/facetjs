@@ -48,8 +48,18 @@ facet.plot = {
         .text(text)
       return
 
-  circle: ({radius, stroke, fill}) ->
-    radius = wrapLiteral(radius ? 5)
+  circle: ({radius, area, stroke, fill}) ->
+    radius = wrapLiteral(radius)
+    area = wrapLiteral(area)
+    if area
+      if radius
+        throw new Error('Over-constrained by radius and area')
+      else
+        radius = (segment) -> Math.qurt(area(segment) / Math.PI)
+
+    if not radius
+      radius = -> 5
+
     stroke = wrapLiteral(stroke)
     fill = wrapLiteral(fill)
 

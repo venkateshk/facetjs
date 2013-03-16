@@ -905,9 +905,24 @@
       };
     },
     circle: function(_arg) {
-      var fill, radius, stroke;
-      radius = _arg.radius, stroke = _arg.stroke, fill = _arg.fill;
-      radius = wrapLiteral(radius != null ? radius : 5);
+      var area, fill, radius, stroke;
+      radius = _arg.radius, area = _arg.area, stroke = _arg.stroke, fill = _arg.fill;
+      radius = wrapLiteral(radius);
+      area = wrapLiteral(area);
+      if (area) {
+        if (radius) {
+          throw new Error('Over-constrained by radius and area');
+        } else {
+          radius = function(segment) {
+            return Math.qurt(area(segment) / Math.PI);
+          };
+        }
+      }
+      if (!radius) {
+        radius = function() {
+          return 5;
+        };
+      }
       stroke = wrapLiteral(stroke);
       fill = wrapLiteral(fill);
       return function(segment) {

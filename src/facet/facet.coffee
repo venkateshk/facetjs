@@ -1,3 +1,22 @@
+getScaleAndSegments = (segment, scaleName) ->
+  sourceSegment = segment
+  hops = 0
+  while true
+    break if sourceSegment.scale[scaleName]
+    sourceSegment = sourceSegment.parent
+    hops++
+    throw new Error("can not find scale '#{scaleName}'") unless sourceSegment
+
+  # Get all of sources children on my level (my cousins)
+  unifiedSegments = [sourceSegment]
+  while hops > 0
+    unifiedSegments = flatten(unifiedSegments.map((s) -> s.splits))
+    hops--
+
+  return {
+    scale: sourceSegment.scale[scaleName]
+    unifiedSegments
+  }
 
 class FacetJob
   constructor: (@selector, @width, @height, @driver) ->
@@ -35,7 +54,7 @@ class FacetJob
     return this
 
   scale: (name, scale) ->
-    throw new TypeError("scale must be a function") unless typeof scale is 'function'
+    throw new TypeError("not a valid scale") unless typeof scale.domain is 'function'
     @ops.push({
       operation: 'scale'
       name
@@ -43,11 +62,19 @@ class FacetJob
     })
     return this
 
-  train: (name, param) ->
+  domain: (name, domain) ->
     @ops.push({
-      operation: 'train'
+      operation: 'domain'
       name
-      param
+      domain
+    })
+    return this
+
+  range: (name, range) ->
+    @ops.push({
+      operation: 'range'
+      name
+      range
     })
     return this
 
@@ -152,31 +179,19 @@ class FacetJob
             { name, scale } = cmd
             for segmentGroup in segmentGroups
               for segment in segmentGroup
-                segment.scale[name] = {
-                  train: scale
-                }
+                segment.scale[name] = scale
 
-          when 'train'
-            { name, param } = cmd
+          when 'domain'
+            { name, domain } = cmd
+            { scale, unifiedSegments } = getScaleAndSegments(segmentGroups[0][0], name)
+            throw new Error("Scale '#{name}' domain can't be trained") unless scale.domain
+            scale.domain(unifiedSegments, domain)
 
-            sourceSegment = segmentGroups[0][0]
-            hops = 0
-            while true
-              break if sourceSegment.scale[name]
-              sourceSegment = sourceSegment.parent
-              hops++
-              throw new Error("can not find scale '#{name}'") unless sourceSegment
-
-            # Get all of sources children on my level (my cousins)
-            unifiedSegments = [sourceSegment]
-            while hops > 0
-              unifiedSegments = flatten(unifiedSegments.map((s) -> s.splits))
-              hops--
-
-            if not sourceSegment.scale[name].train
-              throw new Error("Scale '#{name}' already trained")
-
-            sourceSegment.scale[name] = sourceSegment.scale[name].train(unifiedSegments, param)
+          when 'range'
+            { name, range } = cmd
+            { scale, unifiedSegments } = getScaleAndSegments(segmentGroups[0][0], name)
+            throw new Error("Scale '#{name}' range can't be trained") unless scale.range
+            scale.range(unifiedSegments, range)
 
           when 'layout'
             { layout } = cmd

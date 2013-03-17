@@ -90,11 +90,8 @@
             .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 4})
             .layout(layout.vertical({ gap: 3 }))
             .transform(transform.rectangle.rectangle({ left: 200 }))
-              .train('horiz', {
-                domain: use.prop('Edits'),
-                include: 0,
-                range: use.stage('width')
-              })
+              .domain('horiz', use.interval(0, use.prop('Edits')))
+              .range('horiz', use.stage('width'))
               .transform(transform.rectangle.rectangle({
                 left: 0,
                 height: use.scale('vert')

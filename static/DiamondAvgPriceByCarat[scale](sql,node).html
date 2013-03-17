@@ -67,20 +67,15 @@
       facet.define('.example', 800, 600, sqlDriverClient)
         .transform(transform.rectangle.rectangle({left: 10, right: 10, top: 10, bottom: 10}))
         .scale('horiz', scale.linear())
+        .range('horiz', use.stage('width'))
         .scale('vert', scale.linear())
           .split('Carat', split.continuous('carat', 0.1))
           .apply('AvgPrice', apply.average('price'))
           .combine({ sort: { prop: 'Carat', direction: 'ascending' }})
-          .train('horiz', {
-            domain: use.prop('Carat'),
-            range: use.stage('width')
-          })
+          .domain('horiz', use.prop('Carat'))
+          .domain('vert', use.interval(0, use.prop('AvgPrice')))
           .layout(layout.horizontalScale({ scale: 'horiz' }))
-          .train('vert', {
-            include: 0,
-            domain: use.prop('AvgPrice'),
-            range: use.stage('height')
-          })
+          .range('vert', use.stage('height'))
           .transform(transform.rectangle.rectangle({
             bottom: 0,
             height: use.scale('vert')

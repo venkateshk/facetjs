@@ -32,11 +32,12 @@ facet.use = {
       use or= scale.use
       return scale.fn(use(segment))
 
-  stage: (attr) ->
+  stage: (attr, scale) ->
     throw new Error("must specify attr") unless typeof attr is 'string'
     throw new Error("attr can not be 'type'") if attr is 'type'
+    scale ?= 1
     return (segment) ->
-      return segment.getStage()[attr]
+      return segment.getStage()[attr] * scale
 
   interval: (start, end) ->
     start = wrapLiteral(start)

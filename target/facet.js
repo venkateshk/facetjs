@@ -2,7 +2,7 @@
 (function() {
   "use strict";
 
-  var FacetJob, Interval, Segment, arraySubclass, checkStage, divideLength, facet, flatten, getProp, getScale, isValidStage, lineOnLine, lineOnPoint, pointOnLine, pointOnPoint, stripeTile, wrapLiteral,
+  var FacetJob, Interval, Segment, arraySubclass, checkStage, divideLength, facet, flatten, getProp, getScale, getScaleAndSegments, isValidStage, lineOnLine, lineOnPoint, pointOnLine, pointOnPoint, scaleOverInterval, stripeTile, wrapLiteral,
     __slice = [].slice;
 
   window.facet = facet = {
@@ -277,15 +277,18 @@
         return scale.fn(use(segment));
       };
     },
-    stage: function(attr) {
+    stage: function(attr, scale) {
       if (typeof attr !== 'string') {
         throw new Error("must specify attr");
       }
       if (attr === 'type') {
         throw new Error("attr can not be 'type'");
       }
+      if (scale == null) {
+        scale = 1;
+      }
       return function(segment) {
-        return segment.getStage()[attr];
+        return segment.getStage()[attr] * scale;
       };
     },
     interval: function(start, end) {
@@ -309,124 +312,90 @@
     }
   };
 
+  scaleOverInterval = function(basicScale) {
+    return function(x) {
+      if (x instanceof Interval) {
+        return new Interval(basicScale(x.start), basicScale(x.end));
+      } else {
+        return basicScale(x);
+      }
+    };
+  };
+
   facet.scale = {
     linear: function(_arg) {
-      var nice;
+      var basicScale, nice, self;
       nice = (_arg != null ? _arg : {}).nice;
-      return function(segments, _arg1) {
-        var basicScale, domain, domainMax, domainMin, domainValue, include, range, rangeFrom, rangeTo, rangeValue, scaleFn, segment, _i, _len;
-        include = _arg1.include, domain = _arg1.domain, range = _arg1.range;
-        domain = wrapLiteral(domain);
-        range = wrapLiteral(range);
-        domainMin = Infinity;
-        domainMax = -Infinity;
-        rangeFrom = -Infinity;
-        rangeTo = Infinity;
-        if (include != null) {
-          domainMin = Math.min(domainMin, include);
-          domainMax = Math.max(domainMax, include);
-        }
-        for (_i = 0, _len = segments.length; _i < _len; _i++) {
-          segment = segments[_i];
-          domainValue = domain(segment);
-          if (domainValue instanceof Interval) {
-            domainMin = Math.min(domainMin, domainValue.start);
-            domainMax = Math.max(domainMax, domainValue.end);
-          } else {
-            domainMin = Math.min(domainMin, domainValue);
-            domainMax = Math.max(domainMax, domainValue);
+      basicScale = d3.scale.linear();
+      self = {
+        domain: function(segments, domain) {
+          var domainMax, domainMin, domainValue, segment, _i, _len;
+          domain = wrapLiteral(domain);
+          domainMin = Infinity;
+          domainMax = -Infinity;
+          for (_i = 0, _len = segments.length; _i < _len; _i++) {
+            segment = segments[_i];
+            domainValue = domain(segment);
+            if (domainValue instanceof Interval) {
+              domainMin = Math.min(domainMin, domainValue.start);
+              domainMax = Math.max(domainMax, domainValue.end);
+            } else {
+              domainMin = Math.min(domainMin, domainValue);
+              domainMax = Math.max(domainMax, domainValue);
+            }
           }
-          rangeValue = range(segment);
-          if (rangeValue instanceof Interval) {
-            rangeFrom = rangeValue.start;
-            rangeTo = Math.min(rangeTo, rangeValue.end);
-          } else {
-            rangeFrom = 0;
-            rangeTo = Math.min(rangeTo, rangeValue);
+          if (!(isFinite(domainMin) && isFinite(domainMax))) {
+            throw new Error("Domain went into infinites");
           }
-        }
-        if (!(isFinite(domainMin) && isFinite(domainMax) && isFinite(rangeFrom) && isFinite(rangeTo))) {
-          throw new Error("we went into infinites");
-        }
-        basicScale = d3.scale.linear().domain([domainMin, domainMax]).range([rangeFrom, rangeTo]);
-        if (nice) {
-          basicScale.nice();
-        }
-        scaleFn = function(x) {
-          if (x instanceof Interval) {
-            return new Interval(basicScale(x.start), basicScale(x.end));
-          } else {
-            return basicScale(x);
+          basicScale.domain([domainMin, domainMax]);
+          if (nice) {
+            basicScale.nice();
           }
-        };
-        return {
-          fn: scaleFn,
-          use: domain
-        };
+          delete self.domain;
+          self.use = domain;
+          self.fn = scaleOverInterval(basicScale);
+        },
+        range: function(segments, range) {
+          var rangeFrom, rangeTo, rangeValue, segment, _i, _len;
+          range = wrapLiteral(range);
+          rangeFrom = -Infinity;
+          rangeTo = Infinity;
+          for (_i = 0, _len = segments.length; _i < _len; _i++) {
+            segment = segments[_i];
+            rangeValue = range(segment);
+            if (rangeValue instanceof Interval) {
+              rangeFrom = rangeValue.start;
+              rangeTo = Math.min(rangeTo, rangeValue.end);
+            } else {
+              rangeFrom = 0;
+              rangeTo = Math.min(rangeTo, rangeValue);
+            }
+          }
+          if (!(isFinite(rangeFrom) && isFinite(rangeTo))) {
+            throw new Error("Range went into infinites");
+          }
+          basicScale.range([rangeFrom, rangeTo]);
+          delete self.range;
+        }
       };
-    },
-    log: function(_arg) {
-      var plusOne;
-      plusOne = _arg.plusOne;
-      return function(segments, _arg1) {
-        var basicScale, domain, domainMax, domainMin, domainValue, include, range, rangeFrom, rangeTo, rangeValue, scaleFn, segment, _i, _len;
-        domain = _arg1.domain, range = _arg1.range, include = _arg1.include;
-        domain = wrapLiteral(domain);
-        range = wrapLiteral(range);
-        domainMin = Infinity;
-        domainMax = -Infinity;
-        rangeFrom = -Infinity;
-        rangeTo = Infinity;
-        if (include != null) {
-          domainMin = Math.min(domainMin, include);
-          domainMax = Math.max(domainMax, include);
-        }
-        for (_i = 0, _len = segments.length; _i < _len; _i++) {
-          segment = segments[_i];
-          domainValue = domain(segment);
-          if (domainValue instanceof Interval) {
-            domainMin = Math.min(domainMin, domainValue.start);
-            domainMax = Math.max(domainMax, domainValue.end);
-          } else {
-            domainMin = Math.min(domainMin, domainValue);
-            domainMax = Math.max(domainMax, domainValue);
-          }
-          rangeValue = range(segment);
-          if (rangeValue instanceof Interval) {
-            rangeFrom = rangeValue.start;
-            rangeTo = Math.min(rangeTo, rangeValue.end);
-          } else {
-            rangeFrom = 0;
-            rangeTo = Math.min(rangeTo, rangeValue);
-          }
-        }
-        if (!(isFinite(domainMin) && isFinite(domainMax) && isFinite(rangeFrom) && isFinite(rangeTo))) {
-          throw new Error("we went into infinites");
-        }
-        basicScale = d3.scale.log().domain([domainMin, domainMax]).range([rangeFrom, rangeTo]);
-        scaleFn = function(x) {
-          if (x instanceof Interval) {
-            return new Interval(basicScale(x.start), basicScale(x.end));
-          } else {
-            return x;
-          }
-        };
-        return {
-          fn: scaleFn,
-          use: domain
-        };
-      };
+      return self;
     },
     color: function() {
-      return function(segments, _arg) {
-        var domain;
-        domain = _arg.domain;
-        domain = wrapLiteral(domain);
-        return {
-          fn: d3.scale.category10().domain(segments.map(domain)),
-          use: domain
-        };
+      var basicScale, self;
+      basicScale = d3.scale.category10();
+      self = {
+        domain: function(segments, domain) {
+          domain = wrapLiteral(domain);
+          basicScale = basicScale.domain(segments.map(domain));
+          delete self.domain;
+          self.use = domain;
+          self.fn = scaleOverInterval(basicScale);
+        },
+        range: function(segments, range) {
+          delete self.range;
+        }
       };
+      return self;
     }
   };
 
@@ -855,10 +824,10 @@
 
   facet.plot = {
     box: function(_arg) {
-      var fill, opacity, stroke;
-      stroke = _arg.stroke, fill = _arg.fill, opacity = _arg.opacity;
-      stroke = wrapLiteral(stroke);
-      fill = wrapLiteral(fill);
+      var color, fill, opacity, stroke;
+      color = _arg.color, stroke = _arg.stroke, fill = _arg.fill, opacity = _arg.opacity;
+      stroke = wrapLiteral(stroke || color);
+      fill = wrapLiteral(fill || color);
       opacity = wrapLiteral(opacity);
       return function(segment) {
         var stage;
@@ -905,8 +874,8 @@
       };
     },
     circle: function(_arg) {
-      var area, fill, radius, stroke;
-      radius = _arg.radius, area = _arg.area, stroke = _arg.stroke, fill = _arg.fill;
+      var area, color, fill, radius, stroke;
+      radius = _arg.radius, area = _arg.area, color = _arg.color, stroke = _arg.stroke, fill = _arg.fill;
       radius = wrapLiteral(radius);
       area = wrapLiteral(area);
       if (area) {
@@ -923,8 +892,8 @@
           return 5;
         };
       }
-      stroke = wrapLiteral(stroke);
-      fill = wrapLiteral(fill);
+      stroke = wrapLiteral(stroke || color);
+      fill = wrapLiteral(fill || color);
       return function(segment) {
         var stage;
         stage = segment.getStage();
@@ -934,6 +903,33 @@
         stage.node.append('circle').datum(segment).attr('r', radius).style('fill', fill).style('stroke', stroke);
       };
     }
+  };
+
+  getScaleAndSegments = function(segment, scaleName) {
+    var hops, sourceSegment, unifiedSegments;
+    sourceSegment = segment;
+    hops = 0;
+    while (true) {
+      if (sourceSegment.scale[scaleName]) {
+        break;
+      }
+      sourceSegment = sourceSegment.parent;
+      hops++;
+      if (!sourceSegment) {
+        throw new Error("can not find scale '" + scaleName + "'");
+      }
+    }
+    unifiedSegments = [sourceSegment];
+    while (hops > 0) {
+      unifiedSegments = flatten(unifiedSegments.map(function(s) {
+        return s.splits;
+      }));
+      hops--;
+    }
+    return {
+      scale: sourceSegment.scale[scaleName],
+      unifiedSegments: unifiedSegments
+    };
   };
 
   FacetJob = (function() {
@@ -989,8 +985,8 @@
     };
 
     FacetJob.prototype.scale = function(name, scale) {
-      if (typeof scale !== 'function') {
-        throw new TypeError("scale must be a function");
+      if (typeof scale.domain !== 'function') {
+        throw new TypeError("not a valid scale");
       }
       this.ops.push({
         operation: 'scale',
@@ -1000,11 +996,20 @@
       return this;
     };
 
-    FacetJob.prototype.train = function(name, param) {
+    FacetJob.prototype.domain = function(name, domain) {
       this.ops.push({
-        operation: 'train',
+        operation: 'domain',
         name: name,
-        param: param
+        domain: domain
+      });
+      return this;
+    };
+
+    FacetJob.prototype.range = function(name, range) {
+      this.ops.push({
+        operation: 'range',
+        name: name,
+        range: range
       });
       return this;
     };
@@ -1084,7 +1089,7 @@
       });
       operations = this.ops;
       this.driver(this.getQuery(), function(err, res) {
-        var cmd, hops, i, layout, name, param, parentSegment, plot, pseudoStage, pseudoStages, scale, segment, segmentGroup, segmentGroups, sourceSegment, transform, unifiedSegments, _i, _j, _k, _l, _len, _len1, _len10, _len2, _len3, _len4, _len5, _len6, _len7, _len8, _len9, _m, _n, _o, _p, _q, _r, _s;
+        var cmd, domain, i, layout, name, parentSegment, plot, pseudoStage, pseudoStages, range, scale, segment, segmentGroup, segmentGroups, transform, unifiedSegments, _i, _j, _k, _l, _len, _len1, _len10, _len2, _len3, _len4, _len5, _len6, _len7, _len8, _len9, _m, _n, _o, _p, _q, _r, _ref, _ref1, _s;
         svg.classed('loading', false);
         if (err) {
           svg.classed('error', true);
@@ -1142,37 +1147,25 @@
                 segmentGroup = segmentGroups[_j];
                 for (_k = 0, _len2 = segmentGroup.length; _k < _len2; _k++) {
                   segment = segmentGroup[_k];
-                  segment.scale[name] = {
-                    train: scale
-                  };
+                  segment.scale[name] = scale;
                 }
               }
               break;
-            case 'train':
-              name = cmd.name, param = cmd.param;
-              sourceSegment = segmentGroups[0][0];
-              hops = 0;
-              while (true) {
-                if (sourceSegment.scale[name]) {
-                  break;
-                }
-                sourceSegment = sourceSegment.parent;
-                hops++;
-                if (!sourceSegment) {
-                  throw new Error("can not find scale '" + name + "'");
-                }
+            case 'domain':
+              name = cmd.name, domain = cmd.domain;
+              _ref = getScaleAndSegments(segmentGroups[0][0], name), scale = _ref.scale, unifiedSegments = _ref.unifiedSegments;
+              if (!scale.domain) {
+                throw new Error("Scale '" + name + "' domain can't be trained");
               }
-              unifiedSegments = [sourceSegment];
-              while (hops > 0) {
-                unifiedSegments = flatten(unifiedSegments.map(function(s) {
-                  return s.splits;
-                }));
-                hops--;
+              scale.domain(unifiedSegments, domain);
+              break;
+            case 'range':
+              name = cmd.name, range = cmd.range;
+              _ref1 = getScaleAndSegments(segmentGroups[0][0], name), scale = _ref1.scale, unifiedSegments = _ref1.unifiedSegments;
+              if (!scale.range) {
+                throw new Error("Scale '" + name + "' range can't be trained");
               }
-              if (!sourceSegment.scale[name].train) {
-                throw new Error("Scale '" + name + "' already trained");
-              }
-              sourceSegment.scale[name] = sourceSegment.scale[name].train(unifiedSegments, param);
+              scale.range(unifiedSegments, range);
               break;
             case 'layout':
               layout = cmd.layout;

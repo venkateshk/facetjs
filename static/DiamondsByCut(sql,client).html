@@ -67,7 +67,7 @@
           .apply('AvgPrice', apply.average('price'))
           .combine({ sort: { prop: 'AvgPrice', direction: 'descending' }})
           .layout(layout.vertical({ size: use.prop('Count'), gap: 3 }))
-          .train('color', {domain: use.prop('Cut')})
+          .domain('color', use.prop('Cut'))
           .plot(plot.box({
             fill: '#f0f0f0',
             stroke: use.scale('color')

@@ -71,11 +71,8 @@
           .apply('AvgPrice', apply.average('price'))
           .combine({ sort: { prop: 'Carat', direction: 'ascending' }})
           .layout(layout.horizontal({ gap: 3 }))
-          .train('vert', {
-            include: 0,
-            domain: use.prop('AvgPrice'),
-            range: use.stage('height')
-          })
+          .domain('vert', use.interval(0, use.prop('AvgPrice')))
+          .range('vert', use.stage('height'))
           .transform(transform.rectangle.rectangle({
             bottom: 0,
             height: use.scale('vert')

@@ -1,111 +1,87 @@
 # A function that makes a scale and adds it to the segment.
 # Arguments* -> Segment -> { fn, use }
 
+scaleOverInterval = (basicScale) -> (x) ->
+  if x instanceof Interval
+    return new Interval(basicScale(x.start), basicScale(x.end))
+  else
+    return basicScale(x)
+
+
 facet.scale = {
-  linear: ({nice} = {}) -> (segments, {include, domain, range}) ->
-    domain = wrapLiteral(domain)
-    range = wrapLiteral(range)
-
-    domainMin = Infinity
-    domainMax = -Infinity
-    rangeFrom = -Infinity
-    rangeTo = Infinity
-
-    if include?
-      domainMin = Math.min(domainMin, include)
-      domainMax = Math.max(domainMax, include)
-
-    for segment in segments
-      domainValue = domain(segment)
-      if domainValue instanceof Interval
-        domainMin = Math.min(domainMin, domainValue.start)
-        domainMax = Math.max(domainMax, domainValue.end)
-      else
-        domainMin = Math.min(domainMin, domainValue)
-        domainMax = Math.max(domainMax, domainValue)
-
-      rangeValue = range(segment)
-      if rangeValue instanceof Interval
-        rangeFrom = rangeValue.start # really?
-        rangeTo = Math.min(rangeTo, rangeValue.end)
-      else
-        rangeFrom = 0
-        rangeTo = Math.min(rangeTo, rangeValue)
-
-    if not (isFinite(domainMin) and isFinite(domainMax) and isFinite(rangeFrom) and isFinite(rangeTo))
-      throw new Error("we went into infinites")
-
+  linear: ({nice} = {}) ->
     basicScale = d3.scale.linear()
-      .domain([domainMin, domainMax])
-      .range([rangeFrom, rangeTo])
 
-    if nice
-      basicScale.nice()
+    self = {
+      domain: (segments, domain) ->
+        domain = wrapLiteral(domain)
 
-    scaleFn = (x) ->
-      if x instanceof Interval
-        return new Interval(basicScale(x.start), basicScale(x.end))
-      else
-        return basicScale(x)
+        domainMin = Infinity
+        domainMax = -Infinity
 
-    return {
-      fn: scaleFn
-      use: domain
+        for segment in segments
+          domainValue = domain(segment)
+          if domainValue instanceof Interval
+            domainMin = Math.min(domainMin, domainValue.start)
+            domainMax = Math.max(domainMax, domainValue.end)
+          else
+            domainMin = Math.min(domainMin, domainValue)
+            domainMax = Math.max(domainMax, domainValue)
+
+        throw new Error("Domain went into infinites") unless isFinite(domainMin) and isFinite(domainMax)
+        basicScale.domain([domainMin, domainMax])
+
+        if nice
+          basicScale.nice()
+
+        delete self.domain
+        self.use = domain
+        self.fn = scaleOverInterval(basicScale)
+        return
+
+      range: (segments, range) ->
+        range = wrapLiteral(range)
+
+        rangeFrom = -Infinity
+        rangeTo = Infinity
+
+        for segment in segments
+          rangeValue = range(segment)
+          if rangeValue instanceof Interval
+            rangeFrom = rangeValue.start # really?
+            rangeTo = Math.min(rangeTo, rangeValue.end)
+          else
+            rangeFrom = 0
+            rangeTo = Math.min(rangeTo, rangeValue)
+
+        throw new Error("Range went into infinites") unless isFinite(rangeFrom) and isFinite(rangeTo)
+
+        basicScale.range([rangeFrom, rangeTo])
+        delete self.range
+        return
     }
 
-  log: ({plusOne}) -> (segments, {domain, range, include}) ->
-    domain = wrapLiteral(domain)
-    range = wrapLiteral(range)
+    return self
 
-    domainMin = Infinity
-    domainMax = -Infinity
-    rangeFrom = -Infinity
-    rangeTo = Infinity
 
-    if include?
-      domainMin = Math.min(domainMin, include)
-      domainMax = Math.max(domainMax, include)
+  color: () ->
+    basicScale = d3.scale.category10()
 
-    for segment in segments
-      domainValue = domain(segment)
-      if domainValue instanceof Interval
-        domainMin = Math.min(domainMin, domainValue.start)
-        domainMax = Math.max(domainMax, domainValue.end)
-      else
-        domainMin = Math.min(domainMin, domainValue)
-        domainMax = Math.max(domainMax, domainValue)
+    self = {
+      domain: (segments, domain) ->
+        domain = wrapLiteral(domain)
 
-      rangeValue = range(segment)
-      if rangeValue instanceof Interval
-        rangeFrom = rangeValue.start # really?
-        rangeTo = Math.min(rangeTo, rangeValue.end)
-      else
-        rangeFrom = 0
-        rangeTo = Math.min(rangeTo, rangeValue)
+        basicScale = basicScale.domain(segments.map(domain))
 
-    if not (isFinite(domainMin) and isFinite(domainMax) and isFinite(rangeFrom) and isFinite(rangeTo))
-      throw new Error("we went into infinites")
+        delete self.domain
+        self.use = domain
+        self.fn = scaleOverInterval(basicScale)
+        return
 
-    basicScale = d3.scale.log()
-      .domain([domainMin, domainMax])
-      .range([rangeFrom, rangeTo])
-
-    scaleFn = (x) ->
-      if x instanceof Interval
-        return new Interval(basicScale(x.start), basicScale(x.end))
-      else
-        return x
-
-    return {
-      fn: scaleFn
-      use: domain
+      range: (segments, range) ->
+        delete self.range
+        return
     }
 
-  color: () -> (segments, {domain}) ->
-    domain = wrapLiteral(domain)
-
-    return {
-      fn: d3.scale.category10().domain(segments.map(domain))
-      use: domain
-    }
+    return self
 }

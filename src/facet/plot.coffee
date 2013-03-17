@@ -2,9 +2,9 @@
 # Arguments* -> Segment -> void
 
 facet.plot = {
-  box: ({stroke, fill, opacity}) ->
-    stroke = wrapLiteral(stroke)
-    fill = wrapLiteral(fill)
+  box: ({color, stroke, fill, opacity}) ->
+    stroke = wrapLiteral(stroke or color)
+    fill = wrapLiteral(fill or color)
     opacity = wrapLiteral(opacity)
 
     return (segment) ->
@@ -48,7 +48,7 @@ facet.plot = {
         .text(text)
       return
 
-  circle: ({radius, area, stroke, fill}) ->
+  circle: ({radius, area, color, stroke, fill}) ->
     radius = wrapLiteral(radius)
     area = wrapLiteral(area)
     if area
@@ -60,8 +60,8 @@ facet.plot = {
     if not radius
       radius = -> 5
 
-    stroke = wrapLiteral(stroke)
-    fill = wrapLiteral(fill)
+    stroke = wrapLiteral(stroke or color)
+    fill = wrapLiteral(fill or color)
 
     return (segment) ->
       stage = segment.getStage()

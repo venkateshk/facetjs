@@ -70,6 +70,7 @@
         .range('horiz', use.stage('width'))
         .scale('vert', scale.linear())
           .split('Carat', split.continuous('carat', 0.1))
+          .apply('Count', apply.count())
           .apply('AvgPrice', apply.average('price'))
           .combine({ sort: { prop: 'Carat', direction: 'ascending' }})
           .domain('horiz', use.prop('Carat'))
@@ -95,6 +96,12 @@
               .plot(plot.circle({
                 color: 'red',
                 radius: 3
+              }))
+              .plot(plot.label({
+                baseline: 'bottom',
+                anchor: 'middle',
+                size: 10,
+                text: use.prop('Count')
               }))
               .render()
     })();

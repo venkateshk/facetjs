@@ -14,5 +14,6 @@ coffee --compile --watch --lint --output target --join target/facet.js \
   src/facet/layout.coffee \
   src/facet/transform.coffee \
   src/facet/plot.coffee \
+  src/facet/connector.coffee \
   src/facet/facet.coffee \
   src/facet/proxy.coffee &

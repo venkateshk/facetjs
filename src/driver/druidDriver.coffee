@@ -231,7 +231,7 @@ druidQuery = {
         callback(err)
         return
 
-      # ToDo: re-factor this
+      # ToDo: implement actual timezones
       durationMap = {
         second: 1000
         minute: 60 * 1000

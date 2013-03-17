@@ -221,7 +221,7 @@
       if (condensedQuery.split) {
         splitAttribute = condensedQuery.split.attribute;
         splitProp = condensedQuery.split.prop;
-        if (condensedQuery.split.bucket = 'continuous') {
+        if (condensedQuery.split.bucket === 'continuous') {
           splitHalfSize = condensedQuery.split.size / 2;
           for (_j = 0, _len1 = ds.length; _j < _len1; _j++) {
             d = ds[_j];

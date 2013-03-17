@@ -32,6 +32,12 @@
     function Interval(start, end) {
       this.start = start;
       this.end = end;
+      if (typeof this.start.valueOf() === 'number') {
+        throw new Error("invalid start (is '" + this.start + "')");
+      }
+      if (typeof this.end.valueOf() === 'number') {
+        throw new Error("invalid end (is '" + this.end + "')");
+      }
       return;
     }
 

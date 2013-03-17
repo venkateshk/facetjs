@@ -191,7 +191,7 @@ condensedQueryToSQL = ({requester, table, filters, condensedQuery}, callback) ->
       splitAttribute = condensedQuery.split.attribute
       splitProp = condensedQuery.split.prop
 
-      if condensedQuery.split.bucket = 'continuous'
+      if condensedQuery.split.bucket is 'continuous'
         splitHalfSize = condensedQuery.split.size / 2
         for d in ds
           mid = d[splitProp]

@@ -32,10 +32,10 @@
     function Interval(start, end) {
       this.start = start;
       this.end = end;
-      if (typeof this.start.valueOf() === 'number') {
+      if (typeof this.start.valueOf() !== 'number') {
         throw new Error("invalid start (is '" + this.start + "')");
       }
-      if (typeof this.end.valueOf() === 'number') {
+      if (typeof this.end.valueOf() !== 'number') {
         throw new Error("invalid end (is '" + this.end + "')");
       }
       return;
@@ -832,7 +832,7 @@
     box: function(_arg) {
       var color, fill, opacity, stroke;
       color = _arg.color, stroke = _arg.stroke, fill = _arg.fill, opacity = _arg.opacity;
-      stroke = wrapLiteral(stroke || color);
+      stroke = wrapLiteral(stroke);
       fill = wrapLiteral(fill || color);
       opacity = wrapLiteral(opacity);
       return function(segment) {
@@ -898,7 +898,7 @@
           return 5;
         };
       }
-      stroke = wrapLiteral(stroke || color);
+      stroke = wrapLiteral(stroke);
       fill = wrapLiteral(fill || color);
       return function(segment) {
         var stage;

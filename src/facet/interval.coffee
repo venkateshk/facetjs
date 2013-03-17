@@ -1,7 +1,7 @@
 class Interval
   constructor: (@start, @end) ->
-    throw new Error("invalid start (is '#{@start}')") if typeof @start.valueOf() is 'number'
-    throw new Error("invalid end (is '#{@end}')") if typeof @end.valueOf() is 'number'
+    throw new Error("invalid start (is '#{@start}')") unless typeof @start.valueOf() is 'number'
+    throw new Error("invalid end (is '#{@end}')") unless typeof @end.valueOf() is 'number'
     return
 
   transform: (fn) ->

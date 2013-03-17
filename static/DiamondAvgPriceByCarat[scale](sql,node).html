@@ -90,6 +90,12 @@
                 baseline: 'center',
                 angle: 90
               }))
+            .untransform()
+            .transform(transform.rectangle.point({ top: 0 }))
+              .plot(plot.circle({
+                color: 'red',
+                radius: 3
+              }))
               .render()
     })();
     </script>

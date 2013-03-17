@@ -3,7 +3,7 @@
 
 facet.plot = {
   box: ({color, stroke, fill, opacity}) ->
-    stroke = wrapLiteral(stroke or color)
+    stroke = wrapLiteral(stroke)
     fill = wrapLiteral(fill or color)
     opacity = wrapLiteral(opacity)
 
@@ -60,7 +60,7 @@ facet.plot = {
     if not radius
       radius = -> 5
 
-    stroke = wrapLiteral(stroke or color)
+    stroke = wrapLiteral(stroke)
     fill = wrapLiteral(fill or color)
 
     return (segment) ->

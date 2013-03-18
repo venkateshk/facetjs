@@ -198,6 +198,16 @@
         aggregate: 'unique',
         attribute: attribute
       };
+    },
+    quantile: function(attribute, quantile) {
+      if (!((0 <= quantile && quantile <= 1))) {
+        throw new TypeError('bad quantile');
+      }
+      return {
+        aggregate: 'quantile',
+        attribute: attribute,
+        quantile: quantile
+      };
     }
   };
 
@@ -910,6 +920,8 @@
       };
     }
   };
+
+  facet.conncetor = {};
 
   getScaleAndSegments = function(segment, scaleName) {
     var hops, sourceSegment, unifiedSegments;

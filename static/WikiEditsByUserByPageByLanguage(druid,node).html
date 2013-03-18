@@ -61,7 +61,7 @@
 
       facet.define('.example', 800, 600, druidDriverNode)
         .split('Language', split.identity('language'))
-        .apply('Edits', apply.sum('count')) // ToDo: find out why?!?!
+        .apply('Edits', apply.sum('count'))
         .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 4})
         .layout(layout.vertical({ gap: 3 }))
         .plot(plot.box({

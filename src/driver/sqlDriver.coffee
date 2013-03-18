@@ -135,6 +135,12 @@ condensedQueryToSQL = ({requester, table, filters, condensedQuery}, callback) ->
       when 'unique'
         selectParts.push "COUNT(DISTINCT #{escAttribute(apply.attribute)}) AS \"#{apply.prop}\""
 
+      when 'quantile'
+        callback("not implemented yet (ToDo)"); return
+
+      else
+        callback("no such apply '#{apply.aggregate}'"); return
+
   # filter
   filterPart = null
   if filters

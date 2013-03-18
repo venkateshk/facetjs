@@ -82,6 +82,9 @@
     applyIdx = 0;
     while (applyIdx < applies.length) {
       apply = applies[applyIdx++];
+      if (!apply.prop) {
+        throw new Error("apply must have prop");
+      }
       switch (apply.aggregate) {
         case 'count':
           druidQuery.aggregations.push({
@@ -156,6 +159,25 @@
             name: apply.prop,
             fieldName: apply.attribute
           });
+          break;
+        case 'quantile':
+          if (!apply.quantile) {
+            throw new Error("quantile apply must have quantile");
+          }
+          druidQuery.aggregations.push({
+            type: "approxHistogramFold",
+            name: '_' + apply.attribute,
+            fieldName: '_' + apply.attribute
+          });
+          druidQuery.postAggregations.push({
+            type: "quantile",
+            name: apply.prop,
+            fieldName: '_' + apply.attribute,
+            probability: apply.quantile
+          });
+          break;
+        default:
+          throw new Error("No supported aggregation " + apply.aggregate);
       }
     }
   };

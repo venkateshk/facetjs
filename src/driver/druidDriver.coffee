@@ -55,6 +55,7 @@ addApplies = (druidQuery, applies) ->
   applyIdx = 0
   while applyIdx < applies.length # Note that the apply list can grow
     apply = applies[applyIdx++]
+    throw new Error("apply must have prop") unless apply.prop
     switch apply.aggregate
       when 'count'
         druidQuery.aggregations.push {
@@ -124,6 +125,24 @@ addApplies = (druidQuery, applies) ->
           name: apply.prop
           fieldName: apply.attribute
         }
+
+      when 'quantile'
+        throw new Error("quantile apply must have quantile") unless apply.quantile
+        druidQuery.aggregations.push {
+          type: "approxHistogramFold"
+          name: '_' + apply.attribute
+          fieldName: '_' + apply.attribute # ToDo: make it so that approxHistogramFolds can be shared
+        }
+        druidQuery.postAggregations.push {
+          type: "quantile"
+          name: apply.prop
+          fieldName: '_' + apply.attribute
+          probability: apply.quantile
+        }
+
+      else
+        throw new Error("No supported aggregation #{apply.aggregate}")
+
   return
 
 

@@ -89,6 +89,10 @@ applyFns = {
         count++
         seen[v] = 1
     return count
+
+  quantile: ({attribute, quantile}) -> (ds) ->
+    throw "not implemented yet (ToDo)"
+    return
 }
 
 compareFns = {

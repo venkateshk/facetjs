@@ -156,6 +156,13 @@
         }
         return count;
       };
+    },
+    quantile: function(_arg) {
+      var attribute, quantile;
+      attribute = _arg.attribute, quantile = _arg.quantile;
+      return function(ds) {
+        throw "not implemented yet (ToDo)";
+      };
     }
   };
 

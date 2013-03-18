@@ -163,6 +163,13 @@
           break;
         case 'unique':
           selectParts.push("COUNT(DISTINCT " + (escAttribute(apply.attribute)) + ") AS \"" + apply.prop + "\"");
+          break;
+        case 'quantile':
+          callback("not implemented yet (ToDo)");
+          return;
+        default:
+          callback("no such apply '" + apply.aggregate + "'");
+          return;
       }
     }
     filterPart = null;

@@ -29,4 +29,12 @@ facet.apply = {
     aggregate: 'unique'
     attribute
   }
+
+  quantile: (attribute, quantile) ->
+    throw new TypeError('bad quantile') unless 0 <= quantile <= 1
+    return {
+      aggregate: 'quantile'
+      attribute
+      quantile
+    }
 }

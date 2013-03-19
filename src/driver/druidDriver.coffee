@@ -131,7 +131,7 @@ addApplies = (druidQuery, applies) ->
         druidQuery.aggregations.push {
           type: "approxHistogramFold"
           name: '_' + apply.attribute
-          fieldName: '_' + apply.attribute # ToDo: make it so that approxHistogramFolds can be shared
+          fieldName: apply.attribute # ToDo: make it so that approxHistogramFolds can be shared
         }
         druidQuery.postAggregations.push {
           type: "quantile"

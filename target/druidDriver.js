@@ -167,7 +167,7 @@
           druidQuery.aggregations.push({
             type: "approxHistogramFold",
             name: '_' + apply.attribute,
-            fieldName: '_' + apply.attribute
+            fieldName: apply.attribute
           });
           druidQuery.postAggregations.push({
             type: "quantile",

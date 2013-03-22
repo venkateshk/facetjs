@@ -1,6 +1,11 @@
 # An apply is a function that takes an array of rows and returns a number.
 
 facet.apply = {
+  constant: (value) -> {
+    aggregate: 'constant'
+    value
+  }
+
   count: -> {
     aggregate: 'count'
   }

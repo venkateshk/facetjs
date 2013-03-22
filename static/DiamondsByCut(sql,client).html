@@ -69,6 +69,7 @@
           .layout(layout.vertical({ size: use.prop('Count'), gap: 3 }))
           .domain('color', use.prop('Cut'))
           .plot(plot.box({
+            title: use.prop('Count'),
             fill: '#f0f0f0',
             stroke: use.scale('color')
           }))

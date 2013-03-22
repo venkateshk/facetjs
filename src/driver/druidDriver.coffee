@@ -57,6 +57,13 @@ addApplies = (druidQuery, applies) ->
     apply = applies[applyIdx++]
     throw new Error("apply must have prop") unless apply.prop
     switch apply.aggregate
+      when 'constant'
+        druidQuery.postAggregations.push {
+          type: "constant"
+          name: apply.prop
+          value: apply.value
+        }
+
       when 'count'
         druidQuery.aggregations.push {
           type: "count"

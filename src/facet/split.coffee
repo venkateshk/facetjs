@@ -16,11 +16,12 @@ facet.split = {
       offset
     }
 
-  time: (attribute, duration) ->
+  time: (attribute, duration, timezone) ->
     throw new Error("Invalid duration '#{duration}'") unless duration in ['second', 'minute', 'hour', 'day']
     return {
       bucket: 'time'
       attribute
       duration
+      timezone
     }
 }

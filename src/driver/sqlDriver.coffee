@@ -117,6 +117,9 @@ condensedQueryToSQL = ({requester, table, filters, condensedQuery}, callback) ->
   # apply
   for apply in condensedQuery.applies
     switch apply.aggregate
+      when 'constant'
+        selectParts.push "#{apply.value} AS \"#{apply.prop}\""
+
       when 'count'
         selectParts.push "COUNT(*) AS \"#{apply.prop}\""
 

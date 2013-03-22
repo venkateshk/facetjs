@@ -57,6 +57,9 @@ splitFns = {
 }
 
 applyFns = {
+  constant: ({value}) -> () ->
+    return value
+
   count: -> (ds) ->
     return ds.length
 

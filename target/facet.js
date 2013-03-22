@@ -2,7 +2,7 @@
 (function() {
   "use strict";
 
-  var FacetJob, Interval, Segment, arraySubclass, checkStage, divideLength, facet, flatten, getProp, getScale, getScaleAndSegments, isValidStage, lineOnLine, lineOnPoint, pointOnLine, pointOnPoint, scaleOverInterval, stripeTile, wrapLiteral,
+  var FacetJob, Interval, Segment, arraySubclass, checkStage, createNode, divideLength, facet, flatten, getProp, getScale, getScaleAndSegments, isValidStage, lineOnLine, lineOnPoint, pointOnLine, pointOnPoint, scaleOverInterval, stripeTile, wrapLiteral,
     __slice = [].slice;
 
   window.facet = facet = {
@@ -151,14 +151,15 @@
         offset: offset
       };
     },
-    time: function(attribute, duration) {
+    time: function(attribute, duration, timezone) {
       if (duration !== 'second' && duration !== 'minute' && duration !== 'hour' && duration !== 'day') {
         throw new Error("Invalid duration '" + duration + "'");
       }
       return {
         bucket: 'time',
         attribute: attribute,
-        duration: duration
+        duration: duration,
+        timezone: timezone
       };
     }
   };
@@ -838,25 +839,42 @@
     }
   };
 
+  createNode = function(segment, nodeType, _arg) {
+    var link, node, opacity, title, visible;
+    title = _arg.title, link = _arg.link, visible = _arg.visible, opacity = _arg.opacity;
+    title = wrapLiteral(title);
+    link = wrapLiteral(link);
+    visible = wrapLiteral(visible);
+    opacity = wrapLiteral(opacity);
+    node = segment.getStage().node;
+    if (title || link) {
+      node = node.append('a').datum(segment).attr('xlink:title', title).attr('xlink:link', link);
+    }
+    node = node.append(nodeType).datum(segment).style('opacity', opacity);
+    if (visible) {
+      node.style('display', visible(segment) ? null : 'none');
+    }
+    return node;
+  };
+
   facet.plot = {
-    box: function(_arg) {
-      var color, fill, opacity, stroke;
-      color = _arg.color, stroke = _arg.stroke, fill = _arg.fill, opacity = _arg.opacity;
+    box: function(args) {
+      var color, fill, stroke;
+      color = args.color, stroke = args.stroke, fill = args.fill;
       stroke = wrapLiteral(stroke);
       fill = wrapLiteral(fill || color);
-      opacity = wrapLiteral(opacity);
       return function(segment) {
         var stage;
         stage = segment.getStage();
         if (stage.type !== 'rectangle') {
           throw new Error("Box must have a rectangle stage (is " + stage.type + ")");
         }
-        stage.node.append('rect').datum(segment).attr('width', stage.width).attr('height', stage.height).style('fill', fill).style('stroke', stroke).style('opacity', opacity);
+        createNode(segment, 'rect', args).attr('width', stage.width).attr('height', stage.height).style('fill', fill).style('stroke', stroke);
       };
     },
-    label: function(_arg) {
+    label: function(args) {
       var anchor, angle, baseline, color, size, text;
-      color = _arg.color, text = _arg.text, size = _arg.size, anchor = _arg.anchor, baseline = _arg.baseline, angle = _arg.angle;
+      color = args.color, text = args.text, size = args.size, anchor = args.anchor, baseline = args.baseline, angle = args.angle;
       color = wrapLiteral(color);
       text = wrapLiteral(text != null ? text : 'Label');
       size = wrapLiteral(size);
@@ -869,7 +887,7 @@
         if (stage.type !== 'point') {
           throw new Error("Label must have a point stage (is " + stage.type + ")");
         }
-        myNode = stage.node.append('text').datum(segment);
+        myNode = createNode(segment, 'text', args);
         if (angle) {
           myNode.attr('transform', "rotate(" + (-angle(segment)) + ")");
         }
@@ -889,9 +907,9 @@
         myNode.style('font-size', size).style('fill', color).style('text-anchor', anchor).text(text);
       };
     },
-    circle: function(_arg) {
+    circle: function(args) {
       var area, color, fill, radius, stroke;
-      radius = _arg.radius, area = _arg.area, color = _arg.color, stroke = _arg.stroke, fill = _arg.fill;
+      radius = args.radius, area = args.area, color = args.color, stroke = args.stroke, fill = args.fill;
       radius = wrapLiteral(radius);
       area = wrapLiteral(area);
       if (area) {
@@ -916,7 +934,19 @@
         if (stage.type !== 'point') {
           throw new Error("Circle must have a point stage (is " + stage.type + ")");
         }
-        stage.node.append('circle').datum(segment).attr('r', radius).style('fill', fill).style('stroke', stroke);
+        createNode(segment, 'circle', args).attr('r', radius).style('fill', fill).style('stroke', stroke);
+      };
+    },
+    line: function(args) {
+      var color;
+      color = args.color;
+      return function(segment) {
+        var stage;
+        stage = segment.getStage();
+        if (stage.type !== 'line') {
+          throw new Error("Circle must have a line stage (is " + stage.type + ")");
+        }
+        createNode(segment, 'line', args).style('stroke', color);
       };
     }
   };

@@ -146,6 +146,9 @@
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       apply = _ref[_i];
       switch (apply.aggregate) {
+        case 'constant':
+          selectParts.push("" + apply.value + " AS \"" + apply.prop + "\"");
+          break;
         case 'count':
           selectParts.push("COUNT(*) AS \"" + apply.prop + "\"");
           break;

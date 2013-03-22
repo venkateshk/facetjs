@@ -130,6 +130,67 @@
 
   })();
 
+  facet.filter = {
+    is: function(attribute, value) {
+      return {
+        op: 'is',
+        attribute: attribute,
+        value: value
+      };
+    },
+    "in": function(attribute, values) {
+      return {
+        op: 'in',
+        attribute: attribute,
+        values: values
+      };
+    },
+    match: function(attribute, expression) {
+      return {
+        op: 'match',
+        attribute: attribute,
+        expression: expression
+      };
+    },
+    within: function(attribute, range) {
+      if (!(Array.isArray(range) && range.length === 2)) {
+        throw new TypeError("range must be an array of two things");
+      }
+      return {
+        op: 'within',
+        attribute: attribute,
+        range: range
+      };
+    },
+    not: function(filter) {
+      if (typeof filter !== 'object') {
+        throw new TypeError("filter must be a filter object");
+      }
+      return {
+        op: 'not',
+        filter: filter
+      };
+    },
+    and: function(filters) {
+      if (!(Array.isArray(filters) && filters.length)) {
+        throw new TypeError('filters must be a nonempty array');
+      }
+      return {
+        op: 'and',
+        filters: filters
+      };
+    },
+    or: function(filters) {
+      if (!(Array.isArray(filters) || filters.length)) {
+        throw new TypeError('filters must be a nonempty array');
+      }
+      return {
+        op: 'or',
+        filters: filters
+      };
+    }
+  };
+
   facet.split = {
     identity: function(attribute) {
       return {
@@ -165,6 +226,12 @@
   };
 
   facet.apply = {
+    constant: function(value) {
+      return {
+        aggregate: 'constant',
+        value: value
+      };
+    },
     count: function() {
       return {
         aggregate: 'count'

@@ -6,6 +6,7 @@ coffee --compile --watch --lint --output target --join target/facet.js \
   src/facet/utils.coffee \
   src/facet/interval.coffee \
   src/facet/segment.coffee \
+  src/facet/filter.coffee \
   src/facet/split.coffee \
   src/facet/apply.coffee \
   src/facet/combine.coffee \

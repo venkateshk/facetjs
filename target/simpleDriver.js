@@ -82,6 +82,13 @@
   };
 
   applyFns = {
+    constant: function(_arg) {
+      var value;
+      value = _arg.value;
+      return function() {
+        return value;
+      };
+    },
     count: function() {
       return function(ds) {
         return ds.length;

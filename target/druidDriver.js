@@ -86,6 +86,13 @@
         throw new Error("apply must have prop");
       }
       switch (apply.aggregate) {
+        case 'constant':
+          druidQuery.postAggregations.push({
+            type: "constant",
+            name: apply.prop,
+            value: apply.value
+          });
+          break;
         case 'count':
           druidQuery.aggregations.push({
             type: "count",

@@ -22,7 +22,7 @@ splitFns = {
   continuous: ({attribute, size, offset}) ->
     throw new Error('attribute not defined') unless typeof attribute is 'string'
     return (d) ->
-      b = Math.floor((d[attribute] + offset) / size) * size
+      b = Math.floor((Number(d[attribute]) + offset) / size) * size
       return [b, b + size]
 
   time: ({attribute, duration, timezone}) ->

@@ -114,7 +114,7 @@
   };
 
   condensedQueryToSQL = function(_arg, callback) {
-    var apply, bucketDuration, bucketSpec, combine, condensedQuery, filterPart, filters, findApply, findCountApply, groupByPart, limitPart, orderByPart, requester, selectPart, selectParts, sort, split, sqlDirection, sqlQuery, table, _i, _len, _ref;
+    var apply, bucketDuration, bucketSpec, combine, condensedQuery, filterPart, filters, findApply, findCountApply, groupByPart, limitPart, orderByPart, requester, selectParts, sort, split, splitSelectPart, sqlDirection, sqlQuery, table, _i, _len, _ref;
     requester = _arg.requester, table = _arg.table, filters = _arg.filters, condensedQuery = _arg.condensedQuery;
     findApply = function(applies, propName) {
       var apply, _i, _len;
@@ -134,7 +134,7 @@
         }
       }
     };
-    if (condensedQuery.applies.length === 0) {
+    if (!condensedQuery.split && condensedQuery.applies.length === 0) {
       callback(null, [
         {
           prop: {}
@@ -146,15 +146,15 @@
     groupByPart = null;
     split = condensedQuery.split;
     if (split) {
-      selectPart = '';
+      splitSelectPart = '';
       groupByPart = 'GROUP BY ';
       switch (split.bucket) {
         case 'identity':
-          selectPart += "" + (escAttribute(split.attribute));
+          splitSelectPart += "" + (escAttribute(split.attribute));
           groupByPart += "" + (escAttribute(split.attribute));
           break;
         case 'continuous':
-          selectPart += "FLOOR((" + (escAttribute(split.attribute)) + " + " + split.offset + ") / " + split.size + ") * " + split.size + " + (" + split.size + " / 2)";
+          splitSelectPart += "FLOOR((" + (escAttribute(split.attribute)) + " + " + split.offset + ") / " + split.size + ") * " + split.size + " + (" + split.size + " / 2)";
           groupByPart += "FLOOR((" + (escAttribute(split.attribute)) + " + " + split.offset + ") / " + split.size + ") * " + split.size;
           break;
         case 'time':
@@ -164,15 +164,14 @@
             callback("unsupported time bucketing duration '" + bucketDuration + "'");
             return;
           }
-          selectPart += "DATE_FORMAT(" + (escAttribute(split.attribute)) + ", '" + bucketSpec.select + "')";
+          splitSelectPart += "DATE_FORMAT(" + (escAttribute(split.attribute)) + ", '" + bucketSpec.select + "')";
           groupByPart += "DATE_FORMAT(" + (escAttribute(split.attribute)) + ", '" + bucketSpec.group + "')";
           break;
         default:
           callback("unsupported bucketing policy '" + split.bucket + "'");
           return;
       }
-      selectPart += " AS \"" + split.name + "\"";
-      selectParts.push(selectPart);
+      selectParts.push("" + splitSelectPart + " AS \"" + split.name + "\"");
     }
     try {
       _ref = condensedQuery.applies;

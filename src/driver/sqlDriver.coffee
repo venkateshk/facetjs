@@ -116,7 +116,7 @@ condensedQueryToSQL = ({requester, table, filters, condensedQuery}, callback) ->
       return apply if apply.aggregate is 'count'
     return
 
-  if condensedQuery.applies.length is 0
+  if not condensedQuery.split and condensedQuery.applies.length is 0
     # Nothing to do as we are not calculating anything (not true, fix this)
     callback(null, [{
       prop: {}
@@ -129,15 +129,15 @@ condensedQueryToSQL = ({requester, table, filters, condensedQuery}, callback) ->
   # split
   split = condensedQuery.split
   if split
-    selectPart = ''
+    splitSelectPart = ''
     groupByPart = 'GROUP BY '
     switch split.bucket
       when 'identity'
-        selectPart  += "#{escAttribute(split.attribute)}"
+        splitSelectPart += "#{escAttribute(split.attribute)}"
         groupByPart += "#{escAttribute(split.attribute)}"
 
       when 'continuous'
-        selectPart  += "FLOOR((#{escAttribute(split.attribute)} + #{split.offset}) / #{split.size}) * #{split.size} + (#{split.size} / 2)"
+        splitSelectPart += "FLOOR((#{escAttribute(split.attribute)} + #{split.offset}) / #{split.size}) * #{split.size} + (#{split.size} / 2)"
         groupByPart += "FLOOR((#{escAttribute(split.attribute)} + #{split.offset}) / #{split.size}) * #{split.size}"
 
       when 'time'
@@ -145,14 +145,13 @@ condensedQueryToSQL = ({requester, table, filters, condensedQuery}, callback) ->
         bucketSpec = timeBucketing[bucketDuration]
         if not bucketSpec
           callback("unsupported time bucketing duration '#{bucketDuration}'"); return
-        selectPart  += "DATE_FORMAT(#{escAttribute(split.attribute)}, '#{bucketSpec.select}')"
+        splitSelectPart += "DATE_FORMAT(#{escAttribute(split.attribute)}, '#{bucketSpec.select}')"
         groupByPart += "DATE_FORMAT(#{escAttribute(split.attribute)}, '#{bucketSpec.group}')"
 
       else
         callback("unsupported bucketing policy '#{split.bucket}'"); return
 
-    selectPart += " AS \"#{split.name}\""
-    selectParts.push(selectPart)
+    selectParts.push("#{splitSelectPart} AS \"#{split.name}\"")
 
   # apply
   try

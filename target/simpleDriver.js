@@ -39,7 +39,7 @@
       }
       return function(d) {
         var b;
-        b = Math.floor((d[attribute] + offset) / size) * size;
+        b = Math.floor((Number(d[attribute]) + offset) / size) * size;
         return [b, b + size];
       };
     },

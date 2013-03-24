@@ -48,6 +48,11 @@ uniformizeResults = (result) ->
     continue unless result.prop.hasOwnProperty(name)
     if typeof value is 'number' and value isnt Math.floor(value)
       prop[name] = value.toFixed(3)
+    else if Array.isArray(value) and
+          typeof value[0] is 'number' and
+          typeof value[1] is 'number' and
+          (value[0] isnt Math.floor(value[0]) or value[1] isnt Math.floor(value[1]))
+      prop[name] = [value[0].toFixed(3), value[1].toFixed(3)]
     else
       prop[name] = value
 
@@ -56,7 +61,7 @@ uniformizeResults = (result) ->
     ret.splits = result.splits.map(uniformizeResults)
   return ret
 
-driverTest = ({drivers, query}) -> (test) ->
+testDrivers = ({drivers, query}) -> (test) ->
   throw new Error("must have at least two drivers") if drivers.length < 2
   test.expect(drivers.length)
 
@@ -69,6 +74,7 @@ driverTest = ({drivers, query}) -> (test) ->
   async.parallel driversToTest, (err, results) ->
     test.ifError(err)
     results = results.map(uniformizeResults)
+
     i = 1
     while i < drivers.length
       test.deepEqual(results[0], results[i], "results of '#{drivers[0]}' and '#{drivers[i]}' do not match")
@@ -78,14 +84,14 @@ driverTest = ({drivers, query}) -> (test) ->
 
 
 
-exports["apply count"] = driverTest {
+exports["apply count"] = testDrivers {
   drivers: ['simple', 'mySql']
   query: [
     { operation: 'apply', name: 'Count',  aggregate: 'count' }
   ]
 }
 
-exports["many applies"] = driverTest {
+exports["many applies"] = testDrivers {
   drivers: ['simple', 'mySql']
   query: [
     { operation: 'apply', name: 'Constant 42',  aggregate: 'constant', value: '42' }
@@ -98,11 +104,28 @@ exports["many applies"] = driverTest {
   ]
 }
 
-exports["split cut; apply count"] = driverTest {
+exports["split cut; no apply"] = testDrivers {
+  drivers: ['simple', 'mySql']
+  query: [
+    { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
+    { operation: 'combine', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
+  ]
+}
+
+exports["split cut; apply count"] = testDrivers {
   drivers: ['simple', 'mySql']
   query: [
     { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
     { operation: 'apply', name: 'Count', aggregate: 'count' }
     { operation: 'combine', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
+  ]
+}
+
+exports["split carat; apply count"] = testDrivers {
+  drivers: ['simple', 'mySql']
+  query: [
+    { operation: 'split', name: 'Carat', bucket: 'continuous', size: 0.1, offset: 0, attribute: 'carat' }
+    { operation: 'apply', name: 'Count', aggregate: 'count' }
+    { operation: 'combine', sort: { prop: 'Carat', compare: 'natural', direction: 'descending' } }
   ]
 }

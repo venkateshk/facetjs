@@ -13,6 +13,19 @@ if typeof exports is 'undefined'
 
 # -----------------------------------------------------
 
+rangeToDruidInterval = (interval) ->
+  return interval.map((d) -> d.toISOString().replace('Z', '')).join('/')
+
+filterToDruidQueryHelper = (filter) ->
+
+  return
+
+filterToDruidQuery = (filter, timeDimension, druidQuery) ->
+  if filter.op is 'range' and filter.attribute is timeDimension
+    druidQuery.intervals
+  return
+
+
 makeFilter = (attribute, value) ->
   return {
     type: 'selector'
@@ -36,17 +49,13 @@ andFilters = (filters...) ->
 
 findApply = (applies, propName) ->
   for apply in applies
-    return apply if apply.prop is propName
+    return apply if apply.name is propName
   return
 
 findCountApply = (applies) ->
   for apply in applies
     return apply if apply.aggregate is 'count'
   return
-
-toDruidInterval = (interval) ->
-  return interval.map((d) -> d.toISOString().replace('Z', '')).join('/')
-
 
 addApplies = (druidQuery, applies) ->
   applies = applies.slice()
@@ -55,25 +64,25 @@ addApplies = (druidQuery, applies) ->
   applyIdx = 0
   while applyIdx < applies.length # Note that the apply list can grow
     apply = applies[applyIdx++]
-    throw new Error("apply must have prop") unless apply.prop
+    throw new Error("apply must have prop") unless apply.name
     switch apply.aggregate
       when 'constant'
         druidQuery.postAggregations.push {
           type: "constant"
-          name: apply.prop
+          name: apply.name
           value: apply.value
         }
 
       when 'count'
         druidQuery.aggregations.push {
           type: "count"
-          name: apply.prop
+          name: apply.name
         }
 
       when 'sum'
         druidQuery.aggregations.push {
           type: "doubleSum"
-          name: apply.prop
+          name: apply.name
           fieldName: apply.attribute
         }
 
@@ -103,33 +112,33 @@ addApplies = (druidQuery, applies) ->
 
         druidQuery.postAggregations.push {
           type: "arithmetic"
-          name: apply.prop
+          name: apply.name
           fn: "/"
           fields: [
-            { type: "fieldAccess", fieldName: sumApply.prop }
-            { type: "fieldAccess", fieldName: countApply.prop }
+            { type: "fieldAccess", fieldName: sumApply.name }
+            { type: "fieldAccess", fieldName: countApply.name }
           ]
         }
 
       when 'min'
         druidQuery.aggregations.push {
           type: "min"
-          name: apply.prop
+          name: apply.name
           fieldName: apply.attribute
         }
 
       when 'max'
         druidQuery.aggregations.push {
           type: "max"
-          name: apply.prop
+          name: apply.name
           fieldName: apply.attribute
         }
 
-      when 'unique'
+      when 'uniqueCount'
         # ToDo: add a throw here in case the user us using open source druid
         druidQuery.aggregations.push {
           type: "hyperUnique"
-          name: apply.prop
+          name: apply.name
           fieldName: apply.attribute
         }
 
@@ -142,7 +151,7 @@ addApplies = (druidQuery, applies) ->
         }
         druidQuery.postAggregations.push {
           type: "quantile"
-          name: apply.prop
+          name: apply.name
           fieldName: '_' + apply.attribute
           probability: apply.quantile
         }
@@ -233,7 +242,7 @@ druidQuery = {
     if not combinePropName
       callback("must have a sort prop name"); return
 
-    timePropName = condensedQuery.split.prop
+    timePropName = condensedQuery.split.name
     if combinePropName isnt timePropName
       callback("Must sort on the time prop for now (temp)"); return
 
@@ -314,7 +323,7 @@ druidQuery = {
     # split + combine
     if not condensedQuery.split.attribute
       callback("split must have an attribute"); return
-    if not condensedQuery.split.prop
+    if not condensedQuery.split.name
       callback("split must have a prop"); return
 
     sort = condensedQuery.combine.sort
@@ -332,7 +341,7 @@ druidQuery = {
     queryObj.dimension = {
       type: 'default'
       dimension: condensedQuery.split.attribute
-      outputName: condensedQuery.split.prop
+      outputName: condensedQuery.split.name
     }
     queryObj.threshold = condensedQuery.combine.limit or 10
     queryObj.metric = (if invertApply then '_inv_' else '') + condensedQuery.combine.sort.prop
@@ -369,7 +378,7 @@ druidQuery = {
         return
 
       filterAttribute = condensedQuery.split.attribute
-      filterValueProp = condensedQuery.split.prop
+      filterValueProp = condensedQuery.split.name
       splits = ds[0].result.map (prop) -> {
         prop
         _interval: interval
@@ -381,7 +390,18 @@ druidQuery = {
     return
 
   histogram: ({requester, dataSource, interval, filters, condensedQuery}, callback) ->
-    callback("not implemented yet")
+    callback("not implemented yet"); return
+    # data.queryType = "timeseries"
+    # data.postAggregations = null
+    # data.aggregations = [
+    #   {
+    #     type: "approxHistogramFold"
+    #     name: obj.dimension #"delta_hist"
+    #     fieldName: obj.dimension + '_hist' # "delta_hist" ToDo: do not hard code 'hist'
+    #     outputSize: obj.bucket
+    #     probabilities: [0.25, 0.5, 0.75]
+    #   }
+    # ]
     return
 }
 

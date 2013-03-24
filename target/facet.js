@@ -237,36 +237,6 @@
         aggregate: 'count'
       };
     },
-    sum: function(attribute) {
-      return {
-        aggregate: 'sum',
-        attribute: attribute
-      };
-    },
-    average: function(attribute) {
-      return {
-        aggregate: 'average',
-        attribute: attribute
-      };
-    },
-    min: function(attribute) {
-      return {
-        aggregate: 'min',
-        attribute: attribute
-      };
-    },
-    max: function(attribute) {
-      return {
-        aggregate: 'max',
-        attribute: attribute
-      };
-    },
-    unique: function(attribute) {
-      return {
-        aggregate: 'unique',
-        attribute: attribute
-      };
-    },
     quantile: function(attribute, quantile) {
       if (!((0 <= quantile && quantile <= 1))) {
         throw new TypeError('bad quantile');
@@ -278,6 +248,33 @@
       };
     }
   };
+
+  ['sum', 'average', 'min', 'max', 'uniqueCount'].forEach(function(agg) {
+    return facet.apply[agg] = function(attribute) {
+      if (typeof attribute !== 'string') {
+        throw new TypeError('must have a string attribute');
+      }
+      return {
+        aggregate: agg,
+        attribute: attribute
+      };
+    };
+  });
+
+  ['add', 'subtract', 'multiply', 'divide'].forEach(function(op) {
+    return facet.apply[op] = function(lhs, rhs) {
+      if (typeof lhs !== 'object') {
+        throw new TypeError('lhs must be an object');
+      }
+      if (typeof rhs !== 'object') {
+        throw new TypeError('rhs must be an object');
+      }
+      return {
+        arithmetic: op,
+        operands: [lhs, rhs]
+      };
+    };
+  });
 
   facet.sort = {
     natural: function(attribute, direction) {
@@ -1062,14 +1059,14 @@
       this.hasTransformed = false;
     }
 
-    FacetJob.prototype.split = function(propName, split) {
+    FacetJob.prototype.split = function(name, split) {
       split = _.clone(split);
       split.operation = 'split';
-      split.prop = propName;
+      split.name = name;
       this.ops.push(split);
       this.hasSplit = true;
       this.hasTransformed = false;
-      this.knownProps[propName] = true;
+      this.knownProps[name] = true;
       return this;
     };
 
@@ -1090,12 +1087,12 @@
       return this;
     };
 
-    FacetJob.prototype.apply = function(propName, apply) {
+    FacetJob.prototype.apply = function(name, apply) {
       apply = _.clone(apply);
       apply.operation = 'apply';
-      apply.prop = propName;
+      apply.name = name;
       this.ops.push(apply);
-      this.knownProps[propName] = true;
+      this.knownProps[name] = true;
       return this;
     };
 

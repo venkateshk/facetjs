@@ -38,8 +38,8 @@
       };
     },
     time: function(_arg) {
-      var attribute, duration;
-      attribute = _arg.attribute, duration = _arg.duration;
+      var attribute, duration, timezone;
+      attribute = _arg.attribute, duration = _arg.duration, timezone = _arg.timezone;
       switch (duration) {
         case 'second':
           return function(d) {
@@ -146,7 +146,7 @@
         return max;
       };
     },
-    unique: function(_arg) {
+    uniqueCount: function(_arg) {
       var attribute;
       attribute = _arg.attribute;
       return function(ds) {
@@ -237,7 +237,7 @@
       cmd = query[_i];
       switch (cmd.operation) {
         case 'split':
-          propName = cmd.prop;
+          propName = cmd.name;
           if (!propName) {
             throw new Error("'prop' not defined in apply");
           }
@@ -279,7 +279,7 @@
           });
           break;
         case 'apply':
-          propName = cmd.prop;
+          propName = cmd.name;
           if (!propName) {
             throw new Error("'prop' not defined in apply");
           }

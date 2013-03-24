@@ -13,8 +13,6 @@ if typeof exports is 'undefined'
 
 # -----------------------------------------------------
 
-
-
 makeFilter = (attribute, value) ->
   if Array.isArray(value)
     return "#{value[0]} <= #{escAttribute(attribute)} AND #{escAttribute(attribute)} < #{value[0]}"
@@ -65,10 +63,52 @@ directionMap = {
 
 escAttribute = (attribute) -> "`#{attribute}`"
 
+applyToSQL = (apply) ->
+  switch apply.aggregate
+    when 'constant'
+      "#{apply.value}"
+
+    when 'count'
+      "COUNT(*)"
+
+    when 'sum'
+      "SUM(#{escAttribute(apply.attribute)})"
+
+    when 'average'
+      "AVG(#{escAttribute(apply.attribute)})"
+
+    when 'min'
+      "MIN(#{escAttribute(apply.attribute)})"
+
+    when 'max'
+      "MAX(#{escAttribute(apply.attribute)})"
+
+    when 'uniqueCount'
+      "COUNT(DISTINCT #{escAttribute(apply.attribute)})"
+
+    when 'quantile'
+      throw new Error("not implemented yet (ToDo)")
+
+    when 'add'
+      "(#{apply.operands[0]} + #{apply.operands[1]})"
+
+    when 'subtract'
+      "(#{apply.operands[0]} - #{apply.operands[1]})"
+
+    when 'multiply'
+      "(#{apply.operands[0]} * #{apply.operands[1]})"
+
+    when 'divide'
+      "(#{apply.operands[0]} / #{apply.operands[1]})"
+
+    else
+      throw new Error("no such apply '#{apply.aggregate}'")
+
+
 condensedQueryToSQL = ({requester, table, filters, condensedQuery}, callback) ->
   findApply = (applies, propName) ->
     for apply in applies
-      return apply if apply.prop is propName
+      return apply if apply.name is propName
     return
 
   findCountApply = (applies) ->
@@ -111,38 +151,15 @@ condensedQueryToSQL = ({requester, table, filters, condensedQuery}, callback) ->
       else
         callback("unsupported bucketing policy '#{split.bucket}'"); return
 
-    selectPart += " AS \"#{split.prop}\""
+    selectPart += " AS \"#{split.name}\""
     selectParts.push(selectPart)
 
   # apply
-  for apply in condensedQuery.applies
-    switch apply.aggregate
-      when 'constant'
-        selectParts.push "#{apply.value} AS \"#{apply.prop}\""
-
-      when 'count'
-        selectParts.push "COUNT(*) AS \"#{apply.prop}\""
-
-      when 'sum'
-        selectParts.push "SUM(#{escAttribute(apply.attribute)}) AS \"#{apply.prop}\""
-
-      when 'average'
-        selectParts.push "AVG(#{escAttribute(apply.attribute)}) AS \"#{apply.prop}\""
-
-      when 'min'
-        selectParts.push "MIN(#{escAttribute(apply.attribute)}) AS \"#{apply.prop}\""
-
-      when 'max'
-        selectParts.push "MAX(#{escAttribute(apply.attribute)}) AS \"#{apply.prop}\""
-
-      when 'unique'
-        selectParts.push "COUNT(DISTINCT #{escAttribute(apply.attribute)}) AS \"#{apply.prop}\""
-
-      when 'quantile'
-        callback("not implemented yet (ToDo)"); return
-
-      else
-        callback("no such apply '#{apply.aggregate}'"); return
+  try
+    for apply in condensedQuery.applies
+      selectParts.push "#{applyToSQL(apply)} AS \"#{apply.name}\""
+  catch e
+    callback(e); return
 
   # filter
   filterPart = null
@@ -198,7 +215,7 @@ condensedQueryToSQL = ({requester, table, filters, condensedQuery}, callback) ->
 
     if condensedQuery.split
       splitAttribute = condensedQuery.split.attribute
-      splitProp = condensedQuery.split.prop
+      splitProp = condensedQuery.split.name
 
       if condensedQuery.split.bucket is 'continuous'
         splitHalfSize = condensedQuery.split.size / 2

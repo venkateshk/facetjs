@@ -25,14 +25,14 @@ class FacetJob
     @hasSplit = false
     @hasTransformed = false
 
-  split: (propName, split) ->
+  split: (name, split) ->
     split = _.clone(split)
     split.operation = 'split'
-    split.prop = propName
+    split.name = name
     @ops.push(split)
     @hasSplit = true
     @hasTransformed = false
-    @knownProps[propName] = true
+    @knownProps[name] = true
     return this
 
   layout: (layout) ->
@@ -45,12 +45,12 @@ class FacetJob
     })
     return this
 
-  apply: (propName, apply) ->
+  apply: (name, apply) ->
     apply = _.clone(apply)
     apply.operation = 'apply'
-    apply.prop = propName
+    apply.name = name
     @ops.push(apply)
-    @knownProps[propName] = true
+    @knownProps[name] = true
     return this
 
   scale: (name, scale) ->

@@ -21,7 +21,7 @@ splitFns = {
     b = Math.floor((d[attribute] + offset) / size) * size
     return [b, b + size]
 
-  time: ({attribute, duration}) ->
+  time: ({attribute, duration, timezone}) ->
     switch duration
       when 'second'
         return (d) ->
@@ -83,7 +83,7 @@ applyFns = {
     max = Math.max(max, Number(d[attribute])) for d in ds
     return max
 
-  unique: ({attribute}) -> (ds) ->
+  uniqueCount: ({attribute}) -> (ds) ->
     seen = {}
     count = 0
     for d in ds
@@ -131,7 +131,7 @@ computeQuery = (data, query) ->
   for cmd in query
     switch cmd.operation
       when 'split'
-        propName = cmd.prop
+        propName = cmd.name
         throw new Error("'prop' not defined in apply") unless propName
         splitFn = splitFns[cmd.bucket]
         throw new Error("No such bucket `#{cmd.bucket}` in split") unless splitFn
@@ -161,7 +161,7 @@ computeQuery = (data, query) ->
           return segment.splits
 
       when 'apply'
-        propName = cmd.prop
+        propName = cmd.name
         throw new Error("'prop' not defined in apply") unless propName
         applyFn = applyFns[cmd.aggregate]
         throw new Error("No such aggregate `#{cmd.aggregate}` in apply") unless applyFn

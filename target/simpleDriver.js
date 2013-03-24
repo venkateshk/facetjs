@@ -24,6 +24,9 @@
     identity: function(_arg) {
       var attribute;
       attribute = _arg.attribute;
+      if (typeof attribute !== 'string') {
+        throw new Error('attribute not defined');
+      }
       return function(d) {
         return d[attribute];
       };
@@ -31,6 +34,9 @@
     continuous: function(_arg) {
       var attribute, offset, size;
       attribute = _arg.attribute, size = _arg.size, offset = _arg.offset;
+      if (typeof attribute !== 'string') {
+        throw new Error('attribute not defined');
+      }
       return function(d) {
         var b;
         b = Math.floor((d[attribute] + offset) / size) * size;
@@ -40,6 +46,9 @@
     time: function(_arg) {
       var attribute, duration, timezone;
       attribute = _arg.attribute, duration = _arg.duration, timezone = _arg.timezone;
+      if (typeof attribute !== 'string') {
+        throw new Error('attribute not defined');
+      }
       switch (duration) {
         case 'second':
           return function(d) {
@@ -239,7 +248,7 @@
         case 'split':
           propName = cmd.name;
           if (!propName) {
-            throw new Error("'prop' not defined in apply");
+            throw new Error("'name' not defined in split");
           }
           splitFn = splitFns[cmd.bucket];
           if (!splitFn) {
@@ -281,7 +290,7 @@
         case 'apply':
           propName = cmd.name;
           if (!propName) {
-            throw new Error("'prop' not defined in apply");
+            throw new Error("'name' not defined in apply");
           }
           applyFn = applyFns[cmd.aggregate];
           if (!applyFn) {

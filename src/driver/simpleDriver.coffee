@@ -15,13 +15,18 @@ if typeof exports is 'undefined'
 
 
 splitFns = {
-  identity: ({attribute}) -> (d) -> d[attribute]
+  identity: ({attribute}) ->
+    throw new Error('attribute not defined') unless typeof attribute is 'string'
+    return (d) -> d[attribute]
 
-  continuous: ({attribute, size, offset}) -> (d) ->
-    b = Math.floor((d[attribute] + offset) / size) * size
-    return [b, b + size]
+  continuous: ({attribute, size, offset}) ->
+    throw new Error('attribute not defined') unless typeof attribute is 'string'
+    return (d) ->
+      b = Math.floor((d[attribute] + offset) / size) * size
+      return [b, b + size]
 
   time: ({attribute, duration, timezone}) ->
+    throw new Error('attribute not defined') unless typeof attribute is 'string'
     switch duration
       when 'second'
         return (d) ->
@@ -132,7 +137,7 @@ computeQuery = (data, query) ->
     switch cmd.operation
       when 'split'
         propName = cmd.name
-        throw new Error("'prop' not defined in apply") unless propName
+        throw new Error("'name' not defined in split") unless propName
         splitFn = splitFns[cmd.bucket]
         throw new Error("No such bucket `#{cmd.bucket}` in split") unless splitFn
         bucketFn = splitFn(cmd)
@@ -162,7 +167,7 @@ computeQuery = (data, query) ->
 
       when 'apply'
         propName = cmd.name
-        throw new Error("'prop' not defined in apply") unless propName
+        throw new Error("'name' not defined in apply") unless propName
         applyFn = applyFns[cmd.aggregate]
         throw new Error("No such aggregate `#{cmd.aggregate}` in apply") unless applyFn
         aggregatorFn = applyFn(cmd)

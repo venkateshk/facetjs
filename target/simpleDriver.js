@@ -28,7 +28,8 @@
         throw new Error('attribute not defined');
       }
       return function(d) {
-        return d[attribute];
+        var _ref;
+        return (_ref = d[attribute]) != null ? _ref : null;
       };
     },
     continuous: function(_arg) {
@@ -38,8 +39,12 @@
         throw new Error('attribute not defined');
       }
       return function(d) {
-        var b;
-        b = Math.floor((Number(d[attribute]) + offset) / size) * size;
+        var b, num;
+        num = Number(d[attribute]);
+        if (isNaN(num)) {
+          return null;
+        }
+        b = Math.floor((num + offset) / size) * size;
         return [b, b + size];
       };
     },
@@ -54,6 +59,9 @@
           return function(d) {
             var de, ds;
             ds = new Date(d[attribute]);
+            if (isNaN(ds)) {
+              return null;
+            }
             ds.setUTCMilliseconds(0);
             de = new Date(ds);
             de.setUTCMilliseconds(1000);
@@ -63,6 +71,9 @@
           return function(d) {
             var de, ds;
             ds = new Date(d[attribute]);
+            if (isNaN(ds)) {
+              return null;
+            }
             ds.setUTCSeconds(0, 0);
             de = new Date(ds);
             de.setUTCSeconds(60);
@@ -72,6 +83,9 @@
           return function(d) {
             var de, ds;
             ds = new Date(d[attribute]);
+            if (isNaN(ds)) {
+              return null;
+            }
             ds.setUTCMinutes(0, 0, 0);
             de = new Date(ds);
             de.setUTCMinutes(60);
@@ -81,6 +95,9 @@
           return function(d) {
             var de, ds;
             ds = new Date(d[attribute]);
+            if (isNaN(ds)) {
+              return null;
+            }
             ds.setUTCHours(0, 0, 0, 0);
             de = new Date(ds);
             de.setUTCHours(24);
@@ -233,7 +250,7 @@
   };
 
   computeQuery = function(data, query) {
-    var aggregatorFn, applyFn, bucketFn, cmd, compareFn, propName, rootSegment, segment, segmentGroup, segmentGroups, sortFn, splitFn, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _len6, _m, _n, _o;
+    var aggregatorFn, applyFn, bucketFn, cmd, compareFn, limit, propName, rootSegment, segment, segmentGroup, segmentGroups, sortFn, splitFn, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _len6, _m, _n, _o;
     if (!query) {
       throw new Error("query not given");
     }
@@ -321,6 +338,7 @@
             }
           }
           if (cmd.limit != null) {
+            limit = cmd.limit;
             for (_n = 0, _len5 = segmentGroups.length; _n < _len5; _n++) {
               segmentGroup = segmentGroups[_n];
               segmentGroup.splice(limit, segmentGroup.length - limit);

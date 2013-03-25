@@ -17,12 +17,14 @@ if typeof exports is 'undefined'
 splitFns = {
   identity: ({attribute}) ->
     throw new Error('attribute not defined') unless typeof attribute is 'string'
-    return (d) -> d[attribute]
+    return (d) -> d[attribute] ? null
 
   continuous: ({attribute, size, offset}) ->
     throw new Error('attribute not defined') unless typeof attribute is 'string'
     return (d) ->
-      b = Math.floor((Number(d[attribute]) + offset) / size) * size
+      num = Number(d[attribute])
+      return null if isNaN(num)
+      b = Math.floor((num + offset) / size) * size
       return [b, b + size]
 
   time: ({attribute, duration, timezone}) ->
@@ -31,6 +33,7 @@ splitFns = {
       when 'second'
         return (d) ->
           ds = new Date(d[attribute])
+          return null if isNaN(ds)
           ds.setUTCMilliseconds(0)
           de = new Date(ds)
           de.setUTCMilliseconds(1000)
@@ -39,6 +42,7 @@ splitFns = {
       when 'minute'
         return (d) ->
           ds = new Date(d[attribute])
+          return null if isNaN(ds)
           ds.setUTCSeconds(0, 0)
           de = new Date(ds)
           de.setUTCSeconds(60)
@@ -47,6 +51,7 @@ splitFns = {
       when 'hour'
         return (d) ->
           ds = new Date(d[attribute])
+          return null if isNaN(ds)
           ds.setUTCMinutes(0, 0, 0)
           de = new Date(ds)
           de.setUTCMinutes(60)
@@ -55,6 +60,7 @@ splitFns = {
       when 'day'
         return (d) ->
           ds = new Date(d[attribute])
+          return null if isNaN(ds)
           ds.setUTCHours(0, 0, 0, 0)
           de = new Date(ds)
           de.setUTCHours(24)
@@ -185,6 +191,7 @@ computeQuery = (data, query) ->
               segmentGroup.sort(compareFn)
 
         if cmd.limit?
+          limit = cmd.limit
           for segmentGroup in segmentGroups
             segmentGroup.splice(limit, segmentGroup.length - limit)
 

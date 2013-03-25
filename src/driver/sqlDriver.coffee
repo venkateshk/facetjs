@@ -15,7 +15,7 @@ if typeof exports is 'undefined'
 
 makeFilter = (attribute, value) ->
   if Array.isArray(value)
-    return "#{value[0]} <= #{escAttribute(attribute)} AND #{escAttribute(attribute)} < #{value[0]}"
+    return "#{value[0]} <= #{escAttribute(attribute)} AND #{escAttribute(attribute)} < #{value[1]}"
   else
     return "#{escAttribute(attribute)} = \"#{value}\"" # ToDo: escape the value
 

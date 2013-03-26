@@ -38,13 +38,16 @@
       if (typeof attribute !== 'string') {
         throw new Error('attribute not defined');
       }
+      if (!(size > 0)) {
+        throw new Error("size has to be positive (is: " + size + ")");
+      }
       return function(d) {
         var b, num;
         num = Number(d[attribute]);
         if (isNaN(num)) {
           return null;
         }
-        b = Math.floor((num + offset) / size) * size;
+        b = Math.floor((num + offset) / size) * size - offset;
         return [b, b + size];
       };
     },
@@ -273,7 +276,7 @@
           }
           bucketFn = splitFn(cmd);
           segmentGroups = driverUtil.flatten(segmentGroups).map(function(segment) {
-            var bucketValue, buckets, d, key, keys, _j, _len1, _ref;
+            var bucketValue, buckets, d, key, keyString, keys, _j, _len1, _ref;
             keys = [];
             buckets = {};
             bucketValue = {};
@@ -284,19 +287,20 @@
               if (key == null) {
                 throw new Error("Bucket returned undefined");
               }
-              if (!buckets[key]) {
-                keys.push(key);
-                buckets[key] = [];
-                bucketValue[key] = key;
+              keyString = String(key);
+              if (!buckets[keyString]) {
+                keys.push(keyString);
+                buckets[keyString] = [];
+                bucketValue[keyString] = key;
               }
-              buckets[key].push(d);
+              buckets[keyString].push(d);
             }
-            segment.splits = keys.map(function(key) {
+            segment.splits = keys.map(function(keyString) {
               var prop;
               prop = {};
-              prop[propName] = bucketValue[key];
+              prop[propName] = bucketValue[keyString];
               return {
-                _raw: buckets[key],
+                _raw: buckets[keyString],
                 prop: prop
               };
             });

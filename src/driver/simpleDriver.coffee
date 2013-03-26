@@ -21,10 +21,11 @@ splitFns = {
 
   continuous: ({attribute, size, offset}) ->
     throw new Error('attribute not defined') unless typeof attribute is 'string'
+    throw new Error("size has to be positive (is: #{size})") unless size > 0
     return (d) ->
       num = Number(d[attribute])
       return null if isNaN(num)
-      b = Math.floor((num + offset) / size) * size
+      b = Math.floor((num + offset) / size) * size - offset
       return [b, b + size]
 
   time: ({attribute, duration, timezone}) ->
@@ -129,7 +130,6 @@ sortFns = {
     return (a, b) -> compareFn(String(a.prop[prop]).toLowerCase(), String(b.prop[prop]).toLowerCase())
 }
 
-
 computeQuery = (data, query) ->
   throw new Error("query not given") unless query
 
@@ -153,18 +153,21 @@ computeQuery = (data, query) ->
           bucketValue = {}
           for d in segment._raw
             key = bucketFn(d)
-            throw new Error("Bucket returned undefined") unless key?
-            if not buckets[key]
-              keys.push(key)
-              buckets[key] = []
-              bucketValue[key] = key # Key might not be a string
-            buckets[key].push(d)
+            throw new Error("Bucket returned undefined") unless key? # ToDo: handle nulls
+            keyString = String(key)
 
-          segment.splits = keys.map((key) ->
+            if not buckets[keyString]
+              keys.push(keyString)
+              buckets[keyString] = []
+              bucketValue[keyString] = key
+            buckets[keyString].push(d)
+
+          segment.splits = keys.map((keyString) ->
             prop = {}
-            prop[propName] = bucketValue[key]
+            prop[propName] = bucketValue[keyString]
+
             return {
-              _raw: buckets[key]
+              _raw: buckets[keyString]
               prop
             }
           )

@@ -75,6 +75,7 @@
       }
 
       facet.define('.example', 800, 600, facet.verboseDriver(sqlDriverClient))
+        .apply('Edits', apply.count())
         .scale('horiz', scale.linear())
           .split('Language', split.identity('language'))
           .apply('Edits', apply.count())

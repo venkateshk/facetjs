@@ -86,7 +86,7 @@
       case 'constant':
         return "" + apply.value;
       case 'count':
-        return "COUNT(*)";
+        return "COUNT(1)";
       case 'sum':
         return "SUM(" + (escAttribute(apply.attribute)) + ")";
       case 'average':
@@ -114,7 +114,7 @@
   };
 
   condensedQueryToSQL = function(_arg, callback) {
-    var apply, bucketDuration, bucketSpec, combine, condensedQuery, filterPart, filters, findApply, findCountApply, groupByPart, limitPart, orderByPart, requester, selectParts, sort, split, splitSelectPart, sqlDirection, sqlQuery, table, _i, _len, _ref;
+    var apply, bucketDuration, bucketSpec, combine, condensedQuery, filterPart, filters, findApply, findCountApply, floorStr, groupByPart, limitPart, orderByPart, requester, selectParts, sort, split, splitSelectPart, sqlDirection, sqlQuery, table, _i, _len, _ref;
     requester = _arg.requester, table = _arg.table, filters = _arg.filters, condensedQuery = _arg.condensedQuery;
     findApply = function(applies, propName) {
       var apply, _i, _len;
@@ -150,12 +150,26 @@
       groupByPart = 'GROUP BY ';
       switch (split.bucket) {
         case 'identity':
-          splitSelectPart += "" + (escAttribute(split.attribute));
-          groupByPart += "" + (escAttribute(split.attribute));
+          splitSelectPart += escAttribute(split.attribute);
+          groupByPart += escAttribute(split.attribute);
           break;
         case 'continuous':
-          splitSelectPart += "FLOOR((" + (escAttribute(split.attribute)) + " + " + split.offset + ") / " + split.size + ") * " + split.size + " + (" + split.size + " / 2)";
-          groupByPart += "FLOOR((" + (escAttribute(split.attribute)) + " + " + split.offset + ") / " + split.size + ") * " + split.size;
+          floorStr = escAttribute(split.attribute);
+          if (split.offset !== 0) {
+            floorStr = "(" + floorStr + " + " + split.offset + ")";
+          }
+          if (split.size !== 1) {
+            floorStr = "" + floorStr + " / " + split.size;
+          }
+          floorStr = "FLOOR(" + floorStr + ")";
+          if (split.size !== 1) {
+            floorStr = "" + floorStr + " * " + split.size;
+          }
+          if (split.offset !== 0) {
+            floorStr = "" + floorStr + " - " + split.offset;
+          }
+          splitSelectPart += floorStr;
+          groupByPart += floorStr;
           break;
         case 'time':
           bucketDuration = split.duration;
@@ -231,7 +245,7 @@
       return part != null;
     }).join(' ') + ';';
     requester(sqlQuery, function(err, ds) {
-      var d, mid, splitAttribute, splitHalfSize, splitProp, splits, _j, _len1;
+      var d, splitAttribute, splitProp, splitSize, splits, start, _j, _len1;
       if (err) {
         callback(err);
         return;
@@ -240,11 +254,11 @@
         splitAttribute = condensedQuery.split.attribute;
         splitProp = condensedQuery.split.name;
         if (condensedQuery.split.bucket === 'continuous') {
-          splitHalfSize = condensedQuery.split.size / 2;
+          splitSize = condensedQuery.split.size;
           for (_j = 0, _len1 = ds.length; _j < _len1; _j++) {
             d = ds[_j];
-            mid = d[splitProp];
-            d[splitProp] = [mid - splitHalfSize, mid + splitHalfSize];
+            start = d[splitProp];
+            d[splitProp] = [start, start + splitSize];
           }
         }
         splits = ds.map(function(prop) {

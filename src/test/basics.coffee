@@ -14,6 +14,8 @@ driver = {}
 diamondsData = require('../../data/diamonds.js')
 driver.simple = simpleDriver(diamondsData)
 
+# console.log "count [0.3, 0.4) should be:", diamondsData.filter((d) -> 0.3 <= d.carat < 0.4).length
+
 # MySQL
 sqlPass = sqlRequester({
   host: 'localhost'
@@ -83,7 +85,6 @@ testDrivers = ({drivers, query}) -> (test) ->
     return
 
 
-
 exports["apply count"] = testDrivers {
   drivers: ['simple', 'mySql']
   query: [
@@ -124,9 +125,9 @@ exports["split cut; apply count"] = testDrivers {
 exports["split carat; apply count"] = testDrivers {
   drivers: ['simple', 'mySql']
   query: [
-    { operation: 'split', name: 'Carat', bucket: 'continuous', size: 0.1, offset: 0, attribute: 'carat' }
+    { operation: 'split', name: 'Carat', bucket: 'continuous', size: 0.1, offset: 0.005, attribute: 'carat' }
     { operation: 'apply', name: 'Count', aggregate: 'count' }
-    { operation: 'combine', sort: { prop: 'Carat', compare: 'natural', direction: 'descending' } }
+    { operation: 'combine', sort: { prop: 'Carat', compare: 'natural', direction: 'ascending' } }
   ]
 }
 
@@ -136,20 +137,32 @@ exports["split cut; apply count > split carat; apply count"] = testDrivers {
     { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
     { operation: 'apply', name: 'Count', aggregate: 'count' }
     { operation: 'combine', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
-    { operation: 'split', name: 'Carat', bucket: 'continuous', size: 0.1, offset: 0.05, attribute: 'carat' }
+    { operation: 'split', name: 'Carat', bucket: 'continuous', size: 0.1, offset: 0.005, attribute: 'carat' }
     { operation: 'apply', name: 'Count', aggregate: 'count' }
     { operation: 'combine', sort: { prop: 'Carat', compare: 'natural', direction: 'descending' } }
   ]
 }
 
-# exports["split carat; apply count > split cut; apply count"] = testDrivers {
-#   drivers: ['simple', 'mySql']
-#   query: [
-#     { operation: 'split', name: 'Carat', bucket: 'continuous', size: 0.1, offset: 0.05, attribute: 'carat' }
-#     { operation: 'apply', name: 'Count', aggregate: 'count' }
-#     { operation: 'combine', sort: { prop: 'Count', compare: 'natural', direction: 'descending' }, limit: 5 }
-#     { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
-#     { operation: 'apply', name: 'Count', aggregate: 'count' }
-#     { operation: 'combine', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
-#   ]
-# }
+exports["split(1, .5) carat; apply count > split cut; apply count"] = testDrivers {
+  drivers: ['simple', 'mySql']
+  query: [
+    { operation: 'split', name: 'Carat', bucket: 'continuous', size: 1, offset: 0.5, attribute: 'carat' }
+    { operation: 'apply', name: 'Count', aggregate: 'count' }
+    { operation: 'combine', sort: { prop: 'Count', compare: 'natural', direction: 'descending' }, limit: 5 }
+    { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
+    { operation: 'apply', name: 'Count', aggregate: 'count' }
+    { operation: 'combine', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
+  ]
+}
+
+exports["split carat; apply count > split cut; apply count"] = testDrivers {
+  drivers: ['simple', 'mySql']
+  query: [
+    { operation: 'split', name: 'Carat', bucket: 'continuous', size: 0.1, offset: 0.005, attribute: 'carat' }
+    { operation: 'apply', name: 'Count', aggregate: 'count' }
+    { operation: 'combine', sort: { prop: 'Count', compare: 'natural', direction: 'descending' }, limit: 5 }
+    { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
+    { operation: 'apply', name: 'Count', aggregate: 'count' }
+    { operation: 'combine', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
+  ]
+}

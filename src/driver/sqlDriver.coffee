@@ -69,7 +69,7 @@ applyToSQL = (apply) ->
       "#{apply.value}"
 
     when 'count'
-      "COUNT(*)"
+      "COUNT(1)"
 
     when 'sum'
       "SUM(#{escAttribute(apply.attribute)})"
@@ -133,12 +133,18 @@ condensedQueryToSQL = ({requester, table, filters, condensedQuery}, callback) ->
     groupByPart = 'GROUP BY '
     switch split.bucket
       when 'identity'
-        splitSelectPart += "#{escAttribute(split.attribute)}"
-        groupByPart += "#{escAttribute(split.attribute)}"
+        splitSelectPart += escAttribute(split.attribute)
+        groupByPart += escAttribute(split.attribute)
 
       when 'continuous'
-        splitSelectPart += "FLOOR((#{escAttribute(split.attribute)} + #{split.offset}) / #{split.size}) * #{split.size} + (#{split.size} / 2)"
-        groupByPart += "FLOOR((#{escAttribute(split.attribute)} + #{split.offset}) / #{split.size}) * #{split.size}"
+        floorStr = escAttribute(split.attribute)
+        floorStr = "(#{floorStr} + #{split.offset})" if split.offset isnt 0
+        floorStr = "#{floorStr} / #{split.size}" if split.size isnt 1
+        floorStr = "FLOOR(#{floorStr})"
+        floorStr = "#{floorStr} * #{split.size}" if split.size isnt 1
+        floorStr = "#{floorStr} - #{split.offset}" if split.offset isnt 0
+        splitSelectPart += floorStr
+        groupByPart += floorStr
 
       when 'time'
         bucketDuration = split.duration
@@ -207,6 +213,8 @@ condensedQueryToSQL = ({requester, table, filters, condensedQuery}, callback) ->
     limitPart
   ].filter((part) -> part?).join(' ') + ';'
 
+  # console.log(sqlQuery)
+
   requester sqlQuery, (err, ds) ->
     if err
       callback(err)
@@ -217,10 +225,10 @@ condensedQueryToSQL = ({requester, table, filters, condensedQuery}, callback) ->
       splitProp = condensedQuery.split.name
 
       if condensedQuery.split.bucket is 'continuous'
-        splitHalfSize = condensedQuery.split.size / 2
+        splitSize = condensedQuery.split.size
         for d in ds
-          mid = d[splitProp]
-          d[splitProp] = [mid - splitHalfSize, mid + splitHalfSize]
+          start = d[splitProp]
+          d[splitProp] = [start, start + splitSize]
 
       splits = ds.map (prop) -> {
         prop

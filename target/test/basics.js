@@ -406,3 +406,22 @@ exports["apply arithmetic"] = testDrivers({
     }
   ]
 });
+
+exports["apply arithmetic"] = testDrivers({
+  drivers: ['simple', 'mySql'],
+  query: [
+    {
+      operation: 'apply',
+      name: 'Count Plus One',
+      aggregate: 'add',
+      operands: [
+        {
+          aggregate: 'count'
+        }, {
+          aggregate: 'constant',
+          value: 1
+        }
+      ]
+    }
+  ]
+});

@@ -29,6 +29,7 @@ exports.flatten = (ar) -> Array::concat.apply([], ar)
 # ]
 exports.condenseQuery = (query) ->
   curQuery = {
+    filter: null
     split: null
     applies: []
     combine: null
@@ -36,6 +37,10 @@ exports.condenseQuery = (query) ->
   condensed = []
   for cmd in query
     switch cmd.operation
+      when 'filter'
+        throw new Error("can not have more than on filter") if curQuery.filter
+        curQuery.filter = cmd
+
       when 'split'
         condensed.push(curQuery)
         curQuery = {
@@ -48,11 +53,11 @@ exports.condenseQuery = (query) ->
         curQuery.applies.push(cmd)
 
       when 'combine'
-        throw new Error("Can not have more than one combine") if curQuery.combine
+        throw new Error("can not have more than one combine") if curQuery.combine
         curQuery.combine = cmd
 
       else
-        throw new Error("Unknown operation '#{cmd.operation}'")
+        throw new Error("unknown operation '#{cmd.operation}'")
 
   condensed.push(curQuery)
   return condensed

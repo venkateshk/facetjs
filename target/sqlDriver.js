@@ -86,7 +86,7 @@
         case 'is':
           return "" + (this.escapeAttribute(filter.attribute)) + " = " + (this.escapeValue(filter.value));
         case 'in':
-          return "" + (this.escapeAttribute(filter.attribute)) + " in (" + (filter.values.map(this.escapeValue).join(',')) + ")";
+          return "" + (this.escapeAttribute(filter.attribute)) + " in (" + (filter.values.map(this.escapeValue, this).join(',')) + ")";
         case 'match':
           return "" + (this.escapeAttribute(filter.attribute)) + " REGEXP '" + filter.expression + "'";
         case 'within':
@@ -95,9 +95,9 @@
         case 'not':
           return "NOT (" + (this.filterToSQL(filter.filter)) + ")";
         case 'and':
-          return '(' + filter.filters.map(this.filterToSQL).join(') AND (') + ')';
+          return '(' + filter.filters.map(this.filterToSQL, this).join(') AND (') + ')';
         case 'or':
-          return '(' + filter.filters.map(this.filterToSQL).join(') OR (') + ')';
+          return '(' + filter.filters.map(this.filterToSQL, this).join(') OR (') + ')';
         default:
           throw new Error("unknown filter type '" + filter.type + "'");
       }
@@ -281,6 +281,7 @@
     var apply, combine, condensedQuery, filter, queryToRun, requester, split, sqlQuery, table, _i, _len, _ref;
     requester = _arg.requester, table = _arg.table, filter = _arg.filter, condensedQuery = _arg.condensedQuery;
     sqlQuery = new SQLQueryBuilder(table);
+    filter = andFilters(filter, condensedQuery.filter);
     try {
       if (filter) {
         sqlQuery.addFilter(filter);

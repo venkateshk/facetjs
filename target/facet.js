@@ -1064,12 +1064,9 @@
     }
 
     FacetJob.prototype.filter = function(filter) {
-      if (filter) {
-        this.ops.push({
-          operation: 'filter',
-          filter: filter
-        });
-      }
+      filter = _.clone(filter);
+      filter.operation = 'filter';
+      this.ops.push(filter);
       return this;
     };
 

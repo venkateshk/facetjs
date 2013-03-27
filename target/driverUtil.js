@@ -23,6 +23,7 @@
   exports.condenseQuery = function(query) {
     var cmd, condensed, curQuery, _i, _len;
     curQuery = {
+      filter: null,
       split: null,
       applies: [],
       combine: null
@@ -31,6 +32,12 @@
     for (_i = 0, _len = query.length; _i < _len; _i++) {
       cmd = query[_i];
       switch (cmd.operation) {
+        case 'filter':
+          if (curQuery.filter) {
+            throw new Error("can not have more than on filter");
+          }
+          curQuery.filter = cmd;
+          break;
         case 'split':
           condensed.push(curQuery);
           curQuery = {
@@ -44,12 +51,12 @@
           break;
         case 'combine':
           if (curQuery.combine) {
-            throw new Error("Can not have more than one combine");
+            throw new Error("can not have more than one combine");
           }
           curQuery.combine = cmd;
           break;
         default:
-          throw new Error("Unknown operation '" + cmd.operation + "'");
+          throw new Error("unknown operation '" + cmd.operation + "'");
       }
     }
     condensed.push(curQuery);

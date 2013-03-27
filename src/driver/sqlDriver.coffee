@@ -51,7 +51,7 @@ class SQLQueryBuilder
         "#{@escapeAttribute(filter.attribute)} = #{@escapeValue(filter.value)}"
 
       when 'in'
-        "#{@escapeAttribute(filter.attribute)} in (#{filter.values.map(@escapeValue).join(',')})"
+        "#{@escapeAttribute(filter.attribute)} in (#{filter.values.map(@escapeValue, this).join(',')})"
 
       when 'match'
         "#{@escapeAttribute(filter.attribute)} REGEXP '#{filter.expression}'"
@@ -64,10 +64,10 @@ class SQLQueryBuilder
         "NOT (#{@filterToSQL(filter.filter)})"
 
       when 'and'
-        '(' + filter.filters.map(@filterToSQL).join(') AND (') + ')'
+        '(' + filter.filters.map(@filterToSQL, this).join(') AND (') + ')'
 
       when 'or'
-        '(' + filter.filters.map(@filterToSQL).join(') OR (') + ')'
+        '(' + filter.filters.map(@filterToSQL, this).join(') OR (') + ')'
 
       else
         throw new Error("unknown filter type '#{filter.type}'")
@@ -179,7 +179,6 @@ class SQLQueryBuilder
     @selectParts.push("#{@applyToSQL(apply)} AS \"#{apply.name}\"")
     return this
 
-
   directionMap: {
     ascending:  'ASC'
     descending: 'DESC'
@@ -227,6 +226,7 @@ class SQLQueryBuilder
 condensedQueryToSQL = ({requester, table, filter, condensedQuery}, callback) ->
   sqlQuery = new SQLQueryBuilder(table)
 
+  filter = andFilters(filter, condensedQuery.filter)
   try
     if filter
       sqlQuery.addFilter(filter)

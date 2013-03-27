@@ -88,6 +88,9 @@ testDrivers = ({drivers, query}) -> (test) ->
     return
 
 
+
+# Tests
+
 exports["apply count"] = testDrivers {
   drivers: ['simple', 'mySql']
   query: [
@@ -233,5 +236,64 @@ exports["apply arithmetic"] = testDrivers {
         { aggregate: 'constant', value: 1 }
       ]
     }
+  ]
+}
+
+exports["is filter"] = testDrivers {
+  drivers: ['simple', 'mySql']
+  query: [
+    { operation: 'filter', type: 'is', attribute: 'color', value: 'E' }
+    { operation: 'apply', name: 'Count', aggregate: 'count' }
+  ]
+}
+
+
+exports["complex filter"] = testDrivers {
+  drivers: ['simple', 'mySql']
+  query: [
+    {
+      operation: 'filter'
+      type: 'or'
+      filters: [
+        { type: 'is', attribute: 'color', value: 'E' }
+        {
+          type: 'and'
+          filters: [
+            { type: 'in', attribute: 'clarity', values: ['SI1', 'SI2'] }
+            { type: 'not', filter: { type: 'is', attribute: 'cut', value: 'Good' } }
+          ]
+        }
+      ]
+    }
+    { operation: 'apply', name: 'Count', aggregate: 'count' }
+  ]
+}
+
+exports["complex filter; split carat; apply count > split cut; apply count"] = testDrivers {
+  drivers: ['simple', 'mySql']
+  query: [
+    {
+      operation: 'filter'
+      type: 'or'
+      filters: [
+        { type: 'is', attribute: 'color', value: 'E' }
+        {
+          type: 'and'
+          filters: [
+            { type: 'in', attribute: 'clarity', values: ['SI1', 'SI2'] }
+            { type: 'not', filter: { type: 'is', attribute: 'cut', value: 'Good' } }
+          ]
+        }
+      ]
+    }
+    { operation: 'apply', name: 'Count', aggregate: 'count' }
+
+    { operation: 'split', name: 'Carat', bucket: 'continuous', size: 0.1, offset: 0.005, attribute: 'carat' }
+    { operation: 'apply', name: 'Count', aggregate: 'count' }
+    { operation: 'combine', sort: { prop: 'Count', compare: 'natural', direction: 'descending' }, limit: 5 }
+
+    { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
+    { operation: 'apply', name: 'Count', aggregate: 'count' }
+    { operation: 'combine', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
   ]
 }

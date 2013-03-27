@@ -105,13 +105,13 @@
     }
   };
 
-  makeFilterFn = function(cmd) {
+  makeFilterFn = function(filter) {
     var filterFn;
-    filterFn = filterFns[cmd.filter.type];
+    filterFn = filterFns[filter.type];
     if (!filterFn) {
       throw new Error("filter type '" + filter.type + "' not defined");
     }
-    return filterFn(cmd);
+    return filterFn(filter);
   };
 
   splitFns = {

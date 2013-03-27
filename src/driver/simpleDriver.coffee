@@ -50,10 +50,10 @@ filterFns = {
       return false
 }
 
-makeFilterFn = (cmd) ->
-  filterFn = filterFns[cmd.filter.type]
+makeFilterFn = (filter) ->
+  filterFn = filterFns[filter.type]
   throw new Error("filter type '#{filter.type}' not defined") unless filterFn
-  return filterFn(cmd)
+  return filterFn(filter)
 
 
 # ------------------------

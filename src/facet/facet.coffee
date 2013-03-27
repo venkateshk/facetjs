@@ -26,11 +26,9 @@ class FacetJob
     @hasTransformed = false
 
   filter: (filter) ->
-    if filter
-      @ops.push({
-        operation: 'filter'
-        filter
-      })
+    filter = _.clone(filter)
+    filter.operation = 'filter'
+    @ops.push(filter)
     return this
 
   split: (name, split) ->

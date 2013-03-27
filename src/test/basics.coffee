@@ -45,6 +45,9 @@ driver.mySql = sqlDriver({
 # })
 
 uniformizeResults = (result) ->
+  if not result?.prop
+    return result
+
   prop = {}
   for name, value of result.prop
     continue unless result.prop.hasOwnProperty(name)
@@ -164,5 +167,56 @@ exports["split carat; apply count > split cut; apply count"] = testDrivers {
     { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
     { operation: 'apply', name: 'Count', aggregate: 'count' }
     { operation: 'combine', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
+  ]
+}
+
+exports["apply arithmetic"] = testDrivers {
+  drivers: ['simple', 'mySql']
+  query: [
+    {
+      operation: 'apply'
+      name: 'Count Plus One'
+      aggregate: 'add'
+      operands: [
+        { aggregate: 'count' }
+        { aggregate: 'constant', value: 1 }
+      ]
+    }
+    {
+      operation: 'apply'
+      name: 'Price + Carat'
+      aggregate: 'add'
+      operands: [
+        { aggregate: 'sum', attribute: 'price' }
+        { aggregate: 'sum', attribute: 'carat' }
+      ]
+    }
+    {
+      operation: 'apply'
+      name: 'Price - Carat'
+      aggregate: 'subtract'
+      operands: [
+        { aggregate: 'sum', attribute: 'price' }
+        { aggregate: 'sum', attribute: 'carat' }
+      ]
+    }
+    {
+      operation: 'apply'
+      name: 'Price * Carat'
+      aggregate: 'multiply'
+      operands: [
+        { aggregate: 'min', attribute: 'price' }
+        { aggregate: 'max', attribute: 'carat' }
+      ]
+    }
+    {
+      operation: 'apply'
+      name: 'Price / Carat'
+      aggregate: 'divide'
+      operands: [
+        { aggregate: 'sum', attribute: 'price' }
+        { aggregate: 'sum', attribute: 'carat' }
+      ]
+    }
   ]
 }

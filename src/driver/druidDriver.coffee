@@ -21,16 +21,16 @@ filterToDruidQueryHelper = (filter) ->
   return
 
 filterToDruidQuery = (filter, timeDimension, druidQuery) ->
-  if filter.op is 'range' and filter.attribute is timeDimension
+  if filter.type is 'range' and filter.attribute is timeDimension
     druidQuery.intervals
   return
 
 
 makeFilter = (attribute, value) ->
   return {
-    type: 'selector'
-    dimension: attribute
-    value: value
+    type: 'is'
+    attribute
+    value
   }
 
 andFilters = (filters...) ->
@@ -43,7 +43,7 @@ andFilters = (filters...) ->
     else
       return {
         type: 'and'
-        fields: filters
+        filters
       }
 
 

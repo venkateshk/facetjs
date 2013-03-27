@@ -25,6 +25,14 @@ class FacetJob
     @hasSplit = false
     @hasTransformed = false
 
+  filter: (filter) ->
+    if filter
+      @ops.push({
+        operation: 'filter'
+        filter
+      })
+    return this
+
   split: (name, split) ->
     split = _.clone(split)
     split.operation = 'split'
@@ -120,7 +128,7 @@ class FacetJob
     return this
 
   getQuery: ->
-    return @ops.filter(({operation}) -> operation in ['split', 'apply', 'combine'])
+    return @ops.filter(({operation}) -> operation in ['filter', 'split', 'apply', 'combine'])
 
   render: ->
     parent = d3.select(@selector)
@@ -172,8 +180,8 @@ class FacetJob
                 })
             )
 
-          when 'apply', 'combine'
-            null # Do nothing, there is nothing to do on the renderer for those two :-)
+          when 'filter', 'apply', 'combine'
+            null # Do nothing, there is nothing to do on the renderer for those :-)
 
           when 'scale'
             { name, scale } = cmd

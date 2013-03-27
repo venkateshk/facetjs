@@ -101,13 +101,13 @@
         throw new Error("not implemented yet (ToDo)");
         break;
       case 'add':
-        return "(" + apply.operands[0] + " + " + apply.operands[1] + ")";
+        return "(" + (applyToSQL(apply.operands[0])) + " + " + (applyToSQL(apply.operands[1])) + ")";
       case 'subtract':
-        return "(" + apply.operands[0] + " - " + apply.operands[1] + ")";
+        return "(" + (applyToSQL(apply.operands[0])) + " - " + (applyToSQL(apply.operands[1])) + ")";
       case 'multiply':
-        return "(" + apply.operands[0] + " * " + apply.operands[1] + ")";
+        return "(" + (applyToSQL(apply.operands[0])) + " * " + (applyToSQL(apply.operands[1])) + ")";
       case 'divide':
-        return "(" + apply.operands[0] + " / " + apply.operands[1] + ")";
+        return "(" + (applyToSQL(apply.operands[0])) + " / " + (applyToSQL(apply.operands[1])) + ")";
       default:
         throw new Error("no such apply '" + apply.aggregate + "'");
     }

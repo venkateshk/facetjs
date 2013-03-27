@@ -1,26 +1,26 @@
-# { attribute: "make", op: "is", value: "Honda" }
-# { attribute: "make", op: "in", values: ["Honda", "BMW"] }
-# { attribute: "make", op: "match", expression: "Hond[ao]" }
-# { attribute: "displacement", op: "within", range: [5, 6] }
-# { op: "not", filter: {...} }
-# { op: "and", filters: [{...}] }
-# { op: "or", filters: [{...}] }
+# { attribute: "make", type: "is", value: "Honda" }
+# { attribute: "make", type: "in", values: ["Honda", "BMW"] }
+# { attribute: "make", type: "match", expression: "Hond[ao]" }
+# { attribute: "displacement", type: "within", range: [5, 6] }
+# { type: "not", filter: {...} }
+# { type: "and", filters: [{...}] }
+# { type: "or", filters: [{...}] }
 
 facet.filter = {
   is: (attribute, value) -> {
-    op: 'is'
+    type: 'is'
     attribute
     value
   }
 
   in: (attribute, values) -> {
-    op: 'in'
+    type: 'in'
     attribute
     values
   }
 
   match: (attribute, expression) -> {
-    op: 'match'
+    type: 'match'
     attribute
     expression
   }
@@ -28,7 +28,7 @@ facet.filter = {
   within: (attribute, range) ->
     throw new TypeError("range must be an array of two things") unless Array.isArray(range) and range.length is 2
     return {
-      op: 'within'
+      type: 'within'
       attribute
       range
     }
@@ -36,21 +36,21 @@ facet.filter = {
   not: (filter) ->
     throw new TypeError("filter must be a filter object") unless typeof filter is 'object'
     return {
-      op: 'not'
+      type: 'not'
       filter
     }
 
-  and: (filters) ->
-    throw new TypeError('filters must be a nonempty array') unless Array.isArray(filters) and filters.length
+  and: (filters...) ->
+    throw new TypeError('must have some filters') unless filters.length
     return {
-      op: 'and'
+      type: 'and'
       filters
     }
 
-  or: (filters) ->
-    throw new TypeError('filters must be a nonempty array') unless Array.isArray(filters) or filters.length
+  or: (filters...) ->
+    throw new TypeError('must have some filters') unless filters.length
     return {
-      op: 'or'
+      type: 'or'
       filters
     }
 }

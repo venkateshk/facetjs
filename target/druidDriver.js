@@ -30,15 +30,15 @@
   filterToDruidQueryHelper = function(filter) {};
 
   filterToDruidQuery = function(filter, timeDimension, druidQuery) {
-    if (filter.op === 'range' && filter.attribute === timeDimension) {
+    if (filter.type === 'range' && filter.attribute === timeDimension) {
       druidQuery.intervals;
     }
   };
 
   makeFilter = function(attribute, value) {
     return {
-      type: 'selector',
-      dimension: attribute,
+      type: 'is',
+      attribute: attribute,
       value: value
     };
   };
@@ -57,7 +57,7 @@
       default:
         return {
           type: 'and',
-          fields: filters
+          filters: filters
         };
     }
   };

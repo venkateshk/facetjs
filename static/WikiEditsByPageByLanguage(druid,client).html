@@ -42,28 +42,31 @@
       // metrics
       // ["count","added","variation","delta","delta_hist","unique_users","deleted"]}
 
-      // var druidRequester = facet.ajaxPoster({
-      //   url: '/pass/druid',
-      //   prety: true
-      // });
-
-      // var druidDriverClient = druidDriver({
-      //   requester: druidRequester,
-      //   dataSource: "wikipedia_editstream",
-      //   interval: [new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))],
-      //   filters: null
-      // });
-
-      var sqlRequester = facet.ajaxPoster({
-        url: '/pass/sql',
+      var druidRequester = facet.ajaxPoster({
+        url: '/pass/druid',
         prety: true
       });
 
-      var sqlDriverClient = sqlDriver({
-        requester: sqlRequester,
-        table: "wiki_day",
+      var druidDriverClient = druidDriver({
+        requester: druidRequester,
+        dataSource: "wikipedia_editstream",
+        interval: [
+          new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)),
+          new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))
+        ],
         filters: null
       });
+
+      // var sqlRequester = facet.ajaxPoster({
+      //   url: '/pass/sql',
+      //   prety: true
+      // });
+
+      // var sqlDriverClient = sqlDriver({
+      //   requester: sqlRequester,
+      //   table: "wiki_day",
+      //   filters: null
+      // });
 
       function formatEditsAndPage(edits, page) {
         var str = '(' + edits + ') ' + page;
@@ -74,7 +77,7 @@
         return str;
       }
 
-      facet.define('.example', 800, 600, facet.verboseDriver(sqlDriverClient))
+      facet.define('.example', 800, 600, facet.verboseDriver(druidDriverClient))
         .apply('Edits', apply.count())
         .scale('horiz', scale.linear())
           .split('Language', split.identity('language'))

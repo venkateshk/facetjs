@@ -90,16 +90,16 @@ applyToSQL = (apply) ->
       throw new Error("not implemented yet (ToDo)")
 
     when 'add'
-      "(#{apply.operands[0]} + #{apply.operands[1]})"
+      "(#{applyToSQL(apply.operands[0])} + #{applyToSQL(apply.operands[1])})"
 
     when 'subtract'
-      "(#{apply.operands[0]} - #{apply.operands[1]})"
+      "(#{applyToSQL(apply.operands[0])} - #{applyToSQL(apply.operands[1])})"
 
     when 'multiply'
-      "(#{apply.operands[0]} * #{apply.operands[1]})"
+      "(#{applyToSQL(apply.operands[0])} * #{applyToSQL(apply.operands[1])})"
 
     when 'divide'
-      "(#{apply.operands[0]} / #{apply.operands[1]})"
+      "(#{applyToSQL(apply.operands[0])} / #{applyToSQL(apply.operands[1])})"
 
     else
       throw new Error("no such apply '#{apply.aggregate}'")

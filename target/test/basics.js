@@ -34,6 +34,9 @@ driver.mySql = sqlDriver({
 
 uniformizeResults = function(result) {
   var name, prop, ret, value, _ref;
+  if (!(result != null ? result.prop : void 0)) {
+    return result;
+  }
   prop = {};
   _ref = result.prop;
   for (name in _ref) {
@@ -329,6 +332,77 @@ exports["split carat; apply count > split cut; apply count"] = testDrivers({
         compare: 'natural',
         direction: 'descending'
       }
+    }
+  ]
+});
+
+exports["apply arithmetic"] = testDrivers({
+  drivers: ['simple', 'mySql'],
+  query: [
+    {
+      operation: 'apply',
+      name: 'Count Plus One',
+      aggregate: 'add',
+      operands: [
+        {
+          aggregate: 'count'
+        }, {
+          aggregate: 'constant',
+          value: 1
+        }
+      ]
+    }, {
+      operation: 'apply',
+      name: 'Price + Carat',
+      aggregate: 'add',
+      operands: [
+        {
+          aggregate: 'sum',
+          attribute: 'price'
+        }, {
+          aggregate: 'sum',
+          attribute: 'carat'
+        }
+      ]
+    }, {
+      operation: 'apply',
+      name: 'Price - Carat',
+      aggregate: 'subtract',
+      operands: [
+        {
+          aggregate: 'sum',
+          attribute: 'price'
+        }, {
+          aggregate: 'sum',
+          attribute: 'carat'
+        }
+      ]
+    }, {
+      operation: 'apply',
+      name: 'Price * Carat',
+      aggregate: 'multiply',
+      operands: [
+        {
+          aggregate: 'min',
+          attribute: 'price'
+        }, {
+          aggregate: 'max',
+          attribute: 'carat'
+        }
+      ]
+    }, {
+      operation: 'apply',
+      name: 'Price / Carat',
+      aggregate: 'divide',
+      operands: [
+        {
+          aggregate: 'sum',
+          attribute: 'price'
+        }, {
+          aggregate: 'sum',
+          attribute: 'carat'
+        }
+      ]
     }
   ]
 });

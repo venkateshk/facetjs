@@ -133,21 +133,21 @@
   facet.filter = {
     is: function(attribute, value) {
       return {
-        op: 'is',
+        type: 'is',
         attribute: attribute,
         value: value
       };
     },
     "in": function(attribute, values) {
       return {
-        op: 'in',
+        type: 'in',
         attribute: attribute,
         values: values
       };
     },
     match: function(attribute, expression) {
       return {
-        op: 'match',
+        type: 'match',
         attribute: attribute,
         expression: expression
       };
@@ -157,7 +157,7 @@
         throw new TypeError("range must be an array of two things");
       }
       return {
-        op: 'within',
+        type: 'within',
         attribute: attribute,
         range: range
       };
@@ -167,25 +167,29 @@
         throw new TypeError("filter must be a filter object");
       }
       return {
-        op: 'not',
+        type: 'not',
         filter: filter
       };
     },
-    and: function(filters) {
-      if (!(Array.isArray(filters) && filters.length)) {
-        throw new TypeError('filters must be a nonempty array');
+    and: function() {
+      var filters;
+      filters = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+      if (!filters.length) {
+        throw new TypeError('must have some filters');
       }
       return {
-        op: 'and',
+        type: 'and',
         filters: filters
       };
     },
-    or: function(filters) {
-      if (!(Array.isArray(filters) || filters.length)) {
-        throw new TypeError('filters must be a nonempty array');
+    or: function() {
+      var filters;
+      filters = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+      if (!filters.length) {
+        throw new TypeError('must have some filters');
       }
       return {
-        op: 'or',
+        type: 'or',
         filters: filters
       };
     }
@@ -1059,6 +1063,16 @@
       this.hasTransformed = false;
     }
 
+    FacetJob.prototype.filter = function(filter) {
+      if (filter) {
+        this.ops.push({
+          operation: 'filter',
+          filter: filter
+        });
+      }
+      return this;
+    };
+
     FacetJob.prototype.split = function(name, split) {
       split = _.clone(split);
       split.operation = 'split';
@@ -1182,7 +1196,7 @@
       return this.ops.filter(function(_arg) {
         var operation;
         operation = _arg.operation;
-        return operation === 'split' || operation === 'apply' || operation === 'combine';
+        return operation === 'filter' || operation === 'split' || operation === 'apply' || operation === 'combine';
       });
     };
 
@@ -1248,6 +1262,7 @@
                 });
               });
               break;
+            case 'filter':
             case 'apply':
             case 'combine':
               null;

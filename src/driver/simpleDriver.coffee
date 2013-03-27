@@ -13,7 +13,50 @@ if typeof exports is 'undefined'
 
 # -----------------------------------------------------
 
+filterFns = {
+  is: ({attribute, value}) ->
+    return (d) -> d[attribute] is value
 
+  in: ({attribute, values}) ->
+    return (d) -> d[attribute] in values
+
+  match: ({attribute, expression}) ->
+    expression = new RegExp(expression)
+    return (d) -> expression.test(d[attribute])
+
+  within: ({attribute, range}) ->
+    throw new TypeError("range must be an array of two things") unless Array.isArray(range) and range.length is 2
+    return (d) -> range[0] <= d.attribute < range[1]
+
+  not: ({filter}) ->
+    throw new TypeError("filter must be a filter object") unless typeof filter is 'object'
+    filter = makeFilterFn(filter)
+    return (d) -> not filter(d)
+
+  and: ({filters}) ->
+    throw new TypeError('must have some filters') unless filters.length
+    filters = filters.map(makeFilterFn)
+    return (d) ->
+      for filter in filters
+        return false unless filter(d)
+      return true
+
+  or: ({filters}) ->
+    throw new TypeError('must have some filters') unless filters.length
+    filters = filters.map(makeFilterFn)
+    return (d) ->
+      for filter in filters
+        return true if filter(d)
+      return false
+}
+
+makeFilterFn = (cmd) ->
+  filterFn = filterFns[cmd.filter.type]
+  throw new Error("filter type '#{filter.type}' not defined") unless filterFn
+  return filterFn(cmd)
+
+
+# ------------------------
 splitFns = {
   identity: ({attribute}) ->
     throw new Error('attribute not defined') unless typeof attribute is 'string'
@@ -68,6 +111,13 @@ splitFns = {
           return [ds, de]
 }
 
+makeSplitFn = (cmd) ->
+  splitFn = splitFns[cmd.bucket]
+  throw new Error("No such bucket `#{cmd.bucket}` in split") unless splitFn
+  return splitFn(cmd)
+
+
+# ----------------------------
 applyFns = {
   constant: ({value}) -> () ->
     return value
@@ -108,8 +158,33 @@ applyFns = {
   quantile: ({attribute, quantile}) -> (ds) ->
     throw "not implemented yet (ToDo)"
     return
+
+  add: ({operands}) ->
+    operands = operands.map(makeApplyFn)
+    return (ds) -> operands[0](ds) + operands[1](ds)
+
+
+  subtract: ({operands}) ->
+    operands = operands.map(makeApplyFn)
+    return (ds) -> operands[0](ds) - operands[1](ds)
+
+
+  multiply: ({operands}) ->
+    operands = operands.map(makeApplyFn)
+    return (ds) -> operands[0](ds) * operands[1](ds)
+
+
+  divide: ({operands}) ->
+    operands = operands.map(makeApplyFn)
+    return (ds) -> operands[0](ds) / operands[1](ds)
 }
 
+makeApplyFn = (cmd) ->
+  applyFn = applyFns[cmd.aggregate]
+  throw new Error("No such aggregate `#{cmd.aggregate}` in apply") unless applyFn
+  return applyFn(cmd)
+
+# -------------------
 compareFns = {
   ascending: (a, b) ->
     return if a < b then -1 else if a > b then 1 else if a >= b then 0 else NaN
@@ -141,18 +216,22 @@ computeQuery = (data, query) ->
 
   for cmd in query
     switch cmd.operation
+      when 'filter'
+        filterFn = makeFilterFn(cmd)
+        for segmentGroup in segmentGroups
+          for segment in segmentGroup
+            segment._raw = segment._raw.filter(filterFn)
+
       when 'split'
         propName = cmd.name
         throw new Error("'name' not defined in split") unless propName
-        splitFn = splitFns[cmd.bucket]
-        throw new Error("No such bucket `#{cmd.bucket}` in split") unless splitFn
-        bucketFn = splitFn(cmd)
+        splitFn = makeSplitFn(cmd)
         segmentGroups = driverUtil.flatten(segmentGroups).map (segment) ->
           keys = []
           buckets = {}
           bucketValue = {}
           for d in segment._raw
-            key = bucketFn(d)
+            key = splitFn(d)
             throw new Error("Bucket returned undefined") unless key? # ToDo: handle nulls
             keyString = String(key)
 
@@ -177,12 +256,10 @@ computeQuery = (data, query) ->
       when 'apply'
         propName = cmd.name
         throw new Error("'name' not defined in apply") unless propName
-        applyFn = applyFns[cmd.aggregate]
-        throw new Error("No such aggregate `#{cmd.aggregate}` in apply") unless applyFn
-        aggregatorFn = applyFn(cmd)
+        applyFn = makeApplyFn(cmd)
         for segmentGroup in segmentGroups
           for segment in segmentGroup
-            segment.prop[propName] = aggregatorFn(segment._raw)
+            segment.prop[propName] = applyFn(segment._raw)
 
       when 'combine'
         if cmd.sort

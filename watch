@@ -1,6 +1,6 @@
 #!/bin/bash
 compass watch --sass-dir src/style/ --css-dir target/ &
-coffee --compile --watch --lint --bare --output target/test src/test/* &
+coffee --compile --watch --lint --bare --output target/test/ src/test/ &
 coffee --compile --watch --lint --bare --output target src/server.coffee src/requester/* &
 coffee --compile --watch --lint --output target src/driver/* &
 coffee --compile --watch --lint --output target --join target/facet.js \

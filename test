@@ -1,2 +1,2 @@
 #!/bin/bash
-node_modules/nodeunit/bin/nodeunit ./target/test/
+node_modules/nodeunit/bin/nodeunit ./target/test/tests

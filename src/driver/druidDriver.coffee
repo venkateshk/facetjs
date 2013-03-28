@@ -13,6 +13,22 @@ if typeof exports is 'undefined'
 
 # -----------------------------------------------------
 
+makeFilter = (attribute, value) ->
+  if Array.isArray(value)
+    return { type: 'within', attribute, range: value }
+  else
+    return { type: 'is', attribute, value }
+
+andFilters = (filters...) ->
+  filters = filters.filter((filter) -> filter?)
+  switch filters.length
+    when 0
+      return null
+    when 1
+      return filters[0]
+    else
+      return { type: 'and',  filters }
+
 rangeToDruidInterval = (interval) ->
   return interval.map((d) -> d.toISOString().replace('Z', '')).join('/')
 
@@ -25,141 +41,201 @@ filterToDruidQuery = (filter, timeDimension, druidQuery) ->
     druidQuery.intervals
   return
 
+class DruidQueryBuilder
+  constructor: (@type, @timeAttribute) ->
+    @aggregations = []
+    @postAggregations = []
 
-makeFilter = (attribute, value) ->
-  return {
-    type: 'is'
-    attribute
-    value
-  }
+  # return a (up to) two element array [druid_filter_object, druid_intervals_array]
+  filterToDruid: (filter) ->
+    switch filter.type
+      when 'is'
+        throw new Error("can not filter on specific time") if filter.attribute is @timeAttribute
+        [{
+          type: 'selector'
+          dimension: filter.attribute
+          value: filter.value
+        }]
 
-andFilters = (filters...) ->
-  filters = filters.filter((filter) -> filter?)
-  switch filters.length
-    when 0
-      return null
-    when 1
-      return filters[0]
-    else
-      return {
-        type: 'and'
-        filters
-      }
+      when 'in'
+        throw new Error("can not filter on specific time") if filter.attribute is @timeAttribute
+        [{
+          type: 'or'
+          fields: filter.values.map(((value) ->
+            return {
+              type: 'selector'
+              dimension: filter.attribute
+              value
+            }
+          ), this)
+        }]
 
+      when 'match'
+        throw new Error("can not match filter time") if filter.attribute is @timeAttribute
+        [{
+          type: "regex"
+          dimension: filter.attribute
+          pattern: filter.expression
+        }]
 
-findApply = (applies, propName) ->
-  for apply in applies
-    return apply if apply.name is propName
-  return
-
-findCountApply = (applies) ->
-  for apply in applies
-    return apply if apply.aggregate is 'count'
-  return
-
-addApplies = (druidQuery, applies) ->
-  applies = applies.slice()
-  druidQuery.aggregations = []
-  druidQuery.postAggregations = []
-  applyIdx = 0
-  while applyIdx < applies.length # Note that the apply list can grow
-    apply = applies[applyIdx++]
-    throw new Error("apply must have prop") unless apply.name
-    switch apply.aggregate
-      when 'constant'
-        druidQuery.postAggregations.push {
-          type: "constant"
-          name: apply.name
-          value: apply.value
-        }
-
-      when 'count'
-        druidQuery.aggregations.push {
-          type: "count"
-          name: apply.name
-        }
-
-      when 'sum'
-        druidQuery.aggregations.push {
-          type: "doubleSum"
-          name: apply.name
-          fieldName: apply.attribute
-        }
-
-      when 'average'
-        # Ether use an existing count or make a temp one
-        countApply = findCountApply(applies)
-        if not countApply
-          applies.push(countApply = {
-            operation: 'apply'
-            aggregate: 'count'
-            prop: '_count'
-          })
-
-        # Ether use an existing sum or make a temp one
-        sumApply = null
-        for a in applies
-          if a.aggregate is 'sum' and a.attribute is apply.attribute
-            sumApply = a
-            break
-        if not sumApply
-          applies.push(sumApply = {
-            operation: 'apply'
-            aggregate: 'sum'
-            prop: '_sum_' + apply.attribute
-            attribute: apply.attribute
-          })
-
-        druidQuery.postAggregations.push {
-          type: "arithmetic"
-          name: apply.name
-          fn: "/"
-          fields: [
-            { type: "fieldAccess", fieldName: sumApply.name }
-            { type: "fieldAccess", fieldName: countApply.name }
+      when 'within'
+        r0 = filter.range[0]
+        r1 = filter.range[1]
+        if filter.attribute is @timeAttribute
+          throw new Error("start and end must be dates") unless r0 instanceof Date and r1 instanceof Date
+          [
+            null,
+            ["#{r0.toISOString().replace('Z','')}/#{r1.toISOString().replace('Z','')}"]
           ]
-        }
+        else if typeof r0 is 'number' and typeof r1 is 'number'
+          [{
+            type: 'javascript'
+            dimension: filter.attribute
+            function: "function(a){return a=~~a,#{r0}<=a&&a<#{r1};}"
+          }]
+        else
+          throw new Error("has to be a numeric range")
 
-      when 'min'
-        druidQuery.aggregations.push {
-          type: "min"
-          name: apply.name
-          fieldName: apply.attribute
-        }
+      when 'not'
+        [f, i] = @filterToDruid(filter.filter)
+        throw new Error("can not apply a 'not' filter to a time interval") if i
+        [{
+          type: 'not'
+          filed: f
+        }]
 
-      when 'max'
-        druidQuery.aggregations.push {
-          type: "max"
-          name: apply.name
-          fieldName: apply.attribute
-        }
+      when 'and'
+        fis = filter.filters.map(@filterToDruid, this)
+        [
+          {
+            type: 'and'
+            fields: fis.map((d) -> d[0])
+          }
+          driverUtil.flatten(fis.map((d) -> d[1]))
+        ]
 
-      when 'uniqueCount'
-        # ToDo: add a throw here in case the user us using open source druid
-        druidQuery.aggregations.push {
-          type: "hyperUnique"
-          name: apply.name
-          fieldName: apply.attribute
-        }
-
-      when 'quantile'
-        throw new Error("quantile apply must have quantile") unless apply.quantile
-        druidQuery.aggregations.push {
-          type: "approxHistogramFold"
-          name: '_' + apply.attribute
-          fieldName: apply.attribute # ToDo: make it so that approxHistogramFolds can be shared
-        }
-        druidQuery.postAggregations.push {
-          type: "quantile"
-          name: apply.name
-          fieldName: '_' + apply.attribute
-          probability: apply.quantile
+      when 'or'
+        fis = filter.filters.map(@filterToDruid, this)
+        for [f, i] in fis
+          throw new Error("can not 'or' time") if i
+        {
+          type: 'or'
+          fields: fis.map((d) -> d[0])
         }
 
       else
-        throw new Error("No supported aggregation #{apply.aggregate}")
+        throw new Error("unknown filter type '#{filter.type}'")
 
-  return
+  addFilter: (filter) ->
+    [@filter, @intervals] = filterToDruid(filter)
+    return this
+
+  addAggregation: (agg) ->
+    @aggregations.push(agg)
+    return
+
+  addPostAggregation: (postAgg) ->
+    @postAggregations.push(postAgg)
+    return
+
+  addApplies: (applies) ->
+    for apply in applies
+      throw new Error("apply must have a name") unless apply.name
+      switch apply.aggregate
+        when 'constant'
+          druidQuery.postAggregations.push {
+            type: "constant"
+            name: apply.name
+            value: apply.value
+          }
+
+        when 'count'
+          druidQuery.aggregations.push {
+            type: "count"
+            name: apply.name
+          }
+
+        when 'sum'
+          druidQuery.aggregations.push {
+            type: "doubleSum"
+            name: apply.name
+            fieldName: apply.attribute
+          }
+
+        when 'average'
+          # Ether use an existing count or make a temp one
+          countApply = findCountApply(applies)
+          if not countApply
+            applies.push(countApply = {
+              operation: 'apply'
+              aggregate: 'count'
+              prop: '_count'
+            })
+
+          # Ether use an existing sum or make a temp one
+          sumApply = null
+          for a in applies
+            if a.aggregate is 'sum' and a.attribute is apply.attribute
+              sumApply = a
+              break
+          if not sumApply
+            applies.push(sumApply = {
+              operation: 'apply'
+              aggregate: 'sum'
+              prop: '_sum_' + apply.attribute
+              attribute: apply.attribute
+            })
+
+          druidQuery.postAggregations.push {
+            type: "arithmetic"
+            name: apply.name
+            fn: "/"
+            fields: [
+              { type: "fieldAccess", fieldName: sumApply.name }
+              { type: "fieldAccess", fieldName: countApply.name }
+            ]
+          }
+
+        when 'min'
+          druidQuery.aggregations.push {
+            type: "min"
+            name: apply.name
+            fieldName: apply.attribute
+          }
+
+        when 'max'
+          druidQuery.aggregations.push {
+            type: "max"
+            name: apply.name
+            fieldName: apply.attribute
+          }
+
+        when 'uniqueCount'
+          # ToDo: add a throw here in case the user us using open source druid
+          druidQuery.aggregations.push {
+            type: "hyperUnique"
+            name: apply.name
+            fieldName: apply.attribute
+          }
+
+        when 'quantile'
+          throw new Error("quantile apply must have quantile") unless apply.quantile
+          druidQuery.aggregations.push {
+            type: "approxHistogramFold"
+            name: '_' + apply.attribute
+            fieldName: apply.attribute # ToDo: make it so that approxHistogramFolds can be shared
+          }
+          druidQuery.postAggregations.push {
+            type: "quantile"
+            name: apply.name
+            fieldName: '_' + apply.attribute
+            probability: apply.quantile
+          }
+
+        else
+          throw new Error("No supported aggregation #{apply.aggregate}")
+
+    return
 
 
 druidQuery = {

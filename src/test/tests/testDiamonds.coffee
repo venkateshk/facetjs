@@ -4,8 +4,8 @@ druidRequester = require('../../druidRequester').requester
 sqlRequester = require('../../mySqlRequester').requester
 
 simpleDriver = require('../../simpleDriver')
-druidDriver = require('../../druidDriver')
 sqlDriver = require('../../sqlDriver')
+druidDriver = require('../../druidDriver')
 
 # Set up drivers
 driverFns = {}

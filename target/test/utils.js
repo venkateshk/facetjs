@@ -34,8 +34,8 @@ uniformizeResults = function(result) {
 
 exports.makeDriverTest = function(driverFns) {
   return function(_arg) {
-    var drivers, query;
-    drivers = _arg.drivers, query = _arg.query;
+    var drivers, query, verbose;
+    drivers = _arg.drivers, query = _arg.query, verbose = _arg.verbose;
     return function(test) {
       var driversToTest;
       if (drivers.length < 2) {
@@ -60,6 +60,9 @@ exports.makeDriverTest = function(driverFns) {
         while (i < drivers.length) {
           test.deepEqual(results[0], results[i], "results of '" + drivers[0] + "' and '" + drivers[i] + "' do not match");
           i++;
+        }
+        if (verbose) {
+          console.log(results[0]);
         }
         test.done();
       });

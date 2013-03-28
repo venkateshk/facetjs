@@ -76,6 +76,32 @@ exports.cleanSegment = (segment) ->
 
   return
 
+collectSplits = (node) ->
+  if node.splits?
+    return Array::concat.apply([], node.splits.map(collectSplits))
+  else
+    return node.prop
+
+stripProp = (splits) ->
+  columns = _.unique(Array::concat.apply([], splits.map((split) -> return _.keys(split))))
+  data = splits.map((split) -> return columns.map((column) -> split[column] or null))
+  return {columns, data}
+
+exports.createMatrix = (node) ->
+  return stripProp(collectSplits(node))
+
+exports.createCSVFromMatrix = ({columns, data}) ->
+  header = columns.map((column) -> return '\"' + column + '\"').join(',')
+  content = data.map((row) ->
+    return row.map((datum) ->
+      if datum?
+        return '\"' + datum + '\"'
+      else
+        return '\"0\"'
+    ).join(',')
+  ).join('\r\n')
+  return header + '\r\n' + content
+
 # -----------------------------------------------------
 # Handle commonJS crap
 if typeof module is 'undefined' then window['driverUtil'] = exports else module.exports = exports

@@ -65,6 +65,31 @@ exports["apply count"] = testDrivers {
   ]
 }
 
+exports["apply arithmetic"] = testDrivers {
+  drivers: ['mySql', 'druid']
+  query: [
+    { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+    {
+      operation: 'apply'
+      name: 'Added + Delted'
+      aggregate: 'add'
+      operands: [
+        { aggregate: 'sum', attribute: 'added' }
+        { aggregate: 'sum', attribute: 'deleted' }
+      ]
+    }
+    {
+      operation: 'apply'
+      name: 'Added - Delted'
+      aggregate: 'subtract'
+      operands: [
+        { aggregate: 'sum', attribute: 'added' }
+        { aggregate: 'sum', attribute: 'deleted' }
+      ]
+    }
+  ]
+}
+
 exports["split time; apply count"] = testDrivers {
   drivers: ['mySql', 'druid']
   query: [

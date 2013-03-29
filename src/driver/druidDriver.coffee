@@ -210,10 +210,10 @@ class DruidQueryBuilder
             throw new Error("#{apply.aggregate} must have an attribute") unless apply.attribute
             aggregation.fieldName = apply.attribute
 
+          @addAggregation(aggregation)
           if returnPostAggregation
             return { type: "fieldAccess", fieldName: applyName }
           else
-            @addAggregation(aggregation)
             return
 
         when 'uniqueCount'
@@ -224,10 +224,10 @@ class DruidQueryBuilder
             fieldName: apply.attribute
           }
 
+          @addAggregation(aggregation)
           if returnPostAggregation
             return { type: "fieldAccess", fieldName: applyName }
           else
-            @addAggregation(aggregation)
             return
 
         when 'average'
@@ -272,6 +272,8 @@ class DruidQueryBuilder
           }
 
           if returnPostAggregation
+            # We need this because of an asymmetry in druid, hopefully soon we will be able to remove this.
+            postAggregation.name = @throwawayName()
             return postAggregation
           else
             postAggregation.name = applyName
@@ -283,7 +285,7 @@ class DruidQueryBuilder
           b = @addApplyHelper(apply.operands[1], true)
           postAggregation = {
             type: "arithmetic"
-            fn: arithmeticAggregatorToDruidFn(apply.aggregate)
+            fn: arithmeticAggregatorToDruidFn[apply.aggregate]
             fields: [a, b]
           }
 

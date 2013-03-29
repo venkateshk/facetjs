@@ -38,8 +38,7 @@ driverFns.mySql = sqlDriver({
 # driverFns.druid = druidDriver({
 #   requester: druidPass
 #   dataSource: context.dataSource
-#   interval: context.interval.map((d) -> new Date(d))
-#   filters: null
+#   filter: null
 # })
 
 testDrivers = utils.makeDriverTest(driverFns)

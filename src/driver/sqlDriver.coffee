@@ -135,46 +135,53 @@ class SQLQueryBuilder
     @groupByParts.push("#{groupByPart}")
     return this
 
-  applyToSQL: (apply) ->
-    switch apply.aggregate
-      when 'constant'
-        "#{apply.value}"
+  applyToSQL: do ->
+    arithmeticToSqlOp = {
+      add: '+'
+      subtract: '-'
+      multiply: '*'
+      divide: '/'
+    }
+    return (apply) ->
+      if apply.aggregate
+        switch apply.aggregate
+          when 'constant'
+            String(apply.value)
 
-      when 'count'
-        "COUNT(1)"
+          when 'count'
+            "COUNT(1)"
 
-      when 'sum'
-        "SUM(#{@escapeAttribute(apply.attribute)})"
+          when 'sum'
+            "SUM(#{@escapeAttribute(apply.attribute)})"
 
-      when 'average'
-        "AVG(#{@escapeAttribute(apply.attribute)})"
+          when 'average'
+            "AVG(#{@escapeAttribute(apply.attribute)})"
 
-      when 'min'
-        "MIN(#{@escapeAttribute(apply.attribute)})"
+          when 'min'
+            "MIN(#{@escapeAttribute(apply.attribute)})"
 
-      when 'max'
-        "MAX(#{@escapeAttribute(apply.attribute)})"
+          when 'max'
+            "MAX(#{@escapeAttribute(apply.attribute)})"
 
-      when 'uniqueCount'
-        "COUNT(DISTINCT #{@escapeAttribute(apply.attribute)})"
+          when 'uniqueCount'
+            "COUNT(DISTINCT #{@escapeAttribute(apply.attribute)})"
 
-      when 'quantile'
-        throw new Error("not implemented yet (ToDo)")
+          when 'quantile'
+            throw new Error("not implemented yet") # ToDo
 
-      when 'add'
-        "(#{@applyToSQL(apply.operands[0])} + #{@applyToSQL(apply.operands[1])})"
+          else
+            throw new Error("unsupported aggregate '#{apply.aggregate}'")
 
-      when 'subtract'
-        "(#{@applyToSQL(apply.operands[0])} - #{@applyToSQL(apply.operands[1])})"
-
-      when 'multiply'
-        "(#{@applyToSQL(apply.operands[0])} * #{@applyToSQL(apply.operands[1])})"
-
-      when 'divide'
-        "(#{@applyToSQL(apply.operands[0])} / #{@applyToSQL(apply.operands[1])})"
+      else if apply.arithmetic
+        sqlOp = arithmeticToSqlOp[apply.arithmetic]
+        if sqlOp
+          return "(#{@applyToSQL(apply.operands[0])} #{sqlOp} #{@applyToSQL(apply.operands[1])})"
+        else
+          throw new Error("unsupported arithmetic '#{apply.arithmetic}'")
 
       else
-        throw new Error("no such apply '#{apply.aggregate}'")
+        throw new Error("must have an aggregate or an arithmetic")
+
 
   addApply: (apply) ->
     @selectParts.push("#{@applyToSQL(apply)} AS \"#{apply.name}\"")

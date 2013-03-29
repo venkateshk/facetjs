@@ -24,13 +24,13 @@
     "bucket": "time",
     "duration": "hour",
     "attribute": "time",
-    "prop": "Time"
+    "name": "Time"
   },
   {
     "operation": "apply",
     "aggregate": "sum",
     "attribute": "count",
-    "prop": "Count"
+    "name": "Count"
   },
   {
     "operation": "combine",
@@ -45,13 +45,13 @@
     "operation": "split",
     "bucket": "identity",
     "attribute": "page",
-    "prop": "Page"
+    "name": "Page"
   },
   {
     "operation": "apply",
     "aggregate": "sum",
     "attribute": "count",
-    "prop": "Count"
+    "name": "Count"
   },
   {
     "operation": "combine",
@@ -103,14 +103,23 @@
       var druidDriverClient = druidDriver({
         requester: druidRequester,
         dataSource: "wikipedia_editstream",
-        interval: [
-          new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)),
-          new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))
-        ],
-        filters: {
-          type: 'selector',
-          dimension: 'namespace',
-          value: 'article'
+        filter: {
+          type: 'and',
+          filters: [
+            {
+              type: 'is',
+              attribute: 'namespace',
+              value: 'article'
+            },
+            {
+              type: 'within',
+              attribute: 'time',
+              range: [
+                new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)),
+                new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))
+              ]
+            }
+          ]
         }
       });
 
@@ -140,7 +149,7 @@
           operation: "split",
           bucket: "identity",
           attribute: "???",
-          prop: "???"
+          name: "???"
         }))
 
       d3.select("#add-apply")
@@ -148,7 +157,7 @@
           operation: "apply",
           aggregate: "sum",
           attribute: "???",
-          prop: "???"
+          name: "???"
         }))
 
       d3.select("#add-combine")

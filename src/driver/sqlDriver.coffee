@@ -186,8 +186,6 @@ class SQLQueryBuilder
   }
 
   addSort: (sort) ->
-    throw new Error("must have a sort prop name") unless sort.prop
-    throw new Error("must have a sort direction") unless sort.direction
     sqlDirection = @directionMap[sort.direction]
     throw new Error("invalid direction is: '#{sort.direction}'") unless sqlDirection
 
@@ -204,7 +202,6 @@ class SQLQueryBuilder
     return this
 
   addLimit: (limit) ->
-    throw new Error("limit must be a number (is: #{limit})") if isNaN(limit)
     @limitPart = "LIMIT #{limit}"
     return this
 

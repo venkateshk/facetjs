@@ -120,7 +120,7 @@ class DruidQueryBuilder
             type: 'and'
             fields: fis.map((d) -> d[0])
           }
-          driverUtil.flatten(fis.map((d) -> d[1]))
+          driverUtil.flatten(fis.map((d) -> d[1])) # ToDo: make this actually do a union
         ]
 
       when 'or'
@@ -143,7 +143,6 @@ class DruidQueryBuilder
 
   addSplit: (split) ->
     throw new Error("split must have an attribute") unless split.attribute
-    throw new Errro("split must have a name") unless split.name
 
     if split.attribute is @timeAttribute
       # @queryType stays 'timeseries'
@@ -176,7 +175,6 @@ class DruidQueryBuilder
     return
 
   addApply: (apply) ->
-    throw new Error("apply must have a name") unless apply.name
     switch apply.aggregate
       when 'constant'
         @addPostAggregation {
@@ -265,21 +263,25 @@ class DruidQueryBuilder
     if sort.direction not in ['ascending', 'descending']
       throw new Error("direction has to be 'ascending' or 'descending'")
 
-    # figure out of we need to invert and apply for a bottomN
-    if sort.direction is 'descending'
-      @metric = sort.prop
-    else
-      # make a bottomN
-      @addPostAggregation {
-        type: "arithmetic"
-        name: invertName = @throwawayName()
-        fn: "*"
-        fields: [
-          { type: "fieldAccess", fieldName: sort.prop }
-          { type: "constant", value: -1 }
-        ]
-      }
-      @metric = invertName
+    if @queryType is 'topN'
+      if sort.prop is @dimension.outputName
+        @metric = { type: "lexicographic" }
+      else
+        # figure out of we need to invert and apply for a bottomN
+        if sort.direction is 'descending'
+          @metric = sort.prop
+        else
+          # make a bottomN
+          @addPostAggregation {
+            type: "arithmetic"
+            name: invertName = @throwawayName()
+            fn: "*"
+            fields: [
+              { type: "fieldAccess", fieldName: sort.prop }
+              { type: "constant", value: -1 }
+            ]
+          }
+          @metric = invertName
 
     return this
 

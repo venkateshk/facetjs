@@ -98,6 +98,7 @@ exports["split cut; apply count > split carat; apply count"] = testDrivers {
     { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
     { operation: 'apply', name: 'Count', aggregate: 'count' }
     { operation: 'combine', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
+
     { operation: 'split', name: 'Carat', bucket: 'continuous', size: 0.1, offset: 0.005, attribute: 'carat' }
     { operation: 'apply', name: 'Count', aggregate: 'count' }
     { operation: 'combine', sort: { prop: 'Carat', compare: 'natural', direction: 'descending' } }
@@ -110,6 +111,7 @@ exports["split(1, .5) carat; apply count > split cut; apply count"] = testDriver
     { operation: 'split', name: 'Carat', bucket: 'continuous', size: 1, offset: 0.5, attribute: 'carat' }
     { operation: 'apply', name: 'Count', aggregate: 'count' }
     { operation: 'combine', sort: { prop: 'Count', compare: 'natural', direction: 'descending' }, limit: 5 }
+
     { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
     { operation: 'apply', name: 'Count', aggregate: 'count' }
     { operation: 'combine', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
@@ -122,6 +124,7 @@ exports["split carat; apply count > split cut; apply count"] = testDrivers {
     { operation: 'split', name: 'Carat', bucket: 'continuous', size: 0.1, offset: 0.005, attribute: 'carat' }
     { operation: 'apply', name: 'Count', aggregate: 'count' }
     { operation: 'combine', sort: { prop: 'Count', compare: 'natural', direction: 'descending' }, limit: 5 }
+
     { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
     { operation: 'apply', name: 'Count', aggregate: 'count' }
     { operation: 'combine', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }

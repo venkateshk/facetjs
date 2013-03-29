@@ -21,6 +21,7 @@ exports.flatten = (ar) -> Array::concat.apply([], ar)
 # Group the queries steps in to the logical queries that will need to be done
 # output: [
 #   {
+#     filter: { ... }
 #     split: { ... }
 #     applies: [{ ... }, { ... }]
 #     combine: { ... }

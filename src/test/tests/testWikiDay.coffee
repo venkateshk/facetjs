@@ -87,6 +87,21 @@ exports["split page; apply count; sort count descending"] = testDrivers {
   ]
 }
 
+exports["split language; apply count; sort count descending > split page; apply count; sort count descending"] = testDrivers {
+  drivers: ['mySql', 'druid']
+  query: [
+    { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
+    { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+    { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+    { operation: 'combine', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 3 }
+
+    { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
+    { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+    { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+    { operation: 'combine', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 3 }
+  ]
+}
+
 exports["split page; apply count; sort count ascending"] = testDrivers {
   drivers: ['mySql', 'druid']
   query: [
@@ -107,5 +122,3 @@ exports["filter language=en; split page; apply count; sort count ascending"] = t
     { operation: 'combine', sort: { compare: 'natural', prop: 'Deleted', direction: 'ascending' }, limit: 5 }
   ]
 }
-
-

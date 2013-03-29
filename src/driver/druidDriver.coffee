@@ -118,9 +118,9 @@ class DruidQueryBuilder
         [
           {
             type: 'and'
-            fields: fis.map((d) -> d[0])
+            fields: fis.map((d) -> d[0]).filter((d) -> d?)
           }
-          driverUtil.flatten(fis.map((d) -> d[1])) # ToDo: make this actually do a union
+          driverUtil.flatten(fis.map((d) -> d[1]).filter((d) -> d?)) # ToDo: make this actually do a union
         ]
 
       when 'or'
@@ -129,7 +129,7 @@ class DruidQueryBuilder
           throw new Error("can not 'or' time") if i
         [{
           type: 'or'
-          fields: fis.map((d) -> d[0])
+          fields: fis.map((d) -> d[0]).filter((d) -> d?)
         }]
 
       else
@@ -166,97 +166,139 @@ class DruidQueryBuilder
     @nameIndex++
     return "_f#{@nameIndex}"
 
-  addAggregation: (agg) ->
-    @aggregations.push(agg)
+  addAggregation: (aggregation) ->
+    throw new Error("aggregation must have name") unless aggregation.name
+    @aggregations.push(aggregation)
     return
 
-  addPostAggregation: (postAgg) ->
-    @postAggregations.push(postAgg)
+  addPostAggregation: (postAggregation) ->
+    throw new Error("direct postAggregation must have name") unless postAggregation.name
+    @postAggregations.push(postAggregation)
     return
+
+
+
+  # This method will ether return a post aggregation or add it.
+  addApplyHelper: do ->
+    arithmeticAggregatorToDruidFn = {
+      add: '+'
+      subtract: '-'
+      multiply: '*'
+      divide: '/'
+    }
+    return (apply, returnPostAggregation) ->
+      applyName = apply.name or @throwawayName()
+      switch apply.aggregate
+        when 'constant'
+          postAggregation = {
+            type: "constant"
+            value: apply.value
+          }
+          if returnPostAggregation
+            return postAggregation
+          else
+            postAggregation.name = applyName
+            @addPostAggregation(postAggregation)
+            return
+
+        when 'count', 'sum', 'min', 'max'
+          aggregation = {
+            type: if apply.aggregate is 'sum' then 'doubleSum' else apply.aggregate
+            name: applyName
+          }
+          if apply.aggregate isnt 'count'
+            throw new Error("#{apply.aggregate} must have an attribute") unless apply.attribute
+            aggregation.fieldName = apply.attribute
+
+          if returnPostAggregation
+            return { type: "fieldAccess", fieldName: applyName }
+          else
+            @addAggregation(aggregation)
+            return
+
+        when 'uniqueCount'
+          # ToDo: add a throw here in case the user is using open source druid
+          aggregation = {
+            type: "hyperUnique"
+            name: applyName
+            fieldName: apply.attribute
+          }
+
+          if returnPostAggregation
+            return { type: "fieldAccess", fieldName: applyName }
+          else
+            @addAggregation(aggregation)
+            return
+
+        when 'average'
+          @addAggregation {
+            type: 'doubleSum'
+            name: tempSumName = @throwawayName()
+            fieldName: apply.attribute
+          }
+
+          @addAggregation {
+            type: 'count'
+            name: tempCountName = @throwawayName()
+          }
+
+          postAggregation = {
+            type: "arithmetic"
+            fn: "/"
+            fields: [
+              { type: "fieldAccess", fieldName: tempSumName }
+              { type: "fieldAccess", fieldName: tempCountName }
+            ]
+          }
+
+          if returnPostAggregation
+            return postAggregation
+          else
+            postAggregation.name = applyName
+            @addPostAggregation(postAggregation)
+            return
+
+        when 'quantile'
+          throw new Error("quantile apply must have quantile") unless apply.quantile
+          @addAggregation {
+            type: "approxHistogramFold"
+            name: tempHistogramName = @throwawayName()
+            fieldName: apply.attribute
+          }
+          postAggregation = {
+            type: "quantile"
+            fieldName: tempHistogramName
+            probability: apply.quantile
+          }
+
+          if returnPostAggregation
+            return postAggregation
+          else
+            postAggregation.name = applyName
+            @addPostAggregation(postAggregation)
+            return
+
+        when 'add', 'subtract', 'multiply', 'divide'
+          a = @addApplyHelper(apply.operands[0], true)
+          b = @addApplyHelper(apply.operands[1], true)
+          postAggregation = {
+            type: "arithmetic"
+            fn: arithmeticAggregatorToDruidFn(apply.aggregate)
+            fields: [a, b]
+          }
+
+          if returnPostAggregation
+            return postAggregation
+          else
+            postAggregation.name = applyName
+            @addPostAggregation(postAggregation)
+            return
+
+        else
+          throw new Error("No supported aggregation #{apply.aggregate}")
 
   addApply: (apply) ->
-    switch apply.aggregate
-      when 'constant'
-        @addPostAggregation {
-          type: "constant"
-          name: apply.name
-          value: apply.value
-        }
-
-      when 'count'
-        @addAggregation {
-          type: "count"
-          name: apply.name
-        }
-
-      when 'sum'
-        @addAggregation {
-          type: "doubleSum"
-          name: apply.name
-          fieldName: apply.attribute
-        }
-
-      when 'average'
-        @addAggregation {
-          type: 'doubleSum'
-          name: tempSumName = @throwawayName()
-          fieldName: apply.attribute
-        }
-
-        @addAggregation {
-          type: 'count'
-          name: tempCountName = @throwawayName()
-        }
-
-        @addPostAggregation {
-          type: "arithmetic"
-          name: apply.name
-          fn: "/"
-          fields: [
-            { type: "fieldAccess", fieldName: tempSumName }
-            { type: "fieldAccess", fieldName: tempCountName }
-          ]
-        }
-
-      when 'min'
-        @addAggregation {
-          type: "min"
-          name: apply.name
-          fieldName: apply.attribute
-        }
-
-      when 'max'
-        @addAggregation {
-          type: "max"
-          name: apply.name
-          fieldName: apply.attribute
-        }
-
-      when 'uniqueCount'
-        # ToDo: add a throw here in case the user is using open source druid
-        @addAggregation {
-          type: "hyperUnique"
-          name: apply.name
-          fieldName: apply.attribute
-        }
-
-      when 'quantile'
-        throw new Error("quantile apply must have quantile") unless apply.quantile
-        @addAggregation {
-          type: "approxHistogramFold"
-          name: '_' + apply.attribute
-          fieldName: apply.attribute
-        }
-        @addPostAggregation {
-          type: "quantile"
-          name: apply.name
-          fieldName: '_' + apply.attribute
-          probability: apply.quantile
-        }
-
-      else
-        throw new Error("No supported aggregation #{apply.aggregate}")
-
+    @addApplyHelper(apply, false)
     return this
 
   addSort: (sort) ->

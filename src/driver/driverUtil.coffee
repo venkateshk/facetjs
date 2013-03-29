@@ -15,7 +15,7 @@ if typeof exports is 'undefined'
 
 # Flatten an array of array in to a single array
 # flatten([[1,3], [3,6,7]]) => [1,3,3,6,7]
-exports.flatten = (ar) -> Array::concat.apply([], ar)
+exports.flatten = flatten = (ar) -> Array::concat.apply([], ar)
 
 
 # Group the queries steps in to the logical queries that will need to be done
@@ -76,31 +76,70 @@ exports.cleanSegment = (segment) ->
 
   return
 
-collectSplits = (node) ->
+createTabular = (node, history) ->
+  newHistory = {}
+  for k, v of history
+    newHistory[k] = v
+  # Base case
+  for k, v of node.prop
+    newHistory[k] = v
   if node.splits?
-    return Array::concat.apply([], node.splits.map(collectSplits))
+    return flatten(node.splits.map((split) -> createTabular(split, newHistory)))
   else
-    return node.prop
+    return [newHistory]
 
-stripProp = (splits) ->
-  columns = _.unique(Array::concat.apply([], splits.map((split) -> return _.keys(split))))
+stripProp = (splits, columns) ->
   data = splits.map((split) -> return columns.map((column) -> split[column] or null))
-  return {columns, data}
+  return data
 
-exports.createMatrix = (node) ->
-  return stripProp(collectSplits(node))
+class exports.Table
+  constructor: ({root, @query}) ->
+    @columns = createColumns(@query)
+    # console.log root
+    # console.log createTabular(root)
+    @data = stripProp(createTabular(root, {}), @columns)
+    @dimensionSize = @query.filter((op) -> op.operation is 'split').length
+    @metricSize = @query.filter((op) -> op.operation is 'apply').length
 
-exports.createCSVFromMatrix = ({columns, data}) ->
-  header = columns.map((column) -> return '\"' + column + '\"').join(',')
-  content = data.map((row) ->
-    return row.map((datum) ->
-      if datum?
-        return '\"' + datum + '\"'
-      else
-        return '\"0\"'
-    ).join(',')
-  ).join('\r\n')
-  return header + '\r\n' + content
+  toTabular: (separator, rangeFn) ->
+    _this = this
+    header = @columns.map((column) -> return '\"' + column + '\"').join(separator)
+
+    rangeFn or= (range) ->
+      if range[0] instanceof Date
+        range = range.map((range) -> range.toISOString())
+      return range.join('-')
+
+    content = @data.map((row) ->
+      ret = []
+      row.forEach((datum, i) ->
+        if i < _this.dimensionSize
+          if datum?
+            if Array.isArray(datum)
+              ret.push('\"' + rangeFn(datum).replace(/\"/, '\"\"') + '\"')
+            else
+              ret.push('\"' + datum.replace(/\"/, '\"\"') + '\"')
+          else
+            ret.push('\"\"')
+        else
+          if datum?
+            ret.push('\"' + datum + '\"')
+          else
+            ret.push('\"0\"')
+      )
+      return ret.join(separator)
+    ).join('\r\n')
+    return header + '\r\n' + content
+
+exports.createColumns = createColumns = (query) ->
+  split = query.filter((op) -> op.operation is 'split').map((op) -> op.name)
+  tempApply = query.filter((op) -> op.operation is 'apply').map((op) -> op.name)
+  apply = []
+  for applyName in tempApply
+    if apply.indexOf(applyName) >= 0
+      apply.splice(apply.indexOf(applyName), 1)
+    apply.push applyName
+  return split.concat(apply)
 
 # -----------------------------------------------------
 # Handle commonJS crap

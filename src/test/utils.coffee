@@ -49,3 +49,13 @@ exports.makeDriverTest = (driverFns) ->
       test.done()
       return
 
+exports.wrapVerbose = (requester) ->
+  return (query, callback) ->
+    console.log "Requesting:"
+    console.log '', query
+    requester query, (err, result) ->
+      if err
+        console.log "GOT ERROR", err
+      callback(err, result)
+      return
+

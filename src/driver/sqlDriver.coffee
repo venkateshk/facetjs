@@ -124,6 +124,7 @@ class SQLQueryBuilder
         bucketSpec = @timeBucketing[bucketDuration]
         if not bucketSpec
           throw new Error("unsupported time bucketing duration '#{bucketDuration}'")
+
         selectPart = "DATE_FORMAT(#{@escapeAttribute(split.attribute)}, '#{bucketSpec.select}')"
         groupByPart = "DATE_FORMAT(#{@escapeAttribute(split.attribute)}, '#{bucketSpec.group}')"
 
@@ -262,6 +263,14 @@ condensedQueryToSQL = ({requester, table, filter, condensedQuery}, callback) ->
       callback(err)
       return
 
+    # ToDo: implement actual timezones
+    durationMap = {
+      second: 1000
+      minute: 60 * 1000
+      hour: 60 * 60 * 1000
+      day: 24 * 60 * 60 * 1000
+    }
+
     if condensedQuery.split
       splitAttribute = condensedQuery.split.attribute
       splitProp = condensedQuery.split.name
@@ -271,6 +280,12 @@ condensedQueryToSQL = ({requester, table, filter, condensedQuery}, callback) ->
         for d in ds
           start = d[splitProp]
           d[splitProp] = [start, start + splitSize]
+      else if condensedQuery.split.bucket is 'time'
+        duration = durationMap[condensedQuery.split.duration]
+        for d in ds
+          rangeStart = new Date(d[splitProp])
+          range = [rangeStart, new Date(rangeStart.valueOf() + duration)]
+          d[splitProp] = range
 
       splits = ds.map (prop) -> {
         prop

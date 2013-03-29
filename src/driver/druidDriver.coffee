@@ -27,24 +27,33 @@ andFilters = (filters...) ->
     when 1
       return filters[0]
     else
-      return { type: 'and',  filters }
+      return { type: 'and', filters }
 
 rangeToDruidInterval = (interval) ->
   return interval.map((d) -> d.toISOString().replace('Z', '')).join('/')
 
-filterToDruidQueryHelper = (filter) ->
-
-  return
-
-filterToDruidQuery = (filter, timeDimension, druidQuery) ->
-  if filter.type is 'range' and filter.attribute is timeDimension
-    druidQuery.intervals
-  return
 
 class DruidQueryBuilder
-  constructor: (@type, @timeAttribute) ->
+  @allTimeInterval = ["1000-01-01/3000-01-01"]
+
+  constructor: (@dataSource, @timeAttribute) ->
+    throw new Error("must have a dataSource") unless typeof @dataSource is 'string'
+    throw new Error("must have a timeAttribute") unless typeof @timeAttribute is 'string'
+    @queryType = 'timeseries'
+    @granularity = 'all'
+    @filter = null
     @aggregations = []
     @postAggregations = []
+    @nameIndex = 0
+    @intervals = DruidQueryBuilder.allTimeInterval
+
+  dateToIntervalPart: (date) ->
+    return date.toISOString()
+      .replace('Z',    '') # remove Z
+      .replace('.000', '') # millis if 0
+      .replace(/:00$/, '') # remove seconds if 0
+      .replace(/:00$/, '') # remove minutes if 0
+      .replace(/T00$/, '') # remove hours if 0
 
   # return a (up to) two element array [druid_filter_object, druid_intervals_array]
   filterToDruid: (filter) ->
@@ -85,7 +94,7 @@ class DruidQueryBuilder
           throw new Error("start and end must be dates") unless r0 instanceof Date and r1 instanceof Date
           [
             null,
-            ["#{r0.toISOString().replace('Z','')}/#{r1.toISOString().replace('Z','')}"]
+            ["#{@dateToIntervalPart(r0)}/#{@dateToIntervalPart(r1)}"]
           ]
         else if typeof r0 is 'number' and typeof r1 is 'number'
           [{
@@ -118,17 +127,45 @@ class DruidQueryBuilder
         fis = filter.filters.map(@filterToDruid, this)
         for [f, i] in fis
           throw new Error("can not 'or' time") if i
-        {
+        [{
           type: 'or'
           fields: fis.map((d) -> d[0])
-        }
+        }]
 
       else
         throw new Error("unknown filter type '#{filter.type}'")
 
   addFilter: (filter) ->
-    [@filter, @intervals] = filterToDruid(filter)
+    [@filter, @intervals] = @filterToDruid(filter)
+    if not @intervals
+      @intervals = DruidQueryBuilder.allTimeInterval
     return this
+
+  addSplit: (split) ->
+    throw new Error("split must have an attribute") unless split.attribute
+    throw new Errro("split must have a name") unless split.name
+
+    if split.attribute is @timeAttribute
+      # @queryType stays 'timeseries'
+      @granularity = split.duration or 'minute'
+      if @granularity not in ['second', 'minute', 'hour', 'day']
+        throw new Error("Unsupported duration '#{@granularity}' in time bucket")
+    else
+      @queryType = 'topN'
+      # @granularity stays 'all'
+      @dimension = {
+        type: 'default'
+        dimension: split.attribute
+        outputName: split.name
+      }
+      @threshold = 12
+      @metric = null
+
+    return this
+
+  throwawayName: ->
+    @nameIndex++
+    return "_f#{@nameIndex}"
 
   addAggregation: (agg) ->
     @aggregations.push(agg)
@@ -138,206 +175,203 @@ class DruidQueryBuilder
     @postAggregations.push(postAgg)
     return
 
-  addApplies: (applies) ->
-    for apply in applies
-      throw new Error("apply must have a name") unless apply.name
-      switch apply.aggregate
-        when 'constant'
-          druidQuery.postAggregations.push {
-            type: "constant"
-            name: apply.name
-            value: apply.value
-          }
+  addApply: (apply) ->
+    throw new Error("apply must have a name") unless apply.name
+    switch apply.aggregate
+      when 'constant'
+        @addPostAggregation {
+          type: "constant"
+          name: apply.name
+          value: apply.value
+        }
 
-        when 'count'
-          druidQuery.aggregations.push {
-            type: "count"
-            name: apply.name
-          }
+      when 'count'
+        @addAggregation {
+          type: "count"
+          name: apply.name
+        }
 
-        when 'sum'
-          druidQuery.aggregations.push {
-            type: "doubleSum"
-            name: apply.name
-            fieldName: apply.attribute
-          }
+      when 'sum'
+        @addAggregation {
+          type: "doubleSum"
+          name: apply.name
+          fieldName: apply.attribute
+        }
 
-        when 'average'
-          # Ether use an existing count or make a temp one
-          countApply = findCountApply(applies)
-          if not countApply
-            applies.push(countApply = {
-              operation: 'apply'
-              aggregate: 'count'
-              prop: '_count'
-            })
+      when 'average'
+        @addAggregation {
+          type: 'doubleSum'
+          name: tempSumName = @throwawayName()
+          fieldName: apply.attribute
+        }
 
-          # Ether use an existing sum or make a temp one
-          sumApply = null
-          for a in applies
-            if a.aggregate is 'sum' and a.attribute is apply.attribute
-              sumApply = a
-              break
-          if not sumApply
-            applies.push(sumApply = {
-              operation: 'apply'
-              aggregate: 'sum'
-              prop: '_sum_' + apply.attribute
-              attribute: apply.attribute
-            })
+        @addAggregation {
+          type: 'count'
+          name: tempCountName = @throwawayName()
+        }
 
-          druidQuery.postAggregations.push {
-            type: "arithmetic"
-            name: apply.name
-            fn: "/"
-            fields: [
-              { type: "fieldAccess", fieldName: sumApply.name }
-              { type: "fieldAccess", fieldName: countApply.name }
-            ]
-          }
+        @addPostAggregation {
+          type: "arithmetic"
+          name: apply.name
+          fn: "/"
+          fields: [
+            { type: "fieldAccess", fieldName: tempSumName }
+            { type: "fieldAccess", fieldName: tempCountName }
+          ]
+        }
 
-        when 'min'
-          druidQuery.aggregations.push {
-            type: "min"
-            name: apply.name
-            fieldName: apply.attribute
-          }
+      when 'min'
+        @addAggregation {
+          type: "min"
+          name: apply.name
+          fieldName: apply.attribute
+        }
 
-        when 'max'
-          druidQuery.aggregations.push {
-            type: "max"
-            name: apply.name
-            fieldName: apply.attribute
-          }
+      when 'max'
+        @addAggregation {
+          type: "max"
+          name: apply.name
+          fieldName: apply.attribute
+        }
 
-        when 'uniqueCount'
-          # ToDo: add a throw here in case the user us using open source druid
-          druidQuery.aggregations.push {
-            type: "hyperUnique"
-            name: apply.name
-            fieldName: apply.attribute
-          }
+      when 'uniqueCount'
+        # ToDo: add a throw here in case the user is using open source druid
+        @addAggregation {
+          type: "hyperUnique"
+          name: apply.name
+          fieldName: apply.attribute
+        }
 
-        when 'quantile'
-          throw new Error("quantile apply must have quantile") unless apply.quantile
-          druidQuery.aggregations.push {
-            type: "approxHistogramFold"
-            name: '_' + apply.attribute
-            fieldName: apply.attribute # ToDo: make it so that approxHistogramFolds can be shared
-          }
-          druidQuery.postAggregations.push {
-            type: "quantile"
-            name: apply.name
-            fieldName: '_' + apply.attribute
-            probability: apply.quantile
-          }
+      when 'quantile'
+        throw new Error("quantile apply must have quantile") unless apply.quantile
+        @addAggregation {
+          type: "approxHistogramFold"
+          name: '_' + apply.attribute
+          fieldName: apply.attribute
+        }
+        @addPostAggregation {
+          type: "quantile"
+          name: apply.name
+          fieldName: '_' + apply.attribute
+          probability: apply.quantile
+        }
 
-        else
-          throw new Error("No supported aggregation #{apply.aggregate}")
+      else
+        throw new Error("No supported aggregation #{apply.aggregate}")
 
-    return
+    return this
+
+  addSort: (sort) ->
+    if sort.direction not in ['ascending', 'descending']
+      throw new Error("direction has to be 'ascending' or 'descending'")
+
+    # figure out of we need to invert and apply for a bottomN
+    if sort.direction is 'descending'
+      @metric = sort.prop
+    else
+      # make a bottomN
+      @addPostAggregation {
+        type: "arithmetic"
+        name: invertName = @throwawayName()
+        fn: "*"
+        fields: [
+          { type: "fieldAccess", fieldName: sort.prop }
+          { type: "constant", value: -1 }
+        ]
+      }
+      @metric = invertName
+
+    return this
+
+  addLimit: (limit) ->
+    @threshold = limit
+    return this
+
+  getQuery: ->
+    query = {
+      queryType: @queryType
+      dataSource: @dataSource
+      granularity: @granularity
+      intervals: @intervals
+    }
+    query.filter = @filter if @filter
+    query.dimension = @dimension if @dimension
+    query.aggregations = @aggregations if @aggregations.length
+    query.postAggregations = @postAggregations if @postAggregations.length
+    query.metric = @metric if @metric
+    query.threshold = @threshold if @threshold
+    return query
 
 
-druidQuery = {
-  all: ({requester, dataSource, interval, filters, condensedQuery}, callback) ->
-    if interval?.length isnt 2
-      callback("Must have valid interval [start, end]"); return
-
+druidQueryFns = {
+  all: ({requester, dataSource, timeAttribute, filter, condensedQuery}, callback) ->
     if condensedQuery.applies.length is 0
-      # Nothing to do as we are not calculating anything (not true, fix this)
+      # Nothing to do as we are not calculating anything (not true, ToDo: fix this)
       callback(null, [{
         prop: {}
-        _interval: interval
-        _filters: filters
+        _filter: filter
       }])
       return
 
-    queryObj = {
-      dataSource
-      intervals: [toDruidInterval(interval)]
-      queryType: "timeseries"
-      granularity: "all"
-    }
+    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute)
 
-    if filters
-      queryObj.filter = filters
+    try
+      # filter
+      if filter
+        druidQuery.addFilter(filter)
 
-    # apply
-    if condensedQuery.applies.length > 0
-      try
-        addApplies(queryObj, condensedQuery.applies)
-      catch e
-        callback(e)
-        return
+      # apply
+      for apply in condensedQuery.applies
+        druidQuery.addApply(apply)
+    catch e
+      callback(e)
+      return
 
-    requester queryObj, (err, ds) ->
+    requester druidQuery.getQuery(), (err, ds) ->
       if err
         callback(err)
         return
 
       if ds.length isnt 1
-        callback("something went wrong")
+        callback("got unexpected result from Druid")
         return
 
       splits = [{
         prop: ds[0].result
-        _interval: interval
-        _filters: filters
+        _filter: filter
       }]
 
       callback(null, splits)
       return
     return
 
-  timeseries: ({requester, dataSource, interval, filters, condensedQuery}, callback) ->
-    if interval?.length isnt 2
-      callback("Must have valid interval [start, end]"); return
-
+  timeseries: ({requester, dataSource, timeAttribute, filter, condensedQuery}, callback) ->
     if condensedQuery.applies.length is 0
-      # Nothing to do as we are not calculating anything (not true, fix this)
+      # Nothing to do as we are not calculating anything (not true, ToDo: fix this)
       callback(null, [{
         prop: {}
-        _interval: interval
-        _filters: filters
+        _filter: filter
       }])
       return
 
-    queryObj = {
-      dataSource
-      intervals: [toDruidInterval(interval)]
-      queryType: "timeseries"
-    }
+    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute)
 
-    if filters
-      queryObj.filter = filters
+    try
+      # split
+      druidQuery.addSplit(condensedQuery.split)
 
-    # split + combine
-    if not condensedQuery.combine?.sort
-      callback("must have a sort combine for a split"); return
-    combinePropName = condensedQuery.combine.sort.prop
-    if not combinePropName
-      callback("must have a sort prop name"); return
+      # filter
+      if filter
+        druidQuery.addFilter(filter)
 
-    timePropName = condensedQuery.split.name
-    if combinePropName isnt timePropName
-      callback("Must sort on the time prop for now (temp)"); return
+      # apply
+      for apply in condensedQuery.applies
+        druidQuery.addApply(apply)
+    catch e
+      callback(e)
+      return
 
-    bucketDuration = condensedQuery.split.duration
-    if not bucketDuration
-      callback("Must have duration for time bucket"); return
-    if not bucketDuration in ['second', 'minute', 'hour', 'day']
-      callback("Unsupported duration '#{bucketDuration}' in time bucket"); return
-    queryObj.granularity = bucketDuration
-
-    # apply
-    if condensedQuery.applies.length > 0
-      try
-        addApplies(queryObj, condensedQuery.applies)
-      catch e
-        callback(e)
-        return
-
-    requester queryObj, (err, ds) ->
+    requester druidQuery.getQuery(), (err, ds) ->
       if err
         callback(err)
         return
@@ -350,123 +384,85 @@ druidQuery = {
         day: 24 * 60 * 60 * 1000
       }
 
-      if condensedQuery.combine.sort.direction is 'descending'
+      if condensedQuery.combine?.sort?.direction is 'descending'
         ds.reverse()
 
-      if condensedQuery.combine.limit?
+      if condensedQuery.combine?.limit?
         limit = condensedQuery.combine.limit
         ds.splice(limit, ds.length - limit)
 
+      timePropName = condensedQuery.split.name
+      duration = durationMap[condensedQuery.split.duration]
       splits = ds.map (d) ->
-        timestampStart = new Date(d.timestamp)
-        timestampEnd = new Date(timestampStart.valueOf() + durationMap[bucketDuration])
+        rangeStart = new Date(d.timestamp)
+        range = [rangeStart, new Date(rangeStart.valueOf() + duration)]
         split = {
           prop: d.result
-          _interval: [timestampStart, timestampEnd]
-          _filters: filters
+          _filter: andFilters(filter, makeFilter(timeAttribute, range))
         }
 
-        split.prop[timePropName] = [timestampStart, timestampEnd]
+        split.prop[timePropName] = range
         return split
 
       callback(null, splits)
       return
     return
 
-  topN: ({requester, dataSource, interval, filters, condensedQuery}, callback) ->
-    if interval?.length isnt 2
-      callback("Must have valid interval [start, end]"); return
-
+  topN: ({requester, dataSource, timeAttribute, filter, condensedQuery}, callback) ->
     if condensedQuery.applies.length is 0
-      # Nothing to do as we are not calculating anything (not true, fix this)
+      # Nothing to do as we are not calculating anything (not true, ToDo: fix this)
       callback(null, [{
         prop: {}
-        _interval: interval
-        _filters: filters
+        _filter: filter
       }])
       return
 
-    queryObj = {
-      dataSource
-      intervals: [toDruidInterval(interval)]
-      queryType: "topN"
-      granularity: "all"
-    }
+    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute)
 
-    if filters
-      queryObj.filter = filters
+    try
+      # split
+      druidQuery.addSplit(condensedQuery.split)
 
-    # split + combine
-    if not condensedQuery.split.attribute
-      callback("split must have an attribute"); return
-    if not condensedQuery.split.name
-      callback("split must have a prop"); return
+      # filter
+      if filter
+        druidQuery.addFilter(filter)
 
-    sort = condensedQuery.combine.sort
-    if sort.direction not in ['ascending', 'descending']
-      callback("direction has to be 'ascending' or 'descending'"); return
+      # apply
+      for apply in condensedQuery.applies
+        druidQuery.addApply(apply)
 
-    # figure out of wee need to invert and apply for a bottomN
-    if sort.direction is 'descending'
-      invertApply = null
-    else
-      invertApply = findApply(condensedQuery.applies, sort.prop)
-      if not invertApply
-        callback("no apply to invert for bottomN"); return
+      if condensedQuery.combine
+        if condensedQuery.combine.sort
+          druidQuery.addSort(condensedQuery.combine.sort)
 
-    queryObj.dimension = {
-      type: 'default'
-      dimension: condensedQuery.split.attribute
-      outputName: condensedQuery.split.name
-    }
-    queryObj.threshold = condensedQuery.combine.limit or 10
-    queryObj.metric = (if invertApply then '_inv_' else '') + condensedQuery.combine.sort.prop
+        if condensedQuery.combine.limit
+          druidQuery.addLimit(condensedQuery.combine.limit)
+    catch e
+      callback(e)
+      return
 
-    # apply
-    if condensedQuery.applies.length > 0
-      try
-        addApplies(queryObj, condensedQuery.applies, invertApply)
-      catch e
-        callback(e)
-        return
-
-    if invertApply
-      queryObj.postAggregations.push {
-        type: "arithmetic"
-        name: '_inv_' + invertApply.prop
-        fn: "*"
-        fields: [
-          { type: "fieldAccess", fieldName: invertApply.prop }
-          { type: "constant", value: -1 }
-        ]
-      }
-
-    if queryObj.postAggregations.length is 0
-      delete queryObj.postAggregations
-
-    requester queryObj, (err, ds) ->
+    requester druidQuery.getQuery(), (err, ds) ->
       if err
         callback(err)
         return
 
       if ds.length isnt 1
-        callback("something went wrong")
+        callback("unexpected result form Druid")
         return
 
       filterAttribute = condensedQuery.split.attribute
       filterValueProp = condensedQuery.split.name
       splits = ds[0].result.map (prop) -> {
         prop
-        _interval: interval
-        _filters: andFilters(filters, makeFilter(filterAttribute, prop[filterValueProp]))
+        _filter: andFilters(filter, makeFilter(filterAttribute, prop[filterValueProp]))
       }
 
       callback(null, splits)
       return
     return
 
-  histogram: ({requester, dataSource, interval, filters, condensedQuery}, callback) ->
-    callback("not implemented yet"); return
+  histogram: ({requester, dataSource, timeAttribute, filter, condensedQuery}, callback) ->
+    callback("not implemented yet"); return # ToDo
     # data.queryType = "timeseries"
     # data.postAggregations = null
     # data.aggregations = [
@@ -482,7 +478,7 @@ druidQuery = {
 }
 
 
-exports = ({requester, dataSource, timeAttribute, aproximate, interval, filters}) ->
+exports = ({requester, dataSource, timeAttribute, aproximate, filter}) ->
   timeAttribute or= 'time'
   aproximate ?= true
   return (query, callback) ->
@@ -495,31 +491,25 @@ exports = ({requester, dataSource, timeAttribute, aproximate, interval, filters}
       if condensedQuery.split
         switch condensedQuery.split.bucket
           when 'identity'
-            if not condensedQuery.combine?.sort
-              done("must have a sort combine for a split"); return
-            combinePropName = condensedQuery.combine.sort.prop
-            if not combinePropName
-              done("must have a sort prop name"); return
-
-            if findApply(condensedQuery.applies, combinePropName) and aproximate
-              queryFn = druidQuery.topN
+            if aproximate
+              queryFn = druidQueryFns.topN
             else
               done('not implemented yet'); return
-          when 'time'
-            queryFn = druidQuery.timeseries
+          when timeAttribute
+            queryFn = druidQueryFns.timeseries
           when 'continuous'
-            queryFn = druidQuery.histogram
+            queryFn = druidQueryFns.histogram
           else
             done('unsupported query'); return
       else
-        queryFn = druidQuery.all
+        queryFn = druidQueryFns.all
 
       queryForSegment = (parentSegment, done) ->
         queryFn({
           requester
           dataSource
-          interval: if parentSegment then parentSegment._interval else interval
-          filters: if parentSegment then parentSegment._filters else filters
+          timeAttribute
+          filter: if parentSegment then parentSegment._filter else filter
           condensedQuery
         }, (err, splits) ->
           if err

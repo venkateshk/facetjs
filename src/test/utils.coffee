@@ -23,7 +23,7 @@ uniformizeResults = (result) ->
   return ret
 
 exports.makeDriverTest = (driverFns) ->
-  return ({drivers, query}) -> (test) ->
+  return ({drivers, query, verbose}) -> (test) ->
     throw new Error("must have at least two drivers") if drivers.length < 2
     test.expect(drivers.length)
 
@@ -42,5 +42,20 @@ exports.makeDriverTest = (driverFns) ->
       while i < drivers.length
         test.deepEqual(results[0], results[i], "results of '#{drivers[0]}' and '#{drivers[i]}' do not match")
         i++
+
+      if verbose
+        console.log(results[0])
+
       test.done()
       return
+
+exports.wrapVerbose = (requester) ->
+  return (query, callback) ->
+    console.log "Requesting:"
+    console.log '', query
+    requester query, (err, result) ->
+      if err
+        console.log "GOT ERROR", err
+      callback(err, result)
+      return
+

@@ -34,6 +34,7 @@ exports.condenseQuery = (query) ->
     applies: []
     combine: null
   }
+  curKnownProps = {}
   condensed = []
   for cmd in query
     switch cmd.operation
@@ -43,17 +44,33 @@ exports.condenseQuery = (query) ->
 
       when 'split'
         condensed.push(curQuery)
+        throw new Error("split must have name") unless cmd.name
+        throw new TypeError("invalid name in split") unless typeof cmd.name is 'string'
         curQuery = {
           split: cmd
           applies: []
           combine: null
         }
+        curKnownProps = {}
+        curKnownProps[cmd.name] = true
 
       when 'apply'
+        throw new Error("apply must have name") unless cmd.name
+        throw new TypeError("invalid name in apply") unless typeof cmd.name is 'string'
         curQuery.applies.push(cmd)
+        curKnownProps[cmd.name] = true
 
       when 'combine'
         throw new Error("can not have more than one combine") if curQuery.combine
+        if cmd.sort
+          throw new Error("sort must have a prop") unless cmd.sort.prop
+          throw new Error("sort on undefined prop '#{cmd.sort.prop}'") unless curKnownProps[cmd.sort.prop]
+          throw new Error("sort must have a compare") unless cmd.sort.compare
+          throw new Error("sort must have a direction") unless cmd.sort.direction
+
+        if cmd.limit?
+          throw new TypeError("limit must be a number") if isNaN(cmd.limit)
+
         curQuery.combine = cmd
 
       else

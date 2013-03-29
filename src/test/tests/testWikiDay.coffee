@@ -75,7 +75,6 @@ exports["split time; apply count"] = testDrivers {
   ]
 }
 
-
 # Test timezone support
 
 exports["split page; apply count; sort count descending"] = testDrivers {
@@ -91,6 +90,17 @@ exports["split page; apply count; sort count descending"] = testDrivers {
 exports["split page; apply count; sort count ascending"] = testDrivers {
   drivers: ['mySql', 'druid']
   query: [
+    { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
+    { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+    { operation: 'apply', name: 'Deleted', aggregate: 'sum', attribute: 'deleted' }
+    { operation: 'combine', sort: { compare: 'natural', prop: 'Deleted', direction: 'ascending' }, limit: 5 }
+  ]
+}
+
+exports["filter language=en; split page; apply count; sort count ascending"] = testDrivers {
+  drivers: ['mySql', 'druid']
+  query: [
+    { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
     { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
     { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
     { operation: 'apply', name: 'Deleted', aggregate: 'sum', attribute: 'deleted' }

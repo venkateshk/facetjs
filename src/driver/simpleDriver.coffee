@@ -118,7 +118,7 @@ makeSplitFn = (cmd) ->
 
 
 # ----------------------------
-applyFns = {
+aggregateFns = {
   constant: ({value}) -> () ->
     return value
 
@@ -158,7 +158,9 @@ applyFns = {
   quantile: ({attribute, quantile}) -> (ds) ->
     throw "not implemented yet (ToDo)"
     return
+}
 
+arithmeticFn = {
   add: ({operands}) ->
     operands = operands.map(makeApplyFn)
     return (ds) -> operands[0](ds) + operands[1](ds)
@@ -180,7 +182,7 @@ applyFns = {
 }
 
 makeApplyFn = (cmd) ->
-  applyFn = applyFns[cmd.aggregate]
+  applyFn = aggregateFns[cmd.aggregate] or arithmeticFn[cmd.arithmetic]
   throw new Error("No such aggregate `#{cmd.aggregate}` in apply") unless applyFn
   return applyFn(cmd)
 

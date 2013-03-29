@@ -72,7 +72,7 @@ exports["apply arithmetic"] = testDrivers {
     {
       operation: 'apply'
       name: 'Added + Delted'
-      aggregate: 'add'
+      arithmetic: 'add'
       operands: [
         { aggregate: 'sum', attribute: 'added' }
         { aggregate: 'sum', attribute: 'deleted' }
@@ -81,7 +81,7 @@ exports["apply arithmetic"] = testDrivers {
     {
       operation: 'apply'
       name: 'Added - Delted'
-      aggregate: 'subtract'
+      arithmetic: 'subtract'
       operands: [
         { aggregate: 'sum', attribute: 'added' }
         { aggregate: 'sum', attribute: 'deleted' }

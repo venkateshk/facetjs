@@ -180,7 +180,7 @@ class DruidQueryBuilder
 
   # This method will ether return a post aggregation or add it.
   addApplyHelper: do ->
-    arithmeticAggregatorToDruidFn = {
+    arithmeticToDruidFn = {
       add: '+'
       subtract: '-'
       multiply: '*'
@@ -188,104 +188,110 @@ class DruidQueryBuilder
     }
     return (apply, returnPostAggregation) ->
       applyName = apply.name or @throwawayName()
-      switch apply.aggregate
-        when 'constant'
-          postAggregation = {
-            type: "constant"
-            value: apply.value
-          }
-          if returnPostAggregation
-            return postAggregation
+      if apply.aggregate
+        switch apply.aggregate
+          when 'constant'
+            postAggregation = {
+              type: "constant"
+              value: apply.value
+            }
+            if returnPostAggregation
+              return postAggregation
+            else
+              postAggregation.name = applyName
+              @addPostAggregation(postAggregation)
+              return
+
+          when 'count', 'sum', 'min', 'max'
+            aggregation = {
+              type: if apply.aggregate is 'sum' then 'doubleSum' else apply.aggregate
+              name: applyName
+            }
+            if apply.aggregate isnt 'count'
+              throw new Error("#{apply.aggregate} must have an attribute") unless apply.attribute
+              aggregation.fieldName = apply.attribute
+
+            @addAggregation(aggregation)
+            if returnPostAggregation
+              return { type: "fieldAccess", fieldName: applyName }
+            else
+              return
+
+          when 'uniqueCount'
+            # ToDo: add a throw here in case the user is using open source druid
+            aggregation = {
+              type: "hyperUnique"
+              name: applyName
+              fieldName: apply.attribute
+            }
+
+            @addAggregation(aggregation)
+            if returnPostAggregation
+              return { type: "fieldAccess", fieldName: applyName }
+            else
+              return
+
+          when 'average'
+            @addAggregation {
+              type: 'doubleSum'
+              name: tempSumName = @throwawayName()
+              fieldName: apply.attribute
+            }
+
+            @addAggregation {
+              type: 'count'
+              name: tempCountName = @throwawayName()
+            }
+
+            postAggregation = {
+              type: "arithmetic"
+              fn: "/"
+              fields: [
+                { type: "fieldAccess", fieldName: tempSumName }
+                { type: "fieldAccess", fieldName: tempCountName }
+              ]
+            }
+
+            if returnPostAggregation
+              return postAggregation
+            else
+              postAggregation.name = applyName
+              @addPostAggregation(postAggregation)
+              return
+
+          when 'quantile'
+            throw new Error("quantile apply must have quantile") unless apply.quantile
+            @addAggregation {
+              type: "approxHistogramFold"
+              name: tempHistogramName = @throwawayName()
+              fieldName: apply.attribute
+            }
+            postAggregation = {
+              type: "quantile"
+              fieldName: tempHistogramName
+              probability: apply.quantile
+            }
+
+            if returnPostAggregation
+              # We need this because of an asymmetry in druid, hopefully soon we will be able to remove this.
+              postAggregation.name = @throwawayName()
+              return postAggregation
+            else
+              postAggregation.name = applyName
+              @addPostAggregation(postAggregation)
+              return
+
           else
-            postAggregation.name = applyName
-            @addPostAggregation(postAggregation)
-            return
+            throw new Error("unsupported aggregate '#{apply.aggregate}'")
 
-        when 'count', 'sum', 'min', 'max'
-          aggregation = {
-            type: if apply.aggregate is 'sum' then 'doubleSum' else apply.aggregate
-            name: applyName
-          }
-          if apply.aggregate isnt 'count'
-            throw new Error("#{apply.aggregate} must have an attribute") unless apply.attribute
-            aggregation.fieldName = apply.attribute
-
-          @addAggregation(aggregation)
-          if returnPostAggregation
-            return { type: "fieldAccess", fieldName: applyName }
-          else
-            return
-
-        when 'uniqueCount'
-          # ToDo: add a throw here in case the user is using open source druid
-          aggregation = {
-            type: "hyperUnique"
-            name: applyName
-            fieldName: apply.attribute
-          }
-
-          @addAggregation(aggregation)
-          if returnPostAggregation
-            return { type: "fieldAccess", fieldName: applyName }
-          else
-            return
-
-        when 'average'
-          @addAggregation {
-            type: 'doubleSum'
-            name: tempSumName = @throwawayName()
-            fieldName: apply.attribute
-          }
-
-          @addAggregation {
-            type: 'count'
-            name: tempCountName = @throwawayName()
-          }
-
-          postAggregation = {
-            type: "arithmetic"
-            fn: "/"
-            fields: [
-              { type: "fieldAccess", fieldName: tempSumName }
-              { type: "fieldAccess", fieldName: tempCountName }
-            ]
-          }
-
-          if returnPostAggregation
-            return postAggregation
-          else
-            postAggregation.name = applyName
-            @addPostAggregation(postAggregation)
-            return
-
-        when 'quantile'
-          throw new Error("quantile apply must have quantile") unless apply.quantile
-          @addAggregation {
-            type: "approxHistogramFold"
-            name: tempHistogramName = @throwawayName()
-            fieldName: apply.attribute
-          }
-          postAggregation = {
-            type: "quantile"
-            fieldName: tempHistogramName
-            probability: apply.quantile
-          }
-
-          if returnPostAggregation
-            # We need this because of an asymmetry in druid, hopefully soon we will be able to remove this.
-            postAggregation.name = @throwawayName()
-            return postAggregation
-          else
-            postAggregation.name = applyName
-            @addPostAggregation(postAggregation)
-            return
-
-        when 'add', 'subtract', 'multiply', 'divide'
+      else if apply.arithmetic
+        druidFn = arithmeticToDruidFn[apply.arithmetic]
+        if druidFn
           a = @addApplyHelper(apply.operands[0], true)
           b = @addApplyHelper(apply.operands[1], true)
           postAggregation = {
             type: "arithmetic"
-            fn: arithmeticAggregatorToDruidFn[apply.aggregate]
+            fn: druidFn
             fields: [a, b]
           }
 
@@ -297,7 +303,10 @@ class DruidQueryBuilder
             return
 
         else
-          throw new Error("No supported aggregation #{apply.aggregate}")
+          throw new Error("unsupported arithmetic '#{apply.arithmetic}'")
+
+      else
+        throw new Error("must have an aggregate or an arithmetic")
 
   addApply: (apply) ->
     @addApplyHelper(apply, false)

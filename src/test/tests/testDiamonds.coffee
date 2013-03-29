@@ -137,7 +137,7 @@ exports["apply arithmetic"] = testDrivers {
     {
       operation: 'apply'
       name: 'Count Plus One'
-      aggregate: 'add'
+      arithmetic: 'add'
       operands: [
         { aggregate: 'count' }
         { aggregate: 'constant', value: 1 }
@@ -146,7 +146,7 @@ exports["apply arithmetic"] = testDrivers {
     {
       operation: 'apply'
       name: 'Price + Carat'
-      aggregate: 'add'
+      arithmetic: 'add'
       operands: [
         { aggregate: 'sum', attribute: 'price' }
         { aggregate: 'sum', attribute: 'carat' }
@@ -155,7 +155,7 @@ exports["apply arithmetic"] = testDrivers {
     {
       operation: 'apply'
       name: 'Price - Carat'
-      aggregate: 'subtract'
+      arithmetic: 'subtract'
       operands: [
         { aggregate: 'sum', attribute: 'price' }
         { aggregate: 'sum', attribute: 'carat' }
@@ -164,7 +164,7 @@ exports["apply arithmetic"] = testDrivers {
     {
       operation: 'apply'
       name: 'Price * Carat'
-      aggregate: 'multiply'
+      arithmetic: 'multiply'
       operands: [
         { aggregate: 'min', attribute: 'price' }
         { aggregate: 'max', attribute: 'carat' }
@@ -173,7 +173,7 @@ exports["apply arithmetic"] = testDrivers {
     {
       operation: 'apply'
       name: 'Price / Carat'
-      aggregate: 'divide'
+      arithmetic: 'divide'
       operands: [
         { aggregate: 'sum', attribute: 'price' }
         { aggregate: 'sum', attribute: 'carat' }
@@ -188,7 +188,7 @@ exports["apply arithmetic"] = testDrivers {
     {
       operation: 'apply'
       name: 'Count Plus One'
-      aggregate: 'add'
+      arithmetic: 'add'
       operands: [
         { aggregate: 'count' }
         { aggregate: 'constant', value: 1 }

@@ -4,8 +4,8 @@ druidRequester = require('../../druidRequester').requester
 sqlRequester = require('../../mySqlRequester').requester
 
 simpleDriver = require('../../simpleDriver')
-druidDriver = require('../../druidDriver')
 sqlDriver = require('../../sqlDriver')
+druidDriver = require('../../druidDriver')
 
 # Set up drivers
 driverFns = {}
@@ -38,8 +38,7 @@ driverFns.mySql = sqlDriver({
 # driverFns.druid = druidDriver({
 #   requester: druidPass
 #   dataSource: context.dataSource
-#   interval: context.interval.map((d) -> new Date(d))
-#   filters: null
+#   filter: null
 # })
 
 testDrivers = utils.makeDriverTest(driverFns)

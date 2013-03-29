@@ -1,37 +1,3 @@
-# # driver runner
-# simpleDriver = require('../../simpleDriver')
-
-# # Simple
-# diamondsData = require('../../../data/diamonds.js')
-# simpleFn = simpleDriver(diamondsData)
-
-# simpleFn([
-#   { operation: 'split', name: 'Carat', bucket: 'continuous', size: 0.1, offset: 0.005, attribute: 'carat' }
-#   { operation: 'apply', name: 'Count', aggregate: 'count' }
-#   { operation: 'combine', sort: { prop: 'Count', compare: 'natural', direction: 'descending' }, limit: 5 }
-#   { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
-#   { operation: 'apply', name: 'Count', aggregate: 'count' }
-#   { operation: 'combine', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
-# ], (err, result) ->
-#   throw err if err
-#   createTabular = (node, history) ->
-#     newHistory = {}
-#     for k, v of history
-#       newHistory[k] = v
-#     # Base case
-
-#     for k, v of node.prop
-#       newHistory[k] = v
-
-#     if node.splits?
-#       return node.splits.map((split) -> createTabular(split, newHistory))
-#     else
-#       return [newHistory]
-
-#   console.log JSON.stringify(result, null, 2)
-#   console.log JSON.stringify(createTabular(result, {}), null, 2)
-# )
-
 driverUtil = require('../../driverUtil')
 data = require('../data')
 

@@ -68,6 +68,24 @@ MAX ...
 COUNT(DISTICT ...
 ```
 
+#### quantile
+
+Facet:
+```javascript
+{
+  operation: 'apply'
+  name: 'Quantile 99'
+  aggregate: 'quantile'
+  attribute: 'revenue' // This is a druid 'metric' or a SQL column
+  quantile: 0.99
+}
+```
+
+SQL SELECT:
+```sql
+???
+```
+
 #### filtered applies
 Each apply above can also be filtered with a filter property
 

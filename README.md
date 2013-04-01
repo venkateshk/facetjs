@@ -127,6 +127,28 @@ SQL SELECT:
 <sqlApply1> + <sqlApply2> AS "Sum Of Things"
 ```
 
+Facet example:
+{
+  operation: 'apply'
+  name: 'ecpm'
+  arithmetic: 'multiply'
+  operands: [
+    {
+      arithmetic: 'divide'
+      operands: [
+        { aggregate: 'sum', attribute: 'revenue' }
+        { aggregate: 'sum', attribute: 'volume' }
+      ]
+    }
+    { aggregate: 'constant', value: 1000 }
+  ]
+}
+
+SQL SELECT example:
+```sql
+(SUM(`revenue`) / SUM(`volume`)) * 1000 AS "ecpm"
+```
+
 ### Combine
 ToDo
 

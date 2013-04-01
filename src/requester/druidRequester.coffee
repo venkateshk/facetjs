@@ -1,6 +1,6 @@
 http = require('http')
 
-exports.requester = ({host, port, path}) ->
+module.exports = ({host, port, path}) ->
   opts = {
     host
     port

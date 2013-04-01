@@ -1,7 +1,7 @@
 utils = require('../utils')
 
-druidRequester = require('../../druidRequester').requester
-sqlRequester = require('../../mySqlRequester').requester
+druidRequester = require('../../druidRequester')
+sqlRequester = require('../../mySqlRequester')
 
 simpleDriver = require('../../simpleDriver')
 sqlDriver = require('../../sqlDriver')
@@ -63,6 +63,40 @@ exports["many applies"] = testDrivers {
     { operation: 'apply', name: 'Min Price',  aggregate: 'min', attribute: 'price' }
     { operation: 'apply', name: 'Max Price',  aggregate: 'max', attribute: 'price' }
     { operation: 'apply', name: 'Num Cuts',  aggregate: 'uniqueCount', attribute: 'cut' }
+  ]
+}
+
+exports["filter applies"] = testDrivers {
+  drivers: ['simple', 'mySql']
+  query: [
+    {
+      operation: 'apply', name: 'Constant 42',  aggregate: 'constant', value: '42',
+      filter: { attribute: 'color', type: 'is', value: 'E' }
+    }
+    {
+      operation: 'apply', name: 'Count',  aggregate: 'count',
+      filter: { attribute: 'color', type: 'is', value: 'E' }
+    }
+    {
+      operation: 'apply', name: 'Total Price',  aggregate: 'sum', attribute: 'price',
+      filter: { attribute: 'color', type: 'is', value: 'E' }
+    }
+    {
+      operation: 'apply', name: 'Avg Price',  aggregate: 'average', attribute: 'price',
+      filter: { attribute: 'color', type: 'is', value: 'E' }
+    }
+    {
+      operation: 'apply', name: 'Min Price',  aggregate: 'min', attribute: 'price',
+      filter: { attribute: 'color', type: 'is', value: 'E' }
+    }
+    {
+      operation: 'apply', name: 'Max Price',  aggregate: 'max', attribute: 'price',
+      filter: { attribute: 'color', type: 'is', value: 'E' }
+    }
+    {
+      operation: 'apply', name: 'Num Cuts',  aggregate: 'uniqueCount', attribute: 'cut',
+      filter: { attribute: 'color', type: 'is', value: 'E' }
+    }
   ]
 }
 

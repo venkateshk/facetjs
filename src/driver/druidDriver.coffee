@@ -1,15 +1,17 @@
-rq = (module) ->
-  if typeof window is 'undefined'
-    return require(module)
-  else
-    moduleParts = module.split('/')
-    return window[moduleParts[moduleParts.length - 1]]
+# this needs to be done in JS land to avoid creating a global var module
+`
+if (typeof module === 'undefined') {
+  exports = {};
+  module = { exports: exports };
+  require = function (modulePath) {
+    var moduleParts = modulePath.split('/');
+    return window[moduleParts[moduleParts.length - 1]];
+  }
+}
+`
 
-async = rq('async')
-driverUtil = rq('./driverUtil')
-
-if typeof exports is 'undefined'
-  exports = {}
+async = require('async')
+driverUtil = require('./driverUtil')
 
 # -----------------------------------------------------
 
@@ -173,6 +175,11 @@ class DruidQueryBuilder
 
   addPostAggregation: (postAggregation) ->
     throw new Error("direct postAggregation must have name") unless postAggregation.name
+
+    # We need this because of an asymmetry in druid, hopefully soon we will be able to remove this.
+    if postAggregation.type is 'arithmetic' and not postAggregation.name
+      postAggregation.name = @throwawayName()
+
     @postAggregations.push(postAggregation)
     return
 
@@ -273,8 +280,6 @@ class DruidQueryBuilder
             }
 
             if returnPostAggregation
-              # We need this because of an asymmetry in druid, hopefully soon we will be able to remove this.
-              postAggregation.name = @throwawayName()
               return postAggregation
             else
               postAggregation.name = applyName
@@ -533,7 +538,7 @@ druidQueryFns = {
 }
 
 
-exports = ({requester, dataSource, timeAttribute, aproximate, filter}) ->
+module.exports = ({requester, dataSource, timeAttribute, aproximate, filter}) ->
   timeAttribute or= 'time'
   aproximate ?= true
   return (query, callback) ->
@@ -620,4 +625,4 @@ exports = ({requester, dataSource, timeAttribute, aproximate, filter}) ->
 
 # -----------------------------------------------------
 # Handle commonJS crap
-if typeof module is 'undefined' then window['druidDriver'] = exports else module.exports = exports
+window['druidDriver'] = exports if typeof window isnt 'undefined'

@@ -1,15 +1,17 @@
-rq = (module) ->
-  if typeof window is 'undefined'
-    return require(module)
-  else
-    moduleParts = module.split('/')
-    return window[moduleParts[moduleParts.length - 1]]
+# this needs to be done in JS land to avoid creating a global var module
+`
+if (typeof module === 'undefined') {
+  exports = {};
+  module = { exports: exports };
+  require = function (modulePath) {
+    var moduleParts = modulePath.split('/');
+    return window[moduleParts[moduleParts.length - 1]];
+  }
+}
+`
 
-async = rq('async')
-driverUtil = rq('./driverUtil')
-
-if typeof exports is 'undefined'
-  exports = {}
+async = require('async')
+driverUtil = require('./driverUtil')
 
 # -----------------------------------------------------
 
@@ -160,31 +162,44 @@ aggregateFns = {
     return
 }
 
-arithmeticFn = {
+arithmeticFns = {
   add: ({operands}) ->
-    operands = operands.map(makeApplyFn)
-    return (ds) -> operands[0](ds) + operands[1](ds)
+    [lhs, rhs] = operands.map(makeApplyFn)
+    return (ds) -> lhs(ds) + rhs(ds)
 
 
   subtract: ({operands}) ->
-    operands = operands.map(makeApplyFn)
-    return (ds) -> operands[0](ds) - operands[1](ds)
+    [lhs, rhs] = operands.map(makeApplyFn)
+    return (ds) -> lhs(ds) - rhs(ds)
 
 
   multiply: ({operands}) ->
-    operands = operands.map(makeApplyFn)
-    return (ds) -> operands[0](ds) * operands[1](ds)
+    [lhs, rhs] = operands.map(makeApplyFn)
+    return (ds) -> lhs(ds) * rhs(ds)
 
 
   divide: ({operands}) ->
-    operands = operands.map(makeApplyFn)
-    return (ds) -> operands[0](ds) / operands[1](ds)
+    [lhs, rhs] = operands.map(makeApplyFn)
+    return (ds) -> lhs(ds) / rhs(ds)
 }
 
-makeApplyFn = (cmd) ->
-  applyFn = aggregateFns[cmd.aggregate] or arithmeticFn[cmd.arithmetic]
-  throw new Error("No such aggregate `#{cmd.aggregate}` in apply") unless applyFn
-  return applyFn(cmd)
+makeApplyFn = (apply) ->
+  if apply.aggregate
+    aggregateFn = aggregateFns[apply.aggregate]
+    throw new Error("unsupported aggregate '#{apply.aggregate}' in apply") unless aggregateFn
+    if apply.filter
+      rawApplyFn = aggregateFn(apply)
+      filterFn = makeFilterFn(apply.filter)
+      return (ds) -> rawApplyFn(ds.filter(filterFn))
+    else
+      return aggregateFn(apply)
+  else if apply.arithmetic
+    arithmeticFn = arithmeticFns[apply.arithmetic]
+    throw new Error("unsupported arithmetic '#{apply.arithmetic}' in apply") unless arithmeticFn
+    return arithmeticFn(apply)
+  else
+    throw new Error("apply must have an aggregate or an arithmetic")
+  return
 
 # -------------------
 compareFns = {
@@ -287,7 +302,7 @@ computeQuery = (data, query) ->
   return rootSegment
 
 
-exports = (data) -> (query, callback) ->
+module.exports = (data) -> (query, callback) ->
   try
     result = computeQuery(data, query)
   catch e
@@ -298,5 +313,5 @@ exports = (data) -> (query, callback) ->
 
 # -----------------------------------------------------
 # Handle commonJS crap
-if typeof module is 'undefined' then window['simpleDriver'] = exports else module.exports = exports
+window['simpleDriver'] = exports if typeof window isnt 'undefined'
 

@@ -1,17 +1,16 @@
-rq = (module) ->
-  if typeof window is 'undefined'
-    return require(module)
-  else
-    moduleParts = module.split('/')
-    return window[moduleParts[moduleParts.length - 1]]
-
-#async = rq('async')
-
-if typeof exports is 'undefined'
-  exports = {}
+# this needs to be done in JS land to avoid creating a global var module
+`
+if (typeof module === 'undefined') {
+  exports = {};
+  module = { exports: exports };
+  require = function (modulePath) {
+    var moduleParts = modulePath.split('/');
+    return window[moduleParts[moduleParts.length - 1]];
+  }
+}
+`
 
 # -----------------------------------------------------
-
 
 # Flatten an array of array in to a single array
 # flatten([[1,3], [3,6,7]]) => [1,3,3,6,7]
@@ -161,4 +160,4 @@ exports.createColumns = createColumns = (query) ->
 
 # -----------------------------------------------------
 # Handle commonJS crap
-if typeof module is 'undefined' then window['driverUtil'] = exports else module.exports = exports
+window['driverUtil'] = exports if typeof window isnt 'undefined'

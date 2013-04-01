@@ -128,6 +128,7 @@ SQL SELECT:
 ```
 
 Facet example:
+```javascript
 {
   operation: 'apply'
   name: 'ecpm'
@@ -143,6 +144,7 @@ Facet example:
     { aggregate: 'constant', value: 1000 }
   ]
 }
+```
 
 SQL SELECT example:
 ```sql

@@ -18,6 +18,7 @@ Facet:
 
 ```javascript
 {
+  operation: 'apply'
   name: 'SomeConstant'
   aggregate: 'constant'
   value: 1337
@@ -35,6 +36,7 @@ SQL:
 Facet:
 ```javascript
 {
+  operation: 'apply'
   name: 'Count'
   aggregate: 'count'
 }
@@ -50,6 +52,7 @@ COUNT(1) AS "Count"
 Facet:
 ```javascript
 {
+  operation: 'apply'
   name: 'Revenue'
   aggregate: 'sum' // average / min / max / uniqueCount
   attribute: 'revenue' // This is a druid 'metric' or a SQL column
@@ -71,6 +74,7 @@ Each apply above can also be filtered with a filter property
 Facet:
 ```javascript
 {
+  operation: 'apply'
   name: 'Revenue from Honda'
   aggregate: 'sum' // average / min / max / uniqueCount
   attribute: 'revenue' // This is a druid 'metric' or a SQL column
@@ -88,9 +92,12 @@ COUNT(DISTICT ...
 ```
 
 #### add, subtract, multiply, divide
+Note that for nested applies the keys ```operation: 'apply'``` and ```name``` need only to appear on the outer-most apply
+
 Facet:
 ```javascript
 {
+  operation: 'apply'
   name: 'Sum Of Things'
   arithmetic: 'add' // subtract / multiply / divide
   operands: [<apply1>, <apply2>]
@@ -101,3 +108,7 @@ SQL:
 ```sql
 <sqlApply1> + <sqlApply2> AS "Sum Of Things"
 ```
+
+### Combine
+ToDo
+

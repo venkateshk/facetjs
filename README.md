@@ -47,43 +47,62 @@ SQL:
 COUNT(1) AS "Count"
 ```
 
-sum, average, min, max, uniqueCount:
-  Facet:
-    {
-      name: 'Revenue'
-      aggregate: 'sum' # / average / min / max / uniqueCount
-      attribute: 'revenue' # This is a druid 'metric' or a SQL column
-    }
-  SQL:
-    SUM(`revenue`) AS "Revenue"
-    AVG ...
-    MIN ...
-    MAX ...
-    COUNT(DISTICT ...
+#### sum, average, min, max, uniqueCount
 
-filtered applies:
-  Each apply above can also be filtered with a filter property
-  Facet:
-    {
-      name: 'Revenue from Honda'
-      aggregate: 'sum' # / average / min / max / uniqueCount
-      attribute: 'revenue' # This is a druid 'metric' or a SQL column
-      filter: { type: 'is', attribute: 'car_type', value: 'Honda' }
-    }
-  SQL:
-    SUM(IF(`car_type` = "Honda", `revenue`, NULL)) AS "Revenue"
-    AVG ...
-    MIN ...
-    MAX ...
-    COUNT(DISTICT ...
+Facet:
+```javascript
+{
+  name: 'Revenue'
+  aggregate: 'sum' # / average / min / max / uniqueCount
+  attribute: 'revenue' # This is a druid 'metric' or a SQL column
+}
+```
 
-add, subtract, multiply, divide:
-  Facet:
-    {
-      name: 'Sum Of Things'
-      arithmetic: 'add' # / subtract / multiply / divide
-      operands: [<apply1>, <apply2>]
-    }
-  SQL:
-    <sqlApply1> + <sqlApply2> AS "Sum Of Things"
+SQL:
 
+```sql
+SUM(`revenue`) AS "Revenue"
+AVG ...
+MIN ...
+MAX ...
+COUNT(DISTICT ...
+```
+
+#### filtered applies
+Each apply above can also be filtered with a filter property
+
+Facet:
+```javascript
+{
+  name: 'Revenue from Honda'
+  aggregate: 'sum' # / average / min / max / uniqueCount
+  attribute: 'revenue' # This is a druid 'metric' or a SQL column
+  filter: { type: 'is', attribute: 'car_type', value: 'Honda' }
+}
+```
+
+SQL:
+
+```sql
+SUM(IF(`car_type` = "Honda", `revenue`, NULL)) AS "Revenue"
+AVG ...
+MIN ...
+MAX ...
+COUNT(DISTICT ...
+```
+
+#### add, subtract, multiply, divide
+Facet:
+```javascript
+{
+  name: 'Sum Of Things'
+  arithmetic: 'add' # / subtract / multiply / divide
+  operands: [<apply1>, <apply2>]
+}
+```
+
+SQL:
+
+```sql
+<sqlApply1> + <sqlApply2> AS "Sum Of Things"
+```

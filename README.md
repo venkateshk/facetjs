@@ -25,7 +25,7 @@ Facet:
 }
 ```
 
-SQL:
+SQL SELECT:
 
 ```sql
 1337 AS "SomeConstant"
@@ -42,7 +42,7 @@ Facet:
 }
 ```
 
-SQL:
+SQL SELECT:
 ```sql
 COUNT(1) AS "Count"
 ```
@@ -59,7 +59,7 @@ Facet:
 }
 ```
 
-SQL:
+SQL SELECT:
 ```sql
 SUM(`revenue`) AS "Revenue"
 AVG ...
@@ -82,7 +82,7 @@ Facet:
 }
 ```
 
-SQL:
+SQL SELECT:
 ```sql
 SUM(IF(`car_type` = "Honda", `revenue`, NULL)) AS "Revenue"
 AVG ...
@@ -104,7 +104,7 @@ Facet:
 }
 ```
 
-SQL:
+SQL SELECT:
 ```sql
 <sqlApply1> + <sqlApply2> AS "Sum Of Things"
 ```

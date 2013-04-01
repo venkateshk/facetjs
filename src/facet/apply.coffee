@@ -78,7 +78,7 @@ facet.apply = {
       attribute
     }
 
-# Two operands
+# Arithmetic
 ['add', 'subtract', 'multiply', 'divide'].forEach (op) ->
   facet.apply[op] = (lhs, rhs) ->
     throw new TypeError('lhs must be an object') unless typeof lhs is 'object'

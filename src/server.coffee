@@ -1,7 +1,7 @@
 express = require('express')
 
-druidRequester = require('./druidRequester').requester
-sqlRequester = require('./mySqlRequester').requester
+druidRequester = require('./druidRequester')
+sqlRequester = require('./mySqlRequester')
 
 simpleDriver = require('./simpleDriver')
 druidDriver = require('./druidDriver')

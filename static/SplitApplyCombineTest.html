@@ -21,10 +21,9 @@
       <textarea id="input">[
   {
     "operation": "split",
-    "bucket": "time",
-    "duration": "hour",
-    "attribute": "time",
-    "name": "Time"
+    "bucket": "identity",
+    "attribute": "language",
+    "name": "Language"
   },
   {
     "operation": "apply",
@@ -36,8 +35,8 @@
     "operation": "combine",
     "sort": {
       "compare": "natural",
-      "direction": "ascending",
-      "prop": "Time"
+      "direction": "descending",
+      "prop": "Language"
     },
     "limit": 4
   },
@@ -90,8 +89,7 @@
 
       var sqlDriverClient = sqlDriver({
         requester: sqlRequester,
-        table: "wiki",
-        filters: null
+        table: "wiki_day_agg"
       });
 
       // DRUID

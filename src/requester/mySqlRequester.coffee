@@ -1,6 +1,6 @@
 mysql = require('mysql')
 
-exports.requester = ({host, user, password, dataset}) ->
+module.exports = ({host, user, password, dataset}) ->
   connection = mysql.createConnection({
     host: 'localhost'
     user: 'root'

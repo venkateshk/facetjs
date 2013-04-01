@@ -1,15 +1,17 @@
-rq = (module) ->
-  if typeof window is 'undefined'
-    return require(module)
-  else
-    moduleParts = module.split('/')
-    return window[moduleParts[moduleParts.length - 1]]
+# this needs to be done in JS land to avoid creating a global var module
+`
+if (typeof module === 'undefined') {
+  exports = {};
+  module = { exports: exports };
+  require = function (modulePath) {
+    var moduleParts = modulePath.split('/');
+    return window[moduleParts[moduleParts.length - 1]];
+  }
+}
+`
 
-async = rq('async')
-driverUtil = rq('./driverUtil')
-
-if typeof exports is 'undefined'
-  exports = {}
+async = require('async')
+driverUtil = require('./driverUtil')
 
 # -----------------------------------------------------
 
@@ -40,7 +42,8 @@ class SQLQueryBuilder
     @limitPart = null
 
   escapeAttribute: (attribute) ->
-    return "`#{attribute}`" # ToDo: make this work better
+    # ToDo: make this work better
+    return if isNaN(attribute) then "`#{attribute}`" else String(attribute)
 
   escapeValue: (value) ->
     return "\"#{value}\"" # ToDo: make this actually work in general
@@ -136,35 +139,31 @@ class SQLQueryBuilder
     return this
 
   applyToSQL: do ->
+    aggregateToSqlFn = {
+      count:       (c) -> "COUNT(#{c})"
+      sum:         (c) -> "SUM(#{c})"
+      average:     (c) -> "AVG(#{c})"
+      min:         (c) -> "MIN(#{c})"
+      max:         (c) -> "MAX(#{c})"
+      uniqueCount: (c) -> "COUNT(DISTINCT #{c})"
+    }
     arithmeticToSqlOp = {
-      add: '+'
+      add:      '+'
       subtract: '-'
       multiply: '*'
-      divide: '/'
+      divide:   '/'
     }
     return (apply) ->
       if apply.aggregate
         switch apply.aggregate
           when 'constant'
-            String(apply.value)
+            @escapeAttribute(apply.value)
 
-          when 'count'
-            "COUNT(1)"
-
-          when 'sum'
-            "SUM(#{@escapeAttribute(apply.attribute)})"
-
-          when 'average'
-            "AVG(#{@escapeAttribute(apply.attribute)})"
-
-          when 'min'
-            "MIN(#{@escapeAttribute(apply.attribute)})"
-
-          when 'max'
-            "MAX(#{@escapeAttribute(apply.attribute)})"
-
-          when 'uniqueCount'
-            "COUNT(DISTINCT #{@escapeAttribute(apply.attribute)})"
+          when 'count', 'sum', 'average', 'min', 'max', 'uniqueCount'
+            expresion = if apply.aggregate is 'count' then '1' else @escapeAttribute(apply.attribute)
+            if apply.filter
+              expresion = "IF(#{@filterToSQL(apply.filter)}, #{expresion}, NULL)"
+            aggregateToSqlFn[apply.aggregate](expresion)
 
           when 'quantile'
             throw new Error("not implemented yet") # ToDo
@@ -306,7 +305,7 @@ condensedQueryToSQL = ({requester, table, filter, condensedQuery}, callback) ->
   return
 
 
-exports = ({requester, table, filter}) -> (query, callback) ->
+module.exports = ({requester, table, filter}) -> (query, callback) ->
   condensedQuery = driverUtil.condenseQuery(query)
 
   rootSegment = null
@@ -369,4 +368,4 @@ exports = ({requester, table, filter}) -> (query, callback) ->
 
 # -----------------------------------------------------
 # Handle commonJS crap
-if typeof module is 'undefined' then window['sqlDriver'] = exports else module.exports = exports
+window['sqlDriver'] = exports if typeof window isnt 'undefined'

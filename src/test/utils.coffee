@@ -8,7 +8,7 @@ uniformizeResults = (result) ->
   for name, value of result.prop
     continue unless result.prop.hasOwnProperty(name)
     if typeof value is 'number' and value isnt Math.floor(value)
-      prop[name] = value.toFixed(3)
+      prop[name] = Number(value.toPrecision(5))
     else if Array.isArray(value) and
           typeof value[0] is 'number' and
           typeof value[1] is 'number' and

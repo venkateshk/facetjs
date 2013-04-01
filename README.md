@@ -33,7 +33,6 @@ SQL:
 #### count
 
 Facet:
-
 ```javascript
 {
   name: 'Count'
@@ -42,7 +41,6 @@ Facet:
 ```
 
 SQL:
-
 ```sql
 COUNT(1) AS "Count"
 ```
@@ -59,7 +57,6 @@ Facet:
 ```
 
 SQL:
-
 ```sql
 SUM(`revenue`) AS "Revenue"
 AVG ...
@@ -82,7 +79,6 @@ Facet:
 ```
 
 SQL:
-
 ```sql
 SUM(IF(`car_type` = "Honda", `revenue`, NULL)) AS "Revenue"
 AVG ...
@@ -102,7 +98,6 @@ Facet:
 ```
 
 SQL:
-
 ```sql
 <sqlApply1> + <sqlApply2> AS "Sum Of Things"
 ```

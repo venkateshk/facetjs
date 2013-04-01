@@ -9,29 +9,43 @@ ToDo
 ToDo
 
 ### Apply
-# An apply is a function that takes an array of rows and returns a number.
+An apply is a function that takes an array of rows and returns a number.
 
 How facet applies work:
 
-constant:
-  Facet:
-    {
-      name: 'SomeConstant'
-      aggregate: 'constant'
-      value: 1337
-    }
+#### constant
+Facet:
 
-  SQL:
-    1337 AS "SomeConstant"
+```javascript
+{
+  name: 'SomeConstant'
+  aggregate: 'constant'
+  value: 1337
+}
+```
 
-count:
-  Facet:
-    {
-      name: 'Count'
-      aggregate: 'count'
-    }
-  SQL:
-    COUNT(1) AS "Count"
+SQL:
+
+```sql
+1337 AS "SomeConstant"
+```
+
+#### count
+
+Facet:
+
+```javascript
+{
+  name: 'Count'
+  aggregate: 'count'
+}
+```
+
+SQL:
+
+```sql
+COUNT(1) AS "Count"
+```
 
 sum, average, min, max, uniqueCount:
   Facet:

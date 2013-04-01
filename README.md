@@ -53,8 +53,8 @@ Facet:
 ```javascript
 {
   name: 'Revenue'
-  aggregate: 'sum' # / average / min / max / uniqueCount
-  attribute: 'revenue' # This is a druid 'metric' or a SQL column
+  aggregate: 'sum' // average / min / max / uniqueCount
+  attribute: 'revenue' // This is a druid 'metric' or a SQL column
 }
 ```
 
@@ -75,8 +75,8 @@ Facet:
 ```javascript
 {
   name: 'Revenue from Honda'
-  aggregate: 'sum' # / average / min / max / uniqueCount
-  attribute: 'revenue' # This is a druid 'metric' or a SQL column
+  aggregate: 'sum' // average / min / max / uniqueCount
+  attribute: 'revenue' // This is a druid 'metric' or a SQL column
   filter: { type: 'is', attribute: 'car_type', value: 'Honda' }
 }
 ```
@@ -96,7 +96,7 @@ Facet:
 ```javascript
 {
   name: 'Sum Of Things'
-  arithmetic: 'add' # / subtract / multiply / divide
+  arithmetic: 'add' // subtract / multiply / divide
   operands: [<apply1>, <apply2>]
 }
 ```

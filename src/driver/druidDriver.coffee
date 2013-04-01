@@ -109,7 +109,7 @@ class DruidQueryBuilder
 
       when 'not'
         [f, i] = @filterToDruid(filter.filter)
-        throw new Error("can not apply a 'not' filter to a time interval") if i
+        throw new Error("can not use a 'not' filter on a time interval") if i
         [{
           type: 'not'
           filed: f
@@ -314,6 +314,7 @@ class DruidQueryBuilder
         throw new Error("must have an aggregate or an arithmetic")
 
   addApply: (apply) ->
+    throw new Error("filtered applies are not supported yet") in apply.filter
     @addApplyHelper(apply, false)
     return this
 

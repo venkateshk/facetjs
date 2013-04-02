@@ -84,6 +84,9 @@ class DruidQueryBuilder
           ), this)
         }]
 
+      when 'fragments'
+        throw "todo"
+
       when 'match'
         throw new Error("can not match filter time") if filter.attribute is @timeAttribute
         [{

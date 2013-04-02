@@ -19,6 +19,12 @@ facet.filter = {
     values
   }
 
+  fragments: (attribute, fragments) -> {
+    type: 'fragments'
+    attribute
+    fragments
+  }
+
   match: (attribute, expression) -> {
     type: 'match'
     attribute

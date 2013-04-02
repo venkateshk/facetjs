@@ -15,6 +15,9 @@ driverUtil = require('./driverUtil')
 
 # -----------------------------------------------------
 
+# Open source Druid issues:
+# - add limit to groupBy
+
 makeFilter = (attribute, value) ->
   if Array.isArray(value)
     return { type: 'within', attribute, range: value }
@@ -353,6 +356,10 @@ class DruidQueryBuilder
     @addApplyHelper(apply, false)
     return this
 
+  addDummyApply: ->
+    @addApplyHelper({ aggregate: 'count' }, false)
+    return this
+
   addSort: (sort) ->
     if sort.direction not in ['ascending', 'descending']
       throw new Error("direction has to be 'ascending' or 'descending'")
@@ -407,11 +414,7 @@ class DruidQueryBuilder
 druidQueryFns = {
   all: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedQuery}, callback) ->
     if condensedQuery.applies.length is 0
-      # Nothing to do as we are not calculating anything (not true, ToDo: fix this)
-      callback(null, [{
-        prop: {}
-        _filter: filter
-      }])
+      callback(null, [{ prop: {}, _filter: filter }])
       return
 
     druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval)
@@ -423,8 +426,11 @@ druidQueryFns = {
         druidQuery.addFilter(filter)
 
       # apply
-      for apply in condensedQuery.applies
-        druidQuery.addApply(apply)
+      if condensedQuery.applies.length
+        for apply in condensedQuery.applies
+          druidQuery.addApply(apply)
+      else
+        druidQuery.addDummyApply()
     catch e
       callback(e)
       return
@@ -457,14 +463,6 @@ druidQueryFns = {
     return
 
   timeseries: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedQuery}, callback) ->
-    if condensedQuery.applies.length is 0
-      # Nothing to do as we are not calculating anything (not true, ToDo: fix this)
-      callback(null, [{
-        prop: {}
-        _filter: filter
-      }])
-      return
-
     druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval)
 
     try
@@ -477,8 +475,11 @@ druidQueryFns = {
         druidQuery.addFilter(filter)
 
       # apply
-      for apply in condensedQuery.applies
-        druidQuery.addApply(apply)
+      if condensedQuery.applies.length
+        for apply in condensedQuery.applies
+          druidQuery.addApply(apply)
+      else
+        druidQuery.addDummyApply()
     catch e
       callback(e)
       return
@@ -521,14 +522,6 @@ druidQueryFns = {
     return
 
   topN: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedQuery}, callback) ->
-    if condensedQuery.applies.length is 0
-      # Nothing to do as we are not calculating anything (not true, ToDo: fix this)
-      callback(null, [{
-        prop: {}
-        _filter: filter
-      }])
-      return
-
     druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval)
 
     try
@@ -541,8 +534,11 @@ druidQueryFns = {
         druidQuery.addFilter(filter)
 
       # apply
-      for apply in condensedQuery.applies
-        druidQuery.addApply(apply)
+      if condensedQuery.applies.length
+        for apply in condensedQuery.applies
+          druidQuery.addApply(apply)
+      else
+        druidQuery.addDummyApply()
 
       if condensedQuery.combine
         if condensedQuery.combine.sort

@@ -100,6 +100,23 @@ exports["apply arithmetic"] = testDrivers {
   ]
 }
 
+exports["split time; combine time"] = testDrivers {
+  drivers: ['mySql', 'druid']
+  query: [
+    { operation: 'split', name: 'Time', bucket: 'time', attribute: 'time', duration: 'hour', timezone: 'Etc/UTC' }
+    { operation: 'combine', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
+  ]
+}
+
+# The sorting here still does not match - ask FJ
+# exports["split page; combine page"] = testDrivers {
+#   drivers: ['mySql', 'druid']
+#   query: [
+#     { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
+#     { operation: 'combine', sort: { compare: 'natural', prop: 'Page', direction: 'descending' }, limit: 7 }
+#   ]
+# }
+
 exports["split time; apply count"] = testDrivers {
   drivers: ['mySql', 'druid']
   query: [
@@ -157,4 +174,3 @@ exports["filter language=en; split page; apply count; sort count ascending"] = t
     { operation: 'combine', sort: { compare: 'natural', prop: 'Deleted', direction: 'ascending' }, limit: 5 }
   ]
 }
-

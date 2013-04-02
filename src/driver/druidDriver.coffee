@@ -90,10 +90,12 @@ class DruidQueryBuilder
         }]
 
       when 'within'
-        r0 = filter.range[0]
-        r1 = filter.range[1]
+        [r0, r1] = filter.range
         if filter.attribute is @timeAttribute
+          r0 = new Date(r0) if typeof r0 is 'string'
+          r1 = new Date(r1) if typeof r1 is 'string'
           throw new Error("start and end must be dates") unless r0 instanceof Date and r1 instanceof Date
+          throw new Error("invalid dates") if isNaN(r0) or isNaN(r1)
           [
             null,
             ["#{@dateToIntervalPart(r0)}/#{@dateToIntervalPart(r1)}"]

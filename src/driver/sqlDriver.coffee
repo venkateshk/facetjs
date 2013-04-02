@@ -56,6 +56,9 @@ class SQLQueryBuilder
       when 'in'
         "#{@escapeAttribute(filter.attribute)} in (#{filter.values.map(@escapeValue, this).join(',')})"
 
+      when 'fragments'
+        throw "todo"
+
       when 'match'
         "#{@escapeAttribute(filter.attribute)} REGEXP '#{filter.expression}'"
 

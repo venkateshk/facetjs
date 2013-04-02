@@ -22,6 +22,9 @@ filterFns = {
   in: ({attribute, values}) ->
     return (d) -> d[attribute] in values
 
+  fragments: ({attribute, fragments}) ->
+    throw "implement this"
+
   match: ({attribute, expression}) ->
     expression = new RegExp(expression)
     return (d) -> expression.test(d[attribute])

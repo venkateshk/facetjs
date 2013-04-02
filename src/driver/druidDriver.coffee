@@ -379,8 +379,9 @@ druidQueryFns = {
 
     try
       # filter
+      filter = andFilters(filter, condensedQuery.filter)
       if filter
-        druidQuery.addFilter(andFilters(filter, condensedQuery.filter), forceInterval)
+        druidQuery.addFilter(filter, forceInterval)
 
       # apply
       for apply in condensedQuery.applies
@@ -432,8 +433,9 @@ druidQueryFns = {
       druidQuery.addSplit(condensedQuery.split)
 
       # filter
+      filter = andFilters(filter, condensedQuery.filter)
       if filter
-        druidQuery.addFilter(andFilters(filter, condensedQuery.filter), forceInterval)
+        druidQuery.addFilter(filter, forceInterval)
 
       # apply
       for apply in condensedQuery.applies
@@ -495,8 +497,9 @@ druidQueryFns = {
       druidQuery.addSplit(condensedQuery.split)
 
       # filter
+      filter = andFilters(filter, condensedQuery.filter)
       if filter
-        druidQuery.addFilter(andFilters(filter, condensedQuery.filter), forceInterval)
+        druidQuery.addFilter(filter, forceInterval)
 
       # apply
       for apply in condensedQuery.applies

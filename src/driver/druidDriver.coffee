@@ -60,6 +60,12 @@ class DruidQueryBuilder
       .replace(/:00$/, '') # remove minutes if 0
       .replace(/T00$/, '') # remove hours if 0
 
+  unionIntervals: (intervals) ->
+    null # ToDo
+
+  intersectIntervals: (intervals) ->
+    return driverUtil.flatten(intervals).filter((d) -> d?) # ToDo: rewrite this to actually work
+
   # return a (up to) two element array [druid_filter_object, druid_intervals_array]
   filterToDruid: (filter) ->
     switch filter.type
@@ -130,13 +136,13 @@ class DruidQueryBuilder
             type: 'and'
             fields: fis.map((d) -> d[0]).filter((d) -> d?)
           }
-          driverUtil.flatten(fis.map((d) -> d[1]).filter((d) -> d?)) # ToDo: make this actually do a union
+          @intersectIntervals(fis.map((d) -> d[1]))
         ]
 
       when 'or'
         fis = filter.filters.map(@filterToDruid, this)
         for [f, i] in fis
-          throw new Error("can not 'or' time") if i
+          throw new Error("can not 'or' time... yet") if i # ToDo
         [{
           type: 'or'
           fields: fis.map((d) -> d[0]).filter((d) -> d?)
@@ -145,7 +151,7 @@ class DruidQueryBuilder
       else
         throw new Error("unknown filter type '#{filter.type}'")
 
-  addFilter: (filter, forceInterval) ->
+  addFilter: (filter) ->
     [@filter, @intervals] = @filterToDruid(filter)
     return this
 
@@ -396,7 +402,7 @@ class DruidQueryBuilder
   getQuery: ->
     intervals = @intervals
     if not intervals
-      throw new Error("must have an interval") if forceInterval
+      throw new Error("must have an interval") if @forceInterval
       intervals = DruidQueryBuilder.allTimeInterval
 
     query = {
@@ -416,6 +422,8 @@ class DruidQueryBuilder
 
 druidQueryFns = {
   all: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedQuery}, callback) ->
+    filter = andFilters(filter, condensedQuery.filter)
+
     if condensedQuery.applies.length is 0
       callback(null, [{ prop: {}, _filter: filter }])
       return
@@ -424,7 +432,6 @@ druidQueryFns = {
 
     try
       # filter
-      filter = andFilters(filter, condensedQuery.filter)
       if filter
         druidQuery.addFilter(filter)
 
@@ -434,12 +441,12 @@ druidQueryFns = {
           druidQuery.addApply(apply)
       else
         druidQuery.addDummyApply()
+
+      queryObj = druidQuery.getQuery()
     catch e
       callback(e)
       return
 
-
-    queryObj = druidQuery.getQuery()
     requester queryObj, (err, ds) ->
       if err
         callback({
@@ -466,6 +473,7 @@ druidQueryFns = {
     return
 
   timeseries: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedQuery}, callback) ->
+    filter = andFilters(filter, condensedQuery.filter)
     druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval)
 
     try
@@ -473,7 +481,6 @@ druidQueryFns = {
       druidQuery.addSplit(condensedQuery.split)
 
       # filter
-      filter = andFilters(filter, condensedQuery.filter)
       if filter
         druidQuery.addFilter(filter)
 
@@ -483,11 +490,13 @@ druidQueryFns = {
           druidQuery.addApply(apply)
       else
         druidQuery.addDummyApply()
+
+      queryObj = druidQuery.getQuery()
     catch e
       callback(e)
       return
 
-    requester druidQuery.getQuery(), (err, ds) ->
+    requester queryObj, (err, ds) ->
       if err
         callback(err)
         return
@@ -525,16 +534,16 @@ druidQueryFns = {
     return
 
   topN: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedQuery}, callback) ->
+    filter = andFilters(filter, condensedQuery.filter)
     druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval)
 
     try
-      # split
-      druidQuery.addSplit(condensedQuery.split)
-
       # filter
-      filter = andFilters(filter, condensedQuery.filter)
       if filter
         druidQuery.addFilter(filter)
+
+      # split
+      druidQuery.addSplit(condensedQuery.split)
 
       # apply
       if condensedQuery.applies.length
@@ -549,11 +558,12 @@ druidQueryFns = {
 
         if condensedQuery.combine.limit
           druidQuery.addLimit(condensedQuery.combine.limit)
+
+      queryObj = druidQuery.getQuery()
     catch e
       callback(e)
       return
 
-    queryObj = druidQuery.getQuery()
     requester queryObj, (err, ds) ->
       if err
         callback({
@@ -588,7 +598,7 @@ druidQueryFns = {
     # data.aggregations = [
     #   {
     #     type: "approxHistogramFold"
-    #     name: obj.dimension #"delta_hist"
+    #     name: obj.dimension
     #     fieldName: obj.dimension + '_hist' # "delta_hist" ToDo: do not hard code 'hist'
     #     outputSize: obj.bucket
     #     probabilities: [0.25, 0.5, 0.75]

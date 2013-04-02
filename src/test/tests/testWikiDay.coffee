@@ -45,6 +45,7 @@ driverFns.druid = druidDriver({
   requester: druidPass
   dataSource: 'wikipedia_editstream'
   timeAttribute: 'time'
+  approximate: true
   filter: {
     type: 'within'
     attribute: 'time'
@@ -56,6 +57,7 @@ driverFns.druid = druidDriver({
 })
 
 testDrivers = utils.makeDriverTest(driverFns)
+
 
 exports["apply count"] = testDrivers {
   drivers: ['mySql', 'druid']

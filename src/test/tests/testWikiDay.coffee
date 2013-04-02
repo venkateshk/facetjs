@@ -65,6 +65,15 @@ exports["apply count"] = testDrivers {
   ]
 }
 
+exports["filter; apply count"] = testDrivers {
+  drivers: ['mySql', 'druid']
+  query: [
+    { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
+    { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+    { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+  ]
+}
+
 exports["apply arithmetic"] = testDrivers {
   drivers: ['mySql', 'druid']
   query: [
@@ -147,3 +156,4 @@ exports["filter language=en; split page; apply count; sort count ascending"] = t
     { operation: 'combine', sort: { compare: 'natural', prop: 'Deleted', direction: 'ascending' }, limit: 5 }
   ]
 }
+

@@ -38,7 +38,7 @@ rangeToDruidInterval = (interval) ->
 class DruidQueryBuilder
   @allTimeInterval = ["1000-01-01/3000-01-01"]
 
-  constructor: (@dataSource, @timeAttribute) ->
+  constructor: (@dataSource, @timeAttribute, @forceInterval) ->
     throw new Error("must have a dataSource") unless typeof @dataSource is 'string'
     throw new Error("must have a timeAttribute") unless typeof @timeAttribute is 'string'
     @queryType = 'timeseries'
@@ -47,7 +47,7 @@ class DruidQueryBuilder
     @aggregations = []
     @postAggregations = []
     @nameIndex = 0
-    @intervals = DruidQueryBuilder.allTimeInterval
+    @intervals = null
 
   dateToIntervalPart: (date) ->
     return date.toISOString()
@@ -141,9 +141,6 @@ class DruidQueryBuilder
 
   addFilter: (filter, forceInterval) ->
     [@filter, @intervals] = @filterToDruid(filter)
-    if not @intervals
-      throw new Error("must have an interval") if forceInterval
-      @intervals = DruidQueryBuilder.allTimeInterval
     return this
 
   addSplit: (split) ->
@@ -387,11 +384,16 @@ class DruidQueryBuilder
     return this
 
   getQuery: ->
+    intervals = @intervals
+    if not intervals
+      throw new Error("must have an interval") if forceInterval
+      intervals = DruidQueryBuilder.allTimeInterval
+
     query = {
       queryType: @queryType
       dataSource: @dataSource
       granularity: @granularity
-      intervals: @intervals
+      intervals
     }
     query.filter = @filter if @filter
     query.dimension = @dimension if @dimension
@@ -412,13 +414,13 @@ druidQueryFns = {
       }])
       return
 
-    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute)
+    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval)
 
     try
       # filter
       filter = andFilters(filter, condensedQuery.filter)
       if filter
-        druidQuery.addFilter(filter, forceInterval)
+        druidQuery.addFilter(filter)
 
       # apply
       for apply in condensedQuery.applies
@@ -463,7 +465,7 @@ druidQueryFns = {
       }])
       return
 
-    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute)
+    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval)
 
     try
       # split
@@ -472,7 +474,7 @@ druidQueryFns = {
       # filter
       filter = andFilters(filter, condensedQuery.filter)
       if filter
-        druidQuery.addFilter(filter, forceInterval)
+        druidQuery.addFilter(filter)
 
       # apply
       for apply in condensedQuery.applies
@@ -527,7 +529,7 @@ druidQueryFns = {
       }])
       return
 
-    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute)
+    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval)
 
     try
       # split
@@ -536,7 +538,7 @@ druidQueryFns = {
       # filter
       filter = andFilters(filter, condensedQuery.filter)
       if filter
-        druidQuery.addFilter(filter, forceInterval)
+        druidQuery.addFilter(filter)
 
       # apply
       for apply in condensedQuery.applies

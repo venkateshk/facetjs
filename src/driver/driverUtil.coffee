@@ -105,16 +105,12 @@ createTabular = (node, history) ->
   else
     return [newHistory]
 
-stripProp = (splits, columns) ->
-  data = splits.map((split) -> return columns.map((column) -> split[column] or null))
-  return data
-
 class exports.Table
   constructor: ({root, @query}) ->
     @columns = createColumns(@query)
     # console.log root
     # console.log createTabular(root)
-    @data = stripProp(createTabular(root, {}), @columns)
+    @data = createTabular(root, {})
     @dimensionSize = @query.filter((op) -> op.operation is 'split').length
     @metricSize = @query.filter((op) -> op.operation is 'apply').length
 
@@ -129,7 +125,8 @@ class exports.Table
 
     content = @data.map((row) ->
       ret = []
-      row.forEach((datum, i) ->
+      _this.columns.forEach((column, i) ->
+        datum = row[column]
         if i < _this.dimensionSize
           if datum?
             if Array.isArray(datum)

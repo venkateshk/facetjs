@@ -13,12 +13,12 @@ exports["Table Tests"] = {
 
     test.deepEqual(["Cut", "Count"], table.columns, "Columns of the table is incorrect")
     test.deepEqual([
-      ["A", 1]
-      ["B", 2]
-      ["C", 3]
-      ["D", 4]
-      ["E", 5]
-      ["F\"", 6]
+      { Count: 1, Cut: 'A' }
+      { Count: 2, Cut: 'B' }
+      { Count: 3, Cut: 'C' }
+      { Count: 4, Cut: 'D' }
+      { Count: 5, Cut: 'E' }
+      { Count: 6, Cut: 'F"' }
     ], table.data, "Data of the table is incorrect")
     test.deepEqual('"Cut","Count"\r\n"A","1"\r\n"B","2"\r\n"C","3"\r\n"D","4"\r\n"E","5"\r\n"F\"\"","6"',
       table.toTabular(','),

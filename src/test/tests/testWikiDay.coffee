@@ -96,6 +96,7 @@ exports["apply arithmetic"] = testDrivers {
         { aggregate: 'sum', attribute: 'deleted' }
       ]
     }
+    { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
   ]
 }
 

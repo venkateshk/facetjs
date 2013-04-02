@@ -171,10 +171,48 @@ class DruidQueryBuilder
     @nameIndex++
     return "_f#{@nameIndex}"
 
-  addAggregation: (aggregation) ->
-    throw new Error("aggregation must have name") unless aggregation.name
-    @aggregations.push(aggregation)
+  isThrowawayName: (name) ->
+    return name[0] is '_'
+
+  renameAggregationInPostAgregation: (postAggregation, from, to) ->
+    switch postAggregation.type
+      when 'fieldAccess', 'quantile'
+        if postAggregation.fieldName is from
+          postAggregation.fieldName = to
+
+      when 'arithmetic'
+        for postAgg in postAggregation.fields
+          @renameAggregationInPostAgregation(postAgg, from, to)
+
+      when 'constant'
+        null # do nothing
+
+      else
+        throw new Error("unsupported postAggregation type '#{postAggregation.type}'")
     return
+
+  addAggregation: (aggregation) ->
+    aggregation.name or= @throwawayName()
+
+    for existingAggregation in @aggregations
+      if existingAggregation.type is aggregation.type and
+         existingAggregation.fieldName is aggregation.fieldName and
+         existingAggregation.fieldNames is aggregation.fieldNames and
+         existingAggregation.script is aggregation.script and
+         (@isThrowawayName(existingAggregation.name) or @isThrowawayName(aggregation.name))
+
+        if @isThrowawayName(aggregation.name)
+          # Use the existing aggregation
+          return existingAggregation.name
+        else
+          # We have a throwaway existing aggregation, replace it's name with my non throwaway name
+          for postAggregation in @postAggregations
+            @renameAggregationInPostAgregation(postAggregation, existingAggregation.name, aggregation.name)
+          existingAggregation.name = aggregation.name
+          return aggregation.name
+
+    @aggregations.push(aggregation)
+    return aggregation.name
 
   addPostAggregation: (postAggregation) ->
     throw new Error("direct postAggregation must have name") unless postAggregation.name
@@ -221,9 +259,9 @@ class DruidQueryBuilder
               throw new Error("#{apply.aggregate} must have an attribute") unless apply.attribute
               aggregation.fieldName = apply.attribute
 
-            @addAggregation(aggregation)
+            aggregationName = @addAggregation(aggregation)
             if returnPostAggregation
-              return { type: "fieldAccess", fieldName: applyName }
+              return { type: "fieldAccess", fieldName: aggregationName }
             else
               return
 
@@ -235,30 +273,28 @@ class DruidQueryBuilder
               fieldName: apply.attribute
             }
 
-            @addAggregation(aggregation)
+            aggregationName = @addAggregation(aggregation)
             if returnPostAggregation
-              return { type: "fieldAccess", fieldName: applyName }
+              return { type: "fieldAccess", fieldName: aggregationName }
             else
               return
 
           when 'average'
-            @addAggregation {
+            sumAggregationName = @addAggregation {
               type: 'doubleSum'
-              name: tempSumName = @throwawayName()
               fieldName: apply.attribute
             }
 
-            @addAggregation {
+            countAggregationName = @addAggregation {
               type: 'count'
-              name: tempCountName = @throwawayName()
             }
 
             postAggregation = {
               type: "arithmetic"
               fn: "/"
               fields: [
-                { type: "fieldAccess", fieldName: tempSumName }
-                { type: "fieldAccess", fieldName: tempCountName }
+                { type: "fieldAccess", fieldName: sumAggregationName }
+                { type: "fieldAccess", fieldName: countAggregationName }
               ]
             }
 
@@ -271,14 +307,13 @@ class DruidQueryBuilder
 
           when 'quantile'
             throw new Error("quantile apply must have quantile") unless apply.quantile
-            @addAggregation {
+            histogramAggregationName = @addAggregation {
               type: "approxHistogramFold"
-              name: tempHistogramName = @throwawayName()
               fieldName: apply.attribute
             }
             postAggregation = {
               type: "quantile"
-              fieldName: tempHistogramName
+              fieldName: histogramAggregationName
               probability: apply.quantile
             }
 

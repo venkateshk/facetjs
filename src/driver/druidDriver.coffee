@@ -137,9 +137,10 @@ class DruidQueryBuilder
       else
         throw new Error("unknown filter type '#{filter.type}'")
 
-  addFilter: (filter) ->
+  addFilter: (filter, forceInterval) ->
     [@filter, @intervals] = @filterToDruid(filter)
     if not @intervals
+      throw new Error("must have an interval") if forceInterval
       @intervals = DruidQueryBuilder.allTimeInterval
     return this
 
@@ -365,7 +366,7 @@ class DruidQueryBuilder
 
 
 druidQueryFns = {
-  all: ({requester, dataSource, timeAttribute, filter, condensedQuery}, callback) ->
+  all: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedQuery}, callback) ->
     if condensedQuery.applies.length is 0
       # Nothing to do as we are not calculating anything (not true, ToDo: fix this)
       callback(null, [{
@@ -379,7 +380,7 @@ druidQueryFns = {
     try
       # filter
       if filter
-        druidQuery.addFilter(filter)
+        druidQuery.addFilter(filter, forceInterval)
 
       # apply
       for apply in condensedQuery.applies
@@ -415,7 +416,7 @@ druidQueryFns = {
       return
     return
 
-  timeseries: ({requester, dataSource, timeAttribute, filter, condensedQuery}, callback) ->
+  timeseries: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedQuery}, callback) ->
     if condensedQuery.applies.length is 0
       # Nothing to do as we are not calculating anything (not true, ToDo: fix this)
       callback(null, [{
@@ -432,7 +433,7 @@ druidQueryFns = {
 
       # filter
       if filter
-        druidQuery.addFilter(filter)
+        druidQuery.addFilter(filter, forceInterval)
 
       # apply
       for apply in condensedQuery.applies
@@ -478,7 +479,7 @@ druidQueryFns = {
       return
     return
 
-  topN: ({requester, dataSource, timeAttribute, filter, condensedQuery}, callback) ->
+  topN: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedQuery}, callback) ->
     if condensedQuery.applies.length is 0
       # Nothing to do as we are not calculating anything (not true, ToDo: fix this)
       callback(null, [{
@@ -495,7 +496,7 @@ druidQueryFns = {
 
       # filter
       if filter
-        druidQuery.addFilter(filter)
+        druidQuery.addFilter(filter, forceInterval)
 
       # apply
       for apply in condensedQuery.applies
@@ -539,7 +540,7 @@ druidQueryFns = {
       return
     return
 
-  histogram: ({requester, dataSource, timeAttribute, filter, condensedQuery}, callback) ->
+  histogram: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedQuery}, callback) ->
     callback("not implemented yet"); return # ToDo
     # data.queryType = "timeseries"
     # data.postAggregations = null
@@ -556,7 +557,7 @@ druidQueryFns = {
 }
 
 
-module.exports = ({requester, dataSource, timeAttribute, approximate, filter}) ->
+module.exports = ({requester, dataSource, timeAttribute, approximate, filter, forceInterval}) ->
   timeAttribute or= 'time'
   approximate ?= true
   return (query, callback) ->
@@ -588,6 +589,7 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter}) -
           dataSource
           timeAttribute
           filter: if parentSegment then parentSegment._filter else filter
+          forceInterval
           condensedQuery
         }, (err, splits) ->
           if err

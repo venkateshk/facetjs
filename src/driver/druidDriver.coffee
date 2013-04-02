@@ -388,13 +388,22 @@ druidQueryFns = {
       callback(e)
       return
 
-    requester druidQuery.getQuery(), (err, ds) ->
+
+    queryObj = druidQuery.getQuery()
+    requester queryObj, (err, ds) ->
       if err
-        callback(err)
+        callback({
+          message: err
+          query: queryObj
+        })
         return
 
       if ds.length isnt 1
-        callback("got unexpected result from Druid")
+        callback({
+          message: "unexpected result form Druid (all)"
+          query: queryObj
+          result: ds
+        })
         return
 
       splits = [{
@@ -502,13 +511,21 @@ druidQueryFns = {
       callback(e)
       return
 
-    requester druidQuery.getQuery(), (err, ds) ->
+    queryObj = druidQuery.getQuery()
+    requester queryObj, (err, ds) ->
       if err
-        callback(err)
+        callback({
+          message: err
+          query: queryObj
+        })
         return
 
       if ds.length isnt 1
-        callback("unexpected result form Druid")
+        callback({
+          message: "unexpected result form Druid (topN)"
+          query: queryObj
+          result: ds
+        })
         return
 
       filterAttribute = condensedQuery.split.attribute

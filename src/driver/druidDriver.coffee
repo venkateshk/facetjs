@@ -314,7 +314,7 @@ class DruidQueryBuilder
         throw new Error("must have an aggregate or an arithmetic")
 
   addApply: (apply) ->
-    throw new Error("filtered applies are not supported yet") in apply.filter
+    throw new Error("filtered applies are not supported yet") if apply.filter
     @addApplyHelper(apply, false)
     return this
 
@@ -539,9 +539,9 @@ druidQueryFns = {
 }
 
 
-module.exports = ({requester, dataSource, timeAttribute, aproximate, filter}) ->
+module.exports = ({requester, dataSource, timeAttribute, approximate, filter}) ->
   timeAttribute or= 'time'
-  aproximate ?= true
+  approximate ?= true
   return (query, callback) ->
     condensedQuery = driverUtil.condenseQuery(query)
 
@@ -552,7 +552,7 @@ module.exports = ({requester, dataSource, timeAttribute, aproximate, filter}) ->
       if condensedQuery.split
         switch condensedQuery.split.bucket
           when 'identity'
-            if aproximate
+            if approximate
               queryFn = druidQueryFns.topN
             else
               done('not implemented yet'); return

@@ -76,10 +76,15 @@ splitFns = {
       b = Math.floor((num + offset) / size) * size - offset
       return [b, b + size]
 
-  time: ({attribute, duration, timezone}) ->
+  timeDuration: ({attribute, duration, offset}) ->
+    throw "not implemented yet" # todo
+
+  timePeriod: ({attribute, period, timezone}) ->
     throw new Error('attribute not defined') unless typeof attribute is 'string'
-    switch duration
-      when 'second'
+    timezone ?= 'Etc/UTC'
+    throw new Error('only UTC is supported for now') unless timezone is 'Etc/UTC'
+    switch period
+      when 'PT1S'
         return (d) ->
           ds = new Date(d[attribute])
           return null if isNaN(ds)
@@ -88,7 +93,7 @@ splitFns = {
           de.setUTCMilliseconds(1000)
           return [ds, de]
 
-      when 'minute'
+      when 'PT1M'
         return (d) ->
           ds = new Date(d[attribute])
           return null if isNaN(ds)
@@ -97,7 +102,7 @@ splitFns = {
           de.setUTCSeconds(60)
           return [ds, de]
 
-      when 'hour'
+      when 'PT1H'
         return (d) ->
           ds = new Date(d[attribute])
           return null if isNaN(ds)
@@ -106,7 +111,7 @@ splitFns = {
           de.setUTCMinutes(60)
           return [ds, de]
 
-      when 'day'
+      when 'P1D'
         return (d) ->
           ds = new Date(d[attribute])
           return null if isNaN(ds)

@@ -49,13 +49,16 @@ exports.makeDriverTest = (driverFns) ->
       test.done()
       return
 
-exports.wrapVerbose = (requester) ->
+exports.wrapVerbose = (requester, name) ->
   return (query, callback) ->
-    console.log "Requesting:"
+    console.log "Requesting #{name}:"
     console.log '', JSON.stringify(query, null, 2)
+    startTime = Date.now()
     requester query, (err, result) ->
       if err
-        console.log "GOT ERROR", err
+        console.log "GOT #{name} ERROR", err
+      else
+        console.log "GOT RESULT FROM #{name} (took #{Date.now() - startTime}ms)"
       callback(err, result)
       return
 

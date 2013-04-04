@@ -93,7 +93,7 @@ exports.cleanSegment = (segment) ->
 
   return
 
-createTabular = (node, history) ->
+exports.createTabular = createTabular = (node, history = {}) ->
   newHistory = {}
   for k, v of history
     newHistory[k] = v
@@ -110,7 +110,7 @@ class exports.Table
     @columns = createColumns(@query)
     # console.log root
     # console.log createTabular(root)
-    @data = createTabular(root, {})
+    @data = createTabular(root)
     @dimensionSize = @query.filter((op) -> op.operation is 'split').length
     @metricSize = @query.filter((op) -> op.operation is 'apply').length
 

@@ -16,12 +16,21 @@ facet.split = {
       offset
     }
 
-  time: (attribute, duration, timezone) ->
-    throw new Error("Invalid duration '#{duration}'") unless duration in ['second', 'minute', 'hour', 'day']
+  timeDuration: (attribute, duration, offset = 0) ->
+    throw new Error("invalid duration '#{duration}'") if isNaN(duration)
     return {
-      bucket: 'time'
+      bucket: 'timeDuration'
       attribute
       duration
+      offset
+    }
+
+  timePeriod: (attribute, period, timezone) ->
+    throw new Error("invalid period '#{period}'") unless period in ['PT1S', 'PT1M', 'PT1H', 'P1D']
+    return {
+      bucket: 'timePeriod'
+      attribute
+      period
       timezone
     }
 }

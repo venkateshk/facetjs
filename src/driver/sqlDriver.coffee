@@ -83,27 +83,27 @@ class SQLQueryBuilder
     return this
 
   timeBucketing: {
-    second: {
+    'PT1S': {
       select: '%Y-%m-%dT%H:%i:%SZ'
       group: '%Y-%m-%dT%H:%i:%SZ'
     }
-    minute: {
+    'PT1M': {
       select: '%Y-%m-%dT%H:%i:00Z'
       group: '%Y-%m-%dT%H:%i'
     }
-    hour: {
+    'PT1H': {
       select: '%Y-%m-%dT%H:00:00Z'
       group: '%Y-%m-%dT%H'
     }
-    day: {
+    'P1D': {
       select: '%Y-%m-%dT00:00:00Z'
       group: '%Y-%m-%d'
     }
-    month: {
+    'P1M': {
       select: '%Y-%m-00T00:00:00Z'
       group: '%Y-%m'
     }
-    year: {
+    'P1Y': {
       select: '%Y-00-00T00:00:00Z'
       group: '%Y'
     }
@@ -125,11 +125,11 @@ class SQLQueryBuilder
         selectPart = floorStr
         groupByPart = floorStr
 
-      when 'time'
-        bucketDuration = split.duration
-        bucketSpec = @timeBucketing[bucketDuration]
+      when 'timePeriod'
+        bucketPeriod = split.period
+        bucketSpec = @timeBucketing[bucketPeriod]
         if not bucketSpec
-          throw new Error("unsupported time bucketing duration '#{bucketDuration}'")
+          throw new Error("unsupported timePeriod bucketing period '#{bucketPeriod}'")
 
         selectPart = "DATE_FORMAT(#{@escapeAttribute(split.attribute)}, '#{bucketSpec.select}')"
         groupByPart = "DATE_FORMAT(#{@escapeAttribute(split.attribute)}, '#{bucketSpec.group}')"
@@ -261,7 +261,7 @@ condensedQueryToSQL = ({requester, table, filter, condensedQuery}, callback) ->
 
   queryToRun = sqlQuery.getQuery()
   if not queryToRun
-    callback(null, [{ prop: {} }])
+    callback(null, [{ prop: {}, _filter: filter }])
     return
 
   requester queryToRun, (err, ds) ->
@@ -270,11 +270,11 @@ condensedQueryToSQL = ({requester, table, filter, condensedQuery}, callback) ->
       return
 
     # ToDo: implement actual timezones
-    durationMap = {
-      second: 1000
-      minute: 60 * 1000
-      hour: 60 * 60 * 1000
-      day: 24 * 60 * 60 * 1000
+    periodMap = {
+      'PT1S': 1000
+      'PT1M': 60 * 1000
+      'PT1H': 60 * 60 * 1000
+      'P1D' : 24 * 60 * 60 * 1000
     }
 
     if condensedQuery.split
@@ -286,11 +286,11 @@ condensedQueryToSQL = ({requester, table, filter, condensedQuery}, callback) ->
         for d in ds
           start = d[splitProp]
           d[splitProp] = [start, start + splitSize]
-      else if condensedQuery.split.bucket is 'time'
-        duration = durationMap[condensedQuery.split.duration]
+      else if condensedQuery.split.bucket is 'timePeriod'
+        period = periodMap[condensedQuery.split.period]
         for d in ds
           rangeStart = new Date(d[splitProp])
-          range = [rangeStart, new Date(rangeStart.valueOf() + duration)]
+          range = [rangeStart, new Date(rangeStart.valueOf() + period)]
           d[splitProp] = range
 
       splits = ds.map (prop) -> {

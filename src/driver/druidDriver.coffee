@@ -152,6 +152,7 @@ class DruidQueryBuilder
         throw new Error("unknown filter type '#{filter.type}'")
 
   addFilter: (filter) ->
+    return unless filter
     [@filter, @intervals] = @filterToDruid(filter)
     return this
 
@@ -159,13 +160,25 @@ class DruidQueryBuilder
     throw new Error("split must have an attribute") unless split.attribute
 
     if split.attribute is @timeAttribute
-      # @queryType stays 'timeseries'
-      @granularity = split.duration or 'minute'
-      if @granularity not in ['second', 'minute', 'hour', 'day']
-        throw new Error("Unsupported duration '#{@granularity}' in time bucket")
+      #@queryType stays 'timeseries'
+      if split.bucket is 'timePeriod'
+        throw new Error("invalid period") unless split.period
+        @granularity = {
+          type: "period"
+          period: split.period
+          timeZone: split.timezone
+        }
+      else if split.bucket is 'timeDuration'
+        throw new Error("invalid duration") unless split.duration
+        @granularity = {
+          type: "duration"
+          duration: split.duration
+        }
+      else
+        throw new Error("time can only be bucketed with timePeriod or timeDuration bucketing functions")
     else
       @queryType = 'topN'
-      # @granularity stays 'all'
+      #@granularity stays 'all'
       @dimension = {
         type: 'default'
         dimension: split.attribute
@@ -432,8 +445,7 @@ druidQueryFns = {
 
     try
       # filter
-      if filter
-        druidQuery.addFilter(filter)
+      druidQuery.addFilter(filter)
 
       # apply
       if condensedQuery.applies.length
@@ -477,12 +489,11 @@ druidQueryFns = {
     druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval)
 
     try
+      # filter
+      druidQuery.addFilter(filter)
+
       # split
       druidQuery.addSplit(condensedQuery.split)
-
-      # filter
-      if filter
-        druidQuery.addFilter(filter)
 
       # apply
       if condensedQuery.applies.length
@@ -502,11 +513,11 @@ druidQueryFns = {
         return
 
       # ToDo: implement actual timezones
-      durationMap = {
-        second: 1000
-        minute: 60 * 1000
-        hour: 60 * 60 * 1000
-        day: 24 * 60 * 60 * 1000
+      periodMap = {
+        'PT1S': 1000
+        'PT1M': 60 * 1000
+        'PT1H': 60 * 60 * 1000
+        'P1D' : 24 * 60 * 60 * 1000
       }
 
       if condensedQuery.combine?.sort?.direction is 'descending'
@@ -517,10 +528,10 @@ druidQueryFns = {
         ds.splice(limit, ds.length - limit)
 
       timePropName = condensedQuery.split.name
-      duration = durationMap[condensedQuery.split.duration]
+      period = periodMap[condensedQuery.split.period]
       splits = ds.map (d) ->
         rangeStart = new Date(d.timestamp)
-        range = [rangeStart, new Date(rangeStart.valueOf() + duration)]
+        range = [rangeStart, new Date(rangeStart.valueOf() + period)]
         split = {
           prop: d.result
           _filter: andFilters(filter, makeFilter(timeAttribute, range))
@@ -539,8 +550,7 @@ druidQueryFns = {
 
     try
       # filter
-      if filter
-        druidQuery.addFilter(filter)
+      druidQuery.addFilter(filter)
 
       # split
       druidQuery.addSplit(condensedQuery.split)
@@ -625,7 +635,7 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
               queryFn = druidQueryFns.topN
             else
               done('not implemented yet'); return
-          when timeAttribute
+          when 'timeDuration', 'timePeriod'
             queryFn = druidQueryFns.timeseries
           when 'continuous'
             queryFn = druidQueryFns.histogram

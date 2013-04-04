@@ -24,7 +24,7 @@ sqlPass = sqlRequester({
   database: 'facet'
 })
 
-sqlPass = utils.wrapVerbose(sqlPass) if verbose
+sqlPass = utils.wrapVerbose(sqlPass, 'MySQL') if verbose
 
 driverFns.mySql = sqlDriver({
   requester: sqlPass
@@ -39,7 +39,7 @@ druidPass = druidRequester({
   path: '/druid/v2/'
 })
 
-druidPass = utils.wrapVerbose(druidPass) if verbose
+druidPass = utils.wrapVerbose(druidPass, 'Druid') if verbose
 
 driverFns.druid = druidDriver({
   requester: druidPass
@@ -105,7 +105,7 @@ exports["apply arithmetic"] = testDrivers {
 exports["split time; combine time"] = testDrivers {
   drivers: ['mySql', 'druid']
   query: [
-    { operation: 'split', name: 'Time', bucket: 'time', attribute: 'time', duration: 'hour', timezone: 'Etc/UTC' }
+    { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
     { operation: 'combine', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
   ]
 }
@@ -122,14 +122,14 @@ exports["split time; combine time"] = testDrivers {
 exports["split time; apply count"] = testDrivers {
   drivers: ['mySql', 'druid']
   query: [
-    { operation: 'split', name: 'Time', bucket: 'time', attribute: 'time', duration: 'hour', timezone: 'Etc/UTC' }
+    { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
     { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
     { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
     { operation: 'combine', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
   ]
 }
 
-# Test timezone support
+# ToDo: Test timezone support
 
 exports["split page; apply count; sort count descending"] = testDrivers {
   drivers: ['mySql', 'druid']
@@ -166,7 +166,7 @@ exports["split page; apply count; sort count ascending"] = testDrivers {
   ]
 }
 
-exports["filter language=en; split page; apply count; sort count ascending"] = testDrivers {
+exports["filter language=en; split page; apply count; sort deleted ascending"] = testDrivers {
   drivers: ['mySql', 'druid']
   query: [
     { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
@@ -176,3 +176,4 @@ exports["filter language=en; split page; apply count; sort count ascending"] = t
     { operation: 'combine', sort: { compare: 'natural', prop: 'Deleted', direction: 'ascending' }, limit: 5 }
   ]
 }
+

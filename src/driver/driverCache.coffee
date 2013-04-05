@@ -1,3 +1,17 @@
+# this needs to be done in JS land to avoid creating a global var module
+`
+if (typeof module === 'undefined') {
+  exports = {};
+  module = { exports: exports };
+  require = function (modulePath) {
+    var moduleParts = modulePath.split('/');
+    return window[moduleParts[moduleParts.length - 1]];
+  }
+}
+`
+
+# -----------------------------------------------------
+
 class DriverCache
   constructor: (@timeAttribute) ->
     @hashmap = {} # { key: filter (non-time filter) + gran, value: { key: timestamp, value: { key: metric, value: value } } }
@@ -120,23 +134,30 @@ class DriverCache
         timestamp = new Date(timestamp.valueOf() + period)
     return timestamps
 
-class CacheWrapper
-  constructor: (@maxTime, @driver, @timeAttribute) ->
+class exports.DriverCacheWrapper
+  constructor: (@driver, @timeAttribute) ->
     @cache = new DriverCache(@timeAttribute)
 
   getData: (query, callback) ->
+    if query.filter(({operation}) -> return operation is 'filter').length is 0
+      console.log 'no filter'
+      @driver query, callback
+      return
     # If there is more than one split, don't use cache
     if query.filter(({operation}) -> return operation is 'split').length isnt 1
+      console.log 'here1'
       @driver query, callback
       return
     # If there is a split not for time, reject
     if query.filter(({operation, attribute}) -> return operation is 'split' and attribute isnt @timeAttribute).length > 0
+      console.log 'here2'
       @driver query, callback
       return
 
     cachedData = @_getCachedData(query)
     unknownQuery = @_getUnknownQuery(query, cachedData)
-    @driver @_getUnknownQuery(query), (err, root) =>
+    console.log unknownQuery
+    @driver unknownQuery, (err, root) =>
       if err?
         callback(err, null)
         return
@@ -181,4 +202,6 @@ class CacheWrapper
         return true
       )
 
-facet.DriverCache = DriverCache
+# -----------------------------------------------------
+# Handle commonJS crap
+window['driverCache'] = exports if typeof window isnt 'undefined'

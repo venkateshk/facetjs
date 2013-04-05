@@ -433,6 +433,14 @@ class DruidQueryBuilder
     return query
 
 
+compareFns = {
+  ascending: (a, b) ->
+    return if a < b then -1 else if a > b then 1 else if a >= b then 0 else NaN
+
+  descending: (a, b) ->
+    return if b < a then -1 else if b > a then 1 else if b >= a then 0 else NaN
+}
+
 druidQueryFns = {
   all: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedQuery}, callback) ->
     filter = andFilters(filter, condensedQuery.filter)
@@ -520,14 +528,22 @@ druidQueryFns = {
         'P1D' : 24 * 60 * 60 * 1000
       }
 
-      if condensedQuery.combine?.sort?.direction is 'descending'
-        ds.reverse()
-
-      if condensedQuery.combine?.limit?
-        limit = condensedQuery.combine.limit
-        ds.splice(limit, ds.length - limit)
-
       timePropName = condensedQuery.split.name
+
+      if condensedQuery.combine
+        if condensedQuery.combine.sort
+          if condensedQuery.combine.sort.prop is timePropName
+            if condensedQuery.combine.sort.direction is 'descending'
+              ds.reverse()
+          else
+            comapreFn = compareFns[condensedQuery.combine.sort.direction]
+            sortProp = condensedQuery.combine.sort.prop
+            ds.sort((a, b) -> comapreFn(a.result[sortProp], b.result[sortProp]))
+
+        if condensedQuery.combine.limit?
+          limit = condensedQuery.combine.limit
+          ds.splice(limit, ds.length - limit)
+
       period = periodMap[condensedQuery.split.period]
       splits = ds.map (d) ->
         rangeStart = new Date(d.timestamp)

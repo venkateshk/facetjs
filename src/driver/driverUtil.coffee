@@ -93,14 +93,13 @@ exports.cleanSegment = (segment) ->
 
   return
 
-createTabularHelper = (node, rangeFn, history = {}) ->
+createTabularHelper = (node, rangeFn, history) ->
   newHistory = {}
   for k, v of history
     newHistory[k] = v
   # Base case
   for k, v of node.prop
-    if Array.isArray(v)
-      v = rangeFn(v)
+    v = rangeFn(v, k) if Array.isArray(v)
     newHistory[k] = v
   if node.splits?
     return flatten(node.splits.map((split) -> createTabularHelper(split, rangeFn, newHistory)))
@@ -109,7 +108,7 @@ createTabularHelper = (node, rangeFn, history = {}) ->
 
 exports.createTabular = createTabular = (node, rangeFn) ->
   rangeFn ?= (range) -> range
-  return createTabularHelper(node, rangeFn)
+  return createTabularHelper(node, rangeFn, {})
 
 class exports.Table
   constructor: ({root, @query}) ->

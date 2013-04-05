@@ -129,6 +129,24 @@ exports["split time; apply count"] = testDrivers {
   ]
 }
 
+exports["split time; apply count; sort Count descending"] = testDrivers {
+  drivers: ['mySql', 'druid']
+  query: [
+    { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
+    { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+    { operation: 'combine', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 3 }
+  ]
+}
+
+exports["split time; apply count; sort Count ascending"] = testDrivers {
+  drivers: ['mySql', 'druid']
+  query: [
+    { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
+    { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+    { operation: 'combine', sort: { compare: 'natural', prop: 'Count', direction: 'ascending' }, limit: 3 }
+  ]
+}
+
 # ToDo: Test timezone support
 
 exports["split page; apply count; sort count descending"] = testDrivers {
@@ -176,4 +194,3 @@ exports["filter language=en; split page; apply count; sort deleted ascending"] =
     { operation: 'combine', sort: { compare: 'natural', prop: 'Deleted', direction: 'ascending' }, limit: 5 }
   ]
 }
-

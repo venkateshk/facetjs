@@ -2,7 +2,7 @@ utils = require('../utils')
 
 sqlRequester = require('../../mySqlRequester')
 sqlDriver = require('../../sqlDriver')
-DriverCacheWrapper = require('../../driverCache').DriverCacheWrapper
+cache = require('../../driverCache')
 
 # Set up drivers
 driverFns = {}
@@ -28,9 +28,7 @@ driverFns.mySql = sqlDriver({
   table: 'wiki_day_agg'
 })
 
-cache = new DriverCacheWrapper(driverFns.mySql, 'Time')
-
-driverFns.cache = cache.getData.bind(cache)
+driverFns.cache = cache(driverFns.mySql, 'Time')
 
 testDrivers = utils.makeDriverTest(driverFns)
 

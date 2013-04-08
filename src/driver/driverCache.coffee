@@ -131,38 +131,13 @@ class DriverCache
       throw new Error("unknown time bucket")
     return timestamps
 
-class exports.DriverCacheWrapper
-  constructor: (@driver, @timeAttribute) ->
-    @cache = new DriverCache(@timeAttribute)
+module.exports = (driver, timeAttribute) ->
+  cache = new DriverCache(timeAttribute)
 
-  getData: (query, callback) ->
-    if query.filter(({operation}) -> return operation is 'filter').length is 0
-      @driver query, callback
-      return
-    # If there is more than one split, don't use cache
-    if query.filter(({operation}) -> return operation is 'split').length isnt 1
-      @driver query, callback
-      return
-    # If there is a split not for time, reject
-    if query.filter(({operation, name}) => return operation is 'split' and name isnt @timeAttribute).length > 0
-      @driver query, callback
-      return
+  _getCachedData = (query) ->
+    return cache.get(query)
 
-    cachedData = @_getCachedData(query)
-    unknownQuery = @_getUnknownQuery(query, cachedData)
-    @driver unknownQuery, (err, root) =>
-      if err?
-        callback(err, null)
-        return
-      @cache.put(query, root)
-      callback(null, @_fillTree(root, cachedData, query))
-      return
-    return
-
-  _getCachedData: (query) ->
-    return @cache.get(query)
-
-  _fillTree: (root, cachedData, query) -> # Fill in the missing piece
+  _fillTree = (root, cachedData, query) -> # Fill in the missing piece
     splitOp = query.filter(({operation}) -> return operation is 'split')[0]
     splitOpName = splitOp.name
     splitLocation = query.map(({operation}) -> return operation is 'split').indexOf(true)
@@ -170,12 +145,12 @@ class exports.DriverCacheWrapper
                             .map((command) -> return command.name)
     # Handle 1 split for now
     for split in root.splits
-      timestamp = split.prop[@timeAttribute]
+      timestamp = split.prop[timeAttribute]
       for apply in applysAfterSplit
         split.prop[apply] ?= cachedData[timestamp]?[apply]
     return root
 
-  _getUnknownQuery: (query, cachedData) ->
+  _getUnknownQuery = (query, cachedData) ->
     # Look at cache to see what we know
     splitLocation = query.map(({operation}) -> return operation is 'split').indexOf(true)
     # What we need from data
@@ -199,6 +174,32 @@ class exports.DriverCacheWrapper
           return true
         return false
       )
+
+  return (query, callback) ->
+    if query.filter(({operation}) -> return operation is 'filter').length is 0
+      driver query, callback
+      return
+    # If there is more than one split, don't use cache
+    if query.filter(({operation}) -> return operation is 'split').length isnt 1
+      driver query, callback
+      return
+    # If there is a split not for time, reject
+    if query.filter(({operation, name}) => return operation is 'split' and name isnt timeAttribute).length > 0
+      driver query, callback
+      return
+
+    cachedData = _getCachedData(query)
+    unknownQuery = _getUnknownQuery(query, cachedData)
+    driver unknownQuery, (err, root) =>
+      if err?
+        callback(err, null)
+        return
+      cache.put(query, root)
+      callback(null, _fillTree(root, cachedData, query))
+      return
+    return
+
+
 
 # -----------------------------------------------------
 # Handle commonJS crap

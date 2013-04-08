@@ -13,7 +13,7 @@ if (typeof module === 'undefined') {
 # -----------------------------------------------------
 
 class DriverCache
-  constructor: (@timeAttribute) ->
+  constructor: (@timeAttribute, @timeName) ->
     @hashmap = {} # { key: filter (non-time filter) + gran, value: { key: timestamp, value: { key: metric, value: value } } }
 
   get: (query) ->
@@ -41,11 +41,11 @@ class DriverCache
     @hashmap[hash] ?= {}
     hashValue = @hashmap[hash]
     for split in root.splits
-      tempPiece = hashValue[split.prop[@timeAttribute]] or {}
+      tempPiece = hashValue[split.prop[@timeName]] or {}
       for k, v of split.prop
-        continue if k is @timeAttribute or k is 'parse' or k is '_typeCast'
+        continue if k is @timeName or k is 'parse' or k is '_typeCast'
         tempPiece[k] = v
-      hashValue[split.prop[@timeAttribute]] = tempPiece
+      hashValue[split.prop[@timeName]] = tempPiece
     return
 
   _getFilter: (query) ->
@@ -82,8 +82,8 @@ class DriverCache
   _separateTimeFilter: (filter) ->
     if filter.filters?
       self = this
-      timeFilter = filter.filters.filter(({attribute}) -> attribute is 'time')[0]
-      filtersWithoutTime = filter.filters.filter(({attribute}) -> attribute isnt 'time')
+      timeFilter = filter.filters.filter(({attribute}) -> attribute is self.timeAttribute)[0]
+      filtersWithoutTime = filter.filters.filter(({attribute}) -> attribute isnt self.timeAttribute)
       if filtersWithoutTime.length is 1
         return {
           filter: filtersWithoutTime[0]
@@ -131,7 +131,7 @@ class DriverCache
       throw new Error("unknown time bucket")
     return timestamps
 
-module.exports = (driver, timeAttribute) ->
+module.exports = ({driver, timeAttribute, timeName}) ->
   cache = new DriverCache(timeAttribute)
 
   _getCachedData = (query) ->
@@ -145,7 +145,7 @@ module.exports = (driver, timeAttribute) ->
                             .map((command) -> return command.name)
     # Handle 1 split for now
     for split in root.splits
-      timestamp = split.prop[timeAttribute]
+      timestamp = split.prop[timeName]
       for apply in applysAfterSplit
         split.prop[apply] ?= cachedData[timestamp]?[apply]
     return root
@@ -184,7 +184,7 @@ module.exports = (driver, timeAttribute) ->
       driver query, callback
       return
     # If there is a split not for time, reject
-    if query.filter(({operation, name}) => return operation is 'split' and name isnt timeAttribute).length > 0
+    if query.filter(({operation, name}) => return operation is 'split' and name isnt timeName).length > 0
       driver query, callback
       return
 

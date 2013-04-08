@@ -28,7 +28,7 @@ driverFns.mySql = sqlDriver({
   table: 'wiki_day_agg'
 })
 
-driverFns.cache = cache(driverFns.mySql, 'Time')
+driverFns.cache = cache({driver: driverFns.mySql, timeAttribute: 'time', timeName: 'Time'})
 
 testDrivers = utils.makeDriverTest(driverFns)
 

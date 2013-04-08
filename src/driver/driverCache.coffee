@@ -30,21 +30,20 @@ class DriverCache
     # }
     hash = @_generateHash(query)
     cachedData = {}
-    hashValue = @hashmap[hash]
+    hashValue = @hashmap[hash] or {}
     timestamps = @_timeCalculate(query)
     for timestamp in timestamps
-      cachedData[timestamp] = hashValue[timestamp]
+      cachedData[timestamp] = hashValue?[timestamp]
     return cachedData
 
   put: (query, root) ->
     hash = @_generateHash(query)
+    @hashmap[hash] ?= {}
     hashValue = @hashmap[hash]
-
     for split in root.splits
       tempPiece = hashValue[split.prop[@timeAttribute]] or {}
-
       for k, v of split.prop
-        continue if k is @timeAttribute
+        continue if k is @timeAttribute or k is 'parse' or k is '_typeCast'
         tempPiece[k] = v
       hashValue[split.prop[@timeAttribute]] = tempPiece
     return
@@ -59,22 +58,18 @@ class DriverCache
     # Get Filter and Split
     {filter, timeFilter} = @_separateTimeFilter(@_getFilter(query))
     split = @_getSplit(query)
-    return @_filterToHash(filter) + '&' + @_timeFilterToHash(timeFilter) + '&' + @_splitToHash(split)
-
-  _timeFilterToHash: (timeFilter) ->
-    hash = []
-    for k, v of split
-      hash.push(k + ":" + v)
-    return hash.sort().join('|')
+    return @_filterToHash(filter) + '&' + @_splitToHash(split)
 
   _filterToHash: (filter) ->
+    return '' unless filter?
     hash = []
     if filter.filters?
       for subFilter in filter.filters
         hash.push @_filterToHash(filter)
       return hash.sort().join(filter.type)
-    for k, v of split
-      hash.push(k + ":" + v)
+    else
+      for k, v of filter
+        hash.push(k + ":" + v)
     return hash.sort().join('|')
 
   _splitToHash: (split) ->
@@ -87,8 +82,8 @@ class DriverCache
   _separateTimeFilter: (filter) ->
     if filter.filters?
       self = this
-      timeFilter = filter.filters.filter(({attribute}) -> attribute is self.attribute)
-      filtersWithoutTime = filter.filters.filter(({attribute}) -> attribute isnt self.attribute)
+      timeFilter = filter.filters.filter(({attribute}) -> attribute is 'time')[0]
+      filtersWithoutTime = filter.filters.filter(({attribute}) -> attribute isnt 'time')
       if filtersWithoutTime.length is 1
         return {
           filter: filtersWithoutTime[0]
@@ -118,10 +113,10 @@ class DriverCache
     end = new Date(timeFilter.range[1])
     if split.bucket is 'timeDuration'
       duration = split.duration
-      while timestamp < end
-        timestamps.push(timestamp)
+      while new Date(timestamp.valueOf() + duration) <= end
+        timestamps.push([timestamp, new Date(timestamp.valueOf() + duration)])
         timestamp = new Date(timestamp.valueOf() + duration)
-    else
+    else if split.bucket is 'timePeriod'
       periodMap = {
         'PT1S': 1000
         'PT1M': 60 * 1000
@@ -129,9 +124,11 @@ class DriverCache
         'P1D' : 24 * 60 * 60 * 1000
       }
       period = periodMap[split.period]
-      while timestamp < end
-        timestamps.push(timestamp)
+      while new Date(timestamp.valueOf() + period) <= end
+        timestamps.push([timestamp, new Date(timestamp.valueOf() + period)])
         timestamp = new Date(timestamp.valueOf() + period)
+    else
+      throw new Error("unknown time bucket")
     return timestamps
 
 class exports.DriverCacheWrapper
@@ -140,23 +137,19 @@ class exports.DriverCacheWrapper
 
   getData: (query, callback) ->
     if query.filter(({operation}) -> return operation is 'filter').length is 0
-      console.log 'no filter'
       @driver query, callback
       return
     # If there is more than one split, don't use cache
     if query.filter(({operation}) -> return operation is 'split').length isnt 1
-      console.log 'here1'
       @driver query, callback
       return
     # If there is a split not for time, reject
-    if query.filter(({operation, attribute}) -> return operation is 'split' and attribute isnt @timeAttribute).length > 0
-      console.log 'here2'
+    if query.filter(({operation, name}) => return operation is 'split' and name isnt @timeAttribute).length > 0
       @driver query, callback
       return
 
     cachedData = @_getCachedData(query)
     unknownQuery = @_getUnknownQuery(query, cachedData)
-    console.log unknownQuery
     @driver unknownQuery, (err, root) =>
       if err?
         callback(err, null)
@@ -170,14 +163,16 @@ class exports.DriverCacheWrapper
     return @cache.get(query)
 
   _fillTree: (root, cachedData, query) -> # Fill in the missing piece
-    splitOp = query.filter(({operation}) -> return operations is 'split')[0]
+    splitOp = query.filter(({operation}) -> return operation is 'split')[0]
     splitOpName = splitOp.name
+    splitLocation = query.map(({operation}) -> return operation is 'split').indexOf(true)
+    applysAfterSplit = query.filter((command, i) -> return i > splitLocation and command.operation is 'apply')
+                            .map((command) -> return command.name)
     # Handle 1 split for now
     for split in root.splits
-      timestamp = split.prop[timeAttribute]
-      for k, v of cachedData[timestamp]
-        continue if k is timeAttribute
-        split.prop[k] = v
+      timestamp = split.prop[@timeAttribute]
+      for apply in applysAfterSplit
+        split.prop[apply] ?= cachedData[timestamp]?[apply]
     return root
 
   _getUnknownQuery: (query, cachedData) ->
@@ -186,20 +181,23 @@ class exports.DriverCacheWrapper
     # What we need from data
     applysAfterSplit = query.filter((command, i) -> return i > splitLocation and command.operation is 'apply')
                             .map((command) -> return command.name)
-
     # Go through cachedData. See if we have need data for all time stamps
 
     unknown = {}
     for k, v of cachedData
+      unless v?
+        for apply in applysAfterSplit
+          unknown[apply] = true
+        continue
       for apply in applysAfterSplit
         if not v[apply]?
           unknown[apply] = true
 
     return query.filter((command, i) ->
         return true if i <= splitLocation
-        if command.operation is 'apply' and unknown[command.name]
-          return false
-        return true
+        if (command.operation is 'apply' and unknown[command.name]) or command.operation isnt 'apply'
+          return true
+        return false
       )
 
 # -----------------------------------------------------

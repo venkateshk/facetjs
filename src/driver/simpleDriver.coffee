@@ -1,6 +1,6 @@
 # this needs to be done in JS land to avoid creating a global var module
 `
-if (typeof module === 'undefined') {
+if (typeof window !== 'undefined') {
   exports = {};
   module = { exports: exports };
   require = function (modulePath) {
@@ -321,5 +321,5 @@ module.exports = (data) -> (query, callback) ->
 
 # -----------------------------------------------------
 # Handle commonJS crap
-window['simpleDriver'] = exports if typeof window isnt 'undefined'
+window['simpleDriver'] = module.exports if typeof window isnt 'undefined'
 

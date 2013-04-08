@@ -1,6 +1,6 @@
 # this needs to be done in JS land to avoid creating a global var module
 `
-if (typeof module === 'undefined') {
+if (typeof window !== 'undefined') {
   exports = {};
   module = { exports: exports };
   require = function (modulePath) {
@@ -165,4 +165,4 @@ exports.createColumns = createColumns = (query) ->
 
 # -----------------------------------------------------
 # Handle commonJS crap
-window['driverUtil'] = exports if typeof window isnt 'undefined'
+window['driverUtil'] = module.exports if typeof window isnt 'undefined'

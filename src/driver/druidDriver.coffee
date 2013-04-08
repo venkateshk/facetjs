@@ -1,6 +1,6 @@
 # this needs to be done in JS land to avoid creating a global var module
 `
-if (typeof module === 'undefined') {
+if (typeof window !== 'undefined') {
   exports = {};
   module = { exports: exports };
   require = function (modulePath) {
@@ -788,4 +788,4 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
 
 # -----------------------------------------------------
 # Handle commonJS crap
-window['druidDriver'] = exports if typeof window isnt 'undefined'
+window['druidDriver'] = module.exports if typeof window isnt 'undefined'

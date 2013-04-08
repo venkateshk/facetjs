@@ -1,6 +1,6 @@
 # this needs to be done in JS land to avoid creating a global var module
 `
-if (typeof module === 'undefined') {
+if (typeof window !== 'undefined') {
   exports = {};
   module = { exports: exports };
   require = function (modulePath) {
@@ -369,4 +369,4 @@ module.exports = ({requester, table, filter}) -> (query, callback) ->
 
 # -----------------------------------------------------
 # Handle commonJS crap
-window['sqlDriver'] = exports if typeof window isnt 'undefined'
+window['sqlDriver'] = module.exports if typeof window isnt 'undefined'

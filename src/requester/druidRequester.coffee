@@ -25,19 +25,28 @@ module.exports = ({host, port, path}) ->
         return
 
       response.on 'close', (err) ->
-        console.log 'CLOSE'
+        callback({
+          error: 'close'
+          message: err
+        })
         return
 
       response.on 'end', ->
         chunks = chunks.join('')
         if response.statusCode isnt 200
-          callback(chunks, null)
+          callback({
+            error: 'bad status code'
+            message: chunks
+          })
           return
 
         try
           chunks = JSON.parse(chunks)
         catch e
-          callback(e, null)
+          callback({
+            error: 'json parse'
+            message: e.message
+          })
           return
 
         callback(null, chunks)

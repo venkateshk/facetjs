@@ -95,7 +95,8 @@ class SQLQueryBuilder
         throw new Error("unknown filter type '#{filter.type}'")
 
   addFilter: (filter) ->
-    @filterPart = 'WHERE ' + @filterToSQL(filter)
+    return unless filter
+    @filterPart = "WHERE #{@filterToSQL(filter)}"
     return this
 
   timeBucketing: {
@@ -212,8 +213,6 @@ class SQLQueryBuilder
 
   addSort: (sort) ->
     sqlDirection = @directionMap[sort.direction]
-    throw new Error("invalid direction is: '#{sort.direction}'") unless sqlDirection
-
     switch sort.compare
       when 'natural'
         @orderByPart = "ORDER BY #{@escapeAttribute(sort.prop)} #{sqlDirection}"
@@ -251,8 +250,7 @@ condensedQueryToSQL = ({requester, table, filter, condensedQuery}, callback) ->
 
   filter = andFilters(filter, condensedQuery.filter)
   try
-    if filter
-      sqlQuery.addFilter(filter)
+    sqlQuery.addFilter(filter)
 
     # split
     split = condensedQuery.split

@@ -68,6 +68,9 @@ exports.condenseQuery = (query) ->
           throw new Error("sort must have a compare") unless cmd.sort.compare
           throw new Error("sort must have a direction") unless cmd.sort.direction
 
+          if cmd.sort.direction not in ['ascending', 'descending']
+            throw new Error("sort direction has to be 'ascending' or 'descending'")
+
         if cmd.limit?
           throw new TypeError("limit must be a number") if isNaN(cmd.limit)
 

@@ -59,6 +59,73 @@ driverFns.druid = druidDriver({
 testDrivers = utils.makeDriverTest(driverFns)
 
 
+# query = [
+#   { operation: 'split', name: 'Histo', bucket: 'continuous', attribute: 'delta_hist', offset: 0, size: 5 }
+#   { operation: 'apply', name: 'Count', aggregate: 'count' }
+#   { operation: 'combine', sort: { compare: 'natural', prop: 'Count', direction: 'ascending' } }
+# ]
+###
+query = [
+  {
+        "type": "within",
+        "attribute": "time",
+        "range": [
+          "2013-03-30T00:00:00.000Z",
+          "2013-04-06T00:00:00.000Z"
+        ],
+        "operation": "filter"
+      },
+      {
+        "name": "namespace",
+        "attribute": "namespace",
+        "bucket": "identity",
+        "operation": "split"
+      },
+      {
+        "name": "count",
+        "aggregate": "sum",
+        "attribute": "count",
+        "operation": "apply"
+      },
+      {
+        "operation": "combine",
+        "sort": {
+          "compare": "natural",
+          "prop": "count",
+          "direction": "descending"
+        },
+        "limit": 5
+      },
+      {
+        "name": "delta_hist",
+        "attribute": "delta_hist",
+        "bucket": "continuous",
+        "size": 5,
+        "offset": 0,
+        "operation": "split"
+      },
+      {
+        "name": "edits",
+        "aggregate": "count",
+        "operation": "apply"
+      },
+      {
+        "operation": "combine",
+        "sort": {
+          "compare": "natural",
+          "prop": "delta_hist",
+          "direction": "descending"
+        },
+        "limit": 5
+      }
+  ]
+
+driverFns.druid query, (err, data) ->
+  console.log JSON.stringify(err, null, 2), JSON.stringify(data, null, 2)
+  return
+
+###
+
 exports["apply count"] = testDrivers {
   drivers: ['mySql', 'druid']
   query: [

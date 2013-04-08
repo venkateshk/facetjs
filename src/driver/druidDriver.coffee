@@ -398,7 +398,7 @@ class DruidQueryBuilder
         throw new Error("must have an aggregate or an arithmetic")
 
   addApply: (apply) ->
-    throw new Error("filtered applies are not supported yet") if apply.filter
+    throw new Error("filtered applies are not supported yet") if apply.filter # ToDo
     @addApplyHelper(apply, false)
     return this
 
@@ -407,9 +407,6 @@ class DruidQueryBuilder
     return this
 
   addSort: (sort) ->
-    if sort.direction not in ['ascending', 'descending']
-      throw new Error("direction has to be 'ascending' or 'descending'")
-
     if @queryType is 'topN'
       if sort.prop is @dimension.outputName
         @metric = { type: "lexicographic" }
@@ -418,17 +415,17 @@ class DruidQueryBuilder
         if sort.direction is 'descending'
           @metric = sort.prop
         else
-          # make a bottomN
+          # make a bottomN (ToDo: is there a better way to do this?)
+          @metric = @throwawayName()
           @addPostAggregation {
             type: "arithmetic"
-            name: invertName = @throwawayName()
+            name: @metric
             fn: "*"
             fields: [
               { type: "fieldAccess", fieldName: sort.prop }
               { type: "constant", value: -1 }
             ]
           }
-          @metric = invertName
 
     return this
 

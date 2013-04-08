@@ -196,8 +196,6 @@ class SQLQueryBuilder
 
   addSort: (sort) ->
     sqlDirection = @directionMap[sort.direction]
-    throw new Error("invalid direction is: '#{sort.direction}'") unless sqlDirection
-
     switch sort.compare
       when 'natural'
         @orderByPart = "ORDER BY #{@escapeAttribute(sort.prop)} #{sqlDirection}"

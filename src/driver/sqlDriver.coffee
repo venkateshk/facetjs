@@ -48,6 +48,12 @@ class SQLQueryBuilder
   escapeValue: (value) ->
     return "\"#{value}\"" # ToDo: make this actually work in general
 
+  dateToSQL: (date) ->
+    return date.toISOString()
+      .replace('T',   ' ')
+      .replace(/\.\d\d\dZ$/, '') # remove millis
+      .replace(' 00:00:00', '') # remove time if 0
+
   filterToSQL: (filter) ->
     switch filter.type
       when 'is'
@@ -64,7 +70,17 @@ class SQLQueryBuilder
 
       when 'within'
         attribute = @escapeAttribute(filter.attribute)
-        "#{filter.range[0]} <= #{attribute} AND #{attribute} < #{filter.range[1]}"
+        [r0, r1] = filter.range
+        if (typeof r0 is 'string' and typeof r1 is 'string') or (r0 instanceof Date and r1 instanceof Date)
+          r0 = new Date(r0)
+          r1 = new Date(r1)
+          throw new Error("invalid dates") if isNaN(r0) or isNaN(r1)
+          "'#{@dateToSQL(r0)}' <= #{attribute} AND #{attribute} < '#{@dateToSQL(r1)}'"
+        else if typeof r0 is 'number' and typeof r1 is 'number'
+          "#{r0} <= #{attribute} AND #{attribute} < #{r1}"
+        else
+          throw new Error("unsuported range in within filter")
+
 
       when 'not'
         "NOT (#{@filterToSQL(filter.filter)})"

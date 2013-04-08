@@ -79,7 +79,8 @@ class SQLQueryBuilder
         throw new Error("unknown filter type '#{filter.type}'")
 
   addFilter: (filter) ->
-    @filterPart = 'WHERE ' + @filterToSQL(filter)
+    return unless filter
+    @filterPart = "WHERE #{@filterToSQL(filter)}"
     return this
 
   timeBucketing: {
@@ -233,8 +234,7 @@ condensedQueryToSQL = ({requester, table, filter, condensedQuery}, callback) ->
 
   filter = andFilters(filter, condensedQuery.filter)
   try
-    if filter
-      sqlQuery.addFilter(filter)
+    sqlQuery.addFilter(filter)
 
     # split
     split = condensedQuery.split

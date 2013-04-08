@@ -32,7 +32,7 @@ driverFns.cache = cache({driver: driverFns.mySql, timeAttribute: 'time', timeNam
 
 testDrivers = utils.makeDriverTest(driverFns)
 
-
+# Sanity check
 exports["apply count"] = testDrivers {
   drivers: ['mySql', 'cache']
   query: [
@@ -42,6 +42,17 @@ exports["apply count"] = testDrivers {
   ]
 }
 
+exports["split page; apply count; sort count ascending"] = testDrivers {
+  drivers: ['mySql', 'cache']
+  query: [
+    { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
+    { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+    { operation: 'apply', name: 'Deleted', aggregate: 'sum', attribute: 'deleted' }
+    { operation: 'combine', sort: { compare: 'natural', prop: 'Deleted', direction: 'ascending' }, limit: 5 }
+  ]
+}
+
+# Cache Test
 exports["split time; apply count; apply added"] = testDrivers {
   drivers: ['mySql', 'cache']
   query: [
@@ -63,6 +74,7 @@ exports["split time; apply count"] = testDrivers {
   ]
 }
 
+# Cache Test 2
 exports["filter; split time; apply count"] = testDrivers {
   drivers: ['mySql', 'cache']
   query: [

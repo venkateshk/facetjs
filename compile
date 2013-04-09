@@ -2,7 +2,7 @@
 compass compile --sass-dir src/style/ --css-dir target/
 coffee --compile --lint --bare --output target/test/ src/test/
 coffee --compile --lint --bare --output target src/server.coffee src/requester/*
-coffee --compile --lint --output target src/driver/*
+coffee --compile --lint --bare --output target src/driver/*
 coffee --compile --lint --output target --join target/facet.js \
   src/facet/init.coffee \
   src/facet/utils.coffee \

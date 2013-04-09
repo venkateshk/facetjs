@@ -1,14 +1,4 @@
-# this needs to be done in JS land to avoid creating a global var module
-`
-if (typeof module === 'undefined') {
-  exports = {};
-  module = { exports: exports };
-  require = function (modulePath) {
-    var moduleParts = modulePath.split('/');
-    return window[moduleParts[moduleParts.length - 1]];
-  }
-}
-`
+`(typeof window === 'undefined' ? {} : window)['driverCache'] = (function(module, require){"use strict"; var exports = module.exports`
 
 # -----------------------------------------------------
 
@@ -207,4 +197,10 @@ module.exports = ({driver, timeAttribute, timeName}) ->
 
 # -----------------------------------------------------
 # Handle commonJS crap
-window['driverCache'] = exports if typeof window isnt 'undefined'
+`return module.exports; }).call(this,
+  (typeof module === 'undefined' ? {exports: {}} : module),
+  (typeof require === 'undefined' ? function (modulePath) {
+    var moduleParts = modulePath.split('/');
+    return window[moduleParts[moduleParts.length - 1]];
+  } : require)
+)`

@@ -1,14 +1,4 @@
-# this needs to be done in JS land to avoid creating a global var module
-`
-if (typeof window !== 'undefined') {
-  exports = {};
-  module = { exports: exports };
-  require = function (modulePath) {
-    var moduleParts = modulePath.split('/');
-    return window[moduleParts[moduleParts.length - 1]];
-  }
-}
-`
+`(function(module, require){"use strict"; exports = module.exports`
 
 async = require('async')
 driverUtil = require('./driverUtil')
@@ -369,4 +359,10 @@ module.exports = ({requester, table, filter}) -> (query, callback) ->
 
 # -----------------------------------------------------
 # Handle commonJS crap
-window['sqlDriver'] = module.exports if typeof window isnt 'undefined'
+`}).call(this,
+  (typeof module === 'undefined' ? {exports: window['sqlDriver']={}} : module),
+  (typeof require === 'undefined' ? function (modulePath) {
+    var moduleParts = modulePath.split('/');
+    return window[moduleParts[moduleParts.length - 1]];
+  } : require)
+)`

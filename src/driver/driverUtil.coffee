@@ -1,14 +1,4 @@
-# this needs to be done in JS land to avoid creating a global var module
-`
-if (typeof window !== 'undefined') {
-  exports = {};
-  module = { exports: exports };
-  require = function (modulePath) {
-    var moduleParts = modulePath.split('/');
-    return window[moduleParts[moduleParts.length - 1]];
-  }
-}
-`
+`(function(module, require){"use strict"; exports = module.exports`
 
 # -----------------------------------------------------
 
@@ -165,4 +155,10 @@ exports.createColumns = createColumns = (query) ->
 
 # -----------------------------------------------------
 # Handle commonJS crap
-window['driverUtil'] = module.exports if typeof window isnt 'undefined'
+`}).call(this,
+  (typeof module === 'undefined' ? {exports: window['driverUtil']={}} : module),
+  (typeof require === 'undefined' ? function (modulePath) {
+    var moduleParts = modulePath.split('/');
+    return window[moduleParts[moduleParts.length - 1]];
+  } : require)
+)`

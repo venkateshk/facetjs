@@ -139,16 +139,17 @@ class SQLQueryBuilder
         if not bucketSpec
           throw new Error("unsupported timePeriod bucketing period '#{bucketPeriod}'")
 
-        if split.timezone?
-          bucketTimezone = split.timezone
+        bucketTimezone = split.timezone or 'Etc/UTC' # ToDo: move this to condense query
+        if split.timezone is 'Etc/UTC'
+          sqlAttribute = @escapeAttribute(split.attribute)
+        else
           # Assume db is in +0:00 so that we don't have to worry about DATETIME vs. TIMESTAMP
           # To use non-offset timezone, one needs to set up time_zone table in the db
           # See https://dev.mysql.com/doc/refman/5.5/en/time-zone-support.html
-          selectPart = "DATE_FORMAT(CONVERT_TZ(#{@escapeAttribute(split.attribute)}, '+0:00', #{bucketTimezone}), '#{bucketSpec.select}')"
-          groupByPart = "DATE_FORMAT(CONVERT_TZ(#{@escapeAttribute(split.attribute)}, '+0:00', #{bucketTimezone}), '#{bucketSpec.group}')"
-        else
-          selectPart = "DATE_FORMAT(#{@escapeAttribute(split.attribute)}, '#{bucketSpec.select}')"
-          groupByPart = "DATE_FORMAT(#{@escapeAttribute(split.attribute)}, '#{bucketSpec.group}')"
+          sqlAttribute = "CONVERT_TZ(#{@escapeAttribute(split.attribute)}, '+0:00', #{bucketTimezone})"
+
+        selectPart = "DATE_FORMAT(#{sqlAttribute}, '#{bucketSpec.select}')"
+        groupByPart = "DATE_FORMAT(#{sqlAttribute}, '#{bucketSpec.group}')"
 
       else
         throw new Error("unsupported bucketing policy '#{split.bucket}'")

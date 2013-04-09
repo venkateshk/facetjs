@@ -14,7 +14,11 @@ if (typeof module === 'undefined') {
 
 class DriverCache
   constructor: (@timeAttribute, @timeName) ->
-    @hashmap = {} # { key: filter (non-time filter) + gran, value: { key: timestamp, value: { key: metric, value: value } } }
+    @hashmap = {}
+    # { key: filter (non-time filter) + gran,
+    #   value: { key: timestamp,
+    #            value: { key: metric,
+    #                     value: value } } }
 
   get: (query) ->
     # Return format:
@@ -38,14 +42,16 @@ class DriverCache
 
   put: (query, root) ->
     hash = @_generateHash(query)
-    @hashmap[hash] ?= {}
+    @hashmap[hash] ?= {} # ToDo: enforce cache size limits
     hashValue = @hashmap[hash]
     for split in root.splits
-      tempPiece = hashValue[split.prop[@timeName]] or {}
+      timerange = split.prop[@timeName]
+      tempPiece = hashValue[timerange] or {}
       for k, v of split.prop
-        continue if k is @timeName or k is 'parse' or k is '_typeCast'
+        continue unless split.prop.hasOwnProperty(k)
+        continue if k is @timeName
         tempPiece[k] = v
-      hashValue[split.prop[@timeName]] = tempPiece
+      hashValue[timerange] = tempPiece
     return
 
   _getFilter: (query) ->
@@ -81,15 +87,15 @@ class DriverCache
 
   _separateTimeFilter: (filter) ->
     if filter.filters?
-      self = this
-      timeFilter = filter.filters.filter(({attribute}) -> attribute is self.timeAttribute)[0]
-      filtersWithoutTime = filter.filters.filter(({attribute}) -> attribute isnt self.timeAttribute)
+      timeFilter = filter.filters.filter((({attribute}) -> attribute is @timeAttribute), this)[0]
+      filtersWithoutTime = filter.filters.filter((({attribute}) -> attribute isnt @timeAttribute), this)
       if filtersWithoutTime.length is 1
         return {
           filter: filtersWithoutTime[0]
           timeFilter
         }
       else
+        # ToDo: make new And filter
         filter.filters = filtersWithoutTime
         return {
           filter
@@ -134,13 +140,11 @@ class DriverCache
 module.exports = ({driver, timeAttribute, timeName}) ->
   cache = new DriverCache(timeAttribute)
 
-  _getCachedData = (query) ->
-    return cache.get(query)
-
+  # ToDo : no _s
   _fillTree = (root, cachedData, query) -> # Fill in the missing piece
     splitOp = query.filter(({operation}) -> return operation is 'split')[0]
     splitOpName = splitOp.name
-    splitLocation = query.map(({operation}) -> return operation is 'split').indexOf(true)
+    splitLocation = query.indexOf(splitOp)
     applysAfterSplit = query.filter((command, i) -> return i > splitLocation and command.operation is 'apply')
                             .map((command) -> return command.name)
     # Handle 1 split for now
@@ -184,13 +188,13 @@ module.exports = ({driver, timeAttribute, timeName}) ->
       driver query, callback
       return
     # If there is a split not for time, reject
-    if query.filter(({operation, name}) => return operation is 'split' and name isnt timeName).length > 0
+    if query.filter(({operation, attribute}) -> return operation is 'split' and attribute isnt timeAttribute).length > 0
       driver query, callback
       return
 
-    cachedData = _getCachedData(query)
+    cachedData = cache.get(query)
     unknownQuery = _getUnknownQuery(query, cachedData)
-    driver unknownQuery, (err, root) =>
+    driver unknownQuery, (err, root) ->
       if err?
         callback(err, null)
         return

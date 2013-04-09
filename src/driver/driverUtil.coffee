@@ -29,7 +29,7 @@ exports.condenseQuery = (query) ->
   for cmd in query
     switch cmd.operation
       when 'filter'
-        throw new Error("can not have more than on filter") if curQuery.filter
+        throw new Error("can not have more than one filter") if curQuery.filter
         curQuery.filter = cmd
 
       when 'split'

@@ -1,4 +1,4 @@
-`(function(module, require){"use strict"; exports = module.exports`
+`(typeof window === 'undefined' ? {} : window)['simpleDriver'] = (function(module, require){"use strict"; var exports = module.exports`
 
 async = require('async')
 driverUtil = require('./driverUtil')
@@ -311,8 +311,8 @@ module.exports = (data) -> (query, callback) ->
 
 # -----------------------------------------------------
 # Handle commonJS crap
-`}).call(this,
-  (typeof module === 'undefined' ? {exports: window['simpleDriver']={}} : module),
+`return module.exports; }).call(this,
+  (typeof module === 'undefined' ? {exports: {}} : module),
   (typeof require === 'undefined' ? function (modulePath) {
     var moduleParts = modulePath.split('/');
     return window[moduleParts[moduleParts.length - 1]];

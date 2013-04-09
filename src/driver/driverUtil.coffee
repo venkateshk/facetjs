@@ -1,4 +1,4 @@
-`(function(module, require){"use strict"; exports = module.exports`
+`(typeof window === 'undefined' ? {} : window)['driverUtil'] = (function(module, require){"use strict"; var exports = module.exports`
 
 # -----------------------------------------------------
 
@@ -155,8 +155,8 @@ exports.createColumns = createColumns = (query) ->
 
 # -----------------------------------------------------
 # Handle commonJS crap
-`}).call(this,
-  (typeof module === 'undefined' ? {exports: window['driverUtil']={}} : module),
+`return module.exports; }).call(this,
+  (typeof module === 'undefined' ? {exports: {}} : module),
   (typeof require === 'undefined' ? function (modulePath) {
     var moduleParts = modulePath.split('/');
     return window[moduleParts[moduleParts.length - 1]];

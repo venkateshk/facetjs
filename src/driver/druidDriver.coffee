@@ -1,4 +1,4 @@
-`(function(module, require){"use strict"; exports = module.exports`
+`(typeof window === 'undefined' ? {} : window)['druidDriver'] = (function(module, require){"use strict"; var exports = module.exports`
 
 async = require('async')
 driverUtil = require('./driverUtil')
@@ -777,8 +777,8 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
 
 # -----------------------------------------------------
 # Handle commonJS crap
-`}).call(this,
-  (typeof module === 'undefined' ? {exports: window['druidDriver']={}} : module),
+`return module.exports; }).call(this,
+  (typeof module === 'undefined' ? {exports: {}} : module),
   (typeof require === 'undefined' ? function (modulePath) {
     var moduleParts = modulePath.split('/');
     return window[moduleParts[moduleParts.length - 1]];

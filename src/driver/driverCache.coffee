@@ -165,11 +165,20 @@ module.exports = ({driver, timeAttribute, timeName}) ->
       }
 
     combineOp = query.filter(({operation, sort}) -> return operation is 'combine' and sort?)[0]
-    switch combineOp.sort?.direction
-      when 'descending'
-        splits.sort((a, b) -> return b.prop[timeName][0] - a.prop[timeName][0])
-      when 'ascending'
-        splits.sort((a, b) -> return a.prop[timeName][0] - b.prop[timeName][0])
+    if combineOp?
+      sortProp = combineOp.sort.prop
+      if sortProp is timeName
+        if combineOp.sort.direction is 'descending'
+          splits.sort((a, b) -> return b.prop[sortProp][0] - a.prop[sortProp][0])
+        else if 'ascending'
+          splits.sort((a, b) -> return a.prop[sortProp][0] - b.prop[sortProp][0])
+      else
+        if combineOp.sort.direction is 'descending'
+          splits.sort((a, b) -> return b.prop[sortProp] - a.prop[sortProp])
+        else if 'ascending'
+          splits.sort((a, b) -> return a.prop[sortProp] - b.prop[sortProp])
+      if combineOp.limit?
+        splits.splice(combineOp.limit)
     return root
 
   getUnknownQuery = (query, cachedData) ->
@@ -182,6 +191,7 @@ module.exports = ({driver, timeAttribute, timeName}) ->
 
     unknown = {}
     unknownExists = false
+
     for k, v of cachedData
       unless v?
         for apply in applysAfterSplit

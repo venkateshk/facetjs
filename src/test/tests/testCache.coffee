@@ -179,3 +179,38 @@ exports["[cache tests on] filter; split time; apply count"] = {
     ]
   }
 }
+
+exports["fillTree test"] = { # TODO: Use better mechanism to test
+  setUp: (callback) ->
+    callback()
+
+  tearDown: (callback) ->
+    callback()
+
+  "filter; split time; apply count; apply added": testDrivers {
+    drivers: ['mySql', 'mySqlCached']
+    query: [
+      { operation: 'filter', type: 'and', filters: [
+        { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
+        { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+      ]}
+      { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
+      { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+      { operation: 'combine', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
+    ]
+  }
+
+  "filter; split time; apply count; apply added; combine time descending": testDrivers {
+    drivers: ['mySql', 'mySqlCached']
+    query: [
+      { operation: 'filter', type: 'and', filters: [
+        { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
+        { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+      ]}
+      { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
+      { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+      { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+      { operation: 'combine', sort: { compare: 'natural', prop: 'Time', direction: 'descending' } }
+    ]
+  }
+}

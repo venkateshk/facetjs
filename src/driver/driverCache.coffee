@@ -11,7 +11,7 @@ class DriverCache
     #            value: { key: metric,
     #                     value: value } } }
 
-  get: (query) ->
+  get: (condensedQuery) ->
     # Return format:
     # {
     #   <timestamp>: {
@@ -23,16 +23,16 @@ class DriverCache
     #     <metric>: <value>
     #   }
     # }
-    hash = @_generateHash(query)
+    hash = @_generateHash(condensedQuery)
     cachedData = {}
     hashValue = @hashmap[hash] or {}
-    timeranges = @_timeCalculate(query)
+    timeranges = @_timeCalculate(condensedQuery)
     for timerange in timeranges
       cachedData[timerange] = hashValue?[timerange]
     return cachedData
 
-  put: (query, root) ->
-    hash = @_generateHash(query)
+  put: (condensedQuery, root) ->
+    hash = @_generateHash(condensedQuery)
     @hashmap[hash] ?= {} # ToDo: enforce cache size limits
     hashValue = @hashmap[hash]
     for split in root.splits
@@ -45,16 +45,10 @@ class DriverCache
       hashValue[timerange] = tempPiece
     return
 
-  _getFilter: (query) ->
-    return query.filter(({operation}) -> return operation is 'filter')[0]
-
-  _getSplit: (query) ->
-    return query.filter(({operation}) -> return operation is 'split')[0]
-
-  _generateHash: (query) ->
+  _generateHash: (condensedQuery) ->
     # Get Filter and Split
-    {filter, timeFilter} = @_separateTimeFilter(@_getFilter(query))
-    split = @_getSplit(query)
+    {filter, timeFilter} = @_separateTimeFilter(condensedQuery[0].filter)
+    split = condensedQuery[1].split
     return @_filterToHash(filter) + '&' + @_splitToHash(split)
 
   _filterToHash: (filter) ->
@@ -98,13 +92,9 @@ class DriverCache
         timeFilter: filter
       }
 
-  _collectApply: (query) ->
-    splitLocation = query.map(({operation}) -> return operation is 'split').indexOf(true)
-    return query.filter((command, i) -> return i > splitLocation) # DONT DO SPLICE. It will change query
-
-  _timeCalculate: (query) ->
-    split = @_getSplit(query)
-    {timeFilter} = @_separateTimeFilter(@_getFilter(query))
+  _timeCalculate: (condensedQuery) ->
+    split = condensedQuery[1].split
+    {timeFilter} = @_separateTimeFilter(condensedQuery[0].filter)
     timestamps = []
     timestamp = new Date(timeFilter.range[0])
     end = new Date(timeFilter.range[1])
@@ -131,12 +121,11 @@ class DriverCache
 module.exports = ({driver, timeAttribute, timeName}) ->
   cache = new DriverCache(timeAttribute, timeName)
 
-  fillTree = (root, cachedData, query) -> # Fill in the missing piece
-    splitOp = query.filter(({operation}) -> return operation is 'split')[0]
+  fillTree = (root, cachedData, condensedQuery) -> # Fill in the missing piece
+    splitOp = condensedQuery[1].split
     splitOpName = splitOp.name
-    splitLocation = query.indexOf(splitOp)
-    applysAfterSplit = query.filter((command, i) -> return i > splitLocation and command.operation is 'apply')
-                            .map((command) -> return command.name)
+    applysAfterSplit = condensedQuery[1].applies.map((command) -> return command.name)
+
     # Handle 1 split for now
     for split in root.splits
       timestamp = split.prop[timeName]
@@ -144,12 +133,10 @@ module.exports = ({driver, timeAttribute, timeName}) ->
         split.prop[apply] ?= cachedData[timestamp]?[apply]
     return root
 
-  createTree = (cachedData, query) ->
-    splitOp = query.filter(({operation}) -> return operation is 'split')[0]
+  createTree = (cachedData, condensedQuery) ->
+    splitOp = condensedQuery[1].split
     splitOpName = splitOp.name
-    splitLocation = query.indexOf(splitOp)
-    applysAfterSplit = query.filter((command, i) -> return i > splitLocation and command.operation is 'apply')
-                            .map((command) -> return command.name)
+    applysAfterSplit = condensedQuery[1].applies.map((command) -> return command.name)
     # Handle 1 split for now
     root = {
       prop: {}
@@ -164,8 +151,8 @@ module.exports = ({driver, timeAttribute, timeName}) ->
         prop
       }
 
-    combineOp = query.filter(({operation, sort}) -> return operation is 'combine' and sort?)[0]
-    if combineOp?
+    combineOp = condensedQuery[1].combine
+    if combineOp?.sort?
       sortProp = combineOp.sort.prop
       if sortProp is timeName
         if combineOp.sort.direction is 'descending'
@@ -181,12 +168,11 @@ module.exports = ({driver, timeAttribute, timeName}) ->
         splits.splice(combineOp.limit)
     return root
 
-  getUnknownQuery = (query, cachedData) ->
+  getUnknownQuery = (query, cachedData, condensedQuery) ->
     # Look at cache to see what we know
     splitLocation = query.map(({operation}) -> return operation is 'split').indexOf(true)
     # What we need from data
-    applysAfterSplit = query.filter((command, i) -> return i > splitLocation and command.operation is 'apply')
-                            .map((command) -> return command.name)
+    applysAfterSplit = condensedQuery[1].applies.map((apply) -> return apply.name)
     # Go through cachedData. See if we have need data for all time stamps
 
     unknown = {}
@@ -224,17 +210,20 @@ module.exports = ({driver, timeAttribute, timeName}) ->
       driver query, callback
       return
 
-    cachedData = cache.get(query)
-    unknownQuery = getUnknownQuery(query, cachedData)
+    condensedQuery = driverUtil.condenseQuery(query)
+
+    cachedData = cache.get(condensedQuery)
+    unknownQuery = getUnknownQuery(query, cachedData, condensedQuery)
+
     if unknownQuery?
       driver unknownQuery, (err, root) ->
         if err?
           callback(err, null)
           return
-        cache.put(query, root)
-        callback(null, fillTree(root, cachedData, query))
+        cache.put(condensedQuery, root)
+        callback(null, fillTree(root, cachedData, condensedQuery))
     else
-      callback(null, createTree(cachedData, query))
+      callback(null, createTree(cachedData, condensedQuery))
     return
 
 

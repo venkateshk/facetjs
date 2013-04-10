@@ -81,9 +81,14 @@ class DriverCache
         }
       else
         # ToDo: make new And filter
+
         filter.filters = filtersWithoutTime
         return {
-          filter
+          filter: {
+            operation: 'filter'
+            type: 'and'
+            filters: filtersWithoutTime
+          }
           timeFilter
         }
     else # Only time filter exists

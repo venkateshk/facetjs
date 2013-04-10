@@ -1,6 +1,7 @@
 `(typeof window === 'undefined' ? {} : window)['driverCache'] = (function(module, require){"use strict"; var exports = module.exports`
 
 # -----------------------------------------------------
+driverUtil = require('./driverUtil')
 
 class DriverCache
   constructor: (@timeAttribute, @timeName) ->
@@ -25,9 +26,9 @@ class DriverCache
     hash = @_generateHash(query)
     cachedData = {}
     hashValue = @hashmap[hash] or {}
-    timestamps = @_timeCalculate(query)
-    for timestamp in timestamps
-      cachedData[timestamp] = hashValue?[timestamp]
+    timeranges = @_timeCalculate(query)
+    for timerange in timeranges
+      cachedData[timerange] = hashValue?[timerange]
     return cachedData
 
   put: (query, root) ->
@@ -38,8 +39,8 @@ class DriverCache
       timerange = split.prop[@timeName]
       tempPiece = hashValue[timerange] or {}
       for k, v of split.prop
-        continue unless split.prop.hasOwnProperty(k)
-        continue if k is @timeName
+        # continue unless split.prop.hasOwnProperty(k)
+        # continue if k is @timeName
         tempPiece[k] = v
       hashValue[timerange] = tempPiece
     return
@@ -128,10 +129,9 @@ class DriverCache
     return timestamps
 
 module.exports = ({driver, timeAttribute, timeName}) ->
-  cache = new DriverCache(timeAttribute)
+  cache = new DriverCache(timeAttribute, timeName)
 
-  # ToDo : no _s
-  _fillTree = (root, cachedData, query) -> # Fill in the missing piece
+  fillTree = (root, cachedData, query) -> # Fill in the missing piece
     splitOp = query.filter(({operation}) -> return operation is 'split')[0]
     splitOpName = splitOp.name
     splitLocation = query.indexOf(splitOp)
@@ -144,7 +144,35 @@ module.exports = ({driver, timeAttribute, timeName}) ->
         split.prop[apply] ?= cachedData[timestamp]?[apply]
     return root
 
-  _getUnknownQuery = (query, cachedData) ->
+  createTree = (cachedData, query) ->
+    splitOp = query.filter(({operation}) -> return operation is 'split')[0]
+    splitOpName = splitOp.name
+    splitLocation = query.indexOf(splitOp)
+    applysAfterSplit = query.filter((command, i) -> return i > splitLocation and command.operation is 'apply')
+                            .map((command) -> return command.name)
+    # Handle 1 split for now
+    root = {
+      prop: {}
+    }
+    root.splits = splits = []
+    for timerange, value of cachedData
+      prop = {}
+      prop[timeName] = value[timeName]
+      for apply in applysAfterSplit
+        prop[apply] = value[apply]
+      splits.push {
+        prop
+      }
+
+    combineOp = query.filter(({operation, sort}) -> return operation is 'combine' and sort?)[0]
+    switch combineOp.sort?.direction
+      when 'descending'
+        splits.sort((a, b) -> return b.prop[timeName][0] - a.prop[timeName][0])
+      when 'ascending'
+        splits.sort((a, b) -> return a.prop[timeName][0] - b.prop[timeName][0])
+    return root
+
+  getUnknownQuery = (query, cachedData) ->
     # Look at cache to see what we know
     splitLocation = query.map(({operation}) -> return operation is 'split').indexOf(true)
     # What we need from data
@@ -153,15 +181,19 @@ module.exports = ({driver, timeAttribute, timeName}) ->
     # Go through cachedData. See if we have need data for all time stamps
 
     unknown = {}
+    unknownExists = false
     for k, v of cachedData
       unless v?
         for apply in applysAfterSplit
           unknown[apply] = true
+          unknownExists = true
         continue
       for apply in applysAfterSplit
         if not v[apply]?
           unknown[apply] = true
+          unknownExists = true
 
+    return null unless unknownExists
     return query.filter((command, i) ->
         return true if i <= splitLocation
         if (command.operation is 'apply' and unknown[command.name]) or command.operation isnt 'apply'
@@ -183,14 +215,16 @@ module.exports = ({driver, timeAttribute, timeName}) ->
       return
 
     cachedData = cache.get(query)
-    unknownQuery = _getUnknownQuery(query, cachedData)
-    driver unknownQuery, (err, root) ->
-      if err?
-        callback(err, null)
-        return
-      cache.put(query, root)
-      callback(null, _fillTree(root, cachedData, query))
-      return
+    unknownQuery = getUnknownQuery(query, cachedData)
+    if unknownQuery?
+      driver unknownQuery, (err, root) ->
+        if err?
+          callback(err, null)
+          return
+        cache.put(query, root)
+        callback(null, fillTree(root, cachedData, query))
+    else
+      callback(null, createTree(cachedData, query))
     return
 
 

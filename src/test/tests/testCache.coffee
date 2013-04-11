@@ -214,8 +214,3 @@ exports["fillTree test"] = { # TODO: Use better mechanism to test
     ]
   }
 }
-
-# ToDo time filter within another time filter
-# ToDo sort by time descending
-# ToDo sort not by time
-# ToDo limit

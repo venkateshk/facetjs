@@ -109,12 +109,16 @@ splitFns = {
           de = new Date(ds)
           de.setUTCHours(24)
           return [ds, de]
+
+  tuple: ({splits}) ->
+    tupleSplits = splits.map(makeSplitFn)
+    return (d) -> tupleSplits.map((sf) -> sf(d))
 }
 
-makeSplitFn = (cmd) ->
-  splitFn = splitFns[cmd.bucket]
-  throw new Error("No such bucket `#{cmd.bucket}` in split") unless splitFn
-  return splitFn(cmd)
+makeSplitFn = (split) ->
+  splitFn = splitFns[split.bucket]
+  throw new Error("No such bucket `#{split.bucket}` in split") unless splitFn
+  return splitFn(split)
 
 
 # ----------------------------

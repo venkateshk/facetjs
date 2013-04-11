@@ -182,6 +182,7 @@ class DruidQueryBuilder
 
       when 'continuous'
         #@queryType stays 'timeseries'
+        #@granularity stays 'all'
         tempHistogramName = @addAggregation {
           type: "approxHistogramFold"
           fieldName: split.attribute
@@ -197,6 +198,12 @@ class DruidQueryBuilder
           fieldName: tempHistogramName
           breaks
         }
+
+      when 'tuple'
+        throw new Error("only supported tuples of size 2 (is: #{split.splits.length})") unless split.splits.length is 2
+        @queryType = 'heatmap'
+        #@granularity stays 'all'
+        @dimensions = split.splits.map((split) -> split.attribute)
 
       else
         throw new Error("unsupported bucketing function")
@@ -437,6 +444,7 @@ class DruidQueryBuilder
     }
     query.filter = @filter if @filter
     query.dimension = @dimension if @dimension
+    query.dimensions = @dimensions if @dimensions
     query.aggregations = @aggregations if @aggregations.length
     query.postAggregations = @postAggregations if @postAggregations.length
     query.metric = @metric if @metric
@@ -612,6 +620,63 @@ druidQueryFns = {
       return
     return
 
+  heatmap: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedQuery}, callback) ->
+    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval)
+
+    try
+      # filter
+      druidQuery.addFilter(filter)
+
+      # split
+      druidQuery.addSplit(condensedQuery.split)
+
+      # apply
+      if condensedQuery.applies.length
+        for apply in condensedQuery.applies
+          druidQuery.addApply(apply)
+      else
+        druidQuery.addDummyApply()
+
+      # if condensedQuery.combine
+      #   if condensedQuery.combine.sort
+      #     druidQuery.addSort(condensedQuery.combine.sort)
+
+      #   if condensedQuery.combine.limit
+      #     druidQuery.addLimit(condensedQuery.combine.limit)
+
+      druidQuery.addMatrix(condensedQuery.applies[0], 10, 10)
+
+      queryObj = druidQuery.getQuery()
+    catch e
+      callback(e)
+      return
+
+    requester queryObj, (err, ds) ->
+      if err
+        callback({
+          message: err
+          query: queryObj
+        })
+        return
+
+      if ds.length isnt 1
+        callback({
+          message: "unexpected result form Druid (heatmap)"
+          query: queryObj
+          result: ds
+        })
+        return
+
+      callback(null, ds[0].result)
+      return
+    return
+
+  groupBy: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedQuery}, callback) ->
+    callback({
+      massage: 'groupBy not implemented yet (ToDo)'
+    })
+    return
+
   histogram: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedQuery}, callback) ->
     druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval)
 
@@ -623,7 +688,7 @@ druidQueryFns = {
       druidQuery.addSplit(condensedQuery.split)
 
       # applies are constrained to count
-      # combine has to be done in post processing
+      # combine has to be computed in post processing
 
       queryObj = druidQuery.getQuery()
     catch e
@@ -689,24 +754,29 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
     rootSegment = null
     segments = [rootSegment]
 
-    queryDruid = (condensedQuery, done) ->
+    queryDruid = (condensedQuery, callback) ->
       if condensedQuery.split
         switch condensedQuery.split.bucket
           when 'identity'
             if approximate
               queryFn = druidQueryFns.topN
             else
-              done('groupBy not implemented yet'); return
+              queryFn = druidQueryFns.groupBy
           when 'timeDuration', 'timePeriod'
             queryFn = druidQueryFns.timeseries
           when 'continuous'
             queryFn = druidQueryFns.histogram
+          when 'tuple'
+            if approximate and condensedQuery.split.splits.length is 2
+              queryFn = druidQueryFns.heatmap
+            else
+              queryFn = druidQueryFns.groupBy
           else
-            done('unsupported query'); return
+            callback('unsupported query'); return
       else
         queryFn = druidQueryFns.all
 
-      queryForSegment = (parentSegment, done) ->
+      queryForSegment = (parentSegment, callback) ->
         myFilter = andFilters((if parentSegment then parentSegment._filter else filter), condensedQuery.filter)
         queryFn({
           requester
@@ -717,7 +787,7 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
           condensedQuery
         }, (err, props) ->
           if err
-            done(err)
+            callback(err)
             return
 
           # Make the results into segments and build the tree
@@ -734,7 +804,7 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
             rootSegment = { prop: props[0], _filter: myFilter }
             splits = [rootSegment]
 
-          done(null, splits)
+          callback(null, splits)
           return
         )
         return
@@ -747,10 +817,10 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
         queryForSegment
         (err, results) ->
           if err
-            done(err)
+            callback(err)
             return
           segments = driverUtil.flatten(results)
-          done()
+          callback()
           return
       )
       return
@@ -758,10 +828,10 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
     cmdIndex = 0
     async.whilst(
       -> cmdIndex < condensedQuery.length
-      (done) ->
+      (callback) ->
         condenced = condensedQuery[cmdIndex]
         cmdIndex++
-        queryDruid(condenced, done)
+        queryDruid(condenced, callback)
         return
       (err) ->
         if err

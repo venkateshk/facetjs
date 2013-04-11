@@ -42,9 +42,9 @@ app.post '/driver/simple', (req, res) ->
 # SQL
 sqlPass = sqlRequester({
   host: 'localhost'
-  user: 'root'
-  password: 'root'
   database: 'facet'
+  user: 'facet_user'
+  password: 'HadleyWickham'
 })
 app.post '/pass/sql', (req, res) ->
   { context, query } = req.body
@@ -64,7 +64,6 @@ app.post '/driver/sql', (req, res) ->
 druidPass = druidRequester({
   host: '10.60.134.138'
   port: 8080
-  path: '/druid/v2/'
 })
 app.post '/pass/druid', (req, res) ->
   { context, query } = req.body

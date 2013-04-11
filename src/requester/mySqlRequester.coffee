@@ -1,11 +1,11 @@
 mysql = require('mysql')
 
-module.exports = ({host, user, password, dataset}) ->
+module.exports = ({host, user, password, database}) ->
   connection = mysql.createConnection({
-    host: 'localhost'
-    user: 'root'
-    password: ''
-    database: 'facet'
+    host
+    user
+    password
+    database
   })
 
   connection.connect()

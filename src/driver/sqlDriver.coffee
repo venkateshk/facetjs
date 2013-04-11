@@ -116,21 +116,29 @@ class SQLQueryBuilder
     }
   }
 
-  addSplit: (split) ->
+  splitToSQL: (split) ->
     switch split.bucket
       when 'identity'
-        selectPart = @escapeAttribute(split.attribute)
         groupByPart = @escapeAttribute(split.attribute)
+        return {
+          selectPart: "#{groupByPart} AS \"#{split.name}\""
+          groupByPart
+        }
 
       when 'continuous'
-        floorStr = @escapeAttribute(split.attribute)
-        floorStr = "(#{floorStr} + #{split.offset})" if split.offset isnt 0
-        floorStr = "#{floorStr} / #{split.size}" if split.size isnt 1
-        floorStr = "FLOOR(#{floorStr})"
-        floorStr = "#{floorStr} * #{split.size}" if split.size isnt 1
-        floorStr = "#{floorStr} - #{split.offset}" if split.offset isnt 0
-        selectPart = floorStr
-        groupByPart = floorStr
+        groupByPart = @escapeAttribute(split.attribute)
+        groupByPart = "(#{groupByPart} + #{split.offset})" if split.offset isnt 0
+        groupByPart = "#{groupByPart} / #{split.size}" if split.size isnt 1
+        groupByPart = "FLOOR(#{groupByPart})"
+        groupByPart = "#{groupByPart} * #{split.size}" if split.size isnt 1
+        groupByPart = "#{groupByPart} - #{split.offset}" if split.offset isnt 0
+        return {
+          selectPart: "#{groupByPart} AS \"#{split.name}\""
+          groupByPart
+        }
+
+      when 'timeDuration'
+        throw new Error("not implemented yet (ToDo)")
 
       when 'timePeriod'
         bucketPeriod = split.period
@@ -148,14 +156,26 @@ class SQLQueryBuilder
           # See https://dev.mysql.com/doc/refman/5.5/en/time-zone-support.html
           sqlAttribute = "CONVERT_TZ(#{@escapeAttribute(split.attribute)}, '+0:00', #{bucketTimezone})"
 
-        selectPart = "DATE_FORMAT(#{sqlAttribute}, '#{bucketSpec.select}')"
-        groupByPart = "DATE_FORMAT(#{sqlAttribute}, '#{bucketSpec.group}')"
+        return {
+          selectPart: "DATE_FORMAT(#{sqlAttribute}, '#{bucketSpec.select}') AS \"#{split.name}\""
+          groupByPart: "DATE_FORMAT(#{sqlAttribute}, '#{bucketSpec.group}')"
+        }
+
+      when 'tuple'
+        parts = split.splits.map(@splitToSQL, this)
+        return {
+          selectPart:  parts.map((part) -> part.selectPart).join(', ')
+          groupByPart: parts.map((part) -> part.groupByPart).join(', ')
+        }
 
       else
         throw new Error("unsupported bucketing policy '#{split.bucket}'")
+    return
 
-    @selectParts.push("#{selectPart} AS \"#{split.name}\"")
-    @groupByParts.push("#{groupByPart}")
+  addSplit: (split) ->
+    { selectPart, groupByPart } = @splitToSQL(split)
+    @selectParts.push(selectPart)
+    @groupByParts.push(groupByPart)
     return this
 
   applyToSQL: do ->

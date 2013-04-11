@@ -31,6 +31,9 @@ driverFns.mySql = mySql = sqlDriver({
 allowQuery = true
 mySqlWrap = (query, callback) ->
   if not allowQuery
+    console.log '---------------'
+    console.log query
+    console.log '---------------'
     throw new Error("query not allowed")
 
   mySql(query, callback)

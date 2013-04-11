@@ -16,9 +16,9 @@ verbose = false
 # MySQL
 sqlPass = sqlRequester({
   host: 'localhost'
-  user: 'root'
-  password: 'root'
   database: 'facet'
+  user: 'facet_user'
+  password: 'HadleyWickham'
 })
 
 sqlPass = utils.wrapVerbose(sqlPass, 'MySQL') if verbose
@@ -162,7 +162,6 @@ exports["[cache tests on] filter; split time; apply count"] = {
     ]
   }
 }
-
 
 
 

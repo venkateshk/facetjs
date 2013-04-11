@@ -17,9 +17,9 @@ driverFns.simple = simpleDriver(diamondsData)
 # MySQL
 sqlPass = sqlRequester({
   host: 'localhost'
-  user: 'root'
-  password: 'root'
   database: 'facet'
+  user: 'facet_user'
+  password: 'HadleyWickham'
 })
 
 driverFns.mySql = sqlDriver({
@@ -32,7 +32,6 @@ driverFns.mySql = sqlDriver({
 # druidPass = druidRequester({
 #   host: '10.60.134.138'
 #   port: 8080
-#   path: '/druid/v2/'
 # })
 
 # driverFns.druid = druidDriver({

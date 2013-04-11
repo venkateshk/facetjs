@@ -33,4 +33,11 @@ facet.split = {
       period
       timezone
     }
+
+  tuple: (splits...) ->
+    throw new Error("can not have an empty tuple") unless splits.length
+    return {
+      bucket: 'tuple'
+      splits
+    }
 }

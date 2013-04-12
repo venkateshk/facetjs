@@ -6,6 +6,11 @@
 # flatten([[1,3], [3,6,7]]) => [1,3,3,6,7]
 exports.flatten = flatten = (ar) -> Array::concat.apply([], ar)
 
+# Trims the array in place
+exports.inPlaceTrim = (array, n) ->
+  return if array.length < n
+  array.splice(n, array.length - n)
+  return
 
 # Group the queries steps in to the logical queries that will need to be done
 # output: [

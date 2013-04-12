@@ -81,7 +81,15 @@ class DruidQueryBuilder
         }]
 
       when 'fragments'
-        throw "todo"
+        throw new Error("can not fragments filter time") if filter.attribute is @timeAttribute
+        [{
+          type: "search"
+          dimension: filter.attribute
+          query: {
+            type: "fragment"
+            values: filter.fragments
+          }
+        }]
 
       when 'match'
         throw new Error("can not match filter time") if filter.attribute is @timeAttribute
@@ -557,7 +565,7 @@ druidQueryFns = {
 
         if condensedQuery.combine.limit?
           limit = condensedQuery.combine.limit
-          ds.splice(limit, ds.length - limit)
+          driverUtil.inPlaceTrim(ds, limit)
 
       period = periodMap[condensedQuery.split.period]
       props = ds.map (d) ->
@@ -737,7 +745,7 @@ druidQueryFns = {
 
         if condensedQuery.combine.limit?
           limit = condensedQuery.combine.limit
-          props.splice(limit, props.length - limit)
+          driverUtil.inPlaceTrim(props, limit)
 
       callback(null, props)
       return

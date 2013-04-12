@@ -19,7 +19,7 @@ andFilters = (filters...) ->
     when 1
       return filters[0]
     else
-      return { type: 'and',  filters }
+      return { type: 'and', filters }
 
 class SQLQueryBuilder
   constructor: (table) ->
@@ -40,7 +40,7 @@ class SQLQueryBuilder
 
   dateToSQL: (date) ->
     return date.toISOString()
-      .replace('T',   ' ')
+      .replace('T', ' ')
       .replace(/\.\d\d\dZ$/, '') # remove millis
       .replace(' 00:00:00', '') # remove time if 0
 
@@ -164,7 +164,7 @@ class SQLQueryBuilder
       when 'tuple'
         parts = split.splits.map(@splitToSQL, this)
         return {
-          selectPart:  parts.map((part) -> part.selectPart).join(', ')
+          selectPart: "#{parts.map((part) -> part.selectPart).join(', ')} AS \"#{split.name}\""
           groupByPart: parts.map((part) -> part.groupByPart).join(', ')
         }
 

@@ -292,7 +292,7 @@ computeQuery = (data, query) ->
         if cmd.limit?
           limit = cmd.limit
           for segmentGroup in segmentGroups
-            segmentGroup.splice(limit, segmentGroup.length - limit)
+            driverUtil.inPlaceTrim(segmentGroup, limit)
 
       else
         throw new Error("Unknown operation '#{cmd.operation}'")

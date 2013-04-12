@@ -54,7 +54,7 @@ class DruidQueryBuilder
     null # ToDo
 
   intersectIntervals: (intervals) ->
-    return driverUtil.flatten(intervals).filter((d) -> d?) # ToDo: rewrite this to actually work
+    return driverUtil.flatten(intervals) # ToDo: rewrite this to actually work
 
   # return a (up to) two element array [druid_filter_object, druid_intervals_array]
   filterToDruid: (filter) ->
@@ -129,12 +129,15 @@ class DruidQueryBuilder
 
       when 'and'
         fis = filter.filters.map(@filterToDruid, this)
+        druidFields = fis.map((d) -> d[0]).filter((d) -> d?)
+        druidIntervals = fis.map((d) -> d[1]).filter((d) -> d?)
+        druidFilter = switch druidFields.length
+          when 0 then null
+          when 1 then druidFields[0]
+          else { type: 'and', fields: druidFields }
         [
-          {
-            type: 'and'
-            fields: fis.map((d) -> d[0]).filter((d) -> d?)
-          }
-          @intersectIntervals(fis.map((d) -> d[1]))
+          druidFilter
+          @intersectIntervals(druidIntervals)
         ]
 
       when 'or'

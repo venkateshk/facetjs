@@ -8,21 +8,20 @@ exports["flatten"] = (test) ->
   test.done()
   return
 
-exports["inPlaceTrim"] = {
-  "is in place": (test) ->
-    test.expect(1)
-    a = [1, 2, 3, 4, 5]
-    test.strictEqual(a, driverUtil.inPlaceTrim(a, 3), "Not modified in place")
-    test.done()
-    return
+exports["inPlaceTrim"] = (test) ->
+  test.expect(3)
 
-  "trims correctly": (test) ->
-    test.expect(1)
-    test.deepEqual(driverUtil.inPlaceTrim([1, 2, 3, 4], 2), [1, 2], "Trim down")
-    test.deepEqual(driverUtil.inPlaceTrim([1, 2, 3, 4], 0), [], "Trim down to 0")
-    test.deepEqual(driverUtil.inPlaceTrim([1, 2, 3, 4], 10), [1, 2, 3, 4], "Trim above length")
-    return
-}
+  driverUtil.inPlaceTrim(a = [1, 2, 3, 4], 2)
+  test.deepEqual(a, [1, 2], "Trim down")
+
+  driverUtil.inPlaceTrim(a = [1, 2, 3, 4], 0)
+  test.deepEqual(a, [], "Trim down to 0")
+
+  driverUtil.inPlaceTrim(a = [1, 2, 3, 4], 10)
+  test.deepEqual(a, [1, 2, 3, 4], "Trim above length")
+
+  test.done()
+  return
 
 exports["Table"] = {
   "Basic Rectangular Table": (test) ->

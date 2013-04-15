@@ -39,8 +39,13 @@ exports.condenseQuery = (query) ->
 
       when 'split'
         condensed.push(curQuery)
-        throw new Error("split must have name") unless cmd.name
-        throw new TypeError("invalid name in split") unless typeof cmd.name is 'string'
+        if cmd.bucket is 'tuple'
+          throw new Error("tuple split must have splits") unless cmd.splits
+        else
+          throw new Error("split must have name") unless cmd.name
+          throw new TypeError("invalid name in split") unless typeof cmd.name is 'string'
+          throw new Error("split must have an attribute") unless cmd.attribute
+          throw new TypeError("invalid attribute in split") unless typeof cmd.attribute is 'string'
         curQuery = {
           split: cmd
           applies: []

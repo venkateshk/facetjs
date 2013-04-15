@@ -346,7 +346,11 @@ condensedQueryToSQL = ({requester, table, filter, condensedQuery}, callback) ->
 
 
 module.exports = ({requester, table, filter}) -> (query, callback) ->
-  condensedQuery = driverUtil.condenseQuery(query)
+  try
+    condensedQuery = driverUtil.condenseQuery(query)
+  catch e
+    callback(e)
+    return
 
   rootSegment = null
   segments = [rootSegment]

@@ -15,12 +15,12 @@ class DriverCache
     # Return format:
     # {
     #   <timestamp>: {
-    #     <metric>: <value>
-    #     <metric>: <value>
+    #     <attribute>: <value>
+    #     <attribute>: <value>
     #   }
     #   <timestamp>: {
-    #     <metric>: <value>
-    #     <metric>: <value>
+    #     <attribute>: <value>
+    #     <attribute>: <value>
     #   }
     # }
     hash = @_generateHash(condensedQuery)
@@ -56,7 +56,7 @@ class DriverCache
     hash = []
     if filter.filters?
       for subFilter in filter.filters
-        hash.push @_filterToHash(filter)
+        hash.push @_filterToHash(subFilter)
       return hash.sort().join(filter.type)
     else
       for k, v of filter
@@ -123,8 +123,136 @@ class DriverCache
       throw new Error("unknown time bucket")
     return timestamps
 
+class FilterCache
+  constructor: ->
+    @hashmap = {}
+    # { key: filter,
+    #   value: { key: metric,
+    #            value: value } }
+
+  get: (condensedQuery, values) ->
+    # Return format:
+    # [
+    #   {
+    #     <attribute>: <value>
+    #     <attribute>: <value>
+    #   }
+    #   {
+    #     <attribute>: <value>
+    #     <attribute>: <value>
+    #   }
+    # ]
+    filter = condensedQuery[0].filter
+    splitOp = condensedQuery[1].split
+    splitOpName = splitOp.name
+    ret = {}
+    for value in values
+      newFilter = @_addToFilter(condensedQuery, value)
+      ret[value] = @hashmap[@_filterToHash(newFilter)] or null
+
+    for k, v of ret
+      v[splitOpName] = k
+
+    return ret
+
+  put: (condensedQuery, root) ->
+    filter = condensedQuery[0].filter
+    hashValue = @hashmap[@_filterToHash(filter)] ?= {}
+    for k, v of root.prop
+      hashValue[k] = v
+
+    for split in root.splits
+      newFilter = @_addToFilter(condensedQuery, split.prop[condensedQuery[1].split.name])
+      hashValue = @hashmap[@_filterToHash(newFilter)] ?= {}
+      for k, v of split.prop
+        hashValue[k] = v
+
+    return
+
+  _addToFilter: (condensedQuery, value) ->
+    oldFilter = condensedQuery[0].filter
+    splitOp = condensedQuery[1].split
+
+    newFilterPiece = {
+      attribute: splitOp.attribute
+      type: 'is'
+      value
+    }
+
+    if oldFilter?
+      return {
+        type: 'and'
+        filters: [].concat([newFilterPiece], oldFilter)
+      }
+    return newFilterPiece
+
+  _filterToHash: (filter) ->
+    return '' unless filter?
+    hash = []
+    if filter.filters?
+      for subFilter in filter.filters
+        hash.push @_filterToHash(subFilter)
+      return hash.sort().join(filter.type)
+    else
+      for k, v of filter
+        hash.push(k + ":" + v)
+    return hash.sort().join('|')
+
+
+class SplitCache
+  constructor: ->
+    @hashmap = {}
+    # { key: filter,
+    #   value: { key: split,
+    #            value: [list of dimension values] } }
+
+  get: (condensedQuery) ->
+    # Return format:
+    # [
+    # <value>
+    # <value>
+    # <value>
+    # ]
+    return @hashmap[@_generateHash(condensedQuery)]
+
+  put: (condensedQuery, root) ->
+    hash = @_generateHash(condensedQuery)
+    splitOpName = condensedQuery[1].split.name
+    hashValue = []
+    for split in root.splits
+      hashValue.push split.prop[splitOpName]
+    @hashmap[hash] = hashValue
+    return
+
+  _generateHash: (condensedQuery) ->
+    # Get Filter and Split
+    split = condensedQuery[1].split
+    filter = condensedQuery[0].filter
+    return @_filterToHash(filter) + '&' + @_splitToHash(split)
+
+  _filterToHash: (filter) ->
+    return '' unless filter?
+    hash = []
+    if filter.filters?
+      for subFilter in filter.filters
+        hash.push @_filterToHash(subFilter)
+      return hash.sort().join(filter.type)
+    else
+      for k, v of filter # TODO: See if we can be brief
+        hash.push(k + ":" + v)
+    return hash.sort().join('|')
+
+  _splitToHash: (split) ->
+    hash = []
+    for k, v of split
+      hash.push(k + ":" + v)
+
+    return hash.sort().join('|')
+
 module.exports = ({driver, timeAttribute, timeName}) ->
-  cache = new DriverCache(timeAttribute, timeName)
+  timeCache = new DriverCache(timeAttribute, timeName)
+  splitCache = new SplitCache()
+  filterCache = new FilterCache()
 
   fillTree = (root, cachedData, condensedQuery) -> # Fill in the missing piece
     splitOp = condensedQuery[1].split
@@ -133,9 +261,9 @@ module.exports = ({driver, timeAttribute, timeName}) ->
 
     # Handle 1 split for now
     for split in root.splits
-      timestamp = split.prop[timeName]
+      splitName = split.prop[splitOpName]
       for apply in applysAfterSplit
-        split.prop[apply] ?= cachedData[timestamp]?[apply]
+        split.prop[apply] ?= cachedData[splitName]?[apply]
     return root
 
   createTree = (cachedData, condensedQuery) ->
@@ -147,9 +275,9 @@ module.exports = ({driver, timeAttribute, timeName}) ->
       prop: {}
     }
     root.splits = splits = []
-    for timerange, value of cachedData
+    for key, value of cachedData
       prop = {}
-      prop[timeName] = value[timeName]
+      prop[splitOpName] = value[splitOpName]
       for apply in applysAfterSplit
         prop[apply] = value[apply]
       splits.push {
@@ -188,7 +316,7 @@ module.exports = ({driver, timeAttribute, timeName}) ->
         for apply in applysAfterSplit
           unknown[apply] = true
           unknownExists = true
-        continue
+        break
       for apply in applysAfterSplit
         if not v[apply]?
           unknown[apply] = true
@@ -211,21 +339,28 @@ module.exports = ({driver, timeAttribute, timeName}) ->
       driver query, callback
       return
     # If there is a split not for time, reject
-    if query.filter(({operation, attribute}) -> return operation is 'split' and attribute isnt timeAttribute).length > 0
-      driver query, callback
-      return
-
     condensedQuery = driverUtil.condenseQuery(query)
-
-    cachedData = cache.get(condensedQuery)
-    unknownQuery = getUnknownQuery(query, cachedData, condensedQuery)
+    caches = []
+    if query.filter(({operation, attribute}) -> return operation is 'split' and attribute isnt timeAttribute).length > 0
+      cachedTopN = splitCache.get(condensedQuery)
+      if cachedTopN?
+        cachedData = filterCache.get(condensedQuery, cachedTopN)
+        unknownQuery = getUnknownQuery(query, cachedData, condensedQuery)
+      else
+        unknownQuery = query
+      caches = [splitCache, filterCache]
+    else
+      cachedData = timeCache.get(condensedQuery)
+      unknownQuery = getUnknownQuery(query, cachedData, condensedQuery)
+      caches = [timeCache]
 
     if unknownQuery?
       driver unknownQuery, (err, root) ->
         if err?
           callback(err, null)
           return
-        cache.put(condensedQuery, root)
+
+        caches.forEach((cache) -> cache.put(condensedQuery, root))
         callback(null, fillTree(root, cachedData, condensedQuery))
     else
       callback(null, createTree(cachedData, condensedQuery))

@@ -199,15 +199,12 @@ class DruidQueryBuilder
           fieldName: split.attribute
         }
 
-        size = split.size
-        offset = split.offset
-        breaks = (offset + i * size for i in [0..300])
-
         @addPostAggregation {
-          type: "customBuckets"
+          type: "buckets"
           name: "histogram"
           fieldName: tempHistogramName
-          breaks
+          bucketSize: split.size
+          offset: split.offset
         }
 
       when 'tuple'

@@ -154,7 +154,12 @@ class exports.Table
     return header + '\r\n' + content
 
 exports.createColumns = createColumns = (query) ->
-  split = query.filter((op) -> op.operation is 'split').map((op) -> op.name)
+  split = flatten(query.filter((op) -> op.operation is 'split').map((op) ->
+    if op.bucket is 'tuple'
+      return op.splits.map((o) -> o.name)
+    else
+      return [op.name]
+  ))
   tempApply = query.filter((op) -> op.operation is 'apply').map((op) -> op.name)
   apply = []
   for applyName in tempApply

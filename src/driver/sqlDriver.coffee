@@ -53,7 +53,7 @@ class SQLQueryBuilder
         "#{@escapeAttribute(filter.attribute)} in (#{filter.values.map(@escapeValue, this).join(',')})"
 
       when 'fragments'
-        throw "todo"
+        throw new Error("todo")
 
       when 'match'
         "#{@escapeAttribute(filter.attribute)} REGEXP '#{filter.expression}'"
@@ -231,22 +231,29 @@ class SQLQueryBuilder
     descending: 'DESC'
   }
 
-  addSort: (sort) ->
-    sqlDirection = @directionMap[sort.direction]
-    switch sort.compare
-      when 'natural'
-        @orderByPart = "ORDER BY #{@escapeAttribute(sort.prop)} #{sqlDirection}"
+  addCombine: (combine) ->
+    switch combine.combine
+      when 'sortSlice'
+        sort = combine.sort
+        if sort
+          sqlDirection = @directionMap[sort.direction]
+          switch sort.compare
+            when 'natural'
+              @orderByPart = "ORDER BY #{@escapeAttribute(sort.prop)} #{sqlDirection}"
 
-      when 'caseInsensetive'
-        throw new Error("not implemented yet (ToDo)")
+            when 'caseInsensetive'
+              throw new Error("not implemented yet (ToDo)")
+
+            else
+              throw new Error("unsupported compare '#{sort.compare}'")
+
+        limit = combine.limit
+        if limit?
+          @limitPart = "LIMIT #{limit}"
 
       else
-        throw new Error("unsupported compare '#{sort.compare}'")
+        throw new Error("unsupported combine '#{combine.combine}'")
 
-    return this
-
-  addLimit: (limit) ->
-    @limitPart = "LIMIT #{limit}"
     return this
 
   getQuery: ->
@@ -284,11 +291,7 @@ condensedQueryToSQL = ({requester, table, filter, condensedQuery}, callback) ->
     # combine
     combine = condensedQuery.combine
     if combine
-      if combine.sort
-        sqlQuery.addSort(combine.sort)
-
-      if combine.limit?
-        sqlQuery.addLimit(combine.limit)
+      sqlQuery.addCombine(combine)
   catch e
     callback(e)
     return
@@ -348,13 +351,13 @@ module.exports = ({requester, table, filter}) -> (query, callback) ->
   rootSegment = null
   segments = [rootSegment]
 
-  querySQL = (condensed, done) ->
+  querySQL = (condensed, callback) ->
     # do the query in parallel
     QUERY_LIMIT = 10
     queryFns = async.mapLimit(
       segments
       QUERY_LIMIT
-      (parentSegment, done) ->
+      (parentSegment, callback) ->
         condensedQueryToSQL({
           requester
           table
@@ -362,7 +365,7 @@ module.exports = ({requester, table, filter}) -> (query, callback) ->
           condensedQuery: condensed
         }, (err, splits) ->
           if err
-            done(err)
+            callback(err)
             return
           # Make the results into segments and build the tree
           if parentSegment
@@ -370,15 +373,15 @@ module.exports = ({requester, table, filter}) -> (query, callback) ->
             driverUtil.cleanSegment(parentSegment)
           else
             rootSegment = splits[0]
-          done(null, splits)
+          callback(null, splits)
           return
         )
       (err, results) ->
         if err
-          done(err)
+          callback(err)
           return
         segments = driverUtil.flatten(results)
-        done()
+        callback()
         return
     )
     return
@@ -386,10 +389,10 @@ module.exports = ({requester, table, filter}) -> (query, callback) ->
   cmdIndex = 0
   async.whilst(
     -> cmdIndex < condensedQuery.length
-    (done) ->
+    (callback) ->
       condenced = condensedQuery[cmdIndex]
       cmdIndex++
-      querySQL(condenced, done)
+      querySQL(condenced, callback)
       return
     (err) ->
       if err

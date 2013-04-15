@@ -208,13 +208,13 @@ facet.transform = {
 
   line: {
     point: ->
-      throw "not implemented yet"
+      throw new Error("not implemented yet")
 
     line: ->
-      throw "not implemented yet"
+      throw new Error("not implemented yet")
 
     rectangle: ->
-      throw "not implemented yet"
+      throw new Error("not implemented yet")
   }
 
   rectangle: {
@@ -235,7 +235,7 @@ facet.transform = {
         }
 
     line: ->
-      throw "not implemented yet"
+      throw new Error("not implemented yet")
 
     rectangle: (args = {}) ->
       fx = lineOnLine(args, 'left', 'width', 'right')
@@ -261,10 +261,10 @@ facet.transform = {
 
   polygon: {
     point: ->
-      throw "not implemented yet"
+      throw new Error("not implemented yet")
 
     polygon: ->
-      throw "not implemented yet"
+      throw new Error("not implemented yet")
   }
 
   # move

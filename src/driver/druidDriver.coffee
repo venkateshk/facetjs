@@ -414,31 +414,38 @@ class DruidQueryBuilder
     @addApplyHelper({ aggregate: 'count' }, false)
     return this
 
-  addSort: (sort) ->
-    if @queryType is 'topN'
-      if sort.prop is @dimension.outputName
-        @metric = { type: "lexicographic" }
+  addCombine: (combine) ->
+    switch combine.combine
+      when 'sortSlice'
+        sort = combine.sort
+        if sort
+          if @queryType is 'topN'
+            if sort.prop is @dimension.outputName
+              @metric = { type: "lexicographic" }
+            else
+              # figure out of we need to invert and apply for a bottomN
+              if sort.direction is 'descending'
+                @metric = sort.prop
+              else
+                # make a bottomN (ToDo: is there a better way to do this?)
+                @metric = @throwawayName()
+                @addPostAggregation {
+                  type: "arithmetic"
+                  name: @metric
+                  fn: "*"
+                  fields: [
+                    { type: "fieldAccess", fieldName: sort.prop }
+                    { type: "constant", value: -1 }
+                  ]
+                }
+
+        limit = combine.limit
+        if limit
+          @threshold = limit
+
       else
-        # figure out of we need to invert and apply for a bottomN
-        if sort.direction is 'descending'
-          @metric = sort.prop
-        else
-          # make a bottomN (ToDo: is there a better way to do this?)
-          @metric = @throwawayName()
-          @addPostAggregation {
-            type: "arithmetic"
-            name: @metric
-            fn: "*"
-            fields: [
-              { type: "fieldAccess", fieldName: sort.prop }
-              { type: "constant", value: -1 }
-            ]
-          }
+        throw new Error("unsupported combine '#{combine.combine}'")
 
-    return this
-
-  addLimit: (limit) ->
-    @threshold = limit
     return this
 
   getQuery: ->
@@ -600,11 +607,7 @@ druidQueryFns = {
         druidQuery.addDummyApply()
 
       if condensedQuery.combine
-        if condensedQuery.combine.sort
-          druidQuery.addSort(condensedQuery.combine.sort)
-
-        if condensedQuery.combine.limit
-          druidQuery.addLimit(condensedQuery.combine.limit)
+        druidQuery.addCombine(condensedQuery.combine)
 
       queryObj = druidQuery.getQuery()
     catch e
@@ -649,11 +652,7 @@ druidQueryFns = {
         druidQuery.addDummyApply()
 
       # if condensedQuery.combine
-      #   if condensedQuery.combine.sort
-      #     druidQuery.addSort(condensedQuery.combine.sort)
-
-      #   if condensedQuery.combine.limit
-      #     druidQuery.addLimit(condensedQuery.combine.limit)
+      #   druidQuery.addCombine(condensedQuery.combine)
 
       druidQuery.addMatrix(condensedQuery.applies[0], 10, 10)
 

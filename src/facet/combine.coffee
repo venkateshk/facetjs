@@ -1,3 +1,14 @@
+# COMBINE
+
+facet.combine = {
+  sortSlice: (sort, limit) -> {
+    combine: 'sortSlice'
+    sort
+    limit
+  }
+}
+
+
 # SORT
 
 facet.sort = {

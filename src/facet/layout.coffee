@@ -79,5 +79,5 @@ facet.layout = {
       )
 
   tile: ->
-    throw "not implemented yet"
+    throw new Error("not implemented yet")
 }

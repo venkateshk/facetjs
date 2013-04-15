@@ -13,7 +13,7 @@ filterFns = {
     return (d) -> d[attribute] in values
 
   fragments: ({attribute, fragments}) ->
-    throw "implement this"
+    throw new Error("implement this")
 
   match: ({attribute, expression}) ->
     expression = new RegExp(expression)
@@ -67,7 +67,7 @@ splitFns = {
       return [b, b + size]
 
   timeDuration: ({attribute, duration, offset}) ->
-    throw "not implemented yet" # todo
+    throw new Error("not implemented yet") # todo
 
   timePeriod: ({attribute, period, timezone}) ->
     throw new Error('attribute not defined') unless typeof attribute is 'string'
@@ -160,7 +160,7 @@ aggregateFns = {
     return count
 
   quantile: ({attribute, quantile}) -> (ds) ->
-    throw "not implemented yet (ToDo)"
+    throw new Error("not implemented yet (ToDo)")
     return
 }
 
@@ -204,7 +204,7 @@ makeApplyFn = (apply) ->
   return
 
 # -------------------
-compareFns = {
+directionFns = {
   ascending: (a, b) ->
     return if a < b then -1 else if a > b then 1 else if a >= b then 0 else NaN
 
@@ -212,17 +212,48 @@ compareFns = {
     return if b < a then -1 else if b > a then 1 else if b >= a then 0 else NaN
 }
 
-sortFns = {
+compareFns = {
   natural: ({prop, direction}) ->
-    compareFn = compareFns[direction]
-    throw "direction has to be 'ascending' or 'descending'" unless compareFn
-    return (a, b) -> compareFn(a.prop[prop], b.prop[prop])
+    directionFn = directionFns[direction]
+    throw new Error("direction has to be 'ascending' or 'descending'") unless directionFn
+    return (a, b) -> directionFn(a.prop[prop], b.prop[prop])
 
   caseInsensetive: ({prop, direction}) ->
-    compareFn = compareFns[direction]
-    throw "direction has to be 'ascending' or 'descending'" unless compareFn
-    return (a, b) -> compareFn(String(a.prop[prop]).toLowerCase(), String(b.prop[prop]).toLowerCase())
+    directionFn = directionFns[direction]
+    throw new Error("direction has to be 'ascending' or 'descending'") unless directionFn
+    return (a, b) -> directionFn(String(a.prop[prop]).toLowerCase(), String(b.prop[prop]).toLowerCase())
 }
+
+makeCompareFn = (sortCompare) ->
+  compareFn = compareFns[sortCompare.compare]
+  throw new Error("No such compare `#{sortCompare.compare}` in combine.sort") unless compareFn
+  return compareFn(sortCompare)
+
+
+combineFns = {
+  sortSlice: ({sort, limit}) ->
+    if sort
+      compareFn = makeCompareFn(sort)
+
+    return (segments) ->
+      if compareFn
+        segments.sort(compareFn)
+
+      if limit?
+        driverUtil.inPlaceTrim(segments, limit)
+
+      return
+
+  matrix: () ->
+    throw new Error("not implemented yet")
+}
+
+makeCombineFn = (combine) ->
+  combineFn = combineFns[combine.combine]
+  throw new Error("unsupported combine '#{combine.combine}' in combine") unless combineFn
+  return combineFn(combine)
+
+
 
 computeQuery = (data, query) ->
   throw new Error("query not given") unless query
@@ -281,18 +312,9 @@ computeQuery = (data, query) ->
             segment.prop[propName] = applyFn(segment._raw)
 
       when 'combine'
-        if cmd.sort
-          for segmentGroup in segmentGroups
-            sortFn = sortFns[cmd.sort.compare]
-            throw new Error("No such compare `#{cmd.sort.compare}` in combine.sort") unless sortFn
-            compareFn = sortFn(cmd.sort)
-            for segmentGroup in segmentGroups
-              segmentGroup.sort(compareFn)
-
-        if cmd.limit?
-          limit = cmd.limit
-          for segmentGroup in segmentGroups
-            driverUtil.inPlaceTrim(segmentGroup, limit)
+        combineFn = makeCombineFn(cmd)
+        for segmentGroup in segmentGroups
+          combineFn(segmentGroup) # In place
 
       else
         throw new Error("Unknown operation '#{cmd.operation}'")

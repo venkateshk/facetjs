@@ -44,7 +44,9 @@ exports.makeDriverTest = (driverFns) ->
         i++
 
       if verbose
+        console.log('vvvvvvvvvvvvvvvvvvvvvvv')
         console.log(results[0])
+        console.log('^^^^^^^^^^^^^^^^^^^^^^^')
 
       test.done()
       return

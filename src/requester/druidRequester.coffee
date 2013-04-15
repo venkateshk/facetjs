@@ -2,15 +2,20 @@ http = require('http')
 
 module.exports = ({host, port}) ->
   return (druidQuery, callback) ->
-    druidQuery = new Buffer(JSON.stringify(druidQuery), 'utf-8')
+    path = '/druid/v2/'
+    if druidQuery.queryType is 'heatmap'
+      # Druid is f-ed
+      path += 'heatmap'
+
+    druidQueryBuffer = new Buffer(JSON.stringify(druidQuery), 'utf-8')
     opts = {
       host
       port
-      path: '/druid/v2/' + (if druidQuery.queryType is 'heatmap' then 'heatmap' else '') # Druid is f-ed
+      path
       method: 'POST'
       headers: {
         'content-type': 'application/json'
-        'content-length': druidQuery.length
+        'content-length': druidQueryBuffer.length
       }
     }
     req = http.request(opts, (response) ->
@@ -36,6 +41,7 @@ module.exports = ({host, port}) ->
         if response.statusCode isnt 200
           callback({
             error: 'bad status code'
+            detail: response.statusCode
             message: chunks
           })
           return
@@ -54,7 +60,7 @@ module.exports = ({host, port}) ->
       return
     )
 
-    req.write(druidQuery.toString('utf-8'))
+    req.write(druidQueryBuffer.toString('utf-8'))
     req.end()
     return
 

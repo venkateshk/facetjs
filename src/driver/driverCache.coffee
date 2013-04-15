@@ -272,8 +272,13 @@ module.exports = ({driver}) ->
       driver query, callback
       return
 
-    # If there is a split not for time, reject
     condensedQuery = driverUtil.condenseQuery(query)
+
+    # If there is a split for contnuous dimension, don't use cache
+    if condensedQuery[1].split.bucket is 'continuous'
+      driver query, callback
+      return
+
     cachedTopN = splitCache.get(condensedQuery)
     if cachedTopN?
       cachedData = filterCache.get(condensedQuery, cachedTopN)

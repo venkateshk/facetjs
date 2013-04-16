@@ -105,7 +105,7 @@ exports["split time; combine time"] = testDrivers {
   drivers: ['mySql', 'druid']
   query: [
     { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
-    { operation: 'combine', combine: 'sortSlice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
+    { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
   ]
 }
 
@@ -114,7 +114,7 @@ exports["split time; combine time"] = testDrivers {
 #   drivers: ['mySql', 'druid']
 #   query: [
 #     { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
-#     { operation: 'combine', combine: 'sortSlice', sort: { compare: 'natural', prop: 'Page', direction: 'descending' }, limit: 7 }
+#     { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Page', direction: 'descending' }, limit: 7 }
 #   ]
 # }
 
@@ -124,7 +124,7 @@ exports["split time; apply count"] = testDrivers {
     { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
     { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
     { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
-    { operation: 'combine', combine: 'sortSlice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
+    { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
   ]
 }
 
@@ -133,7 +133,7 @@ exports["split time; apply count; sort Count descending"] = testDrivers {
   query: [
     { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
     { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-    { operation: 'combine', combine: 'sortSlice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 3 }
+    { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 3 }
   ]
 }
 
@@ -142,7 +142,7 @@ exports["split time; apply count; sort Count ascending"] = testDrivers {
   query: [
     { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
     { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-    { operation: 'combine', combine: 'sortSlice', sort: { compare: 'natural', prop: 'Count', direction: 'ascending' }, limit: 3 }
+    { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'ascending' }, limit: 3 }
   ]
 }
 
@@ -154,7 +154,7 @@ exports["split page; apply count; sort count descending"] = testDrivers {
     { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
     { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
     { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
-    { operation: 'combine', combine: 'sortSlice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
+    { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
   ]
 }
 
@@ -164,12 +164,12 @@ exports["split language; apply count; sort count descending > split page; apply 
     { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
     { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
     { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
-    { operation: 'combine', combine: 'sortSlice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 3 }
+    { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 3 }
 
     { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
     { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
     { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
-    { operation: 'combine', combine: 'sortSlice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 3 }
+    { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 3 }
   ]
 }
 
@@ -179,7 +179,7 @@ exports["split page; apply count; sort count ascending"] = testDrivers {
     { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
     { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
     { operation: 'apply', name: 'Deleted', aggregate: 'sum', attribute: 'deleted' }
-    { operation: 'combine', combine: 'sortSlice', sort: { compare: 'natural', prop: 'Deleted', direction: 'ascending' }, limit: 5 }
+    { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Deleted', direction: 'ascending' }, limit: 5 }
   ]
 }
 
@@ -190,6 +190,6 @@ exports["filter language=en; split page; apply count; sort deleted ascending"] =
     { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
     { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
     { operation: 'apply', name: 'Deleted', aggregate: 'sum', attribute: 'deleted' }
-    { operation: 'combine', combine: 'sortSlice', sort: { compare: 'natural', prop: 'Deleted', direction: 'ascending' }, limit: 5 }
+    { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Deleted', direction: 'ascending' }, limit: 5 }
   ]
 }

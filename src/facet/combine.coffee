@@ -1,8 +1,8 @@
 # COMBINE
 
 facet.combine = {
-  sortSlice: (sort, limit) -> {
-    combine: 'sortSlice'
+  slice: (sort, limit) -> {
+    combine: 'slice'
     sort
     limit
   }

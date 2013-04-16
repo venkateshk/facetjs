@@ -103,7 +103,7 @@ exports["split cut; no apply"] = testDrivers {
   drivers: ['simple', 'mySql']
   query: [
     { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
-    { operation: 'combine', combine: 'sortSlice', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
+    { operation: 'combine', combine: 'slice', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
   ]
 }
 
@@ -112,7 +112,7 @@ exports["split cut; apply count"] = testDrivers {
   query: [
     { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
     { operation: 'apply', name: 'Count', aggregate: 'count' }
-    { operation: 'combine', combine: 'sortSlice', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
+    { operation: 'combine', combine: 'slice', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
   ]
 }
 
@@ -121,7 +121,7 @@ exports["split carat; apply count"] = testDrivers {
   query: [
     { operation: 'split', name: 'Carat', bucket: 'continuous', size: 0.1, offset: 0.005, attribute: 'carat' }
     { operation: 'apply', name: 'Count', aggregate: 'count' }
-    { operation: 'combine', combine: 'sortSlice', sort: { prop: 'Carat', compare: 'natural', direction: 'ascending' } }
+    { operation: 'combine', combine: 'slice', sort: { prop: 'Carat', compare: 'natural', direction: 'ascending' } }
   ]
 }
 
@@ -130,11 +130,11 @@ exports["split cut; apply count > split carat; apply count"] = testDrivers {
   query: [
     { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
     { operation: 'apply', name: 'Count', aggregate: 'count' }
-    { operation: 'combine', combine: 'sortSlice', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
+    { operation: 'combine', combine: 'slice', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
 
     { operation: 'split', name: 'Carat', bucket: 'continuous', size: 0.1, offset: 0.005, attribute: 'carat' }
     { operation: 'apply', name: 'Count', aggregate: 'count' }
-    { operation: 'combine', combine: 'sortSlice', sort: { prop: 'Carat', compare: 'natural', direction: 'descending' } }
+    { operation: 'combine', combine: 'slice', sort: { prop: 'Carat', compare: 'natural', direction: 'descending' } }
   ]
 }
 
@@ -143,11 +143,11 @@ exports["split(1, .5) carat; apply count > split cut; apply count"] = testDriver
   query: [
     { operation: 'split', name: 'Carat', bucket: 'continuous', size: 1, offset: 0.5, attribute: 'carat' }
     { operation: 'apply', name: 'Count', aggregate: 'count' }
-    { operation: 'combine', combine: 'sortSlice', sort: { prop: 'Count', compare: 'natural', direction: 'descending' }, limit: 5 }
+    { operation: 'combine', combine: 'slice', sort: { prop: 'Count', compare: 'natural', direction: 'descending' }, limit: 5 }
 
     { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
     { operation: 'apply', name: 'Count', aggregate: 'count' }
-    { operation: 'combine', combine: 'sortSlice', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
+    { operation: 'combine', combine: 'slice', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
   ]
 }
 
@@ -156,11 +156,11 @@ exports["split carat; apply count > split cut; apply count"] = testDrivers {
   query: [
     { operation: 'split', name: 'Carat', bucket: 'continuous', size: 0.1, offset: 0.005, attribute: 'carat' }
     { operation: 'apply', name: 'Count', aggregate: 'count' }
-    { operation: 'combine', combine: 'sortSlice', sort: { prop: 'Count', compare: 'natural', direction: 'descending' }, limit: 5 }
+    { operation: 'combine', combine: 'slice', sort: { prop: 'Count', compare: 'natural', direction: 'descending' }, limit: 5 }
 
     { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
     { operation: 'apply', name: 'Count', aggregate: 'count' }
-    { operation: 'combine', combine: 'sortSlice', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
+    { operation: 'combine', combine: 'slice', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
   ]
 }
 
@@ -281,10 +281,10 @@ exports["complex filter; split carat; apply count > split cut; apply count"] = t
 
     { operation: 'split', name: 'Carat', bucket: 'continuous', size: 0.1, offset: 0.005, attribute: 'carat' }
     { operation: 'apply', name: 'Count', aggregate: 'count' }
-    { operation: 'combine', combine: 'sortSlice', sort: { prop: 'Count', compare: 'natural', direction: 'descending' }, limit: 5 }
+    { operation: 'combine', combine: 'slice', sort: { prop: 'Count', compare: 'natural', direction: 'descending' }, limit: 5 }
 
     { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
     { operation: 'apply', name: 'Count', aggregate: 'count' }
-    { operation: 'combine', combine: 'sortSlice', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
+    { operation: 'combine', combine: 'slice', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
   ]
 }

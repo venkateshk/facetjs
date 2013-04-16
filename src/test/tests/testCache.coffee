@@ -63,7 +63,7 @@ exports["(sanity check) split page; apply count; sort count ascending"] = testDr
     { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
     { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
     { operation: 'apply', name: 'Deleted', aggregate: 'sum', attribute: 'deleted' }
-    { operation: 'combine', combine: 'sortSlice', sort: { compare: 'natural', prop: 'Deleted', direction: 'ascending' }, limit: 5 }
+    { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Deleted', direction: 'ascending' }, limit: 5 }
   ]
 }
 
@@ -75,7 +75,7 @@ exports["split time; apply count; apply added"] = testDrivers {
     { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
     { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
     { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
-    { operation: 'combine', combine: 'sortSlice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
+    { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
   ]
 }
 
@@ -94,7 +94,7 @@ exports["[cache tests on] split time; apply count; apply added"] = {
       { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
       { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
       { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-      { operation: 'combine', combine: 'sortSlice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
+      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
     ]
   }
 
@@ -104,7 +104,7 @@ exports["[cache tests on] split time; apply count; apply added"] = {
       { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
       { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
       { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-      { operation: 'combine', combine: 'sortSlice', sort: { compare: 'natural', prop: 'Count', direction: 'ascending' } }
+      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'ascending' } }
     ]
   }
 
@@ -114,7 +114,7 @@ exports["[cache tests on] split time; apply count; apply added"] = {
       { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 26, 12, 0, 0))] }
       { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
       { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-      { operation: 'combine', combine: 'sortSlice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
+      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
     ]
   }
 
@@ -124,7 +124,7 @@ exports["[cache tests on] split time; apply count; apply added"] = {
       { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
       { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
       { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-      { operation: 'combine', combine: 'sortSlice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' }, limit: 5 }
+      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' }, limit: 5 }
     ]
   }
 }
@@ -141,7 +141,7 @@ exports["filter; split time; apply count; apply added"] = testDrivers {
     { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
     { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
     { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
-    { operation: 'combine', combine: 'sortSlice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
+    { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
   ]
 }
 
@@ -164,7 +164,7 @@ exports["[cache tests on] filter; split time; apply count"] = {
       { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
       { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
       { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
-      { operation: 'combine', combine: 'sortSlice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
+      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
     ]
   }
 
@@ -178,7 +178,7 @@ exports["[cache tests on] filter; split time; apply count"] = {
       { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
       { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
       { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
-      { operation: 'combine', combine: 'sortSlice', sort: { compare: 'natural', prop: 'Time', direction: 'descending' } }
+      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'descending' } }
     ]
   }
 }
@@ -199,7 +199,7 @@ exports["fillTree test"] = { # TODO: Use better mechanism to test
       ]}
       { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
       { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-      { operation: 'combine', combine: 'sortSlice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
+      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
     ]
   }
 
@@ -213,7 +213,7 @@ exports["fillTree test"] = { # TODO: Use better mechanism to test
       { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
       { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
       { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
-      { operation: 'combine', combine: 'sortSlice', sort: { compare: 'natural', prop: 'Time', direction: 'descending' } }
+      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'descending' } }
     ]
   }
 }

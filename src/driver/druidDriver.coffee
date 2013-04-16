@@ -158,8 +158,6 @@ class DruidQueryBuilder
     return this
 
   addSplit: (split) ->
-    throw new Error("split must have an attribute") unless split.attribute
-
     switch split.bucket
       when 'identity'
         @queryType = 'topN'
@@ -199,22 +197,22 @@ class DruidQueryBuilder
           fieldName: split.attribute
         }
 
-        size = split.size
-        offset = split.offset
-        breaks = (offset + i * size for i in [0..300])
-
         @addPostAggregation {
-          type: "customBuckets"
+          type: "buckets"
           name: "histogram"
           fieldName: tempHistogramName
-          breaks
+          bucketSize: split.size
+          offset: split.offset
         }
 
       when 'tuple'
         throw new Error("only supported tuples of size 2 (is: #{split.splits.length})") unless split.splits.length is 2
         @queryType = 'heatmap'
         #@granularity stays 'all'
-        @dimensions = split.splits.map((split) -> split.attribute)
+        @dimensions = split.splits.map (split) -> {
+          dimension: split.attribute
+          threshold: 10 # arbitrary value to be updated later
+        }
 
       else
         throw new Error("unsupported bucketing function")
@@ -416,7 +414,7 @@ class DruidQueryBuilder
 
   addCombine: (combine) ->
     switch combine.combine
-      when 'sortSlice'
+      when 'slice'
         sort = combine.sort
         if sort
           if @queryType is 'topN'
@@ -442,6 +440,19 @@ class DruidQueryBuilder
         limit = combine.limit
         if limit
           @threshold = limit
+
+      when 'matrix'
+        sort = combine.sort
+        if sort
+          if sort.direction is 'descending'
+            @metric = sort.prop
+          else
+            throw new Error("not supported yet")
+
+        limits = combine.limits
+        if limits
+          for dim, i in @dimensions
+            dim.threshold = limits[i] if limits[i]?
 
       else
         throw new Error("unsupported combine '#{combine.combine}'")
@@ -651,10 +662,8 @@ druidQueryFns = {
       else
         druidQuery.addDummyApply()
 
-      # if condensedQuery.combine
-      #   druidQuery.addCombine(condensedQuery.combine)
-
-      druidQuery.addMatrix(condensedQuery.applies[0], 10, 10)
+      if condensedQuery.combine
+        druidQuery.addCombine(condensedQuery.combine)
 
       queryObj = druidQuery.getQuery()
     catch e
@@ -677,7 +686,24 @@ druidQueryFns = {
         })
         return
 
-      callback(null, ds[0].result)
+      dimensionRenameNeeded = false
+      dimensionRenameMap = {}
+      for split in condensedQuery.split.splits
+        continue if split.name is split.attribute
+        dimensionRenameMap[split.attribute] = split.name
+        dimensionRenameNeeded = true
+
+      props = ds[0].result
+
+      if dimensionRenameNeeded
+        for prop in props
+          for k, v in props
+            renameTo = dimensionRenameMap[k]
+            if renameTo
+              props[renameTo] = v
+              delete props[k]
+
+      callback(null, props)
       return
     return
 
@@ -759,7 +785,11 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
   timeAttribute or= 'time'
   approximate ?= true
   return (query, callback) ->
-    condensedQuery = driverUtil.condenseQuery(query)
+    try
+      condensedQuery = driverUtil.condenseQuery(query)
+    catch e
+      callback(e)
+      return
 
     rootSegment = null
     segments = [rootSegment]

@@ -233,7 +233,7 @@ class SQLQueryBuilder
 
   addCombine: (combine) ->
     switch combine.combine
-      when 'sortSlice'
+      when 'slice'
         sort = combine.sort
         if sort
           sqlDirection = @directionMap[sort.direction]
@@ -346,7 +346,11 @@ condensedQueryToSQL = ({requester, table, filter, condensedQuery}, callback) ->
 
 
 module.exports = ({requester, table, filter}) -> (query, callback) ->
-  condensedQuery = driverUtil.condenseQuery(query)
+  try
+    condensedQuery = driverUtil.condenseQuery(query)
+  catch e
+    callback(e)
+    return
 
   rootSegment = null
   segments = [rootSegment]

@@ -39,8 +39,13 @@ exports.condenseQuery = (query) ->
 
       when 'split'
         condensed.push(curQuery)
-        throw new Error("split must have name") unless cmd.name
-        throw new TypeError("invalid name in split") unless typeof cmd.name is 'string'
+        if cmd.bucket is 'tuple'
+          throw new Error("tuple split must have splits") unless cmd.splits
+        else
+          throw new Error("split must have name") unless cmd.name
+          throw new TypeError("invalid name in split") unless typeof cmd.name is 'string'
+          throw new Error("split must have an attribute") unless cmd.attribute
+          throw new TypeError("invalid attribute in split") unless typeof cmd.attribute is 'string'
         curQuery = {
           split: cmd
           applies: []
@@ -149,7 +154,12 @@ class exports.Table
     return header + '\r\n' + content
 
 exports.createColumns = createColumns = (query) ->
-  split = query.filter((op) -> op.operation is 'split').map((op) -> op.name)
+  split = flatten(query.filter((op) -> op.operation is 'split').map((op) ->
+    if op.bucket is 'tuple'
+      return op.splits.map((o) -> o.name)
+    else
+      return [op.name]
+  ))
   tempApply = query.filter((op) -> op.operation is 'apply').map((op) -> op.name)
   apply = []
   for applyName in tempApply

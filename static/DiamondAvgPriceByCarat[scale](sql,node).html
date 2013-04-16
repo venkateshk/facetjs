@@ -23,6 +23,7 @@
       var scale = facet.scale;
       var plot = facet.plot;
       var use = facet.use;
+      var combine = facet.combine;
       var sort = facet.sort;
       var transform = facet.transform;
     </script>
@@ -73,7 +74,7 @@
           .split('Carat', split.continuous('carat', 0.1))
           .apply('Count', apply.count())
           .apply('AvgPrice', apply.average('price'))
-          .combine({ sort: { prop: 'Carat', direction: 'ascending' }})
+          .combine(combine.slice(sort.natural('Carat', 'ascending')))
           .domain('horiz', use.prop('Carat'))
           .domain('vert', use.interval(0, use.prop('AvgPrice')))
           .layout(layout.horizontalScale({ scale: 'horiz' }))

@@ -12,15 +12,15 @@ facet.combine = {
 # SORT
 
 facet.sort = {
-  natural: (attribute, direction = 'descending') -> {
+  natural: (prop, direction = 'descending') -> {
     compare: 'natural'
-    attribute
+    prop
     direction
   }
 
-  caseInsensetive: (attribute, direction = 'descending') -> {
+  caseInsensetive: (prop, direction = 'descending') -> {
     compare: 'caseInsensetive'
-    attribute
+    prop
     direction
   }
 }

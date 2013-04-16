@@ -84,21 +84,22 @@ class FacetJob
     })
     return this
 
-  combine: ({ filter, sort, limit } = {}) ->
+  combine: ({ combine, sort, limit } = {}) ->
     # ToDo: implement filter
-    combine = {
+    combineCmd = {
       operation: 'combine'
+      combine
     }
     if sort
       if not @knownProps[sort.prop]
         throw new Error("can not sort on unknown prop '#{sort.prop}'")
-      combine.sort = sort
-      combine.sort.compare ?= 'natural'
+      combineCmd.sort = sort
+      combineCmd.sort.compare ?= 'natural'
 
     if limit?
-      combine.limit = limit
+      combineCmd.limit = limit
 
-    @ops.push(combine)
+    @ops.push(combineCmd)
     return this
 
   transform: (transform) ->

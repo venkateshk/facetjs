@@ -41,8 +41,6 @@ mySqlWrap = (query, callback) ->
 
 driverFns.mySqlCached = driverCache({
   driver: mySqlWrap
-  timeAttribute: 'time'
-  timeName: 'Time'
 })
 
 testDrivers = utils.makeDriverTest(driverFns)

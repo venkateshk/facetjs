@@ -182,9 +182,15 @@ class SplitCache extends Cache
     return timestamps
 
 
-module.exports = ({driver}) ->
+module.exports = ({driver, queryGetter, querySetter}) ->
   splitCache = new SplitCache()
   filterCache = new FilterCache()
+
+  querySetter ?= (async, query) -> return
+  queryGetter ?= (async) -> return async
+
+  if (queryGetter? and not querySetter?) or (not queryGetter? and querySetter?)
+    throw new Error("Both querySetter and queryGetter must be supplied")
 
   fillTree = (root, cachedData, condensedQuery) -> # Fill in the missing piece
     splitOp = condensedQuery[1].split
@@ -256,6 +262,10 @@ module.exports = ({driver}) ->
           unknownExists = true
 
     return null unless unknownExists
+
+    if condensedQuery[1].combine?.sort?
+      unknown[condensedQuery[1].combine.sort.prop] = true
+
     return query.filter((command, i) ->
         return true if i <= splitLocation
         if (command.operation is 'apply' and unknown[command.name]) or command.operation isnt 'apply'
@@ -263,20 +273,21 @@ module.exports = ({driver}) ->
         return false
       )
 
-  return (query, callback) ->
+  return (async, callback) ->
+    query = queryGetter(async)
     if query.filter(({operation}) -> return operation is 'filter').length is 0
-      driver query, callback
+      driver async, callback
       return
     # If there is more than one split, don't use cache
     if query.filter(({operation}) -> return operation is 'split').length isnt 1
-      driver query, callback
+      driver async, callback
       return
 
     condensedQuery = driverUtil.condenseQuery(query)
 
     # If there is a split for contnuous dimension, don't use cache
     if condensedQuery[1].split.bucket is 'continuous'
-      driver query, callback
+      driver async, callback
       return
 
     cachedTopN = splitCache.get(condensedQuery)
@@ -287,7 +298,8 @@ module.exports = ({driver}) ->
       unknownQuery = query
 
     if unknownQuery?
-      driver unknownQuery, (err, root) ->
+      querySetter(async, unknownQuery)
+      driver async, (err, root) ->
         if err?
           callback(err, null)
           return

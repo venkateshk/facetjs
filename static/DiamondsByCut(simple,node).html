@@ -23,6 +23,7 @@
       var scale = facet.scale;
       var plot = facet.plot;
       var use = facet.use;
+      var combine = facet.combine;
       var sort = facet.sort;
       var transform = facet.transform;
     </script>
@@ -61,7 +62,7 @@
           .split('Cut', split.identity('cut'))
           .apply('Count', apply.count())
           .apply('AvgPrice', apply.average('price'))
-          .combine({ sort: { prop: 'AvgPrice', direction: 'descending' }})
+          .combine(combine.slice(sort.natural('AvgPrice', 'descending')))
           .layout(layout.vertical({ size: use.prop('Count'), gap: 3 }))
           .domain('color', use.prop('Cut'))
           .plot(plot.box({

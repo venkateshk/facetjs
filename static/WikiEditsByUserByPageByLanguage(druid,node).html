@@ -23,6 +23,7 @@
       var scale = facet.scale;
       var plot = facet.plot;
       var use = facet.use;
+      var combine = facet.combine;
       var sort = facet.sort;
       var transform = facet.transform;
     </script>
@@ -63,7 +64,7 @@
       facet.define('.example', 800, 600, druidDriverNode)
         .split('Language', split.identity('language'))
         .apply('Edits', apply.sum('count'))
-        .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 4})
+        .combine(combine.slice(sort.natural('Edits', 'descending'), 4))
         .layout(layout.vertical({ gap: 3 }))
         .plot(plot.box({
           fill: 'none',
@@ -78,7 +79,7 @@
         .untransform()
           .split('Page', split.identity('page'))
           .apply('Edits', apply.sum('count'))
-          .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 4})
+          .combine(combine.slice(sort.natural('Edits', 'descending'), 4))
           .layout(layout.horizontal({ gap: 3 }))
           .plot(plot.box({
             fill: 'none',
@@ -94,7 +95,7 @@
           .untransform()
             .split('User', split.identity('user'))
             .apply('Edits', apply.sum('count'))
-            .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 3})
+            .combine(combine.slice(sort.natural('Edits', 'descending'), 3))
             .layout(layout.vertical({ gap: 1, size: use.prop('Edits') }))
             .plot(plot.box({
               fill: 'black',

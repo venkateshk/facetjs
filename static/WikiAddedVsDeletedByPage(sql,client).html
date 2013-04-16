@@ -23,6 +23,7 @@
       var scale = facet.scale;
       var plot = facet.plot;
       var use = facet.use;
+      var combine = facet.combine;
       var sort = facet.sort;
       var transform = facet.transform;
     </script>
@@ -69,7 +70,7 @@
           .apply('Edits', apply.count())
           .apply('Added', apply.sum('added'))
           .apply('Deleted', apply.sum('deleted'))
-          .combine({ sort: { prop: 'Edits', direction: 'descending' }, limit: 50})
+          .combine(combine.slice(sort.natural('Edits', 'descending'), 50))
           .plot(plot.box({
             fill: 'none',
             stroke: 'black'

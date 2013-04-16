@@ -231,7 +231,7 @@ makeCompareFn = (sortCompare) ->
 
 
 combineFns = {
-  sortSlice: ({sort, limit}) ->
+  slice: ({sort, limit}) ->
     if sort
       compareFn = makeCompareFn(sort)
 

@@ -414,7 +414,7 @@ class DruidQueryBuilder
 
   addCombine: (combine) ->
     switch combine.combine
-      when 'sortSlice'
+      when 'slice'
         sort = combine.sort
         if sort
           if @queryType is 'topN'

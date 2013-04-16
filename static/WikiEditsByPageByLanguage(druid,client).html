@@ -51,11 +51,13 @@
       var druidDriverClient = druidDriver({
         requester: druidRequester,
         dataSource: "wikipedia_editstream",
-        interval: [
-          new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)),
-          new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))
-        ],
-        filters: null
+        filter: {
+          type: 'within',
+          range: [
+            new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)),
+            new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))
+          ],
+        }
       });
 
       // var sqlRequester = facet.ajaxPoster({
@@ -66,7 +68,7 @@
       // var sqlDriverClient = sqlDriver({
       //   requester: sqlRequester,
       //   table: "wiki_day",
-      //   filters: null
+      //   filter: null
       // });
 
       function formatEditsAndPage(edits, page) {

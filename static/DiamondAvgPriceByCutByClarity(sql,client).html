@@ -58,7 +58,7 @@
       var sqlDriverClient = sqlDriver({
         requester: sqlRequester,
         table: "diamonds",
-        filters: null
+        filter: null
       });
 
       facet.define('.example', 800, 600,  sqlDriverClient)

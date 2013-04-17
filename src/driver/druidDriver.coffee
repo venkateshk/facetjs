@@ -54,7 +54,39 @@ class DruidQueryBuilder
     null # ToDo
 
   intersectIntervals: (intervals) ->
-    return driverUtil.flatten(intervals) # ToDo: rewrite this to actually work
+    # ToDo: rewrite this to actually work
+    start = intervals[0][0].start
+    end = intervals[0][0].end
+    for interval in intervals
+      intStart = interval[0].start
+      intEnd = interval[0].end
+      if start < intStart
+        start = intStart
+      if intEnd < end
+        end = intEnd
+    return [{start, end}]
+
+  filterToJS: (filter) ->
+    switch filter.type
+      when 'is'
+        throw new Error("can not filter on specific time") if filter.attribute is @timeAttribute
+        "x==='#{filter.value}'"
+
+      when 'in'
+        throw new Error("can not filter on specific time") if filter.attribute is @timeAttribute
+        filter.values.map((value) -> "x==='#{value}'").join('||')
+
+      when 'not'
+        "!(#{@filterToJS(filter.filter)})"
+
+      when 'and'
+        filter.filters.map(((filter) -> "(#{@filterToDruid})"), this).join('&&')
+
+      when 'or'
+        filter.filters.map(((filter) -> "(#{@filterToDruid})"), this).join('||')
+
+      else
+        throw new Error("unknown JS filter type '#{filter.type}'")
 
   # return a (up to) two element array [druid_filter_object, druid_intervals_array]
   filterToDruid: (filter) ->
@@ -108,7 +140,7 @@ class DruidQueryBuilder
           throw new Error("invalid dates") if isNaN(r0) or isNaN(r1)
           [
             null,
-            ["#{@dateToIntervalPart(r0)}/#{@dateToIntervalPart(r1)}"]
+            [{ start: r0, end: r1 }]
           ]
         else if typeof r0 is 'number' and typeof r1 is 'number'
           [{
@@ -154,7 +186,8 @@ class DruidQueryBuilder
 
   addFilter: (filter) ->
     return unless filter
-    [@filter, @intervals] = @filterToDruid(filter)
+    [@filter, intervals] = @filterToDruid(filter)
+    @intervals = intervals.map((({start, end}) -> "#{@dateToIntervalPart(start)}/#{@dateToIntervalPart(end)}"), this)
     return this
 
   addSplit: (split) ->
@@ -276,8 +309,6 @@ class DruidQueryBuilder
     @postAggregations.push(postAggregation)
     return
 
-
-
   # This method will ether return a post aggregation or add it.
   addApplyHelper: do ->
     arithmeticToDruidFn = {
@@ -289,6 +320,7 @@ class DruidQueryBuilder
     return (apply, returnPostAggregation) ->
       applyName = apply.name or @throwawayName()
       if apply.aggregate
+        throw new Error("filtered applies are not supported yet") if apply.filter # ToDo
         switch apply.aggregate
           when 'constant'
             postAggregation = {
@@ -404,7 +436,6 @@ class DruidQueryBuilder
         throw new Error("must have an aggregate or an arithmetic")
 
   addApply: (apply) ->
-    throw new Error("filtered applies are not supported yet") if apply.filter # ToDo
     @addApplyHelper(apply, false)
     return this
 

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" type="text/css" href="facet.css">
+    <script src="lib/underscore.js"></script>
+    <script src="lib/async.js"></script>
+    <script src="lib/d3.v3.js"></script>
+    <script src="lib/jquery-1.9.1.js"></script>
+    <script src="facet.js"></script>
+    <script src="driverUtil.js"></script>
+    <script src="simpleDriver.js"></script>
+    <script src="sqlDriver.js"></script>
+    <script src="druidDriver.js"></script>
+
+    <title>Facet Examples (0.2.1)</title>
+
+    <script>
+      // The basics
+      var filter = facet.filter;
+      var split = facet.split;
+      var apply = facet.apply;
+      var layout = facet.layout;
+      var scale = facet.scale;
+      var plot = facet.plot;
+      var use = facet.use;
+      var combine = facet.combine;
+      var sort = facet.sort;
+      var transform = facet.transform;
+    </script>
+  </head>
+
+  <body>
+
+    <div class="cont">
+      <h1>Wiki Edits by Time</h1>
+      <h2>Druid Driver in Client / wikipedia</h2>
+      <div class="example"></div>
+    </div>
+    <script>
+    (function() {
+      // dimensions
+      // ["dma_code","continent_code","geo","area_code","robot","country_name","network","city","namespace","anonymous","unpatrolled","page","postal_code","language","newpage","user","region_lookup"]
+      // metrics
+      // ["count","added","variation","delta","delta_hist","unique_users","deleted"]}
+
+      var druidRequester = facet.ajaxPoster({
+        url: '/pass/druid',
+        prety: true
+      });
+
+      var druidDriverClient = druidDriver({
+        requester: druidRequester,
+        dataSource: "wikipedia_editstream",
+        filter: {
+          type: 'within',
+          attribute: 'time',
+          range: [
+            new Date(Date.UTC(2013, 4-1, 1, 0, 0, 0)),
+            new Date(Date.UTC(2013, 4-1, 8, 0, 0, 0))
+          ],
+        }
+      });
+
+      facet.define('.example', 800, 600, facet.verboseDriver(druidDriverClient))
+        .transform(transform.rectangle.rectangle({left: 10, right: 10, top: 10, bottom: 10}))
+        .scale('horiz', scale.linear())
+        .scale('vert', scale.linear())
+        .range('horiz', use.stage('width'))
+          .split('Time', split.timePeriod('time', 'PT1H'))
+          .apply('Edits', apply.sum('count'))
+          .combine(combine.slice(sort.natural('Time', 'ascending')))
+          .domain('horiz', use.prop('Time'))
+          .domain('vert', use.interval(0, use.prop('Edits')))
+          .layout(layout.horizontalScale({ scale: 'horiz' }))
+          .range('vert', use.stage('height'))
+          .transform(transform.rectangle.rectangle({
+            bottom: 0,
+            height: use.scale('vert')
+          }))
+            .plot(plot.box({
+              fill: '#f0f0f0',
+              stroke: 'black',
+              title: use.prop('Time')
+            }))
+            .render()
+
+
+
+    })();
+    </script>
+  </body>
+</html>

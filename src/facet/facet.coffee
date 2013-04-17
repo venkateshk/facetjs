@@ -1,11 +1,14 @@
-getScaleAndSegments = (segment, scaleName) ->
+getScaleAndSegmentsForTraining = (training, segment, scaleName) ->
   sourceSegment = segment
   hops = 0
   while true
-    break if sourceSegment.scale[scaleName]
+    scale = sourceSegment.scale[scaleName]
+    break if scale
     sourceSegment = sourceSegment.parent
     hops++
     throw new Error("can not find scale '#{scaleName}'") unless sourceSegment
+
+  return null unless scale.hasOwnProperty(training)
 
   # Get all of sources children on my level (my cousins)
   unifiedSegments = [sourceSegment]
@@ -14,7 +17,7 @@ getScaleAndSegments = (segment, scaleName) ->
     hops--
 
   return {
-    scale: sourceSegment.scale[scaleName]
+    scale
     unifiedSegments
   }
 
@@ -60,7 +63,7 @@ class FacetJob
     return this
 
   scale: (name, scale) ->
-    throw new TypeError("not a valid scale") unless typeof scale.domain is 'function'
+    throw new TypeError("not a valid scale") unless typeof scale is 'function'
     @ops.push({
       operation: 'scale'
       name
@@ -186,19 +189,29 @@ class FacetJob
             { name, scale } = cmd
             for segmentGroup in segmentGroups
               for segment in segmentGroup
-                segment.scale[name] = scale
+                myScale = scale()
+                throw new TypeError("not a valid scale") unless typeof myScale.domain is 'function'
+                segment.scale[name] = myScale
 
           when 'domain'
             { name, domain } = cmd
-            { scale, unifiedSegments } = getScaleAndSegments(segmentGroups[0][0], name)
-            throw new Error("Scale '#{name}' domain can't be trained") unless scale.domain
-            scale.domain(unifiedSegments, domain)
+            for segmentGroup in segmentGroups
+              for segment in segmentGroup
+                ret = getScaleAndSegmentsForTraining('domain', segment, name)
+                continue unless ret
+                { scale, unifiedSegments } = ret
+                throw new Error("Scale '#{name}' domain can't be trained") unless scale.domain
+                scale.domain(unifiedSegments, domain)
 
           when 'range'
             { name, range } = cmd
-            { scale, unifiedSegments } = getScaleAndSegments(segmentGroups[0][0], name)
-            throw new Error("Scale '#{name}' range can't be trained") unless scale.range
-            scale.range(unifiedSegments, range)
+            for segmentGroup in segmentGroups
+              for segment in segmentGroup
+                ret = getScaleAndSegmentsForTraining('range', segment, name)
+                continue unless ret
+                { scale, unifiedSegments } = ret
+                throw new Error("Scale '#{name}' range can't be trained") unless scale.range
+                scale.range(unifiedSegments, range)
 
           when 'layout'
             { layout } = cmd

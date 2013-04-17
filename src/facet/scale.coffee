@@ -9,7 +9,7 @@ scaleOverInterval = (basicScale) -> (x) ->
 
 
 facet.scale = {
-  linear: ({nice} = {}) ->
+  linear: ({nice} = {}) -> () ->
     basicScale = d3.scale.linear()
 
     self = {
@@ -64,7 +64,7 @@ facet.scale = {
     return self
 
 
-  color: () ->
+  color: () -> () ->
     basicScale = d3.scale.category10()
 
     self = {

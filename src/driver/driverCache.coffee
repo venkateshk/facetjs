@@ -3,60 +3,64 @@
 # -----------------------------------------------------
 driverUtil = require('./driverUtil')
 
-class Cache
-  constructor: ->
-    @hashmap = {}
-
-  _filterToHash: (filter) ->
-    return '' unless filter?
-    hash = []
-    if filter.filters?
-      for subFilter in filter.filters
-        hash.push @_filterToHash(subFilter)
-      return hash.sort().join(filter.type)
-    else
-      for k, v of filter
-        hash.push(k + ":" + v)
-    return hash.sort().join('|')
-
-  _splitToHash: (split) ->
-    hash = []
-    for k, v of split
+filterToHash = (filter) ->
+  return '' unless filter?
+  hash = []
+  if filter.filters?
+    for subFilter in filter.filters
+      hash.push filterToHash(subFilter)
+    return hash.sort().join(filter.type)
+  else
+    for k, v of filter
       hash.push(k + ":" + v)
+  return hash.sort().join('|')
 
-    return hash.sort().join('|')
+splitToHash = (split) ->
+  hash = []
+  for k, v of split
+    continue if k is 'name'
+    hash.push(k + ":" + v)
 
-  _separateTimeFilter: (filter) ->
-    if filter.filters?
-      timeFilter = filter.filters.filter((({type}) -> type is 'within'), this)[0]
-      filtersWithoutTime = filter.filters.filter((({type}) -> type is 'within'), this)
-      if filtersWithoutTime.length is 1
-        return {
-          filter: filtersWithoutTime[0]
-          timeFilter
-        }
-      else
-        # ToDo: make new And filter
+  return hash.sort().join('|')
 
-        filter.filters = filtersWithoutTime
-        return {
-          filter: {
-            operation: 'filter'
-            type: 'and'
-            filters: filtersWithoutTime
-          }
-          timeFilter
-        }
-    else # Only time filter exists
+generateHash = (condensedQuery) ->
+  # Get Filter and Split
+  split = condensedQuery[1].split
+  filter = condensedQuery[0].filter
+  return filterToHash(filter) + '&' + splitToHash(split)
+
+separateTimeFilter = (filter) ->
+  if filter.filters?
+    timeFilter = filter.filters.filter((({type}) -> type is 'within'), this)[0]
+    filtersWithoutTime = filter.filters.filter((({type}) -> type is 'within'), this)
+    if filtersWithoutTime.length is 1
       return {
-        filter: null
-        timeFilter: filter
+        filter: filtersWithoutTime[0]
+        timeFilter
       }
+    else
+      filter.filters = filtersWithoutTime
+      return {
+        filter: {
+          operation: 'filter'
+          type: 'and'
+          filters: filtersWithoutTime
+        }
+        timeFilter
+      }
+  else # Only time filter exists
+    return {
+      filter: null
+      timeFilter: filter
+    }
 
-class FilterCache extends Cache
+
+class FilterCache
   # { key: filter,
   #   value: { key: metric,
   #            value: value } }
+  constructor: ->
+    @hashmap = {}
 
   get: (condensedQuery, values) ->
     # Return format:
@@ -71,12 +75,11 @@ class FilterCache extends Cache
     #   }
     # ]
     filter = condensedQuery[0].filter
-    splitOp = condensedQuery[1].split
-    splitOpName = splitOp.name
+    splitOpName = condensedQuery[1].split.name
     ret = {}
     for value in values
       newFilter = @_addToFilter(condensedQuery, value)
-      ret[value] = @hashmap[@_filterToHash(newFilter)]
+      ret[value] = @hashmap[filterToHash(newFilter)]
       if ret[value]?
         ret[value][splitOpName] = value
 
@@ -84,13 +87,13 @@ class FilterCache extends Cache
 
   put: (condensedQuery, root) ->
     filter = condensedQuery[0].filter
-    hashValue = @hashmap[@_filterToHash(filter)] ?= {}
+    hashValue = @hashmap[filterToHash(filter)] ?= {}
     for k, v of root.prop
       hashValue[k] = v
 
     for split in root.splits
       newFilter = @_addToFilter(condensedQuery, split.prop[condensedQuery[1].split.name])
-      hashValue = @hashmap[@_filterToHash(newFilter)] ?= {}
+      hashValue = @hashmap[filterToHash(newFilter)] ?= {}
       for k, v of split.prop
         hashValue[k] = v
 
@@ -101,7 +104,7 @@ class FilterCache extends Cache
     splitOp = condensedQuery[1].split
 
     if splitOp.bucket in ['timePeriod', 'timeDuration']
-      { filter: oldFilter } = @_separateTimeFilter(oldFilter)
+      { filter: oldFilter } = separateTimeFilter(oldFilter)
       newFilterPiece = {
         attribute: splitOp.attribute
         type: 'within'
@@ -123,10 +126,12 @@ class FilterCache extends Cache
 
 
 
-class SplitCache extends Cache
+class SplitCache
   # { key: filter,
   #   value: { key: split,
   #            value: [list of dimension values] } }
+  constructor: ->
+    @hashmap = {}
 
   get: (condensedQuery) ->
     # Return format:
@@ -138,10 +143,10 @@ class SplitCache extends Cache
     if condensedQuery[1].split.bucket in ['timePeriod', 'timeDuration']
       return @_timeCalculate(condensedQuery)
 
-    return @hashmap[@_generateHash(condensedQuery)]
+    return @hashmap[generateHash(condensedQuery)]
 
   put: (condensedQuery, root) ->
-    hash = @_generateHash(condensedQuery)
+    hash = generateHash(condensedQuery)
     splitOpName = condensedQuery[1].split.name
     hashValue = []
     for split in root.splits
@@ -149,15 +154,9 @@ class SplitCache extends Cache
     @hashmap[hash] = hashValue
     return
 
-  _generateHash: (condensedQuery) ->
-    # Get Filter and Split
-    split = condensedQuery[1].split
-    filter = condensedQuery[0].filter
-    return @_filterToHash(filter) + '&' + @_splitToHash(split)
-
   _timeCalculate: (condensedQuery) ->
     split = condensedQuery[1].split
-    {timeFilter} = @_separateTimeFilter(condensedQuery[0].filter)
+    {timeFilter} = separateTimeFilter(condensedQuery[0].filter)
     timestamps = []
     timestamp = new Date(timeFilter.range[0])
     end = new Date(timeFilter.range[1])

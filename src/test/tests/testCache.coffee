@@ -41,8 +41,6 @@ mySqlWrap = (query, callback) ->
 
 driverFns.mySqlCached = driverCache({
   driver: mySqlWrap
-  timeAttribute: 'time'
-  timeName: 'Time'
 })
 
 testDrivers = utils.makeDriverTest(driverFns)
@@ -57,15 +55,50 @@ exports["(sanity check) apply count"] = testDrivers {
   ]
 }
 
-exports["(sanity check) split page; apply count; sort count ascending"] = testDrivers {
+# Top N Cache Test
+exports["split page; apply deleted, count; combine descending"] = testDrivers {
   drivers: ['mySql', 'mySqlCached']
   query: [
-    { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
+    { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+    { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'namespace' }
     { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
     { operation: 'apply', name: 'Deleted', aggregate: 'sum', attribute: 'deleted' }
     { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Deleted', direction: 'ascending' }, limit: 5 }
   ]
 }
+
+exports["[cache tests on] topN"] = {
+  setUp: (callback) ->
+    allowQuery = false
+    callback()
+
+  tearDown: (callback) ->
+    allowQuery = true
+    callback()
+
+  "split page; apply deleted; combine descending": testDrivers {
+    drivers: ['mySql', 'mySqlCached']
+    query: [
+      { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+      { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'namespace' }
+      { operation: 'apply', name: 'Deleted', aggregate: 'sum', attribute: 'deleted' }
+      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Deleted', direction: 'descending' }, limit: 5 }
+    ]
+  }
+
+  "split page; apply deleted, count; combine descending": testDrivers {
+    drivers: ['mySql', 'mySqlCached']
+    query: [
+      { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+      { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'namespace' }
+      { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+      { operation: 'apply', name: 'Deleted', aggregate: 'sum', attribute: 'deleted' }
+      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Deleted', direction: 'descending' }, limit: 5 }
+    ]
+  }
+}
+
+
 
 # Cache Test
 exports["split time; apply count; apply added"] = testDrivers {
@@ -128,7 +161,6 @@ exports["[cache tests on] split time; apply count; apply added"] = {
     ]
   }
 }
-
 
 # Cache Test 2
 exports["filter; split time; apply count; apply added"] = testDrivers {
@@ -217,3 +249,6 @@ exports["fillTree test"] = { # TODO: Use better mechanism to test
     ]
   }
 }
+
+
+

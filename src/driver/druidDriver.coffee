@@ -55,38 +55,61 @@ class DruidQueryBuilder
 
   intersectIntervals: (intervals) ->
     # ToDo: rewrite this to actually work
-    start = intervals[0][0].start
-    end = intervals[0][0].end
+    startTime = -Infinity
+    endTime = Infinity
     for interval in intervals
-      intStart = interval[0].start
-      intEnd = interval[0].end
-      if start < intStart
-        start = intStart
-      if intEnd < end
-        end = intEnd
-    return [{start, end}]
+      intStart = interval[0].start.valueOf()
+      intEnd = interval[0].end.valueOf()
+      if startTime < intStart
+        startTime = intStart
+      if intEnd < endTime
+        endTime = intEnd
+    return null unless isFinite(startTime) and isFinite(endTime)
+    ret = [{
+      start: new Date(startTime)
+      end: new Date(endTime)
+    }]
+    return ret
 
-  filterToJS: (filter) ->
+  addToContext: (context, attribute) ->
+    if context[attribute]
+      return context[attribute]
+
+    @jsCount = if @jsCount then @jsCount + 1 else 0
+    return context[attribute] = "v#{@jsCount}"
+
+  # return { jsFilter, context }
+  filterToJSHelper: (filter, context) ->
     switch filter.type
       when 'is'
         throw new Error("can not filter on specific time") if filter.attribute is @timeAttribute
-        "x==='#{filter.value}'"
+        varName = addToContext(context, filter.attribute)
+        "#{varName}==='#{filter.value}'"
 
       when 'in'
         throw new Error("can not filter on specific time") if filter.attribute is @timeAttribute
-        filter.values.map((value) -> "x==='#{value}'").join('||')
+        varName = addToContext(context, filter.attribute)
+        filter.values.map((value) -> "#{varName}==='#{value}'").join('||')
 
       when 'not'
-        "!(#{@filterToJS(filter.filter)})"
+        "!(#{@filterToJSHelper(filter.filter, context)})"
 
       when 'and'
-        filter.filters.map(((filter) -> "(#{@filterToDruid})"), this).join('&&')
+        filter.filters.map(((filter) -> "(#{@filterToJSHelper(filter, context)})"), this).join('&&')
 
       when 'or'
-        filter.filters.map(((filter) -> "(#{@filterToDruid})"), this).join('||')
+        filter.filters.map(((filter) -> "(#{@filterToJSHelper(filter, context)})"), this).join('||')
 
       else
         throw new Error("unknown JS filter type '#{filter.type}'")
+
+  filterToJS: (filter) ->
+    context = {}
+    jsFilter = @filterToJSHelper(filter, context)
+    return {
+      jsFilter
+      context
+    }
 
   # return a (up to) two element array [druid_filter_object, druid_intervals_array]
   filterToDruid: (filter) ->
@@ -187,7 +210,8 @@ class DruidQueryBuilder
   addFilter: (filter) ->
     return unless filter
     [@filter, intervals] = @filterToDruid(filter)
-    @intervals = intervals.map((({start, end}) -> "#{@dateToIntervalPart(start)}/#{@dateToIntervalPart(end)}"), this)
+    if intervals
+      @intervals = intervals.map((({start, end}) -> "#{@dateToIntervalPart(start)}/#{@dateToIntervalPart(end)}"), this)
     return this
 
   addSplit: (split) ->
@@ -317,10 +341,15 @@ class DruidQueryBuilder
       multiply: '*'
       divide: '/'
     }
+    aggregateToJS = {
+      count: ['0', (a, b) -> "#{a}+#{b}"]
+      sum:   ['0', (a, b) -> "#{a}+#{b}"]
+      min:   ['Infinity',  (a, b) -> "Math.min(#{a},#{b})"]
+      max:   ['-Infinity', (a, b) -> "Math.max(#{a},#{b})"]
+    }
     return (apply, returnPostAggregation) ->
       applyName = apply.name or @throwawayName()
       if apply.aggregate
-        throw new Error("filtered applies are not supported yet") if apply.filter # ToDo
         switch apply.aggregate
           when 'constant'
             postAggregation = {
@@ -335,22 +364,50 @@ class DruidQueryBuilder
               return
 
           when 'count', 'sum', 'min', 'max'
-            aggregation = {
-              type: if apply.aggregate is 'sum' then 'doubleSum' else apply.aggregate
-              name: applyName
-            }
-            if apply.aggregate isnt 'count'
-              throw new Error("#{apply.aggregate} must have an attribute") unless apply.attribute
-              aggregation.fieldName = apply.attribute
+            if apply.filter
+              { jsFilter, context } = @filterToJS(apply.filter)
+              fieldNames = []
+              varNames = []
+              for fieldName, varName of context
+                fieldNames.push(fieldName)
+                varNames.push(varName)
 
-            aggregationName = @addAggregation(aggregation)
-            if returnPostAggregation
-              return { type: "fieldAccess", fieldName: aggregationName }
+              if apply.aggregate is 'count'
+                jsIf = "(#{jsFilter}?1:#{zero})"
+              else
+                fieldNames.push(apply.attribute)
+                varNames.push('a')
+                jsIf = "(#{jsFilter}?a:#{zero})"
+
+              [zero, jsAgg] = aggregateToJS[apply.aggregate]
+
+              aggregation = {
+                type: "javascript"
+                name: applyName
+                fieldNames: fieldNames
+                script: "function aggregate(cur, a, #{varNames.join(', ')}) { return #{jsAgg('cur', jsIf)}; };
+                         function combine(pa, pb) { return #{jsAgg(pa, pb)}; };
+                         function reset() { return #{zero}; };"
+              }
             else
-              return
+              aggregation = {
+                type: if apply.aggregate is 'sum' then 'doubleSum' else apply.aggregate
+                name: applyName
+              }
+              if apply.aggregate isnt 'count'
+                throw new Error("#{apply.aggregate} must have an attribute") unless apply.attribute
+                aggregation.fieldName = apply.attribute
+
+              aggregationName = @addAggregation(aggregation)
+              if returnPostAggregation
+                return { type: "fieldAccess", fieldName: aggregationName }
+              else
+                return
 
           when 'uniqueCount'
-            # ToDo: add a throw here in case the user is using open source druid
+            throw new Error("can not filter a uniqueCount") if apply.filter
+
+            # ToDo: add a throw here in case approximate is false
             aggregation = {
               type: "hyperUnique"
               name: applyName
@@ -364,6 +421,8 @@ class DruidQueryBuilder
               return
 
           when 'average'
+            throw new Error("can not filter an average right now") if apply.filter
+
             sumAggregationName = @addAggregation {
               type: 'doubleSum'
               fieldName: apply.attribute
@@ -522,8 +581,6 @@ compareFns = {
 
 druidQueryFns = {
   all: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedQuery}, callback) ->
-    filter = andFilters(filter, condensedQuery.filter)
-
     if condensedQuery.applies.length is 0
       callback(null, [{}])
       return

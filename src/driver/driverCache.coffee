@@ -282,7 +282,11 @@ module.exports = ({driver, queryGetter, querySetter}) ->
       driver async, callback
       return
 
-    condensedQuery = driverUtil.condenseQuery(query)
+    try
+      condensedQuery = driverUtil.condenseQuery(query)
+    catch e
+      callback(e)
+      return
 
     # If there is a split for contnuous dimension, don't use cache
     if condensedQuery[1].split.bucket is 'continuous'

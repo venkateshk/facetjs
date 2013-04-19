@@ -193,3 +193,51 @@ exports["filter language=en; split page; apply count; sort deleted ascending"] =
     { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Deleted', direction: 'ascending' }, limit: 5 }
   ]
 }
+
+exports["filter with nested ANDs"] = testDrivers {
+  drivers: ['mySql', 'druid']
+  query: [
+    {
+      type: "and"
+      filters: [
+        {
+          type: "within"
+          attribute: "time"
+          range: [
+            new Date(Date.UTC(2013, 2-1, 26, 10, 0, 0))
+            new Date(Date.UTC(2013, 2-1, 27, 15, 0, 0))
+          ]
+        }
+        {
+          type: "and",
+          filters: [
+            {
+              type: "is",
+              attribute: "robot",
+              value: "0"
+            }
+            {
+              type: "is",
+              attribute: "namespace",
+              value: "article"
+            }
+            {
+              type: "is",
+              attribute: "language",
+              value: "en"
+            }
+          ]
+        }
+      ]
+      operation: "filter"
+    },
+    {
+      name: "count",
+      aggregate: "sum",
+      attribute: "count",
+      operation: "apply"
+    }
+  ]
+}
+
+

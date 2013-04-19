@@ -23,6 +23,18 @@ facet.use = {
     return (segment) ->
       return getProp(segment, propName)
 
+  comulative: (use) ->
+    tally = 0
+    curParent = null
+    return (segment) ->
+      v = use(segment)
+      if curParent isnt segment.parent
+        curParent = segment.parent
+        tally = 0
+      ret = tally
+      tally += v
+      return ret
+
   scale: (scaleName, use) ->
     throw new Error("must specify scale name") unless scaleName
     throw new TypeError("scale name must be a string") unless typeof scaleName is 'string'

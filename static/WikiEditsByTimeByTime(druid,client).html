@@ -32,7 +32,7 @@
   <body>
 
     <div class="cont">
-      <h1>Wiki Edits by Time by Time</h1>
+      <h1>Wiki Edits by Time(hour) by Time(day)</h1>
       <h2>Druid Driver in Client / wikipedia</h2>
       <div class="example"></div>
     </div>
@@ -52,17 +52,34 @@
         requester: druidRequester,
         dataSource: "wikipedia_editstream",
         filter: {
-          type: 'within',
-          attribute: 'time',
-          range: [
-            new Date(Date.UTC(2013, 4-1, 1, 0, 0, 0)),
-            new Date(Date.UTC(2013, 4-1, 8, 0, 0, 0))
-          ],
+          type: 'and',
+          filters: [
+            {
+              type: 'is',
+              attribute: 'namespace',
+              value: 'article'
+            }, {
+              type: 'is',
+              attribute: 'language',
+              value: 'en'
+            }, {
+              type: 'within',
+              attribute: 'time',
+              range: [
+                new Date(Date.UTC(2013, 4-1, 10, 0, 0, 0)),
+                new Date(Date.UTC(2013, 4-1, 18, 0, 0, 0))
+              ],
+            }
+          ]
         }
       });
 
+      function formatTime(dates) {
+        return dates.start.toISOString().replace('T00:00:00.000Z', '');
+      }
+
       facet.define('.example', 800, 600, facet.verboseDriver(druidDriverClient))
-        .transform(transform.rectangle.rectangle({left: 10, right: 10, top: 10, bottom: 10}))
+        .transform(transform.rectangle.rectangle({left: 30, right: 10, top: 10, bottom: 10}))
         .scale('horiz', scale.linear())
         .scale('vert', scale.linear())
         .range('horiz', use.stage('width'))
@@ -79,10 +96,26 @@
             bottom: 0,
             height: use.scale('vert')
           }))
+            .transform(transform.rectangle.point({ top: -3 }))
+              .plot(plot.label({
+                text: use.prop('Edits'),
+                anchor: 'middle',
+                baseline: 'bottom',
+                size: '10px'
+              }))
+            .untransform()
             .plot(plot.box({
               fill: '#f0f0f0',
               stroke: 'black',
               title: use.prop('Time')
+            }))
+          .untransform()
+          .transform(transform.rectangle.point({ bottom: -3 }))
+            .plot(plot.label({
+              text: use.fn(use.prop('Time'), formatTime),
+              anchor: 'middle',
+              baseline: 'top',
+              size: '10px'
             }))
           .untransform()
             .split('TimeH', split.timePeriod('time', 'PT1H'))
@@ -91,15 +124,22 @@
             .domain('horiz2', use.prop('TimeH'))
             .layout(layout.horizontalScale({ scale: 'horiz2' }))
               .transform(transform.rectangle.rectangle({
-                bottom: 0,
+                bottom: use.scale('vert', use.comulative(use.prop('Edits'))),
                 height: use.scale('vert')
               }))
                 .plot(plot.box({
-                  fill: '#f0f0f0',
+                  fill: '#ff1111',
                   stroke: 'black',
-                  title: use.prop('TimeH')
+                  title: use.prop('Edits')
                 }))
-                .render()
+                .transform(transform.rectangle.point({ left: -3 }))
+                  .plot(plot.label({
+                    text: use.prop('Edits'),
+                    anchor: 'end',
+                    baseline: 'center',
+                    size: '9px'
+                  }))
+                  .render()
 
 
 

@@ -40,19 +40,19 @@ driverFns.mySql = sqlDriver({
 #   filter: null
 # })
 
-testDrivers = utils.makeDriverTest(driverFns)
+testEquality = utils.makeEqualityTest(driverFns)
 
 
 # Tests
 
-exports["apply count"] = testDrivers {
+exports["apply count"] = testEquality {
   drivers: ['simple', 'mySql']
   query: [
     { operation: 'apply', name: 'Count',  aggregate: 'count' }
   ]
 }
 
-exports["many applies"] = testDrivers {
+exports["many applies"] = testEquality {
   drivers: ['simple', 'mySql']
   query: [
     { operation: 'apply', name: 'Constant 42',  aggregate: 'constant', value: '42' }
@@ -65,7 +65,7 @@ exports["many applies"] = testDrivers {
   ]
 }
 
-exports["filter applies"] = testDrivers {
+exports["filter applies"] = testEquality {
   drivers: ['simple', 'mySql']
   query: [
     {
@@ -99,7 +99,7 @@ exports["filter applies"] = testDrivers {
   ]
 }
 
-exports["split cut; no apply"] = testDrivers {
+exports["split cut; no apply"] = testEquality {
   drivers: ['simple', 'mySql']
   query: [
     { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
@@ -107,7 +107,7 @@ exports["split cut; no apply"] = testDrivers {
   ]
 }
 
-exports["split cut; apply count"] = testDrivers {
+exports["split cut; apply count"] = testEquality {
   drivers: ['simple', 'mySql']
   query: [
     { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
@@ -116,7 +116,7 @@ exports["split cut; apply count"] = testDrivers {
   ]
 }
 
-exports["split carat; apply count"] = testDrivers {
+exports["split carat; apply count"] = testEquality {
   drivers: ['simple', 'mySql']
   query: [
     { operation: 'split', name: 'Carat', bucket: 'continuous', size: 0.1, offset: 0.005, attribute: 'carat' }
@@ -125,7 +125,7 @@ exports["split carat; apply count"] = testDrivers {
   ]
 }
 
-exports["split cut; apply count > split carat; apply count"] = testDrivers {
+exports["split cut; apply count > split carat; apply count"] = testEquality {
   drivers: ['simple', 'mySql']
   query: [
     { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
@@ -138,7 +138,7 @@ exports["split cut; apply count > split carat; apply count"] = testDrivers {
   ]
 }
 
-exports["split(1, .5) carat; apply count > split cut; apply count"] = testDrivers {
+exports["split(1, .5) carat; apply count > split cut; apply count"] = testEquality {
   drivers: ['simple', 'mySql']
   query: [
     { operation: 'split', name: 'Carat', bucket: 'continuous', size: 1, offset: 0.5, attribute: 'carat' }
@@ -151,7 +151,7 @@ exports["split(1, .5) carat; apply count > split cut; apply count"] = testDriver
   ]
 }
 
-exports["split carat; apply count > split cut; apply count"] = testDrivers {
+exports["split carat; apply count > split cut; apply count"] = testEquality {
   drivers: ['simple', 'mySql']
   query: [
     { operation: 'split', name: 'Carat', bucket: 'continuous', size: 0.1, offset: 0.005, attribute: 'carat' }
@@ -164,7 +164,7 @@ exports["split carat; apply count > split cut; apply count"] = testDrivers {
   ]
 }
 
-exports["apply arithmetic"] = testDrivers {
+exports["apply arithmetic"] = testEquality {
   drivers: ['simple', 'mySql']
   query: [
     {
@@ -215,7 +215,7 @@ exports["apply arithmetic"] = testDrivers {
   ]
 }
 
-exports["apply arithmetic"] = testDrivers {
+exports["apply arithmetic"] = testEquality {
   drivers: ['simple', 'mySql']
   query: [
     {
@@ -230,7 +230,7 @@ exports["apply arithmetic"] = testDrivers {
   ]
 }
 
-exports["is filter"] = testDrivers {
+exports["is filter"] = testEquality {
   drivers: ['simple', 'mySql']
   query: [
     { operation: 'filter', type: 'is', attribute: 'color', value: 'E' }
@@ -239,7 +239,7 @@ exports["is filter"] = testDrivers {
 }
 
 
-exports["complex filter"] = testDrivers {
+exports["complex filter"] = testEquality {
   drivers: ['simple', 'mySql']
   query: [
     {
@@ -260,7 +260,7 @@ exports["complex filter"] = testDrivers {
   ]
 }
 
-exports["complex filter; split carat; apply count > split cut; apply count"] = testDrivers {
+exports["complex filter; split carat; apply count > split cut; apply count"] = testEquality {
   drivers: ['simple', 'mySql']
   query: [
     {

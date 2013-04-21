@@ -46,6 +46,7 @@ filterFns = {
 }
 
 makeFilterFn = (filter) ->
+  throw new Error("type not defined in filter") unless filter.hasOwnProperty('type')
   filterFn = filterFns[filter.type]
   throw new Error("filter type '#{filter.type}' not defined") unless filterFn
   return filterFn(filter)
@@ -274,7 +275,8 @@ computeQuery = (data, query) ->
 
       when 'split'
         propName = cmd.name
-        throw new Error("'name' not defined in split") unless propName
+        throw new Error("name not defined in split") unless propName
+        throw new TypeError("invalid name in split") unless typeof propName is 'string'
         splitFn = makeSplitFn(cmd)
         segmentGroups = driverUtil.flatten(segmentGroups).map (segment) ->
           keys = []
@@ -305,7 +307,8 @@ computeQuery = (data, query) ->
 
       when 'apply'
         propName = cmd.name
-        throw new Error("'name' not defined in apply") unless propName
+        throw new Error("name not defined in apply") unless propName
+        throw new TypeError("invalid name in apply") unless typeof propName is 'string'
         applyFn = makeApplyFn(cmd)
         for segmentGroup in segmentGroups
           for segment in segmentGroup
@@ -317,7 +320,9 @@ computeQuery = (data, query) ->
           combineFn(segmentGroup) # In place
 
       else
-        throw new Error("Unknown operation '#{cmd.operation}'")
+        throw new Error("unrecognizable query") unless typeof cmd is 'object'
+        throw new Error("operation not defined") unless cmd.hasOwnProperty('operation')
+        throw new Error("unknown operation '#{cmd.operation}'")
 
   # Cleanup _raw data on last segment
   for segmentGroup in segmentGroups

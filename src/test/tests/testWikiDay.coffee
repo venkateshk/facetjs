@@ -55,10 +55,10 @@ driverFns.druid = druidDriver({
   }
 })
 
-testDrivers = utils.makeDriverTest(driverFns)
+testEquality = utils.makeEqualityTest(driverFns)
 
 
-exports["apply count"] = testDrivers {
+exports["apply count"] = testEquality {
   drivers: ['mySql', 'druid']
   query: [
     { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
@@ -66,7 +66,7 @@ exports["apply count"] = testDrivers {
   ]
 }
 
-exports["filter; apply count"] = testDrivers {
+exports["filter; apply count"] = testEquality {
   drivers: ['mySql', 'druid']
   query: [
     { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
@@ -75,7 +75,7 @@ exports["filter; apply count"] = testDrivers {
   ]
 }
 
-exports["apply arithmetic"] = testDrivers {
+exports["apply arithmetic"] = testEquality {
   drivers: ['mySql', 'druid']
   query: [
     { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
@@ -101,7 +101,7 @@ exports["apply arithmetic"] = testDrivers {
   ]
 }
 
-exports["split time; combine time"] = testDrivers {
+exports["split time; combine time"] = testEquality {
   drivers: ['mySql', 'druid']
   query: [
     { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
@@ -110,7 +110,7 @@ exports["split time; combine time"] = testDrivers {
 }
 
 # The sorting here still does not match - ask FJ
-# exports["split page; combine page"] = testDrivers {
+# exports["split page; combine page"] = testEquality {
 #   drivers: ['mySql', 'druid']
 #   query: [
 #     { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
@@ -118,7 +118,7 @@ exports["split time; combine time"] = testDrivers {
 #   ]
 # }
 
-exports["split time; apply count"] = testDrivers {
+exports["split time; apply count"] = testEquality {
   drivers: ['mySql', 'druid']
   query: [
     { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
@@ -128,7 +128,7 @@ exports["split time; apply count"] = testDrivers {
   ]
 }
 
-exports["split time; apply count; sort Count descending"] = testDrivers {
+exports["split time; apply count; sort Count descending"] = testEquality {
   drivers: ['mySql', 'druid']
   query: [
     { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
@@ -137,7 +137,7 @@ exports["split time; apply count; sort Count descending"] = testDrivers {
   ]
 }
 
-exports["split time; apply count; sort Count ascending"] = testDrivers {
+exports["split time; apply count; sort Count ascending"] = testEquality {
   drivers: ['mySql', 'druid']
   query: [
     { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
@@ -148,7 +148,7 @@ exports["split time; apply count; sort Count ascending"] = testDrivers {
 
 # ToDo: Test timezone support
 
-exports["split page; apply count; sort count descending"] = testDrivers {
+exports["split page; apply count; sort count descending"] = testEquality {
   drivers: ['mySql', 'druid']
   query: [
     { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
@@ -158,7 +158,7 @@ exports["split page; apply count; sort count descending"] = testDrivers {
   ]
 }
 
-exports["split language; apply count; sort count descending > split page; apply count; sort count descending"] = testDrivers {
+exports["split language; apply count; sort count descending > split page; apply count; sort count descending"] = testEquality {
   drivers: ['mySql', 'druid']
   query: [
     { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
@@ -173,7 +173,7 @@ exports["split language; apply count; sort count descending > split page; apply 
   ]
 }
 
-exports["split page; apply count; sort count ascending"] = testDrivers {
+exports["split page; apply count; sort count ascending"] = testEquality {
   drivers: ['mySql', 'druid']
   query: [
     { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
@@ -183,7 +183,7 @@ exports["split page; apply count; sort count ascending"] = testDrivers {
   ]
 }
 
-exports["filter language=en; split page; apply count; sort deleted ascending"] = testDrivers {
+exports["filter language=en; split page; apply count; sort deleted ascending"] = testEquality {
   drivers: ['mySql', 'druid']
   query: [
     { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
@@ -194,10 +194,11 @@ exports["filter language=en; split page; apply count; sort deleted ascending"] =
   ]
 }
 
-exports["filter with nested ANDs"] = testDrivers {
+exports["filter with nested ANDs"] = testEquality {
   drivers: ['mySql', 'druid']
   query: [
     {
+      operation: "filter",
       type: "and"
       filters: [
         {
@@ -211,33 +212,61 @@ exports["filter with nested ANDs"] = testDrivers {
         {
           type: "and",
           filters: [
-            {
-              type: "is",
-              attribute: "robot",
-              value: "0"
-            }
-            {
-              type: "is",
-              attribute: "namespace",
-              value: "article"
-            }
-            {
-              type: "is",
-              attribute: "language",
-              value: "en"
-            }
+            { type: "is", attribute: "robot", value: "0" }
+            { type: "is", attribute: "namespace", value: "article" }
+            { type: "is", attribute: "language", value: "en" }
           ]
         }
       ]
-      operation: "filter"
     },
+    { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
+  ]
+}
+
+###
+# Should work once druid with advanced JS aggregate is deployed
+exports["apply sum(count, robot=0), sum(added, robot=1)"] = testEquality {
+  drivers: ['mySql', 'druid']
+  query: [
     {
-      name: "count",
-      aggregate: "sum",
-      attribute: "count",
       operation: "apply"
+      name: "Count R=0"
+      aggregate: "sum", attribute: "count"
+      filter: { type: 'is', attribute: "robot", value: "0" }
+    }
+    {
+      operation: "apply"
+      name: "Added R=1"
+      aggregate: "sum", attribute: "added"
+      filter: { type: 'is', attribute: "robot", value: "1" }
     }
   ]
 }
 
-
+exports["split page; apply sum(count, robot=0), sum(added, robot=1)"] = testEquality {
+  drivers: ['mySql', 'druid']
+  query: [
+    {
+      operation: "split"
+      name: 'Page', bucket: 'identity', attribute: 'page'
+    }
+    {
+      operation: "apply"
+      name: "Count R=0"
+      aggregate: "sum", attribute: "count"
+      filter: { type: 'is', attribute: "robot", value: "0" }
+    }
+    {
+      operation: "apply"
+      name: "Added R=1"
+      aggregate: "sum", attribute: "added"
+      filter: { type: 'is', attribute: "robot", value: "1" }
+    }
+    {
+      operation: 'combine', combine: 'slice'
+      sort: { compare: 'natural', prop: 'Count R=0', direction: 'descending' }
+      limit: 5
+    }
+  ]
+}
+###

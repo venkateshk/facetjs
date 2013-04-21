@@ -35,6 +35,7 @@ exports.condenseQuery = (query) ->
     switch cmd.operation
       when 'filter'
         throw new Error("can not have more than one filter") if curQuery.filter
+        throw new Error("type not defined in filter") unless cmd.type
         curQuery.filter = cmd
 
       when 'split'
@@ -42,7 +43,7 @@ exports.condenseQuery = (query) ->
         if cmd.bucket is 'tuple'
           throw new Error("tuple split must have splits") unless cmd.splits
         else
-          throw new Error("split must have name") unless cmd.name
+          throw new Error("name not defined in split") unless cmd.name
           throw new TypeError("invalid name in split") unless typeof cmd.name is 'string'
           throw new Error("split must have an attribute") unless cmd.attribute
           throw new TypeError("invalid attribute in split") unless typeof cmd.attribute is 'string'
@@ -55,7 +56,7 @@ exports.condenseQuery = (query) ->
         curKnownProps[cmd.name] = true
 
       when 'apply'
-        throw new Error("apply must have name") unless cmd.name
+        throw new Error("name not defined in apply") unless cmd.name
         throw new TypeError("invalid name in apply") unless typeof cmd.name is 'string'
         curQuery.applies.push(cmd)
         curKnownProps[cmd.name] = true
@@ -77,6 +78,8 @@ exports.condenseQuery = (query) ->
         curQuery.combine = cmd
 
       else
+        throw new Error("unrecognizable query") unless typeof cmd is 'object'
+        throw new Error("operation not defined") unless cmd.hasOwnProperty('operation')
         throw new Error("unknown operation '#{cmd.operation}'")
 
   condensed.push(curQuery)

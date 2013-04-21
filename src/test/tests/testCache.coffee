@@ -43,10 +43,10 @@ driverFns.mySqlCached = driverCache({
   driver: mySqlWrap
 })
 
-testDrivers = utils.makeDriverTest(driverFns)
+testEquality = utils.makeEqualityTest(driverFns)
 
 # Sanity check
-exports["(sanity check) apply count"] = testDrivers {
+exports["(sanity check) apply count"] = testEquality {
   drivers: ['mySql', 'mySqlCached']
   query: [
     { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
@@ -56,7 +56,7 @@ exports["(sanity check) apply count"] = testDrivers {
 }
 
 # Top N Cache Test
-exports["split page; apply deleted, count; combine descending"] = testDrivers {
+exports["split page; apply deleted, count; combine descending"] = testEquality {
   drivers: ['mySql', 'mySqlCached']
   query: [
     { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
@@ -76,7 +76,7 @@ exports["[cache tests on] topN"] = {
     allowQuery = true
     callback()
 
-  "split page; apply deleted; combine descending": testDrivers {
+  "split page; apply deleted; combine descending": testEquality {
     drivers: ['mySql', 'mySqlCached']
     query: [
       { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
@@ -86,7 +86,7 @@ exports["[cache tests on] topN"] = {
     ]
   }
 
-  "split page; apply deleted, count; combine descending": testDrivers {
+  "split page; apply deleted, count; combine descending": testEquality {
     drivers: ['mySql', 'mySqlCached']
     query: [
       { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
@@ -101,7 +101,7 @@ exports["[cache tests on] topN"] = {
 
 
 # Cache Test
-exports["split time; apply count; apply added"] = testDrivers {
+exports["split time; apply count; apply added"] = testEquality {
   drivers: ['mySql', 'mySqlCached']
   query: [
     { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
@@ -121,7 +121,7 @@ exports["[cache tests on] split time; apply count; apply added"] = {
     allowQuery = true
     callback()
 
-  "split time; apply count": testDrivers {
+  "split time; apply count": testEquality {
     drivers: ['mySql', 'mySqlCached']
     query: [
       { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
@@ -131,7 +131,7 @@ exports["[cache tests on] split time; apply count; apply added"] = {
     ]
   }
 
-  "split time; apply count; combine not by time": testDrivers {
+  "split time; apply count; combine not by time": testEquality {
     drivers: ['mySql', 'mySqlCached']
     query: [
       { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
@@ -141,7 +141,7 @@ exports["[cache tests on] split time; apply count; apply added"] = {
     ]
   }
 
-  "split time; apply count; filter within another time filter": testDrivers {
+  "split time; apply count; filter within another time filter": testEquality {
     drivers: ['mySql', 'mySqlCached']
     query: [
       { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 26, 12, 0, 0))] }
@@ -151,7 +151,7 @@ exports["[cache tests on] split time; apply count; apply added"] = {
     ]
   }
 
-  "split time; apply count; limit": testDrivers {
+  "split time; apply count; limit": testEquality {
     drivers: ['mySql', 'mySqlCached']
     query: [
       { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
@@ -163,7 +163,7 @@ exports["[cache tests on] split time; apply count; apply added"] = {
 }
 
 # Cache Test 2
-exports["filter; split time; apply count; apply added"] = testDrivers {
+exports["filter; split time; apply count; apply added"] = testEquality {
   drivers: ['mySql', 'mySqlCached']
   query: [
     { operation: 'filter', type: 'and', filters: [
@@ -186,7 +186,7 @@ exports["[cache tests on] filter; split time; apply count"] = {
     allowQuery = true
     callback()
 
-  "filter; split time; apply count; apply added": testDrivers {
+  "filter; split time; apply count; apply added": testEquality {
     drivers: ['mySql', 'mySqlCached']
     query: [
       { operation: 'filter', type: 'and', filters: [
@@ -200,7 +200,7 @@ exports["[cache tests on] filter; split time; apply count"] = {
     ]
   }
 
-  "filter; split time; apply count; apply added; combine time descending": testDrivers {
+  "filter; split time; apply count; apply added; combine time descending": testEquality {
     drivers: ['mySql', 'mySqlCached']
     query: [
       { operation: 'filter', type: 'and', filters: [
@@ -222,7 +222,7 @@ exports["fillTree test"] = { # TODO: Use better mechanism to test
   tearDown: (callback) ->
     callback()
 
-  "filter; split time; apply count; apply added": testDrivers {
+  "filter; split time; apply count; apply added": testEquality {
     drivers: ['mySql', 'mySqlCached']
     query: [
       { operation: 'filter', type: 'and', filters: [
@@ -235,7 +235,7 @@ exports["fillTree test"] = { # TODO: Use better mechanism to test
     ]
   }
 
-  "filter; split time; apply count; apply added; combine time descending": testDrivers {
+  "filter; split time; apply count; apply added; combine time descending": testEquality {
     drivers: ['mySql', 'mySqlCached']
     query: [
       { operation: 'filter', type: 'and', filters: [

@@ -63,6 +63,8 @@ exports.condenseQuery = (query) ->
 
       when 'combine'
         throw new Error("can not have more than one combine") if curQuery.combine
+        throw new Error("combine not defined in combine") unless cmd.hasOwnProperty('combine')
+
         if cmd.sort
           throw new Error("sort must have a prop") unless cmd.sort.prop
           throw new Error("sort on undefined prop '#{cmd.sort.prop}'") unless curKnownProps[cmd.sort.prop]

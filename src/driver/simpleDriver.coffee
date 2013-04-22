@@ -250,6 +250,7 @@ combineFns = {
 }
 
 makeCombineFn = (combine) ->
+  throw new Error("combine not defined in combine") unless combine.hasOwnProperty('combine')
   combineFn = combineFns[combine.combine]
   throw new Error("unsupported combine '#{combine.combine}' in combine") unless combineFn
   return combineFn(combine)
@@ -284,7 +285,7 @@ computeQuery = (data, query) ->
           bucketValue = {}
           for d in segment._raw
             key = splitFn(d)
-            throw new Error("Bucket returned undefined") unless key? # ToDo: handle nulls
+            throw new Error("bucket returned undefined") unless key? # ToDo: handle nulls
             keyString = String(key)
 
             if not buckets[keyString]

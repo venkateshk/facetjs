@@ -127,6 +127,14 @@ exports["applies"] = {
 }
 
 exports["combines"] = {
-  # ToDo
+  "missing combine": testError {
+    drivers: ['mySql', 'druid'] # 'simple',
+    error: "combine not defined in combine"
+    query: [
+      { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
+      { operation: 'apply', name: 'Count', aggregate: 'count' }
+      { operation: 'combine' }
+    ]
+  }
 }
 

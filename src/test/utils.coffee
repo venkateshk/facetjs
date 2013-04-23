@@ -67,9 +67,9 @@ exports.makeEqualityTest = (driverFns) ->
 exports.makeErrorTest = (driverFns) ->
   return ({drivers, query, error, verbose}) -> (test) ->
     throw new Error("must have at least one driver") if drivers.length < 1
-    test.expect(drivers.length)
 
     numberOfTestsLeft = drivers.length
+    test.expect(numberOfTestsLeft)
 
     drivers.forEach (driverName) ->
       driverFn = driverFns[driverName]

@@ -47,6 +47,7 @@ filterFns = {
 
 makeFilterFn = (filter) ->
   throw new Error("type not defined in filter") unless filter.hasOwnProperty('type')
+  throw new Error("invalid type in filter") unless typeof filter.type is 'string'
   filterFn = filterFns[filter.type]
   throw new Error("filter type '#{filter.type}' not defined") unless filterFn
   return filterFn(filter)
@@ -266,6 +267,7 @@ computeQuery = (data, query) ->
   }
   segmentGroups = [[rootSegment]]
 
+  lastSplit = null
   for cmd in query
     switch cmd.operation
       when 'filter'
@@ -275,6 +277,7 @@ computeQuery = (data, query) ->
             segment._raw = segment._raw.filter(filterFn)
 
       when 'split'
+        lastSplit = cmd
         propName = cmd.name
         throw new Error("name not defined in split") unless propName
         throw new TypeError("invalid name in split") unless typeof propName is 'string'
@@ -317,6 +320,9 @@ computeQuery = (data, query) ->
             segment.prop[propName] = applyFn(segment._raw)
 
       when 'combine'
+        throw new Error("combine called without split") unless lastSplit
+        lastSplit = null
+
         combineFn = makeCombineFn(cmd)
         for segmentGroup in segmentGroups
           combineFn(segmentGroup) # In place
@@ -324,6 +330,7 @@ computeQuery = (data, query) ->
       else
         throw new Error("unrecognizable query") unless typeof cmd is 'object'
         throw new Error("operation not defined") unless cmd.hasOwnProperty('operation')
+        throw new Error("invalid operation") unless typeof cmd.operation is 'string'
         throw new Error("unknown operation '#{cmd.operation}'")
 
   # Cleanup _raw data on last segment

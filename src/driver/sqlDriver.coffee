@@ -82,7 +82,7 @@ class SQLQueryBuilder
         '(' + filter.filters.map(@filterToSQL, this).join(') OR (') + ')'
 
       else
-        throw new Error("unknown filter type '#{filter.type}'")
+        throw new Error("filter type '#{filter.type}' not defined")
 
   addFilter: (filter) ->
     return unless filter

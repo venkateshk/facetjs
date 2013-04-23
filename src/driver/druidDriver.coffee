@@ -207,7 +207,7 @@ class DruidQueryBuilder
         }]
 
       else
-        throw new Error("unknown filter type '#{filter.type}'")
+        throw new Error("filter type '#{filter.type}' not defined")
 
   addFilter: (filter) ->
     return unless filter
@@ -874,9 +874,12 @@ druidQueryFns = {
 }
 
 
-module.exports = ({requester, dataSource, timeAttribute, approximate, filter, forceInterval}) ->
+module.exports = ({requester, dataSource, timeAttribute, approximate, filter, forceInterval, concurentQueryLimit, queryLimit}) ->
   timeAttribute or= 'time'
   approximate ?= true
+  concurentQueryLimit or= 16
+  queryLimit or= Infinity
+  queriesMade = 0
   return (query, callback) ->
     try
       condensedQuery = driverUtil.condenseQuery(query)
@@ -910,6 +913,11 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
         queryFn = druidQueryFns.all
 
       queryForSegment = (parentSegment, callback) ->
+        queriesMade++
+        if queryLimit < queriesMade
+          callback('query limit exceeded')
+          return
+
         myFilter = andFilters((if parentSegment then parentSegment._filter else filter), condensedQuery.filter)
         queryFn({
           requester
@@ -943,10 +951,9 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
         return
 
       # do the query in parallel
-      QUERY_LIMIT = 10
       queryFns = async.mapLimit(
         segments
-        QUERY_LIMIT
+        concurentQueryLimit
         queryForSegment
         (err, results) ->
           if err

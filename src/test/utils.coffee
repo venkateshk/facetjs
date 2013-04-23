@@ -69,13 +69,14 @@ exports.makeErrorTest = (driverFns) ->
     throw new Error("must have at least one driver") if drivers.length < 1
 
     numberOfTestsLeft = drivers.length
-    test.expect(numberOfTestsLeft)
+    test.expect(numberOfTestsLeft * 2)
 
     drivers.forEach (driverName) ->
       driverFn = driverFns[driverName]
       throw new Error("no such driver #{driverName}") unless driverFn
       driverFn query, (err, results) ->
         numberOfTestsLeft--
+        test.ok(err, "#{driverName} driver should throw error")
         test.equal(error, err.message, "#{driverName} driver error should match")
         if numberOfTestsLeft is 0
           test.done()

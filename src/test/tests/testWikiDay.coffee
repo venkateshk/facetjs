@@ -9,12 +9,11 @@ druidDriver = require('../../druidDriver')
 
 # Set up drivers
 driverFns = {}
+verbose = false
 
 # Simple
 # diamondsData = require('../../../data/diamonds.js')
 # driverFns.simple = simpleDriver(diamondsData)
-
-verbose = false
 
 # MySQL
 sqlPass = sqlRequester({
@@ -223,7 +222,6 @@ exports["filter with nested ANDs"] = testEquality {
   ]
 }
 
-###
 # Should work once druid with advanced JS aggregate is deployed
 exports["apply sum(count, robot=0), sum(added, robot=1)"] = testEquality {
   drivers: ['mySql', 'druid']
@@ -239,6 +237,30 @@ exports["apply sum(count, robot=0), sum(added, robot=1)"] = testEquality {
       name: "Added R=1"
       aggregate: "sum", attribute: "added"
       filter: { type: 'is', attribute: "robot", value: "1" }
+    }
+    {
+      operation: "apply"
+      name: "Min Added R=1"
+      aggregate: "min", attribute: "added"
+      filter: { type: 'is', attribute: "robot", value: "1" }
+    }
+    {
+      operation: "apply"
+      name: "Max Added R=1"
+      aggregate: "max", attribute: "added"
+      filter: { type: 'is', attribute: "robot", value: "1" }
+    }
+    {
+      operation: "apply"
+      name: "CountComplexFilter"
+      aggregate: "sum", attribute: "count"
+      filter: {
+        type: 'and'
+        filters: [
+          { type: 'is', attribute: "robot", value: "1" }
+          { type: 'in', attribute: "language", values: ["en", "fr"] }
+        ]
+      }
     }
   ]
 }
@@ -269,4 +291,3 @@ exports["split page; apply sum(count, robot=0), sum(added, robot=1)"] = testEqua
     }
   ]
 }
-###

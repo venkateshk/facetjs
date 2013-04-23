@@ -75,20 +75,21 @@ class DruidQueryBuilder
     if context[attribute]
       return context[attribute]
 
-    @jsCount = if @jsCount then @jsCount + 1 else 0
-    return context[attribute] = "v#{@jsCount}"
+    context[attribute] = "v#{@jsCount}"
+    @jsCount++
+    return context[attribute]
 
   # return { jsFilter, context }
   filterToJSHelper: (filter, context) ->
     switch filter.type
       when 'is'
         throw new Error("can not filter on specific time") if filter.attribute is @timeAttribute
-        varName = addToContext(context, filter.attribute)
+        varName = @addToContext(context, filter.attribute)
         "#{varName}==='#{filter.value}'"
 
       when 'in'
         throw new Error("can not filter on specific time") if filter.attribute is @timeAttribute
-        varName = addToContext(context, filter.attribute)
+        varName = @addToContext(context, filter.attribute)
         filter.values.map((value) -> "#{varName}==='#{value}'").join('||')
 
       when 'not'
@@ -105,6 +106,7 @@ class DruidQueryBuilder
 
   filterToJS: (filter) ->
     context = {}
+    @jsCount = 0
     jsFilter = @filterToJSHelper(filter, context)
     return {
       jsFilter
@@ -252,6 +254,8 @@ class DruidQueryBuilder
         tempHistogramName = @addAggregation {
           type: "approxHistogramFold"
           fieldName: split.attribute
+          #lowerLimit: 0
+          #upperLimit: 10
         }
 
         @addPostAggregation {
@@ -372,6 +376,8 @@ class DruidQueryBuilder
                 fieldNames.push(fieldName)
                 varNames.push(varName)
 
+              [zero, jsAgg] = aggregateToJS[apply.aggregate]
+
               if apply.aggregate is 'count'
                 jsIf = "(#{jsFilter}?1:#{zero})"
               else
@@ -379,30 +385,29 @@ class DruidQueryBuilder
                 varNames.push('a')
                 jsIf = "(#{jsFilter}?a:#{zero})"
 
-              [zero, jsAgg] = aggregateToJS[apply.aggregate]
-
               aggregation = {
                 type: "javascript"
                 name: applyName
                 fieldNames: fieldNames
-                script: "function aggregate(cur, a, #{varNames.join(', ')}) { return #{jsAgg('cur', jsIf)}; };
-                         function combine(pa, pb) { return #{jsAgg(pa, pb)}; };
-                         function reset() { return #{zero}; };"
+                fnAggregate: "function(cur,#{varNames.join(',')}){return #{jsAgg('cur', jsIf)};}"
+                fnCombine: "function(pa,pb){return #{jsAgg('pa', 'pb')};}"
+                fnReset: "function(){return #{zero};}"
               }
             else
               aggregation = {
                 type: if apply.aggregate is 'sum' then 'doubleSum' else apply.aggregate
                 name: applyName
               }
+
               if apply.aggregate isnt 'count'
                 throw new Error("#{apply.aggregate} must have an attribute") unless apply.attribute
                 aggregation.fieldName = apply.attribute
 
-              aggregationName = @addAggregation(aggregation)
-              if returnPostAggregation
-                return { type: "fieldAccess", fieldName: aggregationName }
-              else
-                return
+            aggregationName = @addAggregation(aggregation)
+            if returnPostAggregation
+              return { type: "fieldAccess", fieldName: aggregationName }
+            else
+              return
 
           when 'uniqueCount'
             throw new Error("can not filter a uniqueCount") if apply.filter
@@ -886,7 +891,7 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
       if condensedQuery.split
         switch condensedQuery.split.bucket
           when 'identity'
-            if approximate
+            if condensedQuery.combine.limit? and approximate
               queryFn = druidQueryFns.topN
             else
               queryFn = druidQueryFns.groupBy

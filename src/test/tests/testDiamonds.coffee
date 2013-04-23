@@ -9,6 +9,7 @@ druidDriver = require('../../druidDriver')
 
 # Set up drivers
 driverFns = {}
+verbose = false
 
 # Simple
 diamondsData = require('../../../data/diamonds.js')
@@ -21,6 +22,8 @@ sqlPass = sqlRequester({
   user: 'facet_user'
   password: 'HadleyWickham'
 })
+
+sqlPass = utils.wrapVerbose(sqlPass, 'MySQL') if verbose
 
 driverFns.mySql = sqlDriver({
   requester: sqlPass

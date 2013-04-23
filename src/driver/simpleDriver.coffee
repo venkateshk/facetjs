@@ -190,12 +190,12 @@ makeApplyFn = (apply) ->
   if apply.aggregate
     aggregateFn = aggregateFns[apply.aggregate]
     throw new Error("unsupported aggregate '#{apply.aggregate}' in apply") unless aggregateFn
+    rawApplyFn = aggregateFn(apply)
     if apply.filter
-      rawApplyFn = aggregateFn(apply)
       filterFn = makeFilterFn(apply.filter)
       return (ds) -> rawApplyFn(ds.filter(filterFn))
     else
-      return aggregateFn(apply)
+      return rawApplyFn
   else if apply.arithmetic
     arithmeticFn = arithmeticFns[apply.arithmetic]
     throw new Error("unsupported arithmetic '#{apply.arithmetic}' in apply") unless arithmeticFn
@@ -310,6 +310,7 @@ computeQuery = (data, query) ->
         propName = cmd.name
         throw new Error("name not defined in apply") unless propName
         throw new TypeError("invalid name in apply") unless typeof propName is 'string'
+
         applyFn = makeApplyFn(cmd)
         for segmentGroup in segmentGroups
           for segment in segmentGroup

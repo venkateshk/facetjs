@@ -187,6 +187,14 @@ class SQLQueryBuilder
       max:         (c) -> "MAX(#{c})"
       uniqueCount: (c) -> "COUNT(DISTINCT #{c})"
     }
+    aggregateToZero = {
+      count:       "NULL"
+      sum:         "0"
+      average:     "NULL"
+      min:         "NULL"
+      max:         "NULL"
+      uniqueCount: "NULL"
+    }
     arithmeticToSqlOp = {
       add:      '+'
       subtract: '-'
@@ -202,7 +210,8 @@ class SQLQueryBuilder
           when 'count', 'sum', 'average', 'min', 'max', 'uniqueCount'
             expresion = if apply.aggregate is 'count' then '1' else @escapeAttribute(apply.attribute)
             if apply.filter
-              expresion = "IF(#{@filterToSQL(apply.filter)}, #{expresion}, NULL)"
+              zero = aggregateToZero[apply.aggregate]
+              expresion = "IF(#{@filterToSQL(apply.filter)}, #{expresion}, #{zero})"
             aggregateToSqlFn[apply.aggregate](expresion)
 
           when 'quantile'

@@ -512,32 +512,18 @@ class DruidQueryBuilder
   addCombine: (combine) ->
     switch combine.combine
       when 'slice'
-        sort = combine.sort
+        { sort, limit } = combine
+
         if sort and @queryType is 'groupBy'
           if sort.prop is @dimension.outputName
             @metric = { type: "lexicographic" }
           else
-            # figure out of we need to invert and apply for a bottomN
-            if sort.direction is 'descending'
-              @metric = sort.prop
-            else
-              # make a bottomN (ToDo: is there a better way to do this?)
-              @metric = @throwawayName()
-              @addPostAggregation {
-                type: "arithmetic"
-                name: @metric
-                fn: "*"
-                fields: [
-                  { type: "fieldAccess", fieldName: sort.prop }
-                  { type: "constant", value: -1 }
-                ]
-              }
+            throw new Error("can not sort on without approximate") unless @approximate
+            @metric = sort.prop
+            @queryType = if sort.direction is 'descending' then 'topN' else 'bottomN'
 
-        limit = combine.limit
         if limit
           @threshold = limit
-          if @queryType is 'groupBy' and @approximate
-            @queryType = 'topN'
 
       when 'matrix'
         sort = combine.sort

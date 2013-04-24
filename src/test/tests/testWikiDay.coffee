@@ -80,7 +80,7 @@ exports["apply arithmetic"] = testEquality {
     { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
     {
       operation: 'apply'
-      name: 'Added + Delted'
+      name: 'Added + Deleted'
       arithmetic: 'add'
       operands: [
         { aggregate: 'sum', attribute: 'added' }
@@ -89,7 +89,7 @@ exports["apply arithmetic"] = testEquality {
     }
     {
       operation: 'apply'
-      name: 'Added - Delted'
+      name: 'Added - Deleted'
       arithmetic: 'subtract'
       operands: [
         { aggregate: 'sum', attribute: 'added' }

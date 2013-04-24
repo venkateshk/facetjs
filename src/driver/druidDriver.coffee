@@ -587,8 +587,8 @@ compareFns = {
 }
 
 druidQueryFns = {
-  all: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedQuery, approximate}, callback) ->
-    if condensedQuery.applies.length is 0
+  all: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate}, callback) ->
+    if condensedCommand.applies.length is 0
       callback(null, [{}])
       return
 
@@ -599,8 +599,8 @@ druidQueryFns = {
       druidQuery.addFilter(filter)
 
       # apply
-      if condensedQuery.applies.length
-        for apply in condensedQuery.applies
+      if condensedCommand.applies.length
+        for apply in condensedCommand.applies
           druidQuery.addApply(apply)
       else
         druidQuery.addDummyApply()
@@ -630,7 +630,7 @@ druidQueryFns = {
       return
     return
 
-  timeseries: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedQuery, approximate}, callback) ->
+  timeseries: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate}, callback) ->
     druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval, approximate)
 
     try
@@ -638,11 +638,11 @@ druidQueryFns = {
       druidQuery.addFilter(filter)
 
       # split
-      druidQuery.addSplit(condensedQuery.split)
+      druidQuery.addSplit(condensedCommand.split)
 
       # apply
-      if condensedQuery.applies.length
-        for apply in condensedQuery.applies
+      if condensedCommand.applies.length
+        for apply in condensedCommand.applies
           druidQuery.addApply(apply)
       else
         druidQuery.addDummyApply()
@@ -667,23 +667,23 @@ druidQueryFns = {
         'P1D' : 24 * 60 * 60 * 1000
       }
 
-      timePropName = condensedQuery.split.name
+      timePropName = condensedCommand.split.name
 
-      if condensedQuery.combine
-        if condensedQuery.combine.sort
-          if condensedQuery.combine.sort.prop is timePropName
-            if condensedQuery.combine.sort.direction is 'descending'
+      if condensedCommand.combine
+        if condensedCommand.combine.sort
+          if condensedCommand.combine.sort.prop is timePropName
+            if condensedCommand.combine.sort.direction is 'descending'
               ds.reverse()
           else
-            comapreFn = compareFns[condensedQuery.combine.sort.direction]
-            sortProp = condensedQuery.combine.sort.prop
+            comapreFn = compareFns[condensedCommand.combine.sort.direction]
+            sortProp = condensedCommand.combine.sort.prop
             ds.sort((a, b) -> comapreFn(a.result[sortProp], b.result[sortProp]))
 
-        if condensedQuery.combine.limit?
-          limit = condensedQuery.combine.limit
+        if condensedCommand.combine.limit?
+          limit = condensedCommand.combine.limit
           driverUtil.inPlaceTrim(ds, limit)
 
-      period = periodMap[condensedQuery.split.period]
+      period = periodMap[condensedCommand.split.period]
       props = ds.map (d) ->
         rangeStart = new Date(d.timestamp)
         range = [rangeStart, new Date(rangeStart.valueOf() + period)]
@@ -695,7 +695,7 @@ druidQueryFns = {
       return
     return
 
-  topN: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedQuery, approximate}, callback) ->
+  topN: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate}, callback) ->
     druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval, approximate)
 
     try
@@ -703,17 +703,17 @@ druidQueryFns = {
       druidQuery.addFilter(filter)
 
       # split
-      druidQuery.addSplit(condensedQuery.split)
+      druidQuery.addSplit(condensedCommand.split)
 
       # apply
-      if condensedQuery.applies.length
-        for apply in condensedQuery.applies
+      if condensedCommand.applies.length
+        for apply in condensedCommand.applies
           druidQuery.addApply(apply)
       else
         druidQuery.addDummyApply()
 
-      if condensedQuery.combine
-        druidQuery.addCombine(condensedQuery.combine)
+      if condensedCommand.combine
+        druidQuery.addCombine(condensedCommand.combine)
 
       queryObj = druidQuery.getQuery()
     catch e
@@ -740,7 +740,7 @@ druidQueryFns = {
       return
     return
 
-  heatmap: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedQuery, approximate}, callback) ->
+  heatmap: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate}, callback) ->
     druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval, approximate)
 
     try
@@ -748,17 +748,17 @@ druidQueryFns = {
       druidQuery.addFilter(filter)
 
       # split
-      druidQuery.addSplit(condensedQuery.split)
+      druidQuery.addSplit(condensedCommand.split)
 
       # apply
-      if condensedQuery.applies.length
-        for apply in condensedQuery.applies
+      if condensedCommand.applies.length
+        for apply in condensedCommand.applies
           druidQuery.addApply(apply)
       else
         druidQuery.addDummyApply()
 
-      if condensedQuery.combine
-        druidQuery.addCombine(condensedQuery.combine)
+      if condensedCommand.combine
+        druidQuery.addCombine(condensedCommand.combine)
 
       queryObj = druidQuery.getQuery()
     catch e
@@ -783,7 +783,7 @@ druidQueryFns = {
 
       dimensionRenameNeeded = false
       dimensionRenameMap = {}
-      for split in condensedQuery.split.splits
+      for split in condensedCommand.split.splits
         continue if split.name is split.attribute
         dimensionRenameMap[split.attribute] = split.name
         dimensionRenameNeeded = true
@@ -802,13 +802,13 @@ druidQueryFns = {
       return
     return
 
-  groupBy: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedQuery, approximate}, callback) ->
+  groupBy: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate}, callback) ->
     callback({
       massage: 'groupBy not implemented yet (ToDo)'
     })
     return
 
-  histogram: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedQuery, approximate}, callback) ->
+  histogram: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate}, callback) ->
     druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval, approximate)
 
     try
@@ -816,7 +816,7 @@ druidQueryFns = {
       druidQuery.addFilter(filter)
 
       # split
-      druidQuery.addSplit(condensedQuery.split)
+      druidQuery.addSplit(condensedCommand.split)
 
       # applies are constrained to count
       # combine has to be computed in post processing
@@ -842,9 +842,9 @@ druidQueryFns = {
         })
         return
 
-      filterAttribute = condensedQuery.split.attribute
-      histName = condensedQuery.split.name
-      countName = condensedQuery.applies[0].name
+      filterAttribute = condensedCommand.split.attribute
+      histName = condensedCommand.split.name
+      countName = condensedCommand.applies[0].name
       { breaks, counts } = ds[0].result.histogram
 
       props = []
@@ -856,18 +856,18 @@ druidQueryFns = {
         prop[countName] = count
         props.push(prop)
 
-      if condensedQuery.combine
-        if condensedQuery.combine.sort
-          if condensedQuery.combine.sort.prop is histName
-            if condensedQuery.combine.sort.direction is 'descending'
+      if condensedCommand.combine
+        if condensedCommand.combine.sort
+          if condensedCommand.combine.sort.prop is histName
+            if condensedCommand.combine.sort.direction is 'descending'
               props.reverse()
           else
-            comapreFn = compareFns[condensedQuery.combine.sort.direction]
-            sortProp = condensedQuery.combine.sort.prop
+            comapreFn = compareFns[condensedCommand.combine.sort.direction]
+            sortProp = condensedCommand.combine.sort.prop
             props.sort((a, b) -> comapreFn(a[sortProp], b[sortProp]))
 
-        if condensedQuery.combine.limit?
-          limit = condensedQuery.combine.limit
+        if condensedCommand.combine.limit?
+          limit = condensedCommand.combine.limit
           driverUtil.inPlaceTrim(props, limit)
 
       callback(null, props)
@@ -891,15 +891,12 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
 
     rootSegment = null
     segments = [rootSegment]
-    cmdIndex = 0
 
-    queryDruid = (condensedQuery, callback) ->
-      lastCmd = cmdIndex is condensedQuery.length - 1
-
-      if condensedQuery.split
-        switch condensedQuery.split.bucket
+    queryDruid = (condensedCommand, lastCmd, callback) ->
+      if condensedCommand.split
+        switch condensedCommand.split.bucket
           when 'identity'
-            if condensedQuery.combine.limit? and approximate
+            if condensedCommand.combine.limit? and approximate
               queryFn = druidQueryFns.topN
             else
               queryFn = druidQueryFns.groupBy
@@ -908,7 +905,7 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
           when 'continuous'
             queryFn = druidQueryFns.histogram
           when 'tuple'
-            if approximate and condensedQuery.split.splits.length is 2
+            if approximate and condensedCommand.split.splits.length is 2
               queryFn = druidQueryFns.heatmap
             else
               queryFn = druidQueryFns.groupBy
@@ -923,14 +920,14 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
           callback('query limit exceeded')
           return
 
-        myFilter = andFilters((if parentSegment then parentSegment._filter else filter), condensedQuery.filter)
+        myFilter = andFilters((if parentSegment then parentSegment._filter else filter), condensedCommand.filter)
         queryFn({
           requester
           dataSource
           timeAttribute
           filter: myFilter
           forceInterval
-          condensedQuery
+          condensedCommand
           approximate
         }, (err, props) ->
           if err
@@ -938,9 +935,9 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
             return
 
           # Make the results into segments and build the tree
-          if condensedQuery.split
-            splitAttribute = condensedQuery.split.attribute
-            splitName = condensedQuery.split.name
+          if condensedCommand.split
+            splitAttribute = condensedCommand.split.attribute
+            splitName = condensedCommand.split.name
             propToSplit = if lastCmd
               (prop) ->
                 driverUtil.cleanProp(prop)
@@ -963,7 +960,7 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
         return
 
       # do the query in parallel
-      queryFns = async.mapLimit(
+      async.mapLimit(
         segments
         concurentQueryLimit
         queryForSegment
@@ -977,12 +974,14 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
       )
       return
 
+    cmdIndex = 0
     async.whilst(
       -> cmdIndex < condensedQuery.length
       (callback) ->
-        condenced = condensedQuery[cmdIndex]
+        condensedCommand = condensedQuery[cmdIndex]
         cmdIndex++
-        queryDruid(condenced, callback)
+        last = cmdIndex is condensedQuery.length
+        queryDruid(condensedCommand, last, callback)
         return
       (err) ->
         if err

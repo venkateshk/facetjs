@@ -515,12 +515,25 @@ class DruidQueryBuilder
         { sort, limit } = combine
 
         if sort and @queryType is 'groupBy'
+          @queryType = 'topN'
           if sort.prop is @dimension.outputName
             @metric = { type: "lexicographic" }
           else
             throw new Error("can not sort on without approximate") unless @approximate
-            @metric = sort.prop
-            @queryType = if sort.direction is 'descending' then 'topN' else 'bottomN'
+            if sort.direction is 'descending'
+              @metric = sort.prop
+            else
+              #@metric = { type: "inverted", metric: sort.prop }
+              @metric = @throwawayName()
+              @addPostAggregation {
+                type: "arithmetic"
+                name: @metric
+                fn: "*"
+                fields: [
+                  { type: "fieldAccess", fieldName: sort.prop }
+                  { type: "constant", value: -1 }
+                ]
+              }
 
         if limit
           @threshold = limit
@@ -929,13 +942,19 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
             splitAttribute = condensedQuery.split.attribute
             splitName = condensedQuery.split.name
             propToSplit = if lastCmd
-              (prop) -> { prop }
+              (prop) ->
+                driverUtil.cleanProp(prop)
+                return { prop }
             else
-              (prop) -> { prop, _filter: andFilters(myFilter, makeFilter(splitAttribute, prop[splitName])) }
+              (prop) ->
+                driverUtil.cleanProp(prop)
+                return { prop, _filter: andFilters(myFilter, makeFilter(splitAttribute, prop[splitName])) }
             parentSegment.splits = splits = props.map(propToSplit)
             driverUtil.cleanSegment(parentSegment)
           else
-            rootSegment = if lastCmd then { prop: props[0], _filter: myFilter } else { prop: props[0] }
+            prop = props[0]
+            driverUtil.cleanProp(prop)
+            rootSegment = if lastCmd then { prop: prop } else { prop: prop, _filter: myFilter }
             splits = [rootSegment]
 
           callback(null, splits)

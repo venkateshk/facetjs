@@ -31,7 +31,7 @@ rangeToDruidInterval = (interval) ->
 class DruidQueryBuilder
   @allTimeInterval = ["1000-01-01/3000-01-01"]
 
-  constructor: (@dataSource, @timeAttribute, @forceInterval) ->
+  constructor: (@dataSource, @timeAttribute, @forceInterval, @approximate) ->
     throw new Error("must have a dataSource") unless typeof @dataSource is 'string'
     throw new Error("must have a timeAttribute") unless typeof @timeAttribute is 'string'
     @queryType = 'timeseries'
@@ -219,15 +219,13 @@ class DruidQueryBuilder
   addSplit: (split) ->
     switch split.bucket
       when 'identity'
-        @queryType = 'topN'
+        @queryType = 'groupBy'
         #@granularity stays 'all'
         @dimension = {
           type: 'default'
           dimension: split.attribute
           outputName: split.name
         }
-        @threshold = 12
-        @metric = null
 
       when 'timePeriod'
         throw new Error("timePeriod split can only work on '#{@timeAttribute}'") if split.attribute isnt @timeAttribute
@@ -249,6 +247,7 @@ class DruidQueryBuilder
         }
 
       when 'continuous'
+        throw new Error("approximate queries not allowed") unless @approximate
         #@queryType stays 'timeseries'
         #@granularity stays 'all'
         tempHistogramName = @addAggregation {
@@ -410,6 +409,7 @@ class DruidQueryBuilder
               return
 
           when 'uniqueCount'
+            throw new Error("approximate queries not allowed") unless @approximate
             throw new Error("can not filter a uniqueCount") if apply.filter
 
             # ToDo: add a throw here in case approximate is false
@@ -454,7 +454,9 @@ class DruidQueryBuilder
               return
 
           when 'quantile'
+            throw new Error("approximate queries not allowed") unless @approximate
             throw new Error("quantile apply must have quantile") unless apply.quantile
+
             histogramAggregationName = @addAggregation {
               type: "approxHistogramFold"
               fieldName: apply.attribute
@@ -511,30 +513,31 @@ class DruidQueryBuilder
     switch combine.combine
       when 'slice'
         sort = combine.sort
-        if sort
-          if @queryType is 'topN'
-            if sort.prop is @dimension.outputName
-              @metric = { type: "lexicographic" }
+        if sort and @queryType is 'groupBy'
+          if sort.prop is @dimension.outputName
+            @metric = { type: "lexicographic" }
+          else
+            # figure out of we need to invert and apply for a bottomN
+            if sort.direction is 'descending'
+              @metric = sort.prop
             else
-              # figure out of we need to invert and apply for a bottomN
-              if sort.direction is 'descending'
-                @metric = sort.prop
-              else
-                # make a bottomN (ToDo: is there a better way to do this?)
-                @metric = @throwawayName()
-                @addPostAggregation {
-                  type: "arithmetic"
-                  name: @metric
-                  fn: "*"
-                  fields: [
-                    { type: "fieldAccess", fieldName: sort.prop }
-                    { type: "constant", value: -1 }
-                  ]
-                }
+              # make a bottomN (ToDo: is there a better way to do this?)
+              @metric = @throwawayName()
+              @addPostAggregation {
+                type: "arithmetic"
+                name: @metric
+                fn: "*"
+                fields: [
+                  { type: "fieldAccess", fieldName: sort.prop }
+                  { type: "constant", value: -1 }
+                ]
+              }
 
         limit = combine.limit
         if limit
           @threshold = limit
+          if @queryType is 'groupBy' and @approximate
+            @queryType = 'topN'
 
       when 'matrix'
         sort = combine.sort
@@ -585,12 +588,12 @@ compareFns = {
 }
 
 druidQueryFns = {
-  all: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedQuery}, callback) ->
+  all: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedQuery, approximate}, callback) ->
     if condensedQuery.applies.length is 0
       callback(null, [{}])
       return
 
-    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval)
+    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval, approximate)
 
     try
       # filter
@@ -628,8 +631,8 @@ druidQueryFns = {
       return
     return
 
-  timeseries: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedQuery}, callback) ->
-    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval)
+  timeseries: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedQuery, approximate}, callback) ->
+    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval, approximate)
 
     try
       # filter
@@ -693,8 +696,8 @@ druidQueryFns = {
       return
     return
 
-  topN: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedQuery}, callback) ->
-    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval)
+  topN: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedQuery, approximate}, callback) ->
+    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval, approximate)
 
     try
       # filter
@@ -738,8 +741,8 @@ druidQueryFns = {
       return
     return
 
-  heatmap: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedQuery}, callback) ->
-    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval)
+  heatmap: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedQuery, approximate}, callback) ->
+    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval, approximate)
 
     try
       # filter
@@ -800,14 +803,14 @@ druidQueryFns = {
       return
     return
 
-  groupBy: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedQuery}, callback) ->
+  groupBy: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedQuery, approximate}, callback) ->
     callback({
       massage: 'groupBy not implemented yet (ToDo)'
     })
     return
 
-  histogram: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedQuery}, callback) ->
-    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval)
+  histogram: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedQuery, approximate}, callback) ->
+    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval, approximate)
 
     try
       # filter
@@ -889,8 +892,11 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
 
     rootSegment = null
     segments = [rootSegment]
+    cmdIndex = 0
 
     queryDruid = (condensedQuery, callback) ->
+      lastCmd = cmdIndex is condensedQuery.length - 1
+
       if condensedQuery.split
         switch condensedQuery.split.bucket
           when 'identity'
@@ -926,6 +932,7 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
           filter: myFilter
           forceInterval
           condensedQuery
+          approximate
         }, (err, props) ->
           if err
             callback(err)
@@ -935,14 +942,14 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
           if condensedQuery.split
             splitAttribute = condensedQuery.split.attribute
             splitName = condensedQuery.split.name
-            splits = props.map (prop) -> {
-              prop
-              _filter: andFilters(myFilter, makeFilter(splitAttribute, prop[splitName]))
-            }
-            parentSegment.splits = splits
+            propToSplit = if lastCmd
+              (prop) -> { prop }
+            else
+              (prop) -> { prop, _filter: andFilters(myFilter, makeFilter(splitAttribute, prop[splitName])) }
+            parentSegment.splits = splits = props.map(propToSplit)
             driverUtil.cleanSegment(parentSegment)
           else
-            rootSegment = { prop: props[0], _filter: myFilter }
+            rootSegment = if lastCmd then { prop: props[0], _filter: myFilter } else { prop: props[0] }
             splits = [rootSegment]
 
           callback(null, splits)
@@ -965,7 +972,6 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
       )
       return
 
-    cmdIndex = 0
     async.whilst(
       -> cmdIndex < condensedQuery.length
       (callback) ->
@@ -977,8 +983,6 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
         if err
           callback(err)
           return
-        # Clean up the last segments
-        segments.forEach(driverUtil.cleanSegment)
 
         callback(null, rootSegment)
         return

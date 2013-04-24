@@ -93,6 +93,12 @@ exports.condenseQuery = (query) ->
 
 
 # Clean segment - remove everything in the segment that starts with and underscore
+exports.cleanProp = (prop) ->
+  for key of prop
+    if key[0] is '_'
+      delete prop[key]
+  return
+
 exports.cleanSegment = (segment) ->
   for key of segment
     if key[0] is '_'
@@ -102,7 +108,6 @@ exports.cleanSegment = (segment) ->
   for key of prop
     if key[0] is '_'
       delete prop[key]
-
   return
 
 createTabularHelper = (node, rangeFn, history) ->

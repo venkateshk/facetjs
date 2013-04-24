@@ -44,6 +44,7 @@ driverFns.druid = druidDriver({
   dataSource: 'wikipedia_editstream'
   timeAttribute: 'time'
   approximate: true
+  forceInterval: true
   filter: {
     type: 'within'
     attribute: 'time'

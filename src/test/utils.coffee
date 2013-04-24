@@ -4,20 +4,27 @@ uniformizeResults = (result) ->
   if not result?.prop
     return result
 
-  prop = {}
-  for name, value of result.prop
-    continue unless result.prop.hasOwnProperty(name)
-    if typeof value is 'number' and value isnt Math.floor(value)
-      prop[name] = Number(value.toPrecision(5))
-    else if Array.isArray(value) and
-          typeof value[0] is 'number' and
-          typeof value[1] is 'number' and
-          (value[0] isnt Math.floor(value[0]) or value[1] isnt Math.floor(value[1]))
-      prop[name] = [value[0].toFixed(3), value[1].toFixed(3)]
-    else
-      prop[name] = value
+  ret = {}
+  for k, p of result
+    continue unless result.hasOwnProperty(k)
+    continue if k is 'split'
+    if k is 'prop'
+      prop = {}
+      for name, value of p
+        continue unless p.hasOwnProperty(name)
+        if typeof value is 'number' and value isnt Math.floor(value)
+          prop[name] = Number(value.toPrecision(5))
+        else if Array.isArray(value) and
+              typeof value[0] is 'number' and
+              typeof value[1] is 'number' and
+              (value[0] isnt Math.floor(value[0]) or value[1] isnt Math.floor(value[1]))
+          prop[name] = [value[0].toFixed(3), value[1].toFixed(3)]
+        else
+          prop[name] = value
+      p = prop
 
-  ret = { prop }
+    ret[k] = p
+
   if result.splits
     ret.splits = result.splits.map(uniformizeResults)
   return ret
@@ -58,7 +65,7 @@ exports.makeEqualityTest = (driverFns) ->
 
       if verbose
         console.log('vvvvvvvvvvvvvvvvvvvvvvv')
-        console.log(results[0])
+        console.log(JSON.stringify(results[0], null, 2))
         console.log('^^^^^^^^^^^^^^^^^^^^^^^')
 
       test.done()

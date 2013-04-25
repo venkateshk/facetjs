@@ -3,7 +3,8 @@ compass watch --sass-dir src/style/ --css-dir target/ &
 coffee --compile --watch --lint --bare --output target/test/ src/test/ &
 coffee --compile --watch --lint --bare --output target src/server.coffee src/requester/* &
 coffee --compile --watch --lint --bare --output target src/driver/* &
-coffee --compile --watch --lint --output target --join target/facet.js \
+coffee --compile --watch --lint --bare --output target --join target/facet.js \
+  src/facet/_start.coffee \
   src/facet/init.coffee \
   src/facet/utils.coffee \
   src/facet/interval.coffee \
@@ -19,4 +20,5 @@ coffee --compile --watch --lint --output target --join target/facet.js \
   src/facet/plot.coffee \
   src/facet/connector.coffee \
   src/facet/facet.coffee \
-  src/facet/proxy.coffee &
+  src/facet/proxy.coffee \
+  src/facet/_end.coffee &

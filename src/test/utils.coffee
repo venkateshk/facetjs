@@ -45,7 +45,7 @@ exports.wrapVerbose = (requester, name) ->
 exports.makeEqualityTest = (driverFns) ->
   return ({drivers, query, verbose}) -> (test) ->
     throw new Error("must have at least two drivers") if drivers.length < 2
-    test.expect(drivers.length)
+    test.expect(drivers.length - 1)
 
     driversToTest = drivers.map (driverName) ->
       driverFn = driverFns[driverName]
@@ -55,7 +55,12 @@ exports.makeEqualityTest = (driverFns) ->
         return
 
     async.parallel driversToTest, (err, results) ->
-      test.ifError(err)
+      if err
+        console.log '--------------------------'
+        console.log err
+        console.log '--------------------------'
+        throw new Error("got error from driver")
+
       results = results.map(uniformizeResults)
 
       i = 1

@@ -109,12 +109,12 @@ exports["split time; combine time"] = testEquality {
   ]
 }
 
-# The sorting here still does not match - ask FJ
+# # The sorting here still does not match - ask FJ
 # exports["split page; combine page"] = testEquality {
 #   drivers: ['mySql', 'druid']
 #   query: [
 #     { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
-#     { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Page', direction: 'descending' }, limit: 7 }
+#     { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Page', direction: 'ascending' }, limit: 20 }
 #   ]
 # }
 
@@ -157,7 +157,52 @@ exports["split page; apply count; sort count descending"] = testEquality {
     { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
   ]
 }
+###
 
+# exports["split namespace; apply count; sort count ascending"] = testEquality {
+#   drivers: ['druid', 'mySql']
+#   #verbose: true
+#   query: [
+#     { operation: 'split', name: 'Namespace', bucket: 'identity', attribute: 'namespace' }
+#     { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+#     { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+#     { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Namespace', direction: 'ascending' } }
+#   ]
+# }
+
+# exports["split language; apply count; sort count ascending"] = testEquality {
+#   drivers: ['druid', 'mySql']
+#   #verbose: true
+#   query: [
+#     { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
+#     { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+#     { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+#     { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Language', direction: 'ascending' } }
+#   ]
+# }
+
+# exports["split page; apply count; sort count ascending"] = testEquality {
+#   drivers: ['mySql', 'druid']
+#   #verbose: true
+#   query: [
+#     {
+#       operation: 'filter'
+#       type: 'within'
+#       attribute: 'time'
+#       range: [
+#         new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0))
+#         new Date(Date.UTC(2013, 2-1, 27, 1, 0, 0))
+#       ]
+#     }
+#     { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
+#     { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+#     { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+#     { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Page', direction: 'ascending' } }
+#   ]
+# }
+
+
+###
 exports["split language; apply count; sort count descending > split page; apply count; sort count descending"] = testEquality {
   drivers: ['mySql', 'druid']
   query: [

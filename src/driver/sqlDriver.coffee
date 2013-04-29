@@ -173,6 +173,7 @@ class SQLQueryBuilder
     return
 
   addSplit: (split) ->
+    @split = split
     { selectPart, groupByPart } = @splitToSQL(split)
     @selectParts.push(selectPart)
     @groupByParts.push(groupByPart)
@@ -248,7 +249,11 @@ class SQLQueryBuilder
           sqlDirection = @directionMap[sort.direction]
           switch sort.compare
             when 'natural'
-              @orderByPart = "ORDER BY #{@escapeAttribute(sort.prop)} #{sqlDirection}"
+              @orderByPart = "ORDER BY #{@escapeAttribute(sort.prop)}"
+              if @split?.bucket is 'identity'
+                @orderByPart += " COLLATE utf8_bin"
+
+              @orderByPart += " #{sqlDirection}"
 
             when 'caseInsensetive'
               throw new Error("not implemented yet (ToDo)")

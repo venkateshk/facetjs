@@ -29,6 +29,7 @@ rangeToDruidInterval = (interval) ->
 
 
 class DruidQueryBuilder
+  @ALL_DATA_CHUNKS = 10000
   @allTimeInterval = ["1000-01-01/3000-01-01"]
 
   constructor: (@dataSource, @timeAttribute, @forceInterval, @approximate) ->
@@ -250,13 +251,14 @@ class DruidQueryBuilder
         throw new Error("approximate queries not allowed") unless @approximate
         #@queryType stays 'timeseries'
         #@granularity stays 'all'
-        tempHistogramName = @addAggregation {
+        aggregation = {
           type: "approxHistogramFold"
           fieldName: split.attribute
-          #lowerLimit: 0
-          #upperLimit: 10
         }
+        aggregation.lowerLimit = split.lowerLimit if split.lowerLimit?
+        aggregation.upperLimit = split.upperLimit if split.upperLimit?
 
+        tempHistogramName = @addAggregation(aggregation)
         @addPostAggregation {
           type: "buckets"
           name: "histogram"
@@ -514,29 +516,37 @@ class DruidQueryBuilder
       when 'slice'
         { sort, limit } = combine
 
-        if sort and @queryType is 'groupBy'
-          @queryType = 'topN'
-          if sort.prop is @dimension.outputName
-            @metric = { type: "lexicographic" }
-          else
-            throw new Error("can not sort on without approximate") unless @approximate
-            if sort.direction is 'descending'
-              @metric = sort.prop
+        if @queryType is 'groupBy'
+          if sort and limit?
+            throw new Error("can not sort and limit on without approximate") unless @approximate
+            @queryType = 'topN'
+            @threshold = limit
+            if sort.prop is @dimension.outputName
+              throw new Error("lexicographic dimension must be 'ascending'") unless sort.direction is 'ascending'
+              @metric = { type: "lexicographic" }
             else
-              #@metric = { type: "inverted", metric: sort.prop }
-              @metric = @throwawayName()
-              @addPostAggregation {
-                type: "arithmetic"
-                name: @metric
-                fn: "*"
-                fields: [
-                  { type: "fieldAccess", fieldName: sort.prop }
-                  { type: "constant", value: -1 }
-                ]
-              }
+              if sort.direction is 'descending'
+                @metric = sort.prop
+              else
+                #@metric = { type: "inverted", metric: sort.prop }
+                @metric = @throwawayName()
+                @addPostAggregation {
+                  type: "arithmetic"
+                  name: @metric
+                  fn: "*"
+                  fields: [
+                    { type: "fieldAccess", fieldName: sort.prop }
+                    { type: "constant", value: -1 }
+                  ]
+                }
 
-        if limit
-          @threshold = limit
+          else if sort
+            # groupBy can only sort lexicographic
+            throw new Error("can not do an unlimited sort on an apply") unless sort.prop is @dimension.outputName
+
+          else if limit?
+            throw new Error("handle this better")
+
 
       when 'matrix'
         sort = combine.sort
@@ -569,8 +579,15 @@ class DruidQueryBuilder
       intervals
     }
     query.filter = @filter if @filter
-    query.dimension = @dimension if @dimension
-    query.dimensions = @dimensions if @dimensions
+
+    if @dimension
+      if @queryType is 'groupBy'
+        query.dimensions = [@dimension]
+      else
+        query.dimension = @dimension
+    else if @dimensions
+      query.dimensions = @dimensions
+
     query.aggregations = @aggregations if @aggregations.length
     query.postAggregations = @postAggregations if @postAggregations.length
     query.metric = @metric if @metric
@@ -740,7 +757,77 @@ druidQueryFns = {
       return
     return
 
-  heatmap: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate}, callback) ->
+  allData: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate}, callback) ->
+    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval, approximate)
+    allDataChunks = DruidQueryBuilder.ALL_DATA_CHUNKS
+
+    try
+      # filter
+      druidQuery.addFilter(filter)
+
+      # split
+      druidQuery.addSplit(condensedCommand.split)
+
+      # apply
+      if condensedCommand.applies.length
+        for apply in condensedCommand.applies
+          druidQuery.addApply(apply)
+      else
+        druidQuery.addDummyApply()
+
+      druidQuery.addCombine({
+        combine: 'slice'
+        sort: {
+          compare: 'natural'
+          prop: condensedCommand.split.name
+          direction: 'descending'
+        }
+        limit: allDataChunks
+      })
+
+      queryObj = druidQuery.getQuery()
+    catch e
+      callback(e)
+      return
+
+    props = []
+    done = false
+    queryObj.metric.previousStop = null
+    async.whilst(
+      -> not done
+      (callback) ->
+        requester queryObj, (err, ds) ->
+          if err
+            callback(err)
+            return
+
+          if ds.length isnt 1
+            callback({
+              message: "unexpected result form Druid (topN/allData)"
+              query: queryObj
+              result: ds
+            })
+            return
+
+          myProps = ds[0].result
+          props = props.concat(myProps)
+          if myProps.length < allDataChunks
+            done = true
+          else
+            queryObj.metric.previousStop = myProps[allDataChunks - 1][condensedCommand.split.name]
+          callback()
+        return
+      (err) ->
+        if err
+          callback(err)
+          return
+
+        callback(null, props)
+        return
+    )
+    return
+
+  groupBy: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate}, callback) ->
     druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval, approximate)
 
     try
@@ -765,6 +852,9 @@ druidQueryFns = {
       callback(e)
       return
 
+    # console.log '------------------------------'
+    # console.log queryObj
+
     requester queryObj, (err, ds) ->
       if err
         callback({
@@ -773,39 +863,11 @@ druidQueryFns = {
         })
         return
 
-      if ds.length isnt 1
-        callback({
-          message: "unexpected result form Druid (heatmap)"
-          query: queryObj
-          result: ds
-        })
-        return
+      # console.log '------------------------------'
+      # console.log err, ds
 
-      dimensionRenameNeeded = false
-      dimensionRenameMap = {}
-      for split in condensedCommand.split.splits
-        continue if split.name is split.attribute
-        dimensionRenameMap[split.attribute] = split.name
-        dimensionRenameNeeded = true
-
-      props = ds[0].result
-
-      if dimensionRenameNeeded
-        for prop in props
-          for k, v in props
-            renameTo = dimensionRenameMap[k]
-            if renameTo
-              props[renameTo] = v
-              delete props[k]
-
-      callback(null, props)
+      callback(null, ds.map((d) -> d.event))
       return
-    return
-
-  groupBy: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate}, callback) ->
-    callback({
-      massage: 'groupBy not implemented yet (ToDo)'
-    })
     return
 
   histogram: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate}, callback) ->
@@ -873,6 +935,68 @@ druidQueryFns = {
       callback(null, props)
       return
     return
+
+  heatmap: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate}, callback) ->
+    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval, approximate)
+
+    try
+      # filter
+      druidQuery.addFilter(filter)
+
+      # split
+      druidQuery.addSplit(condensedCommand.split)
+
+      # apply
+      if condensedCommand.applies.length
+        for apply in condensedCommand.applies
+          druidQuery.addApply(apply)
+      else
+        druidQuery.addDummyApply()
+
+      if condensedCommand.combine
+        druidQuery.addCombine(condensedCommand.combine)
+
+      queryObj = druidQuery.getQuery()
+    catch e
+      callback(e)
+      return
+
+    requester queryObj, (err, ds) ->
+      if err
+        callback({
+          message: err
+          query: queryObj
+        })
+        return
+
+      if ds.length isnt 1
+        callback({
+          message: "unexpected result form Druid (heatmap)"
+          query: queryObj
+          result: ds
+        })
+        return
+
+      dimensionRenameNeeded = false
+      dimensionRenameMap = {}
+      for split in condensedCommand.split.splits
+        continue if split.name is split.attribute
+        dimensionRenameMap[split.attribute] = split.name
+        dimensionRenameNeeded = true
+
+      props = ds[0].result
+
+      if dimensionRenameNeeded
+        for prop in props
+          for k, v in props
+            renameTo = dimensionRenameMap[k]
+            if renameTo
+              props[renameTo] = v
+              delete props[k]
+
+      callback(null, props)
+      return
+    return
 }
 
 
@@ -896,8 +1020,11 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
       if condensedCommand.split
         switch condensedCommand.split.bucket
           when 'identity'
-            if condensedCommand.combine.limit? and approximate
-              queryFn = druidQueryFns.topN
+            if approximate
+              if condensedCommand.combine.limit?
+                queryFn = druidQueryFns.topN
+              else
+                queryFn = druidQueryFns.allData
             else
               queryFn = druidQueryFns.groupBy
           when 'timeDuration', 'timePeriod'
@@ -992,6 +1119,8 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
         return
     )
     return
+
+module.exports.DruidQueryBuilder = DruidQueryBuilder
 
 # -----------------------------------------------------
 # Handle commonJS crap

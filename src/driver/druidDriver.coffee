@@ -42,6 +42,7 @@ class DruidQueryBuilder
     @postAggregations = []
     @nameIndex = 0
     @intervals = null
+    @useCache = true
 
   dateToIntervalPart: (date) ->
     return date.toISOString()
@@ -266,6 +267,7 @@ class DruidQueryBuilder
           bucketSize: split.size
           offset: split.offset
         }
+        @useCache = false
 
       when 'tuple'
         throw new Error("only supported tuples of size 2 (is: #{split.splits.length})") unless split.splits.length is 2
@@ -578,6 +580,13 @@ class DruidQueryBuilder
       granularity: @granularity
       intervals
     }
+
+    if not @useCache
+      query.context = {
+        useCache: false
+        populateCache: false
+      }
+
     query.filter = @filter if @filter
 
     if @dimension

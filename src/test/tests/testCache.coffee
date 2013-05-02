@@ -63,7 +63,7 @@ exports["split page; apply deleted, count; combine descending"] = testEquality {
     { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'namespace' }
     { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
     { operation: 'apply', name: 'Deleted', aggregate: 'sum', attribute: 'deleted' }
-    { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Deleted', direction: 'ascending' }, limit: 5 }
+    { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Deleted', direction: 'descending' }, limit: 5 }
   ]
 }
 

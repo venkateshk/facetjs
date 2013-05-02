@@ -99,6 +99,48 @@ exports["[cache tests on] topN"] = {
 }
 
 
+exports["different sorting works"] = {
+  "split page; apply deleted; combine descending": testEquality {
+    drivers: ['mySql', 'mySqlCached']
+    query: [
+      { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+      { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'namespace' }
+      { operation: 'apply', name: 'Deleted', aggregate: 'sum', attribute: 'deleted' }
+      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Deleted', direction: 'descending' }, limit: 5 }
+    ]
+  }
+
+  "split page; apply deleted; combine ascending": testEquality {
+    drivers: ['mySql', 'mySqlCached']
+    query: [
+      { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+      { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'namespace' }
+      { operation: 'apply', name: 'Deleted', aggregate: 'sum', attribute: 'deleted' }
+      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Deleted', direction: 'ascending' }, limit: 5 }
+    ]
+  }
+
+  "split page; apply deleted; combine Page, descending": testEquality {
+    drivers: ['mySql', 'mySqlCached']
+    query: [
+      { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+      { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'namespace' }
+      { operation: 'apply', name: 'Deleted', aggregate: 'sum', attribute: 'deleted' }
+      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Page', direction: 'descending' }, limit: 5 }
+    ]
+  }
+
+  "split page; apply deleted; combine Page, ascending": testEquality {
+    drivers: ['mySql', 'mySqlCached']
+    query: [
+      { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+      { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'namespace' }
+      { operation: 'apply', name: 'Deleted', aggregate: 'sum', attribute: 'deleted' }
+      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Page', direction: 'ascending' }, limit: 5 }
+    ]
+  }
+}
+
 
 # Cache Test
 exports["split time; apply count; apply added"] = testEquality {

@@ -250,8 +250,9 @@ class SQLQueryBuilder
           switch sort.compare
             when 'natural'
               @orderByPart = "ORDER BY #{@escapeAttribute(sort.prop)}"
-              if @split?.bucket is 'identity'
-                @orderByPart += " COLLATE utf8_bin"
+
+              # if @split?.bucket is 'identity'
+              #   @orderByPart += " COLLATE utf8_bin"
 
               @orderByPart += " #{sqlDirection}"
 

@@ -17,17 +17,25 @@ filterToHash = (filter) ->
 
 splitToHash = (split) ->
   hash = []
-  for k, v of split
+  for own k, v of split
     continue if k is 'name'
     hash.push(k + ":" + v)
 
   return hash.sort().join('|')
 
+combineToHash = (combine) ->
+  hash = []
+  for own k, v of combine
+    hash.push(k + ":" + JSON.stringify(v))
+
+  return hash.sort().join('|')
+
 generateHash = (condensedQuery) ->
   # Get Filter and Split
+  combine = condensedQuery[condensedQuery.length - 1].combine
   split = condensedQuery[1].split
   filter = condensedQuery[0].filter
-  return filterToHash(filter) + '&' + splitToHash(split)
+  return filterToHash(filter) + '&' + splitToHash(split) + '&' + combineToHash(combine)
 
 separateTimeFilter = (filter) ->
   if filter.filters?

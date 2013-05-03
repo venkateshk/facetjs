@@ -313,8 +313,10 @@ class DruidQueryBuilder
     for existingAggregation in @aggregations
       if existingAggregation.type is aggregation.type and
          existingAggregation.fieldName is aggregation.fieldName and
-         existingAggregation.fieldNames is aggregation.fieldNames and
-         existingAggregation.script is aggregation.script and
+         String(existingAggregation.fieldNames) is String(aggregation.fieldNames) and
+         existingAggregation.fnAggregate is aggregation.fnAggregate and
+         existingAggregation.fnCombine is aggregation.fnCombine and
+         existingAggregation.fnReset is aggregation.fnReset and
          (@isThrowawayName(existingAggregation.name) or @isThrowawayName(aggregation.name))
 
         if @isThrowawayName(aggregation.name)

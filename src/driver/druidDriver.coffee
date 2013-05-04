@@ -427,7 +427,8 @@ class DruidQueryBuilder
 
             aggregationName = @addAggregation(aggregation)
             if returnPostAggregation
-              return { type: "fieldAccess", fieldName: aggregationName }
+              # hyperUniqueCardinality is the fieldAccess equivalent for uniques
+              return { type: "hyperUniqueCardinality", fieldName: aggregationName }
             else
               return
 

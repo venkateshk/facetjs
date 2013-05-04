@@ -53,9 +53,27 @@ testError = utils.makeErrorTest(driverFns)
 
 
 exports["basics"] = {
+  "query not supplied": testError {
+    drivers: ['simple', 'mySql', 'druid']
+    error: "query not supplied"
+    query: null
+  }
+
+  "invalid query 1": testError {
+    drivers: ['simple', 'mySql', 'druid']
+    error: "invalid query"
+    query: {}
+  }
+
+  "invalid query 2": testError {
+    drivers: ['simple', 'mySql', 'druid']
+    error: "invalid query"
+    query: "poo"
+  }
+
   "bad command": testError {
     drivers: ['simple', 'mySql', 'druid']
-    error: "unrecognizable query"
+    error: "unrecognizable command"
     query: [
       'blah'
     ]

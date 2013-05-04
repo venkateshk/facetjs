@@ -259,7 +259,8 @@ makeCombineFn = (combine) ->
 
 
 computeQuery = (data, query) ->
-  throw new Error("query not given") unless query
+  throw new Error("query not supplied") unless query
+  throw new Error("invalid query") unless Array.isArray(query)
 
   rootSegment = {
     _raw: data
@@ -328,7 +329,7 @@ computeQuery = (data, query) ->
           combineFn(segmentGroup) # In place
 
       else
-        throw new Error("unrecognizable query") unless typeof cmd is 'object'
+        throw new Error("unrecognizable command") unless typeof cmd is 'object'
         throw new Error("operation not defined") unless cmd.hasOwnProperty('operation')
         throw new Error("invalid operation") unless typeof cmd.operation is 'string'
         throw new Error("unknown operation '#{cmd.operation}'")

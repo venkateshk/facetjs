@@ -23,6 +23,8 @@ exports.inPlaceTrim = (array, n) ->
 #   ...
 # ]
 exports.condenseQuery = (query) ->
+  throw new Error("query not supplied") unless query
+  throw new Error("invalid query") unless Array.isArray(query)
   curQuery = {
     filter: null
     split: null
@@ -83,7 +85,7 @@ exports.condenseQuery = (query) ->
         curQuery.combine = cmd
 
       else
-        throw new Error("unrecognizable query") unless typeof cmd is 'object'
+        throw new Error("unrecognizable command") unless typeof cmd is 'object'
         throw new Error("operation not defined") unless cmd.hasOwnProperty('operation')
         throw new Error("invalid operation") unless typeof cmd.operation is 'string'
         throw new Error("unknown operation '#{cmd.operation}'")

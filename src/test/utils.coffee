@@ -1,4 +1,6 @@
 async = require('async')
+chai = require("chai")
+expect = chai.expect
 
 uniformizeResults = (result) ->
   if not result?.prop
@@ -43,9 +45,8 @@ exports.wrapVerbose = (requester, name) ->
       return
 
 exports.makeEqualityTest = (driverFns) ->
-  return ({drivers, query, verbose}) -> (test) ->
+  return ({drivers, query, verbose}) -> (done) ->
     throw new Error("must have at least two drivers") if drivers.length < 2
-    test.expect(drivers.length - 1)
 
     driversToTest = drivers.map (driverName) ->
       driverFn = driverFns[driverName]
@@ -65,7 +66,11 @@ exports.makeEqualityTest = (driverFns) ->
 
       i = 1
       while i < drivers.length
-        test.deepEqual(results[0], results[i], "results of '#{drivers[0]}' and '#{drivers[i]}' must match")
+        try
+          expect(results[0]).to.deep.equal(results[i], "results of '#{drivers[0]}' and '#{drivers[i]}' must match")
+        catch e
+          console.log "results of '#{drivers[0]}' and '#{drivers[i]}' (expected) must match"
+          throw e
         i++
 
       if verbose
@@ -73,27 +78,25 @@ exports.makeEqualityTest = (driverFns) ->
         console.log(JSON.stringify(results[0], null, 2))
         console.log('^^^^^^^^^^^^^^^^^^^^^^^')
 
-      test.done()
+      done()
       return
 
 exports.makeErrorTest = (driverFns) ->
-  return ({drivers, query, error, verbose}) -> (test) ->
+  return ({drivers, query, error, verbose}) -> (done) ->
     throw new Error("must have at least one driver") if drivers.length < 1
 
     numberOfTestsLeft = drivers.length
-    test.expect(numberOfTestsLeft * 2)
 
     drivers.forEach (driverName) ->
       driverFn = driverFns[driverName]
       throw new Error("no such driver #{driverName}") unless driverFn
       driverFn query, (err, results) ->
         numberOfTestsLeft--
-        test.ok(err, "#{driverName} driver should throw error")
-        test.equal(error, err.message, "#{driverName} driver error should match")
+        expect(err).to.be.ok("#{driverName} driver should throw error")
+        expect(err.message).equal(error, "#{driverName} driver error should match")
         if numberOfTestsLeft is 0
-          test.done()
+          done()
         return
-
       return
     return
 

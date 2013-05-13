@@ -1,3 +1,2 @@
 #!/bin/bash
-./compile
-node_modules/nodeunit/bin/nodeunit ./target/test/tests
+mocha --compilers coffee:coffee-script --reporter spec src/test/tests/*

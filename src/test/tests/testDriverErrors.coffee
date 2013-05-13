@@ -1,11 +1,13 @@
+chai = require("chai")
+expect = chai.expect
 utils = require('../utils')
 
-druidRequester = require('../../druidRequester')
-sqlRequester = require('../../mySqlRequester')
+druidRequester = require('../../../target/druidRequester')
+sqlRequester = require('../../../target/mySqlRequester')
 
-simpleDriver = require('../../simpleDriver')
-sqlDriver = require('../../sqlDriver')
-druidDriver = require('../../druidDriver')
+simpleDriver = require('../../../target/simpleDriver')
+sqlDriver = require('../../../target/sqlDriver')
+druidDriver = require('../../../target/druidDriver')
 
 # Set up drivers
 driverFns = {}
@@ -51,138 +53,143 @@ driverFns.druid = druidDriver({
 
 testError = utils.makeErrorTest(driverFns)
 
+describe "Error compat test", ->
+  describe "basics", ->
+    it "should produce the same result", -> {
+      "query not supplied": testError {
+        drivers: ['simple', 'mySql', 'druid']
+        error: "query not supplied"
+        query: null
+      }
 
-exports["basics"] = {
-  "query not supplied": testError {
-    drivers: ['simple', 'mySql', 'druid']
-    error: "query not supplied"
-    query: null
-  }
+      "invalid query 1": testError {
+        drivers: ['simple', 'mySql', 'druid']
+        error: "invalid query"
+        query: {}
+      }
 
-  "invalid query 1": testError {
-    drivers: ['simple', 'mySql', 'druid']
-    error: "invalid query"
-    query: {}
-  }
+      "invalid query 2": testError {
+        drivers: ['simple', 'mySql', 'druid']
+        error: "invalid query"
+        query: "poo"
+      }
 
-  "invalid query 2": testError {
-    drivers: ['simple', 'mySql', 'druid']
-    error: "invalid query"
-    query: "poo"
-  }
+      "bad command": testError {
+        drivers: ['simple', 'mySql', 'druid']
+        error: "unrecognizable command"
+        query: [
+          'blah'
+        ]
+      }
 
-  "bad command": testError {
-    drivers: ['simple', 'mySql', 'druid']
-    error: "unrecognizable command"
-    query: [
-      'blah'
-    ]
-  }
+      "no operation in command": testError {
+        drivers: ['simple', 'mySql', 'druid']
+        error: "operation not defined"
+        query: [
+          {}
+        ]
+      }
 
-  "no operation in command": testError {
-    drivers: ['simple', 'mySql', 'druid']
-    error: "operation not defined"
-    query: [
-      {}
-    ]
-  }
+      "invalid operation in command": testError {
+        drivers: ['simple', 'mySql', 'druid']
+        error: "invalid operation"
+        query: [
+          { operation: ['wtf?'] }
+        ]
+      }
 
-  "invalid operation in command": testError {
-    drivers: ['simple', 'mySql', 'druid']
-    error: "invalid operation"
-    query: [
-      { operation: ['wtf?'] }
-    ]
-  }
+      "unknown operation in command": testError {
+        drivers: ['simple', 'mySql', 'druid']
+        error: "unknown operation 'poo'"
+        query: [
+          { operation: 'poo' }
+        ]
+      }
+    }
 
-  "unknown operation in command": testError {
-    drivers: ['simple', 'mySql', 'druid']
-    error: "unknown operation 'poo'"
-    query: [
-      { operation: 'poo' }
-    ]
-  }
-}
+  describe "filters", ->
+    it "should produce the same result", -> {
+      "missing type": testError {
+        drivers: ['simple', 'mySql', 'druid']
+        error: "type not defined in filter"
+        query: [
+          { operation: 'filter' }
+        ]
+      }
 
-exports["filters"] = {
-  "missing type": testError {
-    drivers: ['simple', 'mySql', 'druid']
-    error: "type not defined in filter"
-    query: [
-      { operation: 'filter' }
-    ]
-  }
+      "invalid type in filter": testError {
+        drivers: ['simple', 'mySql', 'druid']
+        error: "invalid type in filter"
+        query: [
+          { operation: 'filter', type: ['wtf?'] }
+        ]
+      }
 
-  "invalid type in filter": testError {
-    drivers: ['simple', 'mySql', 'druid']
-    error: "invalid type in filter"
-    query: [
-      { operation: 'filter', type: ['wtf?'] }
-    ]
-  }
+      # "unknown type in filter": testError {
+      #   drivers: ['simple', 'mySql', 'druid']
+      #   error: "filter type 'poo' not defined"
+      #   query: [
+      #     { operation: 'filter', type: 'poo' }
+      #   ]
+      # }
+    }
 
-  # "unknown type in filter": testError {
-  #   drivers: ['simple', 'mySql', 'druid']
-  #   error: "filter type 'poo' not defined"
-  #   query: [
-  #     { operation: 'filter', type: 'poo' }
-  #   ]
-  # }
-}
+  describe "splits", ->
+    it "should produce the same result", -> {
+      "missing name": testError {
+        drivers: ['simple', 'mySql', 'druid']
+        error: "name not defined in split"
+        query: [
+          { operation: 'split' }
+        ]
+      }
 
-exports["splits"] = {
-  "missing name": testError {
-    drivers: ['simple', 'mySql', 'druid']
-    error: "name not defined in split"
-    query: [
-      { operation: 'split' }
-    ]
-  }
+      "bad name": testError {
+        drivers: ['simple', 'mySql', 'druid']
+        error: "invalid name in split"
+        query: [
+          { operation: 'split', name: ["wtf?"] }
+        ]
+      }
+    }
 
-  "bad name": testError {
-    drivers: ['simple', 'mySql', 'druid']
-    error: "invalid name in split"
-    query: [
-      { operation: 'split', name: ["wtf?"] }
-    ]
-  }
-}
+  describe "applies", ->
+    it "should produce the same result", -> {
+      "missing name": testError {
+        drivers: ['simple', 'mySql', 'druid']
+        error: "name not defined in apply"
+        query: [
+          { operation: 'apply' }
+        ]
+      }
 
-exports["applies"] = {
-  "missing name": testError {
-    drivers: ['simple', 'mySql', 'druid']
-    error: "name not defined in apply"
-    query: [
-      { operation: 'apply' }
-    ]
-  }
+      "bad name": testError {
+        drivers: ['simple', 'mySql', 'druid']
+        error: "invalid name in apply"
+        query: [
+          { operation: 'apply', name: ["wtf?"] }
+        ]
+      }
+    }
 
-  "bad name": testError {
-    drivers: ['simple', 'mySql', 'druid']
-    error: "invalid name in apply"
-    query: [
-      { operation: 'apply', name: ["wtf?"] }
-    ]
-  }
-}
+  describe "combines", ->
+    it "should produce the same result", -> {
+      "combine without split": testError {
+        drivers: ['simple', 'mySql', 'druid']
+        error: "combine called without split"
+        query: [
+          { operation: 'combine' }
+        ]
+      }
 
-exports["combines"] = {
-  "combine without split": testError {
-    drivers: ['simple', 'mySql', 'druid']
-    error: "combine called without split"
-    query: [
-      { operation: 'combine' }
-    ]
-  }
-
-  "missing combine": testError {
-    drivers: ['mySql', 'druid'] # 'simple',
-    error: "combine not defined in combine"
-    query: [
-      { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
-      { operation: 'apply', name: 'Count', aggregate: 'count' }
-      { operation: 'combine' }
-    ]
-  }
-}
+      "missing combine": testError {
+        drivers: ['mySql', 'druid'] # 'simple',
+        error: "combine not defined in combine"
+        query: [
+          { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
+          { operation: 'apply', name: 'Count', aggregate: 'count' }
+          { operation: 'combine' }
+        ]
+      }
+    }
 

@@ -24,6 +24,6 @@
     "mysql": "2.0.0-alpha7"
   },
   "devDependencies": {
-    "nodeunit": "~0.7.4"
+    "chai": "~1.6.0"
   }
 }

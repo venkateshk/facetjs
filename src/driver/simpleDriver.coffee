@@ -126,7 +126,7 @@ makeSplitFn = (split) ->
 # ----------------------------
 aggregateFns = {
   constant: ({value}) -> () ->
-    return value
+    return Number(value)
 
   count: -> (ds) ->
     return ds.length

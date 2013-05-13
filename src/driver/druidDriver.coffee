@@ -1012,11 +1012,27 @@ druidQueryFns = {
 }
 
 
+# This is the Druid driver. It translates facet queries to Druid
+#
+# @author Vadim
+#
+# @param {Requester} requester, a function to make requests to Druid
+# @param {string} dataSource, name of the datasource in Druid
+# @param {string} timeAttribute [optional, default="time"], name by which the time attribute will be referred to
+# @param {boolean} approximate [optional, default=false], allow use of approximate queries
+# @param {Filter} filter [optional, default=null], the filter that should be applied to the data
+# @param {boolean} forceInterval [optional, default=false], if true will not execute queries without a time constraint
+# @param {number} concurrentQueryLimit [optional, default=16], max number of queries to execute concurrently
+# @param {number} queryLimit [optional, default=Infinity], max query complexity
+#
+# @return {FacetDriver} the driver that does the requests
+
 module.exports = ({requester, dataSource, timeAttribute, approximate, filter, forceInterval, concurrentQueryLimit, queryLimit}) ->
   timeAttribute or= 'time'
   approximate ?= true
   concurrentQueryLimit or= 16
   queryLimit or= Infinity
+
   queriesMade = 0
   return (query, callback) ->
     try

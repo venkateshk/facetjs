@@ -45,7 +45,7 @@ exports.wrapVerbose = (requester, name) ->
       return
 
 exports.makeEqualityTest = (driverFns) ->
-  return ({drivers, query, verbose}) -> (done) ->
+  return ({drivers, query, verbose}) ->
     throw new Error("must have at least two drivers") if drivers.length < 2
 
     driversToTest = drivers.map (driverName) ->
@@ -55,31 +55,32 @@ exports.makeEqualityTest = (driverFns) ->
         driverFn(query, callback)
         return
 
-    async.parallel driversToTest, (err, results) ->
-      if err
-        console.log '--------------------------'
-        console.log err
-        console.log '--------------------------'
-        throw new Error("got error from driver")
+    return (done) ->
+      async.parallel driversToTest, (err, results) ->
+        if err
+          console.log '--------------------------'
+          console.log err
+          console.log '--------------------------'
+          throw new Error("got error from driver")
 
-      results = results.map(uniformizeResults)
+        results = results.map(uniformizeResults)
 
-      i = 1
-      while i < drivers.length
-        try
-          expect(results[0]).to.deep.equal(results[i], "results of '#{drivers[0]}' and '#{drivers[i]}' must match")
-        catch e
-          console.log "results of '#{drivers[0]}' and '#{drivers[i]}' (expected) must match"
-          throw e
-        i++
+        i = 1
+        while i < drivers.length
+          try
+            expect(results[0]).to.deep.equal(results[i], "results of '#{drivers[0]}' and '#{drivers[i]}' must match")
+          catch e
+            console.log "results of '#{drivers[0]}' and '#{drivers[i]}' (expected) must match"
+            throw e
+          i++
 
-      if verbose
-        console.log('vvvvvvvvvvvvvvvvvvvvvvv')
-        console.log(JSON.stringify(results[0], null, 2))
-        console.log('^^^^^^^^^^^^^^^^^^^^^^^')
+        if verbose
+          console.log('vvvvvvvvvvvvvvvvvvvvvvv')
+          console.log(JSON.stringify(results[0], null, 2))
+          console.log('^^^^^^^^^^^^^^^^^^^^^^^')
 
-      done()
-      return
+        done()
+        return
 
 exports.makeErrorTest = (driverFns) ->
   return ({drivers, query, error, verbose}) -> (done) ->

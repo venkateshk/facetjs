@@ -52,7 +52,7 @@ describe "Diamonds dataset Test", ->
   @timeout(40 * 1000)
 
   describe "apply count", ->
-    it "should produce the same result", testEquality {
+    it "should have the same results for different drivers", testEquality {
       drivers: ['simple', 'mySql']
       query: [
         { operation: 'apply', name: 'Count',  aggregate: 'count' }
@@ -60,7 +60,7 @@ describe "Diamonds dataset Test", ->
     }
 
   describe "many applies", ->
-    it "should produce the same result", testEquality {
+    it "should have the same results for different drivers", testEquality {
       drivers: ['simple', 'mySql']
       query: [
         { operation: 'apply', name: 'Constant 42',  aggregate: 'constant', value: '42' }
@@ -74,7 +74,7 @@ describe "Diamonds dataset Test", ->
     }
 
   describe "filter applies", ->
-    it "should produce the same result", testEquality {
+    it "should have the same results for different drivers", testEquality {
       drivers: ['simple', 'mySql']
       query: [
         {
@@ -109,7 +109,7 @@ describe "Diamonds dataset Test", ->
     }
 
   describe "split cut; no apply", ->
-    it "should produce the same result", testEquality {
+    it "should have the same results for different drivers", testEquality {
       drivers: ['simple', 'mySql']
       query: [
         { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
@@ -118,7 +118,7 @@ describe "Diamonds dataset Test", ->
     }
 
   describe "split cut; apply count", ->
-    it "should produce the same result", testEquality {
+    it "should have the same results for different drivers", testEquality {
       drivers: ['simple', 'mySql']
       query: [
         { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
@@ -128,7 +128,7 @@ describe "Diamonds dataset Test", ->
     }
 
   describe "split carat; apply count", ->
-    it "should produce the same result", testEquality {
+    it "should have the same results for different drivers", testEquality {
       drivers: ['simple', 'mySql']
       query: [
         { operation: 'split', name: 'Carat', bucket: 'continuous', size: 0.1, offset: 0.005, attribute: 'carat' }
@@ -138,7 +138,7 @@ describe "Diamonds dataset Test", ->
     }
 
   describe "split cut; apply count > split carat; apply count", ->
-    it "should produce the same result", testEquality {
+    it "should have the same results for different drivers", testEquality {
       drivers: ['simple', 'mySql']
       query: [
         { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
@@ -152,7 +152,7 @@ describe "Diamonds dataset Test", ->
     }
 
   describe "split(1, .5) carat; apply count > split cut; apply count", ->
-    it "should produce the same result", testEquality {
+    it "should have the same results for different drivers", testEquality {
       drivers: ['simple', 'mySql']
       query: [
         { operation: 'split', name: 'Carat', bucket: 'continuous', size: 1, offset: 0.5, attribute: 'carat' }
@@ -166,7 +166,7 @@ describe "Diamonds dataset Test", ->
     }
 
   describe "split carat; apply count > split cut; apply count", ->
-    it "should produce the same result", testEquality {
+    it "should have the same results for different drivers", testEquality {
       drivers: ['simple', 'mySql']
       query: [
         { operation: 'split', name: 'Carat', bucket: 'continuous', size: 0.1, offset: 0.005, attribute: 'carat' }
@@ -180,7 +180,7 @@ describe "Diamonds dataset Test", ->
     }
 
   describe "apply arithmetic", ->
-    it "should produce the same result", testEquality {
+    it "should have the same results for different drivers", testEquality {
       drivers: ['simple', 'mySql']
       query: [
         {
@@ -232,7 +232,7 @@ describe "Diamonds dataset Test", ->
     }
 
   describe "apply arithmetic", ->
-    it "should produce the same result", testEquality {
+    it "should have the same results for different drivers", testEquality {
       drivers: ['simple', 'mySql']
       query: [
         {
@@ -248,7 +248,7 @@ describe "Diamonds dataset Test", ->
     }
 
   describe "is filter", ->
-    it "should produce the same result", testEquality {
+    it "should have the same results for different drivers", testEquality {
       drivers: ['simple', 'mySql']
       query: [
         { operation: 'filter', type: 'is', attribute: 'color', value: 'E' }
@@ -258,7 +258,7 @@ describe "Diamonds dataset Test", ->
 
 
   describe "complex filter", ->
-    it "should produce the same result", testEquality {
+    it "should have the same results for different drivers", testEquality {
       drivers: ['simple', 'mySql']
       query: [
         {
@@ -280,7 +280,7 @@ describe "Diamonds dataset Test", ->
     }
 
   describe "complex filter; split carat; apply count > split cut; apply count", ->
-    it "should produce the same result", testEquality {
+    it "should have the same results for different drivers", testEquality {
       drivers: ['simple', 'mySql']
       query: [
         {

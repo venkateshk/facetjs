@@ -51,7 +51,7 @@ describe "Cache tests", ->
   @timeout(40 * 1000)
 
   describe "(sanity check) apply count", ->
-    testEquality {
+    it "should have the same results for different drivers", testEquality {
       drivers: ['mySql', 'mySqlCached']
       query: [
         { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
@@ -62,7 +62,7 @@ describe "Cache tests", ->
 
     # Top N Cache Test
   describe "split page; apply deleted, count; combine descending", ->
-    testEquality {
+    it "should have the same results for different drivers", testEquality {
       drivers: ['mySql', 'mySqlCached']
       query: [
         { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
@@ -78,7 +78,7 @@ describe "Cache tests", ->
     after -> allowQuery = true
 
     describe "split page; apply deleted; combine descending", ->
-      testEquality {
+      it "should have the same results for different drivers", testEquality {
         drivers: ['mySql', 'mySqlCached']
         query: [
           { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
@@ -89,7 +89,7 @@ describe "Cache tests", ->
       }
 
     describe "split page; apply deleted, count; combine descending", ->
-      testEquality {
+      it "should have the same results for different drivers", testEquality {
         drivers: ['mySql', 'mySqlCached']
         query: [
           { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
@@ -103,7 +103,7 @@ describe "Cache tests", ->
 
   describe "different sorting works", ->
     describe "split page; apply deleted; combine descending", ->
-      testEquality {
+      it "should have the same results for different drivers", testEquality {
         drivers: ['mySql', 'mySqlCached']
         query: [
           { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
@@ -114,7 +114,7 @@ describe "Cache tests", ->
       }
 
     describe "split page; apply deleted; combine ascending", ->
-      testEquality {
+      it "should have the same results for different drivers", testEquality {
         drivers: ['mySql', 'mySqlCached']
         query: [
           { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
@@ -125,7 +125,7 @@ describe "Cache tests", ->
       }
 
     describe "split page; apply deleted; combine Page, descending", ->
-      testEquality {
+      it "should have the same results for different drivers", testEquality {
         drivers: ['mySql', 'mySqlCached']
         query: [
           { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
@@ -136,7 +136,7 @@ describe "Cache tests", ->
       }
 
     describe "split page; apply deleted; combine Page, ascending", ->
-      testEquality {
+      it "should have the same results for different drivers", testEquality {
         drivers: ['mySql', 'mySqlCached']
         query: [
           { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
@@ -149,7 +149,7 @@ describe "Cache tests", ->
 
   # Cache Test
   describe "split time; apply count; apply added", ->
-    testEquality {
+    it "should have the same results for different drivers", testEquality {
       drivers: ['mySql', 'mySqlCached']
       query: [
         { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
@@ -165,7 +165,7 @@ describe "Cache tests", ->
     after -> allowQuery = true
 
     describe "split time; apply count", ->
-      testEquality {
+      it "should have the same results for different drivers", testEquality {
         drivers: ['mySql', 'mySqlCached']
         query: [
           { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
@@ -176,7 +176,7 @@ describe "Cache tests", ->
       }
 
     describe "split time; apply count; combine not by time", ->
-      testEquality {
+      it "should have the same results for different drivers", testEquality {
         drivers: ['mySql', 'mySqlCached']
         query: [
           { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
@@ -187,7 +187,7 @@ describe "Cache tests", ->
       }
 
     describe "split time; apply count; filter within another time filter", ->
-      testEquality {
+      it "should have the same results for different drivers", testEquality {
         drivers: ['mySql', 'mySqlCached']
         query: [
           { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 26, 12, 0, 0))] }
@@ -198,7 +198,7 @@ describe "Cache tests", ->
       }
 
     describe "split time; apply count; limit", ->
-      testEquality {
+      it "should have the same results for different drivers", testEquality {
         drivers: ['mySql', 'mySqlCached']
         query: [
           { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
@@ -211,7 +211,7 @@ describe "Cache tests", ->
 
     # Cache Test 2
   describe "filter; split time; apply count; apply added", ->
-    testEquality {
+    it "should have the same results for different drivers", testEquality {
       drivers: ['mySql', 'mySqlCached']
       query: [
         { operation: 'filter', type: 'and', filters: [
@@ -230,7 +230,7 @@ describe "Cache tests", ->
     after -> allowQuery = true
 
     describe "filter; split time; apply count; apply added", ->
-      testEquality {
+      it "should have the same results for different drivers", testEquality {
         drivers: ['mySql', 'mySqlCached']
         query: [
           { operation: 'filter', type: 'and', filters: [
@@ -245,7 +245,7 @@ describe "Cache tests", ->
       }
 
     describe "filter; split time; apply count; apply added; combine time descending", ->
-      testEquality {
+      it "should have the same results for different drivers", testEquality {
         drivers: ['mySql', 'mySqlCached']
         query: [
           { operation: 'filter', type: 'and', filters: [
@@ -262,7 +262,7 @@ describe "Cache tests", ->
 
   describe "fillTree test", ->
     describe "filter; split time; apply count; apply added", ->
-      testEquality {
+      it "should have the same results for different drivers", testEquality {
         drivers: ['mySql', 'mySqlCached']
         query: [
           { operation: 'filter', type: 'and', filters: [
@@ -276,7 +276,7 @@ describe "Cache tests", ->
       }
 
     describe "filter; split time; apply count; apply added; combine time descending", ->
-      testEquality {
+      it "should have the same results for different drivers", testEquality {
         drivers: ['mySql', 'mySqlCached']
         query: [
           { operation: 'filter', type: 'and', filters: [

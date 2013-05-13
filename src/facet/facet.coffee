@@ -21,6 +21,29 @@ getScaleAndSegmentsForTraining = (training, segment, scaleName) ->
     unifiedSegments
   }
 
+
+getConnectorAndSegemnts = (segment, connectorName) ->
+  sourceSegment = segment
+  hops = 0
+  while true
+    connector = sourceSegment.connector[connectorName]
+    break if connector
+    sourceSegment = sourceSegment.parent
+    hops++
+    throw new Error("can not find connector '#{connectorName}'") unless sourceSegment
+
+  # Get all of sources children on my level (my cousins)
+  unifiedSegments = [sourceSegment]
+  while hops > 0
+    unifiedSegments = flatten(unifiedSegments.map((s) -> s.splits))
+    hops--
+
+  return {
+    connector
+    unifiedSegments
+  }
+
+
 class FacetJob
   constructor: (@selector, @width, @height, @driver) ->
     @ops = []
@@ -126,6 +149,22 @@ class FacetJob
     @ops.push({
       operation: 'plot'
       plot
+    })
+    return this
+
+  connector: (name, connector) ->
+    throw new TypeError("not a valid connector") unless typeof connector is 'function'
+    @ops.push({
+      operation: 'connector'
+      name
+      connector
+    })
+    return this
+
+  connect: (name) ->
+    @ops.push({
+      operation: 'connect'
+      name
     })
     return this
 
@@ -246,6 +285,22 @@ class FacetJob
               for segment in segmentGroup
                 plot(segment)
 
+          when 'connector'
+            { name, connector } = cmd
+            for segmentGroup in segmentGroups
+              for segment in segmentGroup
+                segment.connector[name] = connector(segment)
+
+          when 'connect'
+            { name } = cmd
+            for segmentGroup in segmentGroups
+              for segment in segmentGroup
+                ret = getConnectorAndSegemnts(segment, name)
+                continue unless ret
+                { connector, unifiedSegments } = ret
+                throw new Error("Connector '#{name}' can't be connected") unless connector
+                connector(unifiedSegments)
+
           else
             throw new Error("Unknown operation '#{cmd.operation}'")
 
@@ -257,4 +312,12 @@ class FacetJob
 facet.define = (selector, width, height, driver) ->
   throw new Error("bad size: #{width} x #{height}") unless width and height
   return new FacetJob(selector, width, height, driver)
+
+
+
+
+
+
+
+
 

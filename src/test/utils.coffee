@@ -93,7 +93,7 @@ exports.makeErrorTest = (driverFns) ->
       throw new Error("no such driver #{driverName}") unless driverFn
       driverFn query, (err, results) ->
         numberOfTestsLeft--
-        expect(err).to.be.ok("#{driverName} driver should throw error")
+        expect(err).to.be.ok
         expect(err.message).equal(error, "#{driverName} driver error should match")
         if numberOfTestsLeft is 0
           done()

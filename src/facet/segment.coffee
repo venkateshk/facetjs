@@ -6,6 +6,7 @@ class Segment
     throw new Error("invalid stage") unless isValidStage(stage)
     @_stageStack = [stage]
     @scale = {}
+    @connector = {}
 
   getStage: ->
     return @_stageStack[@_stageStack.length - 1]

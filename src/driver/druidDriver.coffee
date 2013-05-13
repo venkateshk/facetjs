@@ -1012,10 +1012,10 @@ druidQueryFns = {
 }
 
 
-module.exports = ({requester, dataSource, timeAttribute, approximate, filter, forceInterval, concurentQueryLimit, queryLimit}) ->
+module.exports = ({requester, dataSource, timeAttribute, approximate, filter, forceInterval, concurrentQueryLimit, queryLimit}) ->
   timeAttribute or= 'time'
   approximate ?= true
-  concurentQueryLimit or= 16
+  concurrentQueryLimit or= 16
   queryLimit or= Infinity
   queriesMade = 0
   return (query, callback) ->
@@ -1101,7 +1101,7 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
       # do the query in parallel
       async.mapLimit(
         segments
-        concurentQueryLimit
+        concurrentQueryLimit
         queryForSegment
         (err, results) ->
           if err

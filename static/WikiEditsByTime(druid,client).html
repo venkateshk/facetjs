@@ -22,6 +22,7 @@
       var layout = facet.layout;
       var scale = facet.scale;
       var plot = facet.plot;
+      var connector = facet.connector;
       var use = facet.use;
       var combine = facet.combine;
       var sort = facet.sort;
@@ -55,7 +56,7 @@
           type: 'within',
           attribute: 'time',
           range: [
-            new Date(Date.UTC(2013, 4-1, 1, 0, 0, 0)),
+            new Date(Date.UTC(2013, 4-1, 5, 0, 0, 0)),
             new Date(Date.UTC(2013, 4-1, 8, 0, 0, 0))
           ],
         }
@@ -65,6 +66,12 @@
         .transform(transform.rectangle.rectangle({left: 10, right: 10, top: 10, bottom: 10}))
         .scale('horiz', scale.linear())
         .scale('vert', scale.linear())
+        .connector('topline', connector.line({
+          color: 'blue',
+          interpolate: 'monotone',
+          width: 5,
+          opacity: 0.5
+        }))
         .range('horiz', use.stage('width'))
           .split('Time', split.timePeriod('time', 'PT1H'))
           .apply('Edits', apply.sum('count'))
@@ -82,7 +89,13 @@
               stroke: 'black',
               title: use.prop('Time')
             }))
-            .render()
+            .transform(transform.rectangle.point({ top: 0 }))
+              .plot(plot.circle({
+                fill: 'red',
+                radius: 2
+              }))
+              .connect('topline')
+              .render()
 
 
 

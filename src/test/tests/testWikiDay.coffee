@@ -63,7 +63,7 @@ describe "Wikipedia dataset test", ->
   @timeout(40 * 1000)
 
   describe "apply count", ->
-    it "should produce the same result", testEquality {
+    it "should have the same results for different drivers", testEquality {
       drivers: ['mySql', 'druid']
       query: [
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
@@ -72,7 +72,7 @@ describe "Wikipedia dataset test", ->
     }
 
   describe "filter; apply count", ->
-    it "should produce the same result", testEquality {
+    it "should have the same results for different drivers", testEquality {
       drivers: ['mySql', 'druid']
       query: [
         { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
@@ -82,7 +82,7 @@ describe "Wikipedia dataset test", ->
     }
 
   describe "apply arithmetic", ->
-    it "should produce the same result", testEquality {
+    it "should have the same results for different drivers", testEquality {
       drivers: ['mySql', 'druid']
       query: [
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
@@ -109,7 +109,7 @@ describe "Wikipedia dataset test", ->
     }
 
   describe "split time; combine time", ->
-    it "should produce the same result", testEquality {
+    it "should have the same results for different drivers", testEquality {
       drivers: ['mySql', 'druid']
       query: [
         { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
@@ -127,7 +127,7 @@ describe "Wikipedia dataset test", ->
     # }
 
   describe "split time; apply count", ->
-    it "should produce the same result", testEquality {
+    it "should have the same results for different drivers", testEquality {
       drivers: ['mySql', 'druid']
       query: [
         { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
@@ -138,7 +138,7 @@ describe "Wikipedia dataset test", ->
     }
 
   describe "split time; apply count; sort Count descending", ->
-    it "should produce the same result", testEquality {
+    it "should have the same results for different drivers", testEquality {
       drivers: ['mySql', 'druid']
       query: [
         { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
@@ -148,7 +148,7 @@ describe "Wikipedia dataset test", ->
     }
 
   describe "split time; apply count; sort Count ascending", ->
-    it "should produce the same result", testEquality {
+    it "should have the same results for different drivers", testEquality {
       drivers: ['mySql', 'druid']
       query: [
         { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
@@ -160,7 +160,7 @@ describe "Wikipedia dataset test", ->
     # ToDo: Test timezone support
 
   describe "split page; apply count; sort count descending", ->
-    it "should produce the same result", testEquality {
+    it "should have the same results for different drivers", testEquality {
       drivers: ['mySql', 'druid']
       query: [
         { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
@@ -216,7 +216,7 @@ describe "Wikipedia dataset test", ->
 
     ###
   describe "split language; apply count; sort count descending > split page; apply count; sort count descending", ->
-    it "should produce the same result", testEquality {
+    it "should have the same results for different drivers", testEquality {
       drivers: ['mySql', 'druid']
       query: [
         { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
@@ -232,7 +232,7 @@ describe "Wikipedia dataset test", ->
     }
 
   describe "split page; apply count; sort count ascending", ->
-    it "should produce the same result", testEquality {
+    it "should have the same results for different drivers", testEquality {
       drivers: ['mySql', 'druid']
       query: [
         { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
@@ -243,7 +243,7 @@ describe "Wikipedia dataset test", ->
     }
 
   describe "filter language=en; split page; apply count; sort deleted ascending", ->
-    it "should produce the same result", testEquality {
+    it "should have the same results for different drivers", testEquality {
       drivers: ['mySql', 'druid']
       query: [
         { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
@@ -255,7 +255,7 @@ describe "Wikipedia dataset test", ->
     }
 
   describe "filter with nested ANDs", ->
-    it "should produce the same result", testEquality {
+    it "should have the same results for different drivers", testEquality {
       drivers: ['mySql', 'druid']
       query: [
         {
@@ -286,7 +286,7 @@ describe "Wikipedia dataset test", ->
 
     # Should work once druid with advanced JS aggregate is deployed
   describe "apply sum(count, robot=0), sum(added, robot=1)", ->
-    it "should produce the same result", testEquality {
+    it "should have the same results for different drivers", testEquality {
       drivers: ['mySql', 'druid']
       query: [
         {
@@ -329,7 +329,7 @@ describe "Wikipedia dataset test", ->
     }
 
   describe "split page; apply sum(count, robot=0), sum(added, robot=1)", ->
-    it "should produce the same result", testEquality {
+    it "should have the same results for different drivers", testEquality {
       drivers: ['mySql', 'druid']
       query: [
         {

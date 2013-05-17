@@ -283,12 +283,10 @@ module.exports = ({driver, queryGetter, querySetter}) ->
   return (async, callback) ->
     query = queryGetter(async)
     if query.filter(({operation}) -> return operation is 'filter').length is 0
-      driver async, callback
-      return
+      return driver async, callback
     # If there is more than one split, don't use cache
     if query.filter(({operation}) -> return operation is 'split').length isnt 1
-      driver async, callback
-      return
+      return driver async, callback
 
     try
       condensedQuery = driverUtil.condenseQuery(query)
@@ -298,8 +296,7 @@ module.exports = ({driver, queryGetter, querySetter}) ->
 
     # If there is a split for contnuous dimension, don't use cache
     if condensedQuery[1].split.bucket is 'continuous'
-      driver async, callback
-      return
+      return driver async, callback
 
     cachedTopN = splitCache.get(condensedQuery)
     if cachedTopN?
@@ -310,7 +307,7 @@ module.exports = ({driver, queryGetter, querySetter}) ->
 
     if unknownQuery?
       querySetter(async, unknownQuery)
-      driver async, (err, root) ->
+      return driver async, (err, root) ->
         if err?
           callback(err, null)
           return

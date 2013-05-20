@@ -22,8 +22,8 @@ facet.scale = {
         for segment in segments
           domainValue = domain(segment)
           if domainValue instanceof Interval
-            domainMin = Math.min(domainMin, domainValue.start)
-            domainMax = Math.max(domainMax, domainValue.end)
+            domainMin = Math.min(domainMin, domainValue.start, domainValue.end)
+            domainMax = Math.max(domainMax, domainValue.start, domainValue.end)
           else
             domainMin = Math.min(domainMin, domainValue)
             domainMax = Math.max(domainMax, domainValue)
@@ -55,7 +55,6 @@ facet.scale = {
             rangeTo = Math.min(rangeTo, rangeValue)
 
         throw new Error("Range went into infinites") unless isFinite(rangeFrom) and isFinite(rangeTo)
-
         basicScale.range([rangeFrom, rangeTo])
         delete self.range
         return

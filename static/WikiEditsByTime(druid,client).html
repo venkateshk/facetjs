@@ -72,30 +72,40 @@
           width: 5,
           opacity: 0.5
         }))
+        .connector('area', connector.area({
+          color: 'orange',
+          opacity: 0.3
+        }))
         .range('horiz', use.stage('width'))
           .split('Time', split.timePeriod('time', 'PT1H'))
-          .apply('Edits', apply.sum('count'))
+          .apply('Edits', apply.sum('delta'))
           .combine(combine.slice(sort.natural('Time', 'ascending')))
           .domain('horiz', use.prop('Time'))
           .domain('vert', use.interval(0, use.prop('Edits')))
           .layout(layout.horizontalScale({ scale: 'horiz' }))
-          .range('vert', use.stage('height'))
+          .range('vert', use.interval(0, use.stage('height')))
           .transform(transform.rectangle.rectangle({
-            bottom: 0,
-            height: use.scale('vert')
+            bottom: use.scale('vert')
           }))
             .plot(plot.box({
               fill: '#f0f0f0',
               stroke: 'black',
               title: use.prop('Time')
             }))
-            .transform(transform.rectangle.point({ top: 0 }))
+            .transform(transform.rectangle.point({top:0}))
+              .connect('topline')
               .plot(plot.circle({
                 fill: 'red',
                 radius: 2
               }))
-              .connect('topline')
-              .render()
+            .untransform()
+            .transform(transform.rectangle.line({direction: 'vertical'}))
+              .connect('area')
+              .plot(plot.line({
+                color: 'green'
+              }))
+            .untransform()
+            .render()
 
 
 

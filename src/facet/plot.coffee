@@ -34,9 +34,25 @@ facet.plot = {
       stage = segment.getStage()
       throw new Error("Box must have a rectangle stage (is #{stage.type})") unless stage.type is 'rectangle'
 
+      if stage.width > 0
+        x = 0
+        w = stage.width
+      else
+        x = stage.width
+        w = -stage.width
+
+      if stage.height > 0
+        y = 0
+        h = stage.height
+      else
+        y = stage.height
+        h = -stage.height
+
       createNode(segment, 'rect', args)
-        .attr('width', stage.width)
-        .attr('height', stage.height)
+        .attr('x', x)
+        .attr('y', y)
+        .attr('width', w)
+        .attr('height', h)
         .style('fill', fill)
         .style('stroke', stroke)
       return
@@ -107,6 +123,8 @@ facet.plot = {
 
       createNode(segment, 'line', args)
         .style('stroke', color)
+        .attr('x1', -stage.length / 2)
+        .attr('x2',  stage.length / 2)
 
       return
 }

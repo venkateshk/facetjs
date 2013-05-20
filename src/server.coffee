@@ -61,21 +61,30 @@ app.post '/driver/sql', (req, res) ->
   return
 
 # Druid
-druidPass = druidRequester({
-  host: '10.60.134.138'
-  port: 8080
-})
 app.post '/pass/druid', (req, res) ->
   { context, query } = req.body
+
+  { host, port } = context or {}
+  druidPass = druidRequester({
+    host: host or '10.60.134.138'
+    port: port or 8080
+  })
+
   druidPass(query, respondWithResult(res))
   return
 
 app.post '/driver/druid', (req, res) ->
   { context, query } = req.body
+
+  { host, port } = context or {}
+  druidPass = druidRequester({
+    host: host or '10.60.134.138'
+    port: port or 8080
+  })
+
   druidDriver({
     requester: druidPass
     dataSource: context.dataSource
-    interval: context.interval.map((d) -> new Date(d))
     filters: null
   })(query, respondWithResult(res))
   return

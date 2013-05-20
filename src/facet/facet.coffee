@@ -269,8 +269,9 @@ class FacetJob
             for segmentGroup in segmentGroups
               for segment in segmentGroup
                 pseudoStage = transform(segment)
-                pseudoStage.stage.node = segment.getStage().node.append('g')
-                  .attr('transform', "translate(#{pseudoStage.x},#{pseudoStage.y})")
+                transformStr = "translate(#{pseudoStage.x},#{pseudoStage.y})"
+                transformStr += " rotate(#{pseudoStage.a})" if pseudoStage.a
+                pseudoStage.stage.node = segment.getStage().node.append('g').attr('transform', transformStr)
                 segment.pushStage(pseudoStage.stage)
 
 

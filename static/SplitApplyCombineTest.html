@@ -41,10 +41,11 @@
   },
   {
     "operation": "combine",
+    "combine": "slice",
     "sort": {
       "compare": "natural",
       "direction": "descending",
-      "prop": "Language"
+      "prop": "Count"
     },
     "limit": 4
   },
@@ -62,6 +63,7 @@
   },
   {
     "operation": "combine",
+    "combine": "slice",
     "sort": {
       "compare": "natural",
       "direction": "descending",
@@ -76,6 +78,9 @@
           <option selected>Druid</option>
           <option>SQL</option>
         </select>
+        <label for="host">host:</label><input id="host" type="text" value="10.108.62.62"></input> <!-- 10.60.134.138 -->
+        <label for="port">port:</label><input id="port" type="text" value="8080"></input>
+        <label for="data-source">data source:</label><input id="data-source" type="text" value="openx"></input> <!-- wikipedia_editstream -->
       </div>
       <pre id="output"></pre>
       <button id="send">Send</button>
@@ -89,28 +94,6 @@
     </div>
     <script>
     (function() {
-      // SQL
-      var sqlRequester = facet.ajaxPoster({
-        url: '/pass/sql',
-        prety: true
-      });
-
-      var sqlDriverClient = sqlDriver({
-        requester: sqlRequester,
-        table: "wiki_day_agg"
-      });
-
-      // DRUID
-      var druidRequester = facet.ajaxPoster({
-        url: '/pass/druid',
-        prety: true
-      });
-
-      var druidDriverClient = druidDriver({
-        requester: druidRequester,
-        dataSource: "wikipedia_editstream"
-      });
-
       var addObj = function(obj) {
         return function() {
           var input = d3.select("#input").property("value");
@@ -151,6 +134,7 @@
       d3.select("#add-combine")
         .on('click', addObj({
           operation: "combine",
+          combine: "slice",
           sort: {
             compare: "natural",
             direction: "descending",
@@ -179,10 +163,43 @@
             .property("value", JSON.stringify(input, null, 2))
         })
 
+      function getDriver() {
+        var driverStr = d3.select("#driver").property("value")
+
+        if (driverStr === "SQL") {
+          // SQL
+          var sqlRequester = facet.ajaxPoster({
+            url: '/pass/sql',
+            prety: true
+          });
+
+          var sqlDriverClient = sqlDriver({
+            requester: sqlRequester,
+            table: "wiki_day_agg"
+          });
+        }
+
+        if (driverStr === "Druid") {
+          // DRUID
+          var druidRequester = facet.ajaxPoster({
+            url: '/pass/druid',
+            prety: true,
+            context: {
+              host: d3.select("#host").property("value"),
+              port: d3.select("#port").property("value")
+            }
+          });
+
+          return druidDriver({
+            requester: druidRequester,
+            dataSource: d3.select("#data-source").property("value")
+          });
+        }
+      }
+
       d3.select('#send')
         .on('click', function() {
-          var driverStr = d3.select("#driver").property("value")
-          var driver = driverStr == 'Druid' ? druidDriverClient : sqlDriverClient;
+          var driver = getDriver();
           var input = d3.select("#input").property("value");
 
           if (input == '') return;
@@ -198,10 +215,9 @@
           var start = Date.now();
           driver(input, function(err, res) {
             if (err) {
-              d3.select("#output")
-                .text("An error occurred:\n" + err.message);
-              d3.select('.time-show')
-                .text("Query had an error");
+              d3.select("#output").text("An error occurred:\n" + err.message);
+              d3.select('.time-show').text("Query had an error");
+              console.log(err);
               return;
             }
 

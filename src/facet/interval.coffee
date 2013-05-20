@@ -4,9 +4,6 @@ class Interval
     throw new Error("invalid end (is '#{@end}')") unless typeof @end.valueOf() is 'number'
     return
 
-  transform: (fn) ->
-    null
-
   valueOf: ->
     return @end - @start
 

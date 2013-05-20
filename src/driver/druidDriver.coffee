@@ -798,7 +798,7 @@ druidQueryFns = {
         sort: {
           compare: 'natural'
           prop: condensedCommand.split.name
-          direction: 'descending'
+          direction: condensedCommand.combine.sort.direction
         }
         limit: allDataChunks
       })

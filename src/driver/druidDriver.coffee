@@ -183,7 +183,7 @@ class DruidQueryBuilder
         throw new Error("can not use a 'not' filter on a time interval") if i
         [{
           type: 'not'
-          filed: f
+          field: f
         }]
 
       when 'and'
@@ -267,7 +267,7 @@ class DruidQueryBuilder
           bucketSize: split.size
           offset: split.offset
         }
-        @useCache = false
+        #@useCache = false
 
       when 'tuple'
         throw new Error("only supported tuples of size 2 (is: #{split.splits.length})") unless split.splits.length is 2
@@ -533,17 +533,7 @@ class DruidQueryBuilder
               if sort.direction is 'descending'
                 @metric = sort.prop
               else
-                #@metric = { type: "inverted", metric: sort.prop }
-                @metric = @throwawayName()
-                @addPostAggregation {
-                  type: "arithmetic"
-                  name: @metric
-                  fn: "*"
-                  fields: [
-                    { type: "fieldAccess", fieldName: sort.prop }
-                    { type: "constant", value: -1 }
-                  ]
-                }
+                @metric = { type: "inverted", metric: sort.prop }
 
           else if sort
             # groupBy can only sort lexicographic
@@ -719,6 +709,22 @@ druidQueryFns = {
         prop = d.result
         prop[timePropName] = range
         return prop
+
+      # Total Hack!
+      # Trim down the 0s form the end in an ascending timeseries
+      # Remove this when druid pushes the new code live.
+      interestingApplies = condensedCommand.applies.filter ({aggregate}) -> aggregate not in ['min', 'max']
+      if condensedCommand.combine.sort.direction is 'ascending' and interestingApplies.length
+        while props.length
+          lastProp = props[props.length-1]
+          allZero = true
+          for apply in interestingApplies
+            allZero = allZero and lastProp[apply.name] is 0
+          if allZero
+            props.pop()
+          else
+            break
+      #/ Hack
 
       callback(null, props)
       return

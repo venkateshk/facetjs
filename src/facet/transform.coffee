@@ -234,8 +234,40 @@ facet.transform = {
           }
         }
 
-    line: ->
-      throw new Error("not implemented yet")
+    line: (args = {}) ->
+      { direction } = args
+      # ToDo: some checks
+      if direction is 'vertical'
+        fx = pointOnLine(args, 'left', 'right')
+        fy = lineOnLine(args, 'top', 'height', 'bottom')
+      else
+        fx = lineOnLine(args, 'left', 'width', 'right')
+        fy = pointOnLine(args, 'top', 'bottom')
+
+      return (segment) ->
+        stage = segment.getStage()
+        checkStage(stage, 'rectangle')
+
+        if direction is 'vertical'
+          x = fx(segment, stage.width)
+          [y, l] = fy(segment, stage.height)
+          y += l/2 # hack
+          a = 90
+        else
+          [x, l] = fx(segment, stage.width)
+          x += l/2 # hack
+          y = fy(segment, stage.height)
+
+        return {
+          x
+          y
+          a
+          stage: {
+            type: 'line'
+            length: l
+          }
+        }
+
 
     rectangle: (args = {}) ->
       fx = lineOnLine(args, 'left', 'width', 'right')

@@ -24,6 +24,7 @@ facet.use = {
       return getProp(segment, propName)
 
   comulative: (use) ->
+    use = wrapLiteral(use)
     tally = 0
     curParent = null
     return (segment) ->
@@ -36,6 +37,7 @@ facet.use = {
       return ret
 
   scale: (scaleName, use) ->
+    use = wrapLiteral(use)
     throw new Error("must specify scale name") unless scaleName
     throw new TypeError("scale name must be a string") unless typeof scaleName is 'string'
     return (segment) ->
@@ -55,6 +57,13 @@ facet.use = {
     start = wrapLiteral(start)
     end = wrapLiteral(end)
     return (segment) -> new Interval(start(segment), end(segment))
+
+  length: (interval) ->
+    interval = wrapLiteral(interval)
+    return (segment) ->
+      i = interval(segment)
+      throw new TypeError("must have an interval") unless i instanceof Interval
+      return i.valueOf()
 
   fn: (args..., fn) -> (segment) ->
     throw new TypeError("second argument must be a function") unless typeof fn is 'function'

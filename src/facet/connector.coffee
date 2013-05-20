@@ -18,7 +18,7 @@ facet.connector = {
     lineFn.tension(tension(segment)) if tension
 
     stage = segment.getStage()
-    { e:px, f:py } = stage.node.node().getScreenCTM()
+    invParentMatrix = stage.node.node().getScreenCTM().inverse()
     return (segments) ->
       return if lineHasRun
       lineHasRun = true
@@ -26,10 +26,10 @@ facet.connector = {
       points = segments.map((s) ->
         myStage = s.getStage()
         throw new Error("Line connector must have a point stage (is #{myStage.type})") unless myStage.type is 'point'
-        matrix = myStage.node.node().getScreenCTM()
-        return [matrix.e - px, matrix.f - py] # x, y
+        { e, f } = invParentMatrix.multiply(myStage.node.node().getScreenCTM())
+        return [e, f] # x, y
       )
-      console.log points
+
       stage.node.append('path')
         .attr('d', lineFn(points))
         .style('stroke', colorValue)
@@ -51,22 +51,28 @@ facet.connector = {
     opacityValue = opacity(segment)
 
     areaFn = d3.svg.area()
+      .x0((d) -> d[0])
+      .y0((d) -> d[1])
+      .x1((d) -> d[2])
+      .y1((d) -> d[3])
     areaFn.interpolate(interpolate(segment)) if interpolate
     areaFn.tension(tension(segment)) if tension
 
     stage = segment.getStage()
-    { e:px, f:py } = stage.node.node().getScreenCTM()
+    invParentMatrix = stage.node.node().getScreenCTM().inverse()
     return (segments) ->
       return if areaHasRun
       areaHasRun = true
 
       points = segments.map((s) ->
         myStage = s.getStage()
-        throw new Error("Line connector must have a point stage (is #{myStage.type})") unless myStage.type is 'point'
-        matrix = myStage.node.node().getScreenCTM()
-        return [matrix.e - px, matrix.f - py] # x, y
+        throw new Error("Line connector must have a point stage (is #{myStage.type})") unless myStage.type is 'line'
+        len = myStage.length / 2
+        { a, b, e, f } = invParentMatrix.multiply(myStage.node.node().getScreenCTM())
+
+        return [-a*len+e, -b*len+f, a*len+e, b*len+f] # x1, y1, x2, y2
       )
-      console.log points
+
       stage.node.append('path')
         .attr('d', areaFn(points))
         .style('stroke', 'none')

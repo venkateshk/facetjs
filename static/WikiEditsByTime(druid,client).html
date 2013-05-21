@@ -78,7 +78,7 @@
         }))
         .range('horiz', use.stage('width'))
           .split('Time', split.timePeriod('time', 'PT1H'))
-          .apply('Edits', apply.sum('delta'))
+          .apply('Edits', apply.sum('count'))
           .combine(combine.slice(sort.natural('Time', 'ascending')))
           .domain('horiz', use.prop('Time'))
           .domain('vert', use.interval(0, use.prop('Edits')))
@@ -87,11 +87,11 @@
           .transform(transform.rectangle.rectangle({
             bottom: use.scale('vert')
           }))
-            .plot(plot.box({
-              fill: '#f0f0f0',
-              stroke: 'black',
-              title: use.prop('Time')
-            }))
+            // .plot(plot.box({
+            //   fill: '#f0f0f0',
+            //   stroke: 'black',
+            //   title: use.prop('Time')
+            // }))
             .transform(transform.rectangle.point({top:0}))
               .connect('topline')
               .plot(plot.circle({

@@ -295,7 +295,7 @@ module.exports = ({driver, queryGetter, querySetter}) ->
       return
 
     # If there is a split for contnuous dimension, don't use cache
-    if condensedQuery[1].split.bucket is 'continuous'
+    if condensedQuery[1].split.bucket in ['continuous', 'tuple']
       return driver async, callback
 
     cachedTopN = splitCache.get(condensedQuery)
@@ -316,7 +316,10 @@ module.exports = ({driver, queryGetter, querySetter}) ->
         filterCache.put(condensedQuery, root)
         callback(null, fillTree(root, cachedData, condensedQuery))
     else
-      callback(null, createTree(cachedData, condensedQuery))
+      if condensedQuery[1].applies.length > 0
+        callback(null, createTree(cachedData, condensedQuery))
+      else
+        return driver async, callback
     return
 
 

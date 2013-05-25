@@ -1,15 +1,274 @@
 # Facet
 
-## Drivers
+## Driver language
+
+### Introduction
+A facet query is represented as a JSON array of operations. Every top level operation needs to be tagged with its type.
+
+Here is an example of a facet query that calculates the totals and does two splits to generate a 'pivot table'
+```javascript
+[
+  {
+    operation: 'filter'
+    type: 'or'
+    filters: [
+      { type: 'is', attribute: 'color', value: 'E' }
+      {
+        type: 'and'
+        filters: [
+          { type: 'in', attribute: 'clarity', values: ['SI1', 'SI2'] }
+          { type: 'not', filter: { type: 'is', attribute: 'cut', value: 'Good' } }
+        ]
+      }
+    ]
+  }
+  { operation: 'apply', name: 'Count', aggregate: 'count' }
+
+  { operation: 'split', name: 'Carat', bucket: 'continuous', size: 0.1, offset: 0.005, attribute: 'carat' }
+  { operation: 'apply', name: 'Count', aggregate: 'count' }
+  { operation: 'combine', combine: 'slice', sort: { prop: 'Count', compare: 'natural', direction: 'descending' }, limit: 5 }
+
+  { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
+  { operation: 'apply', name: 'Count', aggregate: 'count' }
+  { operation: 'combine', combine: 'slice', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
+]
+```
 
 ### Filter
-ToDo
+A filter is a function that filters out parts of the dashboards
+
+Filters need to be tagged with ```operation: 'filter'```
+
+#### is
+Facet:
+
+```javascript
+{
+  type: 'is'
+  attribute: 'country'
+  value: 'Mexico'
+}
+```
+
+SQL WHERE:
+
+```sql
+`country` = "Mexico"
+```
+
+#### in
+Facet:
+
+```javascript
+{
+  type: 'in'
+  attribute: 'country'
+  values: ['Mexico', 'Peru']
+}
+```
+
+SQL WHERE:
+
+```sql
+`country` IN ("Mexico", "Peru")
+```
+
+<!--
+#### fragments
+Facet:
+
+```javascript
+{
+  type: 'fragments'
+  attribute: 'country'
+  fragments: ["Democratic"]
+}
+```
+
+SQL WHERE:
+
+```sql
+
+```
+
+#### match
+Facet:
+
+```javascript
+{
+  type: 'match'
+  attribute
+  expression
+}
+```
+
+SQL WHERE:
+
+```sql
+
+```
+-->
+
+#### within
+Facet:
+
+```javascript
+{
+  type: 'within'
+  attribute: 'height'
+  range: [130, 150]
+}
+```
+
+SQL WHERE:
+
+```sql
+130 <= `height` AND `height` < 150
+```
+
+#### not
+Facet:
+
+```javascript
+{
+  type: 'not'
+  filter: <facetFilter>
+}
+```
+
+SQL WHERE:
+
+```sql
+NOT <sqlFilter>
+```
+
+#### and
+Facet:
+
+```javascript
+{
+  type: 'and'
+  filters: [<facetFilter1>, <facetFilter2>, ..., <facetFilterN>]
+}
+```
+
+SQL WHERE:
+
+```sql
+<sqlFilter1> AND <sqlFilter2> AND ... AND <sqlFilterN>
+```
+
+#### or
+Facet:
+
+```javascript
+{
+  type: 'or'
+  filters: [<facetFilter1>, <facetFilter2>, ..., <facetFilterN>]
+}
+```
+
+SQL WHERE:
+
+```sql
+<sqlFilter1> OR <sqlFilter2> OR ... OR <sqlFilterN>
+```
+
 
 ### Split
-ToDo
+A split is a function that maps a row into a bucket
+
+#### identity
+Facet
+
+```javascript
+{
+  bucket: 'identity'
+  attribute: 'country'
+}
+```
+
+SQL GROUP BY
+
+```sql
+`country`
+```
+
+#### continuous
+Facet
+
+```javascript
+{
+  bucket: 'continuous'
+  attribute: 'height'
+  size: 10
+  offset: 0
+}
+```
+
+SQL GROUP BY
+
+```sql
+FLOOR(`height` / 10) * 10
+```
+
+#### timeDuration
+Facet
+
+```javascript
+{
+  bucket: 'timeDuration'
+  attribute: 'time'
+  duration: 60000
+  offset: 0
+}
+```
+
+SQL GROUP BY
+
+```sql
+???
+```
+
+#### timePeriod
+Facet
+
+```javascript
+{
+  bucket: 'timePeriod'
+  attribute: 'time'
+  period: 'PT1H'
+  timezone: 'America/Los_Angeles'
+}
+```
+
+SQL GROUP BY
+
+```sql
+???
+```
+
+#### tuple
+Facet
+
+```javascript
+{
+  bucket: 'tuple'
+  splits: [<facetSplit1>, <facetSplit2>, ..., <facetSplitN>]
+}
+```
+
+SQL GROUP BY
+
+```sql
+<sqlSplit1>, <sqlSplit2>, ..., <sqlSplitN>
+```
+
 
 ### Apply
 An apply is a function that takes an array of rows and returns a number.
+
+Applies need to be tagged with ```operation: 'apply'```
 
 How facet applies work:
 
@@ -52,7 +311,7 @@ Facet:
 {
   name: 'Revenue'
   aggregate: 'sum' // average / min / max / uniqueCount
-  attribute: 'revenue' // This is a druid 'metric' or a SQL column
+  attribute: 'revenue'
 }
 ```
 
@@ -72,7 +331,7 @@ Facet:
 {
   name: 'Quantile 99'
   aggregate: 'quantile'
-  attribute: 'revenue' // This is a druid 'metric' or a SQL column
+  attribute: 'revenue'
   quantile: 0.99
 }
 ```
@@ -112,7 +371,7 @@ Facet:
 {
   name: 'Sum Of Things'
   arithmetic: 'add' // subtract / multiply / divide
-  operands: [<apply1>, <apply2>]
+  operands: [<facetApply1>, <facetApply2>]
 }
 ```
 
@@ -145,5 +404,22 @@ SQL SELECT example:
 ```
 
 ### Combine
-ToDo
+
+```javascript
+{
+  combine: 'slice'
+  sort: {
+    compare: 'natural'
+    prop: 'Count'
+    direction: 'descending'
+  }
+  limit: 10
+}
+```
+
+SQL:
+
+```sql
+ORDER BY `Count` DESC LIMIT 10
+```
 

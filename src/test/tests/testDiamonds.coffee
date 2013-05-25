@@ -247,6 +247,22 @@ describe "Diamonds dataset Test", ->
       ]
     }
 
+  describe.only "filter a && ~a; apply count", ->
+    it "should have the same results for different drivers", testEquality {
+      drivers: ['simple', 'mySql']
+      query: [
+        {
+          operation: 'filter'
+          type: 'and'
+          filters: [
+            { type: 'is', attribute: 'color', value: 'E' }
+            { type: 'not', filter: { type: 'is', attribute: 'color', value: 'E' } }
+          ]
+        }
+        { operation: 'apply', name: 'Count', aggregate: 'count' }
+      ]
+    }
+
   describe "is filter", ->
     it "should have the same results for different drivers", testEquality {
       drivers: ['simple', 'mySql']

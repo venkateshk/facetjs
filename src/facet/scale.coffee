@@ -1,16 +1,16 @@
 # A function that makes a scale and adds it to the segment.
 # Arguments* -> Segment -> { fn, use }
 
-scaleOverInterval = (basicScale) -> (x) ->
+scaleOverInterval = (baseScale) -> (x) ->
   if x instanceof Interval
-    return new Interval(basicScale(x.start), basicScale(x.end))
+    return new Interval(baseScale(x.start), baseScale(x.end))
   else
-    return basicScale(x)
+    return baseScale(x)
 
 
 facet.scale = {
   linear: ({nice} = {}) -> () ->
-    basicScale = d3.scale.linear()
+    baseScale = d3.scale.linear()
 
     self = {
       domain: (segments, domain) ->
@@ -29,14 +29,15 @@ facet.scale = {
             domainMax = Math.max(domainMax, domainValue)
 
         throw new Error("Domain went into infinites") unless isFinite(domainMin) and isFinite(domainMax)
-        basicScale.domain([domainMin, domainMax])
+        baseScale.domain([domainMin, domainMax])
 
         if nice
-          basicScale.nice()
+          baseScale.nice()
 
         delete self.domain
+        self.base = baseScale
         self.use = domain
-        self.fn = scaleOverInterval(basicScale)
+        self.fn = scaleOverInterval(baseScale)
         return
 
       range: (segments, range) ->
@@ -55,7 +56,7 @@ facet.scale = {
             rangeTo = Math.min(rangeTo, rangeValue)
 
         throw new Error("Range went into infinites") unless isFinite(rangeFrom) and isFinite(rangeTo)
-        basicScale.range([rangeFrom, rangeTo])
+        baseScale.range([rangeFrom, rangeTo])
         delete self.range
         return
     }
@@ -64,17 +65,17 @@ facet.scale = {
 
 
   color: () -> () ->
-    basicScale = d3.scale.category10()
+    baseScale = d3.scale.category10()
 
     self = {
       domain: (segments, domain) ->
         domain = wrapLiteral(domain)
 
-        basicScale = basicScale.domain(segments.map(domain))
+        baseScale = baseScale.domain(segments.map(domain))
 
         delete self.domain
         self.use = domain
-        self.fn = scaleOverInterval(basicScale)
+        self.fn = scaleOverInterval(baseScale)
         return
 
       range: (segments, range) ->

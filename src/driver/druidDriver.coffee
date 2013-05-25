@@ -637,7 +637,7 @@ druidQueryFns = {
         })
         return
 
-      if ds.length isnt 1
+      if ds.length > 1
         callback({
           message: "unexpected result form Druid (all)"
           query: queryObj
@@ -645,7 +645,7 @@ druidQueryFns = {
         })
         return
 
-      callback(null, [ds[0].result])
+      callback(null, ds.map((d) -> d.result))
       return
     return
 
@@ -763,7 +763,7 @@ druidQueryFns = {
         })
         return
 
-      if ds.length isnt 1
+      if ds.length > 1 or (ds.length is 1 and not ds[0].result)
         callback({
           message: "unexpected result form Druid (topN)"
           query: queryObj
@@ -819,7 +819,7 @@ druidQueryFns = {
             callback(err)
             return
 
-          if ds.length isnt 1
+          if ds.length > 1 or (ds.length is 1 and not ds[0].result)
             callback({
               message: "unexpected result form Druid (topN/allData)"
               query: queryObj
@@ -914,7 +914,7 @@ druidQueryFns = {
         })
         return
 
-      if ds.length isnt 1
+      if ds.length > 1 or (ds.length is 1 and not ds[0].result)
         callback({
           message: "unexpected result form Druid (histogram)"
           query: queryObj

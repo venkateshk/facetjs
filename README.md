@@ -26,11 +26,20 @@ Here is an example of a facet query that calculates the totals and does two spli
 
   { operation: 'split', name: 'Carat', bucket: 'continuous', size: 0.1, offset: 0.005, attribute: 'carat' }
   { operation: 'apply', name: 'Count', aggregate: 'count' }
-  { operation: 'combine', combine: 'slice', sort: { prop: 'Count', compare: 'natural', direction: 'descending' }, limit: 5 }
+  {
+    operation: 'combine',
+    combine: 'slice',
+    sort: { prop: 'Count', compare: 'natural', direction: 'descending' },
+    limit: 5
+  }
 
   { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
   { operation: 'apply', name: 'Count', aggregate: 'count' }
-  { operation: 'combine', combine: 'slice', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
+  {
+    operation: 'combine',
+    combine: 'slice',
+    sort: { prop: 'Cut', compare: 'natural', direction: 'descending' }
+  }
 ]
 ```
 

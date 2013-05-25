@@ -12,6 +12,15 @@ exports.inPlaceTrim = (array, n) ->
   array.splice(n, array.length - n)
   return
 
+# Filter the array in place
+exports.inPlaceFilter = (array, fn) ->
+  while i < array.length
+    if fn.call(array, array[i], i)
+      i++
+    else
+      array.splice(i, 1)
+  return
+
 # Group the queries steps in to the logical queries that will need to be done
 # output: [
 #   {

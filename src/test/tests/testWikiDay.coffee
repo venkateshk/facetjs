@@ -157,7 +157,7 @@ describe "Wikipedia dataset test", ->
       ]
     }
 
-    # ToDo: Test timezone support
+  # ToDo: Test timezone support
 
   describe "split page; apply count; sort count descending", ->
     it "should have the same results for different drivers", testEquality {
@@ -239,6 +239,22 @@ describe "Wikipedia dataset test", ->
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
         { operation: 'apply', name: 'Deleted', aggregate: 'sum', attribute: 'deleted' }
         { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Deleted', direction: 'ascending' }, limit: 5 }
+      ]
+    }
+
+  describe.only "filter a && ~a; apply count", ->
+    it "should have the same results for different drivers", testEquality {
+      drivers: ['mySql', 'druid']
+      query: [
+        {
+          operation: 'filter'
+          type: 'and'
+          filters: [
+            { attribute: 'language', type: 'is', value: 'en' }
+            { type: 'not', filter: { attribute: 'language', type: 'is', value: 'en' } }
+          ]
+        }
+        { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
       ]
     }
 

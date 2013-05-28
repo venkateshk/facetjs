@@ -5,10 +5,13 @@ data = require('../data')
 
 describe "Utility tests", ->
   describe "flatten", ->
-    it "should work", ->
+    it "should work on an empty list", ->
       expect(driverUtil.flatten([])).to.deep.equal([])
 
-    it "should work", ->
+    it "should work on a a list of empty lists", ->
+      expect(driverUtil.flatten([[], []])).to.deep.equal([])
+
+    it "should work on a normal list", ->
       expect(driverUtil.flatten([[1,3], [3,6,7]])).to.deep.equal([1,3,3,6,7])
 
   describe "inPlaceTrim", ->

@@ -280,7 +280,10 @@ class SQLQueryBuilder
     ]
 
     query.push(@filterPart) if @filterPart
-    query.push('GROUP BY ' + @groupByParts.join(', ')) if @groupByParts.length
+    if @groupByParts.length
+      query.push('GROUP BY ' + @groupByParts.join(', '))
+    else
+      query.push('GROUP BY ""')
     query.push(@orderByPart) if @orderByPart
     query.push(@limitPart) if @limitPart
 
@@ -391,7 +394,7 @@ module.exports = ({requester, table, filter}) -> (query, callback) ->
             parentSegment.splits = splits
             driverUtil.cleanSegment(parentSegment)
           else
-            rootSegment = splits[0]
+            rootSegment = splits[0] or null
           callback(null, splits)
           return
         )

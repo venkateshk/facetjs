@@ -58,10 +58,8 @@ exports.makeEqualityTest = (driverFns) ->
     return (done) ->
       async.parallel driversToTest, (err, results) ->
         if err
-          console.log '--------------------------'
-          console.log err
-          console.log '--------------------------'
-          throw new Error("got error from driver")
+          console.log "got error from driver"
+          throw err
 
         results = results.map(uniformizeResults)
 

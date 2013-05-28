@@ -247,7 +247,7 @@ describe "Diamonds dataset Test", ->
       ]
     }
 
-  describe.only "filter a && ~a; apply count", ->
+  describe "filter a && ~a; apply count", ->
     it "should have the same results for different drivers", testEquality {
       drivers: ['simple', 'mySql']
       query: [
@@ -260,6 +260,24 @@ describe "Diamonds dataset Test", ->
           ]
         }
         { operation: 'apply', name: 'Count', aggregate: 'count' }
+      ]
+    }
+
+  describe.skip "filter a && ~a; split carat; apply count", ->
+    it "should have the same results for different drivers", testEquality {
+      drivers: ['simple', 'mySql']
+      query: [
+        {
+          operation: 'filter'
+          type: 'and'
+          filters: [
+            { type: 'is', attribute: 'color', value: 'E' }
+            { type: 'not', filter: { type: 'is', attribute: 'color', value: 'E' } }
+          ]
+        }
+        { operation: 'split', name: 'Carat', bucket: 'continuous', size: 0.1, offset: 0.005, attribute: 'carat' }
+        { operation: 'apply', name: 'Count', aggregate: 'count' }
+        { operation: 'combine', combine: 'slice', sort: { prop: 'Count', compare: 'natural', direction: 'descending' }, limit: 5 }
       ]
     }
 

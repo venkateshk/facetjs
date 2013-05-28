@@ -14,6 +14,7 @@ exports.inPlaceTrim = (array, n) ->
 
 # Filter the array in place
 exports.inPlaceFilter = (array, fn) ->
+  i = 0
   while i < array.length
     if fn.call(array, array[i], i)
       i++

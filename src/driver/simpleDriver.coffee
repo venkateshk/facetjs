@@ -263,10 +263,10 @@ computeQuery = (data, query) ->
   throw new Error("invalid query") unless Array.isArray(query)
 
   rootSegment = {
-    _raw: data
     prop: {}
+    _raw: data
   }
-  segmentGroups = [[rootSegment]]
+  originalSegmentGroups = segmentGroups = [[rootSegment]]
 
   lastSplit = null
   for cmd in query
@@ -274,8 +274,10 @@ computeQuery = (data, query) ->
       when 'filter'
         filterFn = makeFilterFn(cmd)
         for segmentGroup in segmentGroups
-          for segment in segmentGroup
+          driverUtil.inPlaceFilter(segmentGroup, (segment) ->
             segment._raw = segment._raw.filter(filterFn)
+            return segment._raw.length > 0
+          )
 
       when 'split'
         lastSplit = cmd
@@ -338,7 +340,7 @@ computeQuery = (data, query) ->
   for segmentGroup in segmentGroups
     segmentGroup.forEach(driverUtil.cleanSegment)
 
-  return rootSegment
+  return originalSegmentGroups[0][0] or null
 
 
 module.exports = (data) -> (query, callback) ->

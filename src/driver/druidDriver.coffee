@@ -605,6 +605,9 @@ compareFns = {
     return if b < a then -1 else if b > a then 1 else if b >= a then 0 else NaN
 }
 
+correctSingletonDruidResult = (result) ->
+  return Array.isArray(result) and result.length <= 1 and (result.length is 0 or result[0].result)
+
 druidQueryFns = {
   all: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate}, callback) ->
     if condensedCommand.applies.length is 0
@@ -637,7 +640,7 @@ druidQueryFns = {
         })
         return
 
-      if ds.length > 1
+      if not correctSingletonDruidResult(ds)
         callback({
           message: "unexpected result form Druid (all)"
           query: queryObj
@@ -763,7 +766,7 @@ druidQueryFns = {
         })
         return
 
-      if ds.length > 1 or (ds.length is 1 and not ds[0].result)
+      if not correctSingletonDruidResult(ds)
         callback({
           message: "unexpected result form Druid (topN)"
           query: queryObj
@@ -819,7 +822,7 @@ druidQueryFns = {
             callback(err)
             return
 
-          if ds.length > 1 or (ds.length is 1 and not ds[0].result)
+          if not correctSingletonDruidResult(ds)
             callback({
               message: "unexpected result form Druid (topN/allData)"
               query: queryObj
@@ -914,7 +917,7 @@ druidQueryFns = {
         })
         return
 
-      if ds.length > 1 or (ds.length is 1 and not ds[0].result)
+      if not correctSingletonDruidResult(ds)
         callback({
           message: "unexpected result form Druid (histogram)"
           query: queryObj
@@ -987,7 +990,7 @@ druidQueryFns = {
         })
         return
 
-      if ds.length isnt 1
+      if not correctSingletonDruidResult(ds)
         callback({
           message: "unexpected result form Druid (heatmap)"
           query: queryObj

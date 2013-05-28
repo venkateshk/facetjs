@@ -242,7 +242,7 @@ describe "Wikipedia dataset test", ->
       ]
     }
 
-  describe.only "filter a && ~a; apply count", ->
+  describe.skip "filter a && ~a; apply count", ->
     it "should have the same results for different drivers", testEquality {
       drivers: ['mySql', 'druid']
       query: [
@@ -255,6 +255,24 @@ describe "Wikipedia dataset test", ->
           ]
         }
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+      ]
+    }
+
+  describe.skip "filter a && ~a; split page; apply count; sort count", ->
+    it "should have the same results for different drivers", testEquality {
+      drivers: ['mySql', 'druid']
+      query: [
+        {
+          operation: 'filter'
+          type: 'and'
+          filters: [
+            { attribute: 'language', type: 'is', value: 'en' }
+            { type: 'not', filter: { attribute: 'language', type: 'is', value: 'en' } }
+          ]
+        }
+        { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
+        { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 3 }
       ]
     }
 

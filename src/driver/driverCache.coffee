@@ -94,6 +94,7 @@ class FilterCache
     return ret
 
   put: (condensedQuery, root) ->
+    return unless root.prop or root.splits
     filter = condensedQuery[0].filter
     hashValue = @hashmap[filterToHash(filter)] ?= {}
     for k, v of root.prop
@@ -154,6 +155,7 @@ class SplitCache
     return @hashmap[generateHash(condensedQuery)]
 
   put: (condensedQuery, root) ->
+    return unless root.prop or root.splits
     hash = generateHash(condensedQuery)
     splitOpName = condensedQuery[1].split.name
     hashValue = []
@@ -203,6 +205,8 @@ module.exports = ({driver, queryGetter, querySetter}) ->
     splitOp = condensedQuery[1].split
     splitOpName = splitOp.name
     applysAfterSplit = condensedQuery[1].applies.map((command) -> return command.name)
+
+    return root unless root.prop or root.splits
 
     # Handle 1 split for now
     for split in root.splits

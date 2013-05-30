@@ -38,13 +38,13 @@ describe "Druid driver tests", ->
 
       it "should work with [] return", (done) ->
         nullDriver query, (err, result) ->
-          expect(result).to.be.null
+          expect(result).to.deep.equal({})
           done()
           return
 
       it "should work with [{result:[]}] return", (done) ->
         emptyDriver query, (err, result) ->
-          expect(result).to.be.null
+          expect(result).to.deep.equal({})
           done()
           return
 
@@ -57,12 +57,12 @@ describe "Druid driver tests", ->
 
       it "should work with [] return", (done) ->
         nullDriver query, (err, result) ->
-          expect(result).to.be.null
+          expect(result).to.deep.equal({})
           done()
           return
 
       it "should work with [{result:[]}] return", (done) ->
         emptyDriver query, (err, result) ->
-          expect(result).to.be.null
+          expect(result).to.deep.equal({})
           done()
 

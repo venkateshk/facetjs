@@ -722,7 +722,7 @@ druidQueryFns = {
       interestingApplies = condensedCommand.applies.filter ({aggregate}) -> aggregate not in ['min', 'max']
       if condensedCommand.combine.sort.direction is 'ascending' and interestingApplies.length
         while props.length
-          lastProp = props[props.length-1]
+          lastProp = props[props.length - 1]
           allZero = true
           for apply in interestingApplies
             allZero = allZero and lastProp[apply.name] is 0
@@ -732,7 +732,7 @@ druidQueryFns = {
             break
       #/ Hack
 
-      callback(null, if props.length is 0 then null else props)
+      callback(null, if props.length then props else null)
       return
     return
 
@@ -1169,7 +1169,7 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
           callback(err)
           return
 
-        callback(null, if segments then rootSegment else null)
+        callback(null, if segments then rootSegment else {})
         return
     )
     return

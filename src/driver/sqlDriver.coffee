@@ -358,7 +358,7 @@ condensedQueryToSQL = ({requester, table, filter, condensedQuery}, callback) ->
         _filter: filter
       }
 
-    callback(null, splits)
+    callback(null, if splits.length then splits else null)
     return
   return
 
@@ -389,12 +389,17 @@ module.exports = ({requester, table, filter}) -> (query, callback) ->
           if err
             callback(err)
             return
+
+          if splits is null
+            callback(null, null)
+            return
+
           # Make the results into segments and build the tree
           if parentSegment
             parentSegment.splits = splits
             driverUtil.cleanSegment(parentSegment)
           else
-            rootSegment = splits[0] or null
+            rootSegment = splits[0]
           callback(null, splits)
           return
         )
@@ -402,7 +407,7 @@ module.exports = ({requester, table, filter}) -> (query, callback) ->
         if err
           callback(err)
           return
-        segments = driverUtil.flatten(results)
+        segments = if results.some((result) -> result is null) then null else driverUtil.flatten(results)
         callback()
         return
     )
@@ -410,7 +415,7 @@ module.exports = ({requester, table, filter}) -> (query, callback) ->
 
   cmdIndex = 0
   async.whilst(
-    -> cmdIndex < condensedQuery.length
+    -> cmdIndex < condensedQuery.length and segments
     (callback) ->
       condenced = condensedQuery[cmdIndex]
       cmdIndex++
@@ -420,10 +425,12 @@ module.exports = ({requester, table, filter}) -> (query, callback) ->
       if err
         callback(err)
         return
-      # Clean up the last segments
-      segments.forEach(driverUtil.cleanSegment)
 
-      callback(null, rootSegment)
+      if segments
+        # Clean up the last segments
+        segments.forEach(driverUtil.cleanSegment)
+
+      callback(null, if segments then rootSegment else {})
       return
   )
 

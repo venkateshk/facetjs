@@ -340,7 +340,7 @@ computeQuery = (data, query) ->
   for segmentGroup in segmentGroups
     segmentGroup.forEach(driverUtil.cleanSegment)
 
-  return originalSegmentGroups[0][0] or null
+  return originalSegmentGroups[0][0] or {}
 
 
 module.exports = (data) -> (query, callback) ->

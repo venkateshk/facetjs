@@ -263,7 +263,7 @@ describe "Diamonds dataset Test", ->
       ]
     }
 
-  describe.skip "filter a && ~a; split carat; apply count", ->
+  describe "filter a && ~a; split carat; apply count", ->
     it "should have the same results for different drivers", testEquality {
       drivers: ['simple', 'mySql']
       query: [

@@ -608,6 +608,9 @@ compareFns = {
 correctSingletonDruidResult = (result) ->
   return Array.isArray(result) and result.length <= 1 and (result.length is 0 or result[0].result)
 
+emptySingletonDruidResult = (result) ->
+  return result.length is 0 or result[0].result.length is 0
+
 druidQueryFns = {
   all: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate}, callback) ->
     if condensedCommand.applies.length is 0
@@ -642,13 +645,13 @@ druidQueryFns = {
 
       if not correctSingletonDruidResult(ds)
         callback({
-          message: "unexpected result form Druid (all)"
+          message: "unexpected result from Druid (all)"
           query: queryObj
           result: ds
         })
         return
 
-      callback(null, ds.map((d) -> d.result))
+      callback(null, if emptySingletonDruidResult(ds) then null else ds.map((d) -> d.result))
       return
     return
 
@@ -714,7 +717,7 @@ druidQueryFns = {
         return prop
 
       # Total Hack!
-      # Trim down the 0s form the end in an ascending timeseries
+      # Trim down the 0s from the end in an ascending timeseries
       # Remove this when druid pushes the new code live.
       interestingApplies = condensedCommand.applies.filter ({aggregate}) -> aggregate not in ['min', 'max']
       if condensedCommand.combine.sort.direction is 'ascending' and interestingApplies.length
@@ -729,7 +732,7 @@ druidQueryFns = {
             break
       #/ Hack
 
-      callback(null, props)
+      callback(null, if props.length is 0 then null else props)
       return
     return
 
@@ -768,13 +771,13 @@ druidQueryFns = {
 
       if not correctSingletonDruidResult(ds)
         callback({
-          message: "unexpected result form Druid (topN)"
+          message: "unexpected result from Druid (topN)"
           query: queryObj
           result: ds
         })
         return
 
-      callback(null, ds[0].result)
+      callback(null, if emptySingletonDruidResult(ds) then null else ds[0].result)
       return
     return
 
@@ -824,13 +827,13 @@ druidQueryFns = {
 
           if not correctSingletonDruidResult(ds)
             callback({
-              message: "unexpected result form Druid (topN/allData)"
+              message: "unexpected result from Druid (topN/allData)"
               query: queryObj
               result: ds
             })
             return
 
-          myProps = ds[0].result
+          myProps = if emptySingletonDruidResult(ds) then [] else ds[0].result
           props = props.concat(myProps)
           if myProps.length < allDataChunks
             done = true
@@ -843,7 +846,7 @@ druidQueryFns = {
           callback(err)
           return
 
-        callback(null, props)
+        callback(null, if props.length then props else null)
         return
     )
     return
@@ -919,16 +922,20 @@ druidQueryFns = {
 
       if not correctSingletonDruidResult(ds)
         callback({
-          message: "unexpected result form Druid (histogram)"
+          message: "unexpected result from Druid (histogram)"
           query: queryObj
           result: ds
         })
         return
 
+      if emptySingletonDruidResult(ds)
+        callback(null, null)
+        return
+
+      { breaks, counts } = ds[0].result.histogram
       filterAttribute = condensedCommand.split.attribute
       histName = condensedCommand.split.name
       countName = condensedCommand.applies[0].name
-      { breaks, counts } = ds[0].result.histogram
 
       props = []
       for count, i in counts
@@ -992,10 +999,15 @@ druidQueryFns = {
 
       if not correctSingletonDruidResult(ds)
         callback({
-          message: "unexpected result form Druid (heatmap)"
+          message: "unexpected result from Druid (heatmap)"
           query: queryObj
           result: ds
         })
+        return
+
+
+      if emptySingletonDruidResult(ds)
+        callback(null, null)
         return
 
       dimensionRenameNeeded = false
@@ -1098,6 +1110,10 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
             callback(err)
             return
 
+          if props is null
+            callback(null, null)
+            return
+
           # Make the results into segments and build the tree
           if condensedCommand.split
             splitAttribute = condensedCommand.split.attribute
@@ -1132,7 +1148,8 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
           if err
             callback(err)
             return
-          segments = driverUtil.flatten(results)
+
+          segments = if results.some((result) -> result is null) then null else driverUtil.flatten(results)
           callback()
           return
       )
@@ -1140,7 +1157,7 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
 
     cmdIndex = 0
     async.whilst(
-      -> cmdIndex < condensedQuery.length
+      -> cmdIndex < condensedQuery.length and segments
       (callback) ->
         condensedCommand = condensedQuery[cmdIndex]
         cmdIndex++
@@ -1152,7 +1169,7 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
           callback(err)
           return
 
-        callback(null, rootSegment)
+        callback(null, if segments then rootSegment else null)
         return
     )
     return

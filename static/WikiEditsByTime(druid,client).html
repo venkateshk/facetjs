@@ -62,7 +62,7 @@
         }
       });
 
-      facet.define('.example', 800, 600, facet.verboseDriver(druidDriverClient))
+      var rootSegment = facet.define('.example', 800, 600, facet.verboseDriver(druidDriverClient))
         .transform(transform.rectangle.rectangle({left: 100, right: 10, top: 10, bottom: 10}))
         .scale('horiz', scale.linear())
         .scale('vert', scale.linear())
@@ -105,20 +105,20 @@
                 color: 'green'
               }))
             .untransform()
-            .render(function(seg) {
-              console.log("Segment:", seg);
-              stage = seg._stageStack[1];
-              stage.node.append("g")
-                .attr("class", "axis")
-                .call(
-                  d3.svg.axis()
-                    .scale(seg.scale.vert.base)
-                    .orient("left")
-                    .ticks(5)
-                )
-            })
+            .render()
+            .rootSegment
 
 
+      console.log("Segment:", rootSegment);
+      stage = rootSegment._stageStack[1];
+      stage.node.append("g")
+        .attr("class", "axis")
+        .call(
+          d3.svg.axis()
+            .scale(seg.scale.vert.base)
+            .orient("left")
+            .ticks(5)
+        )
 
     })();
     </script>

@@ -171,7 +171,7 @@ class FacetJob
   getQuery: ->
     return @ops.filter(({operation}) -> operation in ['filter', 'split', 'apply', 'combine'])
 
-  render: ->
+  render: (done) ->
     parent = d3.select(@selector)
     width = @width
     height = @height
@@ -185,7 +185,6 @@ class FacetJob
 
     operations = @ops
 
-    self = this
     @driver @getQuery(), (err, res) ->
       svg.classed('loading', false)
       if err
@@ -193,7 +192,7 @@ class FacetJob
         alert("An error has occurred: " + if typeof err is 'string' then err else err.message)
         return
 
-      segmentGroups = [[self.rootSegment = new Segment({
+      segmentGroups = [[rootSegment = new Segment({
         parent: null
         stage: {
           node: svg
@@ -306,6 +305,9 @@ class FacetJob
 
           else
             throw new Error("Unknown operation '#{cmd.operation}'")
+
+      if typeof done is 'function'
+        done.call(rootSegment, rootSegment)
 
       return
 

@@ -1082,14 +1082,14 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
             else
               queryFn = druidQueryFns.groupBy
           else
-            callback('unsupported query'); return
+            callback({ message: 'unsupported query' }); return
       else
         queryFn = druidQueryFns.all
 
       queryForSegment = (parentSegment, callback) ->
         queriesMade++
         if queryLimit < queriesMade
-          callback('query limit exceeded')
+          callback({ message: 'query limit exceeded' })
           return
 
         myFilter = andFilters((if parentSegment then parentSegment._filter else filter), condensedCommand.filter)

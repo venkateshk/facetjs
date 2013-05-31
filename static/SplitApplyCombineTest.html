@@ -192,7 +192,12 @@
 
           return druidDriver({
             requester: druidRequester,
-            dataSource: d3.select("#data-source").property("value")
+            dataSource: d3.select("#data-source").property("value"),
+            timeAttribute: 'timestamp',
+
+            forceInterval: true,
+            concurrentQueryLimit: 7,
+            queryLimit: 70
           });
         }
       }

@@ -24,13 +24,18 @@ andFilters = (filters...) ->
     else
       return { type: 'and', filters }
 
-rangeToDruidInterval = (interval) ->
-  return interval.map((d) -> d.toISOString().replace('Z', '')).join('/')
-
 
 class DruidQueryBuilder
   @ALL_DATA_CHUNKS = 10000
   @allTimeInterval = ["1000-01-01/3000-01-01"]
+
+  @dateToIntervalPart = (date) ->
+    return date.toISOString()
+      .replace('Z',    '') # remove Z
+      .replace('.000', '') # millis if 0
+      .replace(/:00$/, '') # remove seconds if 0
+      .replace(/:00$/, '') # remove minutes if 0
+      .replace(/T00$/, '') # remove hours if 0
 
   constructor: (@dataSource, @timeAttribute, @forceInterval, @approximate) ->
     throw new Error("must have a dataSource") unless typeof @dataSource is 'string'
@@ -43,14 +48,6 @@ class DruidQueryBuilder
     @nameIndex = 0
     @intervals = null
     @useCache = true
-
-  dateToIntervalPart: (date) ->
-    return date.toISOString()
-      .replace('Z',    '') # remove Z
-      .replace('.000', '') # millis if 0
-      .replace(/:00$/, '') # remove seconds if 0
-      .replace(/:00$/, '') # remove minutes if 0
-      .replace(/T00$/, '') # remove hours if 0
 
   unionIntervals: (intervals) ->
     null # ToDo
@@ -212,10 +209,11 @@ class DruidQueryBuilder
         throw new Error("filter type '#{filter.type}' not defined")
 
   addFilter: (filter) ->
+    dateToIntervalPart = DruidQueryBuilder.dateToIntervalPart
     return unless filter
     [@filter, intervals] = @filterToDruid(filter)
     if intervals
-      @intervals = intervals.map((({start, end}) -> "#{@dateToIntervalPart(start)}/#{@dateToIntervalPart(end)}"), this)
+      @intervals = intervals.map((({start, end}) -> "#{dateToIntervalPart(start)}/#{dateToIntervalPart(end)}"), this)
     return this
 
   addSplit: (split) ->
@@ -674,9 +672,7 @@ druidQueryFns = {
 
       queryObj = druidQuery.getQuery()
     catch e
-      callback({
-        detail: e.message
-      })
+      callback(e)
       return
 
     requester queryObj, (err, ds) ->

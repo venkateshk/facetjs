@@ -7,10 +7,12 @@ scaleOverInterval = (baseScale) -> (x) ->
   else
     return baseScale(x)
 
+min = (a, b) -> if a < b then a else b
+max = (a, b) -> if a < b then b else a
 
 facet.scale = {
-  linear: ({nice} = {}) -> () ->
-    baseScale = d3.scale.linear()
+  linear: ({nice, time} = {}) -> () ->
+    baseScale = if time then d3.time.scale() else d3.scale.linear()
 
     self = {
       domain: (segments, domain) ->
@@ -22,11 +24,11 @@ facet.scale = {
         for segment in segments
           domainValue = domain(segment)
           if domainValue instanceof Interval
-            domainMin = Math.min(domainMin, domainValue.start, domainValue.end)
-            domainMax = Math.max(domainMax, domainValue.start, domainValue.end)
+            domainMin = min(domainMin, min(domainValue.start, domainValue.end))
+            domainMax = max(domainMax, max(domainValue.start, domainValue.end))
           else
-            domainMin = Math.min(domainMin, domainValue)
-            domainMax = Math.max(domainMax, domainValue)
+            domainMin = min(domainMin, domainValue)
+            domainMax = max(domainMax, domainValue)
 
         throw new Error("Domain went into infinites") unless isFinite(domainMin) and isFinite(domainMax)
         baseScale.domain([domainMin, domainMax])
@@ -50,10 +52,10 @@ facet.scale = {
           rangeValue = range(segment)
           if rangeValue instanceof Interval
             rangeFrom = rangeValue.start # really?
-            rangeTo = Math.min(rangeTo, rangeValue.end)
+            rangeTo = min(rangeTo, rangeValue.end)
           else
             rangeFrom = 0
-            rangeTo = Math.min(rangeTo, rangeValue)
+            rangeTo = min(rangeTo, rangeValue)
 
         throw new Error("Range went into infinites") unless isFinite(rangeFrom) and isFinite(rangeTo)
         baseScale.range([rangeFrom, rangeTo])

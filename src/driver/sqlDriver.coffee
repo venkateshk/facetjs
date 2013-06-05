@@ -363,76 +363,94 @@ condensedQueryToSQL = ({requester, table, filter, condensedQuery}, callback) ->
   return
 
 
-module.exports = ({requester, table, filter}) -> (query, callback) ->
-  try
-    condensedQuery = driverUtil.condenseQuery(query)
-  catch e
-    callback(e)
-    return
+module.exports = ({requester, table, filter}) ->
+  throw new Error("must have table") unless typeof table is 'string'
+  return (query, callback) ->
+    try
+      condensedQuery = driverUtil.condenseQuery(query)
+    catch e
+      callback(e)
+      return
 
-  rootSegment = null
-  segments = [rootSegment]
+    init = true
+    rootSegment = { _filter: filter }
+    segments = [rootSegment]
 
-  querySQL = (condensed, callback) ->
-    # do the query in parallel
-    QUERY_LIMIT = 10
-    queryFns = async.mapLimit(
-      segments
-      QUERY_LIMIT
-      (parentSegment, callback) ->
-        condensedQueryToSQL({
-          requester
-          table
-          filter: if parentSegment then parentSegment._filter else filter
-          condensedQuery: condensed
-        }, (err, splits) ->
+    querySQL = (condensed, callback) ->
+      # do the query in parallel
+      QUERY_LIMIT = 10
+
+      if condensed.split?.bucketFilter
+        bucketFilterFn = driverUtil.makeBucketFilterFn(condensed.split.bucketFilter)
+        driverUtil.inPlaceFilter segments, (segment) ->
+          if bucketFilterFn(segment)
+            return true
+          else
+            driverUtil.cleanSegment(segment)
+            return false
+
+      queryFns = async.mapLimit(
+        segments
+        QUERY_LIMIT
+        (parentSegment, callback) ->
+          condensedQueryToSQL({
+            requester
+            table
+            filter: parentSegment._filter
+            condensedQuery: condensed
+          }, (err, splits) ->
+            if err
+              callback(err)
+              return
+
+            if splits is null
+              callback(null, null)
+              return
+
+            # Make the results into segments and build the tree
+            parentSegment.splits = splits
+            driverUtil.cleanSegment(parentSegment)
+            callback(null, splits)
+            return
+          )
+        (err, results) ->
           if err
             callback(err)
             return
 
-          if splits is null
-            callback(null, null)
-            return
-
-          # Make the results into segments and build the tree
-          if parentSegment
-            parentSegment.splits = splits
-            driverUtil.cleanSegment(parentSegment)
+          if results.some((result) -> result is null)
+            rootSegment = null
           else
-            rootSegment = splits[0]
-          callback(null, splits)
+            segments = driverUtil.flatten(results)
+            if init
+              rootSegment = segments[0]
+              init = false
+
+          callback()
           return
-        )
-      (err, results) ->
+      )
+      return
+
+    cmdIndex = 0
+    async.whilst(
+      -> cmdIndex < condensedQuery.length and rootSegment
+      (callback) ->
+        condenced = condensedQuery[cmdIndex]
+        cmdIndex++
+        querySQL(condenced, callback)
+        return
+      (err) ->
         if err
           callback(err)
           return
-        segments = if results.some((result) -> result is null) then null else driverUtil.flatten(results)
-        callback()
+
+        if segments
+          # Clean up the last segments
+          segments.forEach(driverUtil.cleanSegment)
+
+        callback(null, rootSegment or {})
         return
     )
-    return
-
-  cmdIndex = 0
-  async.whilst(
-    -> cmdIndex < condensedQuery.length and segments
-    (callback) ->
-      condenced = condensedQuery[cmdIndex]
-      cmdIndex++
-      querySQL(condenced, callback)
-      return
-    (err) ->
-      if err
-        callback(err)
-        return
-
-      if segments
-        # Clean up the last segments
-        segments.forEach(driverUtil.cleanSegment)
-
-      callback(null, if segments then rootSegment else {})
-      return
-  )
 
 
 # -----------------------------------------------------

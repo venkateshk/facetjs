@@ -376,12 +376,12 @@ module.exports = ({requester, table, filter}) ->
     rootSegment = { _filter: filter }
     segments = [rootSegment]
 
-    querySQL = (condensed, callback) ->
+    querySQL = (condensedCommand, callback) ->
       # do the query in parallel
       QUERY_LIMIT = 10
 
-      if condensed.split?.bucketFilter
-        bucketFilterFn = driverUtil.makeBucketFilterFn(condensed.split.bucketFilter)
+      if condensedCommand.split?.bucketFilter
+        bucketFilterFn = driverUtil.makeBucketFilterFn(condensedCommand.split.bucketFilter)
         driverUtil.inPlaceFilter segments, (segment) ->
           if bucketFilterFn(segment)
             return true
@@ -397,7 +397,7 @@ module.exports = ({requester, table, filter}) ->
             requester
             table
             filter: parentSegment._filter
-            condensedQuery: condensed
+            condensedQuery: condensedCommand
           }, (err, splits) ->
             if err
               callback(err)
@@ -435,9 +435,9 @@ module.exports = ({requester, table, filter}) ->
     async.whilst(
       -> cmdIndex < condensedQuery.length and rootSegment
       (callback) ->
-        condenced = condensedQuery[cmdIndex]
+        condencedCommand = condensedQuery[cmdIndex]
         cmdIndex++
-        querySQL(condenced, callback)
+        querySQL(condencedCommand, callback)
         return
       (err) ->
         if err

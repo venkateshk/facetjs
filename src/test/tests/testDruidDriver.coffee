@@ -10,7 +10,7 @@ verbose = false
 describe "Druid driver tests", ->
   #@timeout(40 * 1000)
 
-  describe "Druid should work when getting back [] and [{result:[]}]", ->
+  describe "should work when getting back [] and [{result:[]}]", ->
     nullRequester = (query, callback) ->
       callback(null, [])
       return
@@ -66,3 +66,58 @@ describe "Druid driver tests", ->
           expect(result).to.deep.equal({})
           done()
 
+    describe "should work with driver level filter", ->
+      druidPass = druidRequester({
+        host: '10.60.134.138'
+        port: 8080
+      })
+
+      noFilter = druidDriver({
+        requester: druidPass
+        dataSource: 'wikipedia_editstream'
+        timeAttribute: 'time'
+        approximate: true
+        forceInterval: true
+      })
+
+      filter = {
+        operation: 'filter'
+        type: 'and'
+        filters: [
+          {
+            type: 'within'
+            attribute: 'time'
+            range: [
+              new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0))
+              new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))
+            ]
+          },
+          {
+            type: 'is'
+            attribute: 'namespace'
+            value: 'article'
+          }
+        ]
+      }
+
+      withFilter = druidDriver({
+        requester: druidPass
+        dataSource: 'wikipedia_editstream'
+        timeAttribute: 'time'
+        approximate: true
+        forceInterval: true
+        filter
+      })
+
+      it "should get back the same result", (done) ->
+        noFilter [
+          filter
+          { operation: 'apply', name: 'Count', aggregate: 'count' }
+        ], (err, noFilterRes) ->
+          expect(noFilterRes).to.be.an('object')
+          withFilter [
+            { operation: 'apply', name: 'Count', aggregate: 'count' }
+          ], (err, withFilterRes) ->
+            expect(withFilterRes).to.be.an('object')
+            expect(noFilterRes).to.deep.equal(withFilterRes)
+            done()

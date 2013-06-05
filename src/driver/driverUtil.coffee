@@ -22,6 +22,58 @@ exports.inPlaceFilter = (array, fn) ->
       array.splice(i, 1)
   return
 
+
+# Filter and map
+exports.filterMap = (array, fn) ->
+  ret = []
+  for a in array
+    v = fn(a)
+    continue if typeof v is 'undefined'
+    ret.push(v)
+  return ret
+
+
+bucketFilterFns = {
+  is: ({prop, value}) ->
+    return (segment) -> segment.prop[prop] is value
+
+  in: ({prop, values}) ->
+    return (segment) -> segment.prop[prop] in values
+
+  within: ({prop, range}) ->
+    throw new TypeError("range must be an array of two things") unless Array.isArray(range) and range.length is 2
+    return (segment) -> range[0] <= segment.prop[prop] < range[1]
+
+  not: ({filter}) ->
+    throw new TypeError("filter must be a filter object") unless typeof filter is 'object'
+    filter = makeBucketFilterFn(filter)
+    return (segment) -> not filter(segment)
+
+  and: ({filters}) ->
+    throw new TypeError('must have some filters') unless filters.length
+    filters = filters.map(makeBucketFilterFn)
+    return (segment) ->
+      for filter in filters
+        return false unless filter(segment)
+      return true
+
+  or: ({filters}) ->
+    throw new TypeError('must have some filters') unless filters.length
+    filters = filters.map(makeBucketFilterFn)
+    return (segment) ->
+      for filter in filters
+        return true if filter(segment)
+      return false
+}
+
+exports.makeBucketFilterFn = (filter) ->
+  throw new Error("type not defined in filter") unless filter.hasOwnProperty('type')
+  throw new Error("invalid type in filter") unless typeof filter.type is 'string'
+  bucketFilterFn = bucketFilterFns[filter.type]
+  throw new Error("bucket filter type '#{filter.type}' not defined") unless bucketFilterFn
+  return bucketFilterFn(filter)
+
+
 # Group the queries steps in to the logical queries that will need to be done
 # output: [
 #   {

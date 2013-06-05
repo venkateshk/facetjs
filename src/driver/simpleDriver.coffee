@@ -21,7 +21,7 @@ filterFns = {
 
   within: ({attribute, range}) ->
     throw new TypeError("range must be an array of two things") unless Array.isArray(range) and range.length is 2
-    return (d) -> range[0] <= d.attribute < range[1]
+    return (d) -> range[0] <= d[attribute] < range[1]
 
   not: ({filter}) ->
     throw new TypeError("filter must be a filter object") unless typeof filter is 'object'
@@ -51,7 +51,6 @@ makeFilterFn = (filter) ->
   filterFn = filterFns[filter.type]
   throw new Error("filter type '#{filter.type}' not defined") unless filterFn
   return filterFn(filter)
-
 
 # ------------------------
 splitFns = {
@@ -285,32 +284,37 @@ computeQuery = (data, query) ->
         throw new Error("name not defined in split") unless propName
         throw new TypeError("invalid name in split") unless typeof propName is 'string'
         splitFn = makeSplitFn(cmd)
-        segmentGroups = driverUtil.flatten(segmentGroups).map (segment) ->
-          keys = []
-          buckets = {}
-          bucketValue = {}
-          for d in segment._raw
-            key = splitFn(d)
-            throw new Error("bucket returned undefined") unless key? # ToDo: handle nulls
-            keyString = String(key)
+        bucketFilterFn = if cmd.bucketFilter then driverUtil.makeBucketFilterFn(cmd.bucketFilter) else null
+        segmentGroups = driverUtil.filterMap driverUtil.flatten(segmentGroups), (segment) ->
+          if not bucketFilterFn or bucketFilterFn(segment)
+            keys = []
+            buckets = {}
+            bucketValue = {}
+            for d in segment._raw
+              key = splitFn(d)
+              throw new Error("bucket returned undefined") unless key? # ToDo: handle nulls
+              keyString = String(key)
 
-            if not buckets[keyString]
-              keys.push(keyString)
-              buckets[keyString] = []
-              bucketValue[keyString] = key
-            buckets[keyString].push(d)
+              if not buckets[keyString]
+                keys.push(keyString)
+                buckets[keyString] = []
+                bucketValue[keyString] = key
+              buckets[keyString].push(d)
 
-          segment.splits = keys.map((keyString) ->
-            prop = {}
-            prop[propName] = bucketValue[keyString]
+            segment.splits = keys.map((keyString) ->
+              prop = {}
+              prop[propName] = bucketValue[keyString]
 
-            return {
-              _raw: buckets[keyString]
-              prop
-            }
-          )
-          driverUtil.cleanSegment(segment)
-          return segment.splits
+              return {
+                _raw: buckets[keyString]
+                prop
+              }
+            )
+            driverUtil.cleanSegment(segment)
+            return segment.splits
+          else
+            driverUtil.cleanSegment(segment)
+            return
 
       when 'apply'
         propName = cmd.name

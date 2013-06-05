@@ -1058,7 +1058,8 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
       callback(e)
       return
 
-    rootSegment = null
+    init = true
+    rootSegment = { _filter: filter }
     segments = [rootSegment]
 
     queryDruid = (condensedCommand, lastCmd, callback) ->
@@ -1092,7 +1093,7 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
           callback({ message: 'query limit exceeded' })
           return
 
-        myFilter = andFilters((if parentSegment then parentSegment._filter else filter), condensedCommand.filter)
+        myFilter = andFilters(parentSegment._filter, condensedCommand.filter)
         queryFn({
           requester
           dataSource
@@ -1127,8 +1128,7 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
           else
             prop = props[0]
             driverUtil.cleanProp(prop)
-            rootSegment = if lastCmd then { prop: prop } else { prop: prop, _filter: myFilter }
-            splits = [rootSegment]
+            splits = [if lastCmd then { prop: prop } else { prop: prop, _filter: myFilter }]
 
           callback(null, splits)
           return
@@ -1145,7 +1145,14 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
             callback(err)
             return
 
-          segments = if results.some((result) -> result is null) then null else driverUtil.flatten(results)
+          if results.some((result) -> result is null)
+            rootSegment = null
+          else
+            segments = driverUtil.flatten(results)
+            if init
+              rootSegment = segments[0]
+              init = false
+
           callback()
           return
       )
@@ -1153,7 +1160,7 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
 
     cmdIndex = 0
     async.whilst(
-      -> cmdIndex < condensedQuery.length and segments
+      -> cmdIndex < condensedQuery.length and rootSegment
       (callback) ->
         condensedCommand = condensedQuery[cmdIndex]
         cmdIndex++
@@ -1165,7 +1172,7 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
           callback(err)
           return
 
-        callback(null, if segments then rootSegment else {})
+        callback(null, rootSegment or {})
         return
     )
     return

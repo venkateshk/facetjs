@@ -59,9 +59,15 @@ exports.makeEqualityTest = (driverFns) ->
       async.parallel driversToTest, (err, results) ->
         if err
           console.log "got error from driver"
+          console.log err
           throw err
 
         results = results.map(uniformizeResults)
+
+        if verbose
+          console.log('vvvvvvvvvvvvvvvvvvvvvvv')
+          console.log(JSON.stringify(results[0], null, 2))
+          console.log('^^^^^^^^^^^^^^^^^^^^^^^')
 
         i = 1
         while i < drivers.length
@@ -71,11 +77,6 @@ exports.makeEqualityTest = (driverFns) ->
             console.log "results of '#{drivers[0]}' and '#{drivers[i]}' (expected) must match"
             throw e
           i++
-
-        if verbose
-          console.log('vvvvvvvvvvvvvvvvvvvvvvv')
-          console.log(JSON.stringify(results[0], null, 2))
-          console.log('^^^^^^^^^^^^^^^^^^^^^^^')
 
         done()
         return

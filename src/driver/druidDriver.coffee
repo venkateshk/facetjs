@@ -1135,6 +1135,15 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
         )
         return
 
+      if condensedCommand.split?.bucketFilter
+        bucketFilterFn = driverUtil.makeBucketFilterFn(condensedCommand.split.bucketFilter)
+        driverUtil.inPlaceFilter segments, (segment) ->
+          if bucketFilterFn(segment)
+            return true
+          else
+            driverUtil.cleanSegment(segment)
+            return false
+
       # do the query in parallel
       async.mapLimit(
         segments

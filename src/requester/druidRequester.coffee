@@ -60,6 +60,10 @@ module.exports = ({host, port}) ->
       return
     )
 
+    req.on 'error', (e) ->
+      callback(e)
+      return
+
     req.write(druidQueryBuffer.toString('utf-8'))
     req.end()
     return

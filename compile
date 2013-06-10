@@ -2,6 +2,10 @@
 compass compile --sass-dir src/style/ --css-dir target/
 coffee --compile --lint --bare --output target src/server.coffee src/requester/*
 coffee --compile --lint --bare --output target src/driver/*
+coffee --compile --lint --bare --output target src/converter/*.coffee
+
+node_modules/pegjs/bin/pegjs --export-var "applyParser" src/converter/applyParser.pegjs target/applyParser.js
+
 coffee --compile --lint --bare --output target --join target/facet.js \
   src/facet/_start.coffee \
   src/facet/init.coffee \

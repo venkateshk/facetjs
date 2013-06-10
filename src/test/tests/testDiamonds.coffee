@@ -137,6 +137,20 @@ describe "Diamonds dataset Test", ->
       ]
     }
 
+  describe "split cut; apply count > split color; apply count", ->
+    it "should have the same results for different drivers", testEquality {
+      drivers: ['simple', 'mySql']
+      query: [
+        { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
+        { operation: 'apply', name: 'Count', aggregate: 'count' }
+        { operation: 'combine', combine: 'slice', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
+
+        { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+        { operation: 'apply', name: 'Count', aggregate: 'count' }
+        { operation: 'combine', combine: 'slice', sort: { prop: 'Color', compare: 'natural', direction: 'descending' }, limit: 2 }
+      ]
+    }
+
   describe "split cut; apply count > split color; apply count (filter bucket)", ->
     it "should have the same results for different drivers", testEquality {
       drivers: ['simple', 'mySql']

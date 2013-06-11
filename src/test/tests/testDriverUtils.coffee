@@ -71,7 +71,7 @@ describe "Utility tests", ->
         expect(table.toTabular(',')).to.deep.equal(data.diamond[2].csv, "CSV of the table is incorrect")
 
     describe "should map the columns correctly", ->
-      it "Basic Rectangular Table", ->
+      it "Full Mapping", ->
         query = data.diamond[1].query
         root = data.diamond[1].data
         table = new driverUtil.Table {
@@ -82,6 +82,46 @@ describe "Utility tests", ->
         table.columnMap({
           "Cut": "Cut_Test"
           "Count": "Count_Test"
+        })
+
+        expect(["Cut_Test", "Count_Test"]).to.deep.equal(table.columns, "Columns of the table is incorrect")
+
+        expect(table.toTabular('\t')).to.deep.equal(
+          '"Cut_Test"\t"Count_Test"\r\n"A"\t"1"\r\n"B"\t"2"\r\n"C"\t"3"\r\n"D"\t"4"\r\n"E"\t"5"\r\n"F\"\""\t"6"'
+          "TSV of the table is incorrect"
+        )
+
+      it "Partial Mapping", ->
+        query = data.diamond[1].query
+        root = data.diamond[1].data
+        table = new driverUtil.Table {
+          root
+          query
+        }
+
+        table.columnMap({
+          "Cut": "Cut_Test"
+        })
+
+        expect(["Cut_Test", "Count"]).to.deep.equal(table.columns, "Columns of the table is incorrect")
+
+        expect(table.toTabular('\t')).to.deep.equal(
+          '"Cut_Test"\t"Count"\r\n"A"\t"1"\r\n"B"\t"2"\r\n"C"\t"3"\r\n"D"\t"4"\r\n"E"\t"5"\r\n"F\"\""\t"6"'
+          "TSV of the table is incorrect"
+        )
+
+      it "Over Mapping", ->
+        query = data.diamond[1].query
+        root = data.diamond[1].data
+        table = new driverUtil.Table {
+          root
+          query
+        }
+
+        table.columnMap({
+          "Cut": "Cut_Test"
+          "Count": "Count_Test"
+          "Clarity": "Clarity_Test"
         })
 
         expect(["Cut_Test", "Count_Test"]).to.deep.equal(table.columns, "Columns of the table is incorrect")

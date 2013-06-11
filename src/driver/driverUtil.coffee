@@ -232,19 +232,16 @@ class exports.Table
     ).join('\r\n')
     return header + '\r\n' + content
 
-  columnMap: (nameMap) ->
+  columnMap: (mappingFunction) ->
     @data = @data.map((row) ->
       convertedRow = {}
       for k, v of row
-        if nameMap[k]?
-          convertedRow[nameMap[k]] = row[k]
-        else
-          convertedRow[k] = row[k]
+        convertedRow[mappingFunction(k)] = row[k]
 
       return convertedRow
     )
 
-    @columns = @columns.map((column) -> return nameMap[column] ? column)
+    @columns = @columns.map(mappingFunction)
     return
 
 exports.createColumns = createColumns = (query) ->

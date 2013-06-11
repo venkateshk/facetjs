@@ -79,10 +79,12 @@ describe "Utility tests", ->
           query
         }
 
-        table.columnMap({
-          "Cut": "Cut_Test"
-          "Count": "Count_Test"
-        })
+        table.columnMap (name) ->
+          map = {
+            "Cut": "Cut_Test"
+            "Count": "Count_Test"
+          }
+          return map[name] or name
 
         expect(["Cut_Test", "Count_Test"]).to.deep.equal(table.columns, "Columns of the table is incorrect")
 
@@ -99,9 +101,11 @@ describe "Utility tests", ->
           query
         }
 
-        table.columnMap({
-          "Cut": "Cut_Test"
-        })
+        table.columnMap (name) ->
+          map = {
+            "Cut": "Cut_Test"
+          }
+          return map[name] or name
 
         expect(["Cut_Test", "Count"]).to.deep.equal(table.columns, "Columns of the table is incorrect")
 
@@ -118,11 +122,13 @@ describe "Utility tests", ->
           query
         }
 
-        table.columnMap({
-          "Cut": "Cut_Test"
-          "Count": "Count_Test"
-          "Clarity": "Clarity_Test"
-        })
+        table.columnMap (name) ->
+          map = {
+            "Cut": "Cut_Test"
+            "Count": "Count_Test"
+            "Clarity": "Clarity_Test"
+          }
+          return map[name] or name
 
         expect(["Cut_Test", "Count_Test"]).to.deep.equal(table.columns, "Columns of the table is incorrect")
 

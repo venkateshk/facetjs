@@ -235,9 +235,12 @@ class exports.Table
   columnMap: (nameMap) ->
     @data = @data.map((row) ->
       convertedRow = {}
-      for originalName, convertedName of nameMap
-        if row[originalName]?
-          convertedRow[convertedName] = row[originalName]
+      for k, v of row
+        if nameMap[k]?
+          convertedRow[nameMap[k]] = row[k]
+        else
+          convertedRow[k] = row[k]
+
       return convertedRow
     )
 

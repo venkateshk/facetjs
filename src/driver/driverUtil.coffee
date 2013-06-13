@@ -232,6 +232,18 @@ class exports.Table
     ).join('\r\n')
     return header + '\r\n' + content
 
+  columnMap: (mappingFunction) ->
+    @data = @data.map((row) ->
+      convertedRow = {}
+      for k, v of row
+        convertedRow[mappingFunction(k)] = row[k]
+
+      return convertedRow
+    )
+
+    @columns = @columns.map(mappingFunction)
+    return
+
 exports.createColumns = createColumns = (query) ->
   split = flatten(query.filter((op) -> op.operation is 'split').map((op) ->
     if op.bucket is 'tuple'

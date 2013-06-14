@@ -110,7 +110,7 @@ class FilterCache
     hashValue = @hashmap[filterToHash(filter)] ?= {}
     applies = condensedQuery[level].applies
     for apply in applies
-      hashValue[apply.name] = root.prop[apply.name]
+      hashValue[apply.name] = root.prop[apply.name] or hashValue[apply.name]
 
     if root.splits?
       splitOp = condensedQuery[level + 1].split
@@ -191,38 +191,104 @@ module.exports = ({driver, queryGetter, querySetter}) ->
   if (queryGetter? and not querySetter?) or (not queryGetter? and querySetter?)
     throw new Error("Both querySetter and queryGetter must be supplied")
 
-  getUnknownQuery = (query, cachedData, condensedQuery) ->
-    # Look at cache to see what we know
-    splitLocation = query.map(({operation}) -> return operation is 'split').indexOf(true)
-    # What we need from data
-    applysAfterSplit = condensedQuery[1].applies.map((apply) -> return apply.name)
-    # Go through cachedData. See if we have need data for all time stamps
+  getUnknownQuery = (query, root, condensedQuery) ->
+    return query unless root?
+    unknownQuery = []
+    addAll = false
+    currentNode = root
 
-    unknown = {}
-    unknownExists = false
+    checkDeep = (node, currentLevel, targetLevel, name) ->
+      if currentLevel is targetLevel
+        return node.prop[name]?
 
-    for k, v of cachedData
-      unless v?
-        for apply in applysAfterSplit
-          unknown[apply] = true
-          unknownExists = true
-        break
-      for apply in applysAfterSplit
-        if not v[apply]?
-          unknown[apply] = true
-          unknownExists = true
+      if node.splits?
+        return node.splits.every((split) -> return checkDeep(split, currentLevel + 1, targetLevel, name))
 
-    return null unless unknownExists
+      return false
 
-    if condensedQuery[1].combine?.sort?
-      unknown[condensedQuery[1].combine.sort.prop] = true
+    added = false
 
-    return query.filter((command, i) ->
-        return true if i <= splitLocation
-        if (command.operation is 'apply' and unknown[command.name]) or command.operation isnt 'apply'
-          return true
-        return false
-      )
+    for condensedCommand, i in condensedQuery
+      if condensedCommand.filter?
+        unknownQuery.push condensedCommand.filter
+
+      if condensedCommand.split?
+        unknownQuery.push condensedCommand.split
+
+      if condensedCommand.combine?
+        mustApply = condensedCommand.combine.sort.prop
+
+      if condensedCommand.applies?
+        for apply in condensedCommand.applies
+          exists = checkDeep(root, 0, i, apply.name)
+          if not exists
+            added = true
+
+          if (apply.name is mustApply) or (not exists)
+            unknownQuery.push apply
+
+
+      if condensedCommand.combine?
+        unknownQuery.push condensedCommand.combine
+
+    if added
+      return unknownQuery
+
+    return null
+
+  getKnownTreeHelper = (condensedQuery, filter, level) ->
+    applies = condensedQuery[level].applies
+    splitOp = condensedQuery[level + 1]?.split
+    combineOp = condensedQuery[level + 1]?.combine
+    filterCacheResult = filterCache.get(filter)
+
+    prop = {}
+    for apply in applies
+      prop[apply.name] = filterCacheResult?[apply.name]
+
+    if not splitOp? # end case
+      return {
+        prop
+      }
+
+    cachedValues = splitCache.get(filter, splitOp, combineOp)
+
+    if not cachedValues?
+      return {
+        prop
+      }
+
+    splits = []
+
+    for value in cachedValues
+      ret = getKnownTreeHelper(condensedQuery, addToFilter(filter, createFilter(value, splitOp)), level + 1)
+      # return null unless ret?
+      ret.prop[splitOp.name] = value
+      splits.push ret
+
+    if combineOp?.sort?
+      sortProp = combineOp.sort.prop
+      if combineOp.sort.direction is 'descending'
+        splits.sort((a, b) ->
+          if a.prop[sortProp][0]?
+            return b.prop[sortProp][0] - a.prop[sortProp][0]
+          return b.prop[sortProp] - a.prop[sortProp])
+      else if 'ascending'
+        splits.sort((a, b) ->
+          if a.prop[sortProp][0]?
+            return a.prop[sortProp][0] - b.prop[sortProp][0]
+          return a.prop[sortProp] - b.prop[sortProp])
+
+      if combineOp.limit?
+        splits.splice(combineOp.limit)
+
+    return {
+      prop
+      splits
+    }
+
+  getKnownTree = (condensedQuery) ->
+    return getKnownTreeHelper(condensedQuery, condensedQuery[0].filter, 0)
 
   return (async, callback) ->
     query = queryGetter(async)
@@ -233,70 +299,18 @@ module.exports = ({driver, queryGetter, querySetter}) ->
       callback(e)
       return
 
-    # If there is a split for contnuous dimension, don't use cache
+    # If there is a split for contnuous dimension, don't use cache. Doable. but not now
     if condensedQuery[1]?.split?.bucket in ['continuous', 'tuple']
       return driver async, callback
 
-
-    getKnownTree = (condensedQuery) ->
-      return getKnownTreeHelper(condensedQuery, condensedQuery[0].filter, 0)
-
-    getKnownTreeHelper = (condensedQuery, filter, level) ->
-      applies = condensedQuery[level].applies
-      splitOp = condensedQuery[level + 1]?.split
-      combineOp = condensedQuery[level + 1]?.combine
-      filterCacheResult = filterCache.get(filter)
-
-      if applies.length > 0
-        return null unless filterCacheResult?
-      prop = {}
-      for apply in applies
-        prop[apply.name] = filterCacheResult[apply.name]
-
-      if not splitOp? # end case
-        return {
-          prop
-        }
-
-      cachedValues = splitCache.get(filter, splitOp, combineOp)
-      return null unless cachedValues?  # TODO: BE SMARTER ABOUT ABORTING MAYBE TRY FILTER SPLIT
-      splits = []
-
-      for value in cachedValues
-        ret = getKnownTreeHelper(condensedQuery, addToFilter(filter, createFilter(value, splitOp)), level + 1)
-        return null unless ret?
-        ret.prop[splitOp.name] = value
-        splits.push ret
-
-      if combineOp?.sort?
-        sortProp = combineOp.sort.prop
-        if combineOp.sort.direction is 'descending'
-          splits.sort((a, b) ->
-            if a.prop[sortProp][0]?
-              return b.prop[sortProp][0] - a.prop[sortProp][0]
-            return b.prop[sortProp] - a.prop[sortProp])
-        else if 'ascending'
-          splits.sort((a, b) ->
-            if a.prop[sortProp][0]?
-              return a.prop[sortProp][0] - b.prop[sortProp][0]
-            return a.prop[sortProp] - b.prop[sortProp])
-
-        if combineOp.limit?
-          splits.splice(combineOp.limit)
-
-      return {
-        prop
-        splits
-      }
-
     root = getKnownTree(condensedQuery)
-    # Do get unknown query
-    if root?
+    unknownQuery = getUnknownQuery(query, root, condensedQuery)
+
+    if not unknownQuery?
       callback(null, root)
       return
 
-    # querySetter(async, unknownQuery)
-    return driver async, (err, root) ->
+    return driver unknownQuery, (err, root) ->
       if err?
         callback(err, null)
         return

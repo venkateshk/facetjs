@@ -30,12 +30,9 @@ combineToHash = (combine) ->
 
   return hash.sort().join('|')
 
-generateHash = (condensedQuery) ->
+generateHash = (filter, splitOp, combineOp) ->
   # Get Filter and Split
-  combine = condensedQuery[condensedQuery.length - 1].combine
-  split = condensedQuery[1].split
-  filter = condensedQuery[0].filter
-  return filterToHash(filter) + '&' + splitToHash(split) + '&' + combineToHash(combine)
+  return filterToHash(filter) + '&' + splitToHash(splitOp) + '&' + combineToHash(combineOp)
 
 separateTimeFilter = (filter) ->
   if filter.filters?
@@ -62,6 +59,27 @@ separateTimeFilter = (filter) ->
       timeFilter: filter
     }
 
+addToFilter = (filter, newFilterPiece) ->
+  if filter?
+    return {
+      type: 'and'
+      filters: [newFilterPiece, filter]
+    }
+  return newFilterPiece
+
+createFilter = (value, splitOp) ->
+  if splitOp.bucket in ['timePeriod', 'timeDuration']
+    newFilterPiece = {
+      attribute: splitOp.attribute
+      type: 'within'
+      value
+    }
+  else
+    newFilterPiece = {
+      attribute: splitOp.attribute
+      type: 'is'
+      value
+    }
 
 class FilterCache
   # { key: filter,
@@ -70,69 +88,28 @@ class FilterCache
   constructor: ->
     @hashmap = {}
 
-  get: (condensedQuery, values) ->
-    # Return format:
-    # [
+  get: (filter) ->
     #   {
     #     <attribute>: <value>
     #     <attribute>: <value>
     #   }
-    #   {
-    #     <attribute>: <value>
-    #     <attribute>: <value>
-    #   }
-    # ]
-    filter = condensedQuery[0].filter
-    splitOpName = condensedQuery[1].split.name
-    ret = {}
-    for value in values
-      newFilter = @_addToFilter(condensedQuery, value)
-      ret[value] = @hashmap[filterToHash(newFilter)]
-      if ret[value]?
-        ret[value][splitOpName] = value
+    return @hashmap[filterToHash(filter)]
 
-    return ret
-
-  put: (condensedQuery, root) ->
-    return unless root.prop or root.splits
-    filter = condensedQuery[0].filter
-    hashValue = @hashmap[filterToHash(filter)] ?= {}
-    for k, v of root.prop
-      hashValue[k] = v
-
-    for split in root.splits
-      newFilter = @_addToFilter(condensedQuery, split.prop[condensedQuery[1].split.name])
-      hashValue = @hashmap[filterToHash(newFilter)] ?= {}
-      for k, v of split.prop
-        hashValue[k] = v
-
+  put: (condensedQuery, root) -> # Recursively deconstruct root and add to cache
+    @_filterPutHelper(condensedQuery, root, condensedQuery[0].filter, 0)
     return
 
-  _addToFilter: (condensedQuery, value) ->
-    oldFilter = condensedQuery[0].filter
-    splitOp = condensedQuery[1].split
+  _filterPutHelper: (condensedQuery, root, filter, level) ->
+    hashValue = @hashmap[filterToHash(filter)] ?= {}
+    applies = condensedQuery[level].applies
+    for apply in applies
+      hashValue[apply.name] = root.prop[apply.name]
 
-    if splitOp.bucket in ['timePeriod', 'timeDuration']
-      { filter: oldFilter } = separateTimeFilter(oldFilter)
-      newFilterPiece = {
-        attribute: splitOp.attribute
-        type: 'within'
-        value
-      }
-    else
-      newFilterPiece = {
-        attribute: splitOp.attribute
-        type: 'is'
-        value
-      }
-
-    if oldFilter?
-      return {
-        type: 'and'
-        filters: [].concat([newFilterPiece], oldFilter)
-      }
-    return newFilterPiece
-
+    if root.splits?
+      splitOp = condensedQuery[level + 1].split
+      for split in root.splits
+        @_filterPutHelper(condensedQuery, split, addToFilter(filter, createFilter(split.prop[splitOp.name], splitOp)), level + 1)
+    return
 
 
 class SplitCache
@@ -142,47 +119,55 @@ class SplitCache
   constructor: ->
     @hashmap = {}
 
-  get: (condensedQuery) ->
+  get: (filter, splitOp, combineOp) ->
     # Return format:
     # [
     # <value>
     # <value>
     # <value>
     # ]
-    if condensedQuery[1].split.bucket in ['timePeriod', 'timeDuration']
-      return @_timeCalculate(condensedQuery)
+    if splitOp.bucket in ['timePeriod', 'timeDuration']
+      return @_timeCalculate(filter, splitOp)
+    # console.log generateHash(filter, splitOp, combineOp)
+    return @hashmap[generateHash(filter, splitOp, combineOp)]
 
-    return @hashmap[generateHash(condensedQuery)]
-
-  put: (condensedQuery, root) ->
-    return unless root.prop or root.splits
-    hash = generateHash(condensedQuery)
-    splitOpName = condensedQuery[1].split.name
-    hashValue = []
-    for split in root.splits
-      hashValue.push split.prop[splitOpName]
-    @hashmap[hash] = hashValue
+  put: (condensedQuery, root) -> # Recursively deconstruct root and add to cache
+    @_splitPutHelper(condensedQuery, root, condensedQuery[0].filter, 0)
+    # console.log JSON.stringify(@hashmap,null,2)
     return
 
-  _timeCalculate: (condensedQuery) ->
-    split = condensedQuery[1].split
-    {timeFilter} = separateTimeFilter(condensedQuery[0].filter)
+  _splitPutHelper: (condensedQuery, root, filter, level) ->
+    return unless condensedQuery[level + 1]?
+
+    splitOp = condensedQuery[level + 1].split
+    combineOp = condensedQuery[level + 1].combine
+    splitOpName = splitOp.name
+    splitValues = root.splits.map((node) -> return node.prop[splitOpName])
+    @hashmap[generateHash(filter, splitOp, combineOp)] = splitValues
+
+    if condensedQuery[level + 2]?
+      for split in root.splits
+        @_splitPutHelper(condensedQuery, split, addToFilter(filter, createFilter(split.prop[splitOpName], splitOp)), level + 1)
+    return
+
+  _timeCalculate: (filter, splitOp) ->
+    {timeFilter} = separateTimeFilter(filter)
     timestamps = []
     timestamp = new Date(timeFilter.range[0])
     end = new Date(timeFilter.range[1])
-    if split.bucket is 'timeDuration'
-      duration = split.duration
+    if splitOp.bucket is 'timeDuration'
+      duration = splitOp.duration
       while new Date(timestamp.valueOf() + duration) <= end
         timestamps.push([timestamp, new Date(timestamp.valueOf() + duration)])
         timestamp = new Date(timestamp.valueOf() + duration)
-    else if split.bucket is 'timePeriod'
+    else if splitOp.bucket is 'timePeriod'
       periodMap = {
         'PT1S': 1000
         'PT1M': 60 * 1000
         'PT1H': 60 * 60 * 1000
         'P1D' : 24 * 60 * 60 * 1000
       }
-      period = periodMap[split.period]
+      period = periodMap[splitOp.period]
       while new Date(timestamp.valueOf() + period) <= end
         timestamps.push([timestamp, new Date(timestamp.valueOf() + period)])
         timestamp = new Date(timestamp.valueOf() + period)
@@ -233,22 +218,6 @@ module.exports = ({driver, queryGetter, querySetter}) ->
         prop
       }
 
-    combineOp = condensedQuery[1].combine
-    if combineOp?.sort?
-      sortProp = combineOp.sort.prop
-      if combineOp.sort.direction is 'descending'
-        splits.sort((a, b) ->
-          if a.prop[sortProp][0]?
-            return b.prop[sortProp][0] - a.prop[sortProp][0]
-          return b.prop[sortProp] - a.prop[sortProp])
-      else if 'ascending'
-        splits.sort((a, b) ->
-          if a.prop[sortProp][0]?
-            return a.prop[sortProp][0] - b.prop[sortProp][0]
-          return a.prop[sortProp] - b.prop[sortProp])
-
-      if combineOp.limit?
-        splits.splice(combineOp.limit)
     return root
 
   getUnknownQuery = (query, cachedData, condensedQuery) ->
@@ -286,11 +255,6 @@ module.exports = ({driver, queryGetter, querySetter}) ->
 
   return (async, callback) ->
     query = queryGetter(async)
-    if query.filter(({operation}) -> return operation is 'filter').length is 0
-      return driver async, callback
-    # If there is more than one split, don't use cache
-    if query.filter(({operation}) -> return operation is 'split').length isnt 1
-      return driver async, callback
 
     try
       condensedQuery = driverUtil.condenseQuery(query)
@@ -299,31 +263,82 @@ module.exports = ({driver, queryGetter, querySetter}) ->
       return
 
     # If there is a split for contnuous dimension, don't use cache
-    if condensedQuery[1].split.bucket in ['continuous', 'tuple']
+    if condensedQuery[1]?.split?.bucket in ['continuous', 'tuple']
       return driver async, callback
 
-    cachedTopN = splitCache.get(condensedQuery)
-    if cachedTopN?
-      cachedData = filterCache.get(condensedQuery, cachedTopN)
-      unknownQuery = getUnknownQuery(query, cachedData, condensedQuery)
-    else
-      unknownQuery = query
 
-    if unknownQuery?
-      querySetter(async, unknownQuery)
-      return driver async, (err, root) ->
-        if err?
-          callback(err, null)
-          return
+    getKnownTree = (condensedQuery) ->
+      return getKnownTreeHelper(condensedQuery, condensedQuery[0].filter, 0)
 
-        splitCache.put(condensedQuery, root)
-        filterCache.put(condensedQuery, root)
-        callback(null, fillTree(root, cachedData, condensedQuery))
-    else
-      if condensedQuery[1].applies.length > 0
-        callback(null, createTree(cachedData, condensedQuery))
-      else
-        return driver async, callback
+    getKnownTreeHelper = (condensedQuery, filter, level) ->
+      applies = condensedQuery[level].applies
+      splitOp = condensedQuery[level + 1]?.split
+      combineOp = condensedQuery[level + 1]?.combine
+      filterCacheResult = filterCache.get(filter)
+
+      # console.log filterCacheResult
+
+      return null unless filterCacheResult?
+      prop = {}
+      for apply in applies
+        prop[apply.name] = filterCacheResult[apply.name]
+
+      # console.log prop
+
+      if not splitOp? # end case
+        return {
+          prop
+        }
+
+      cachedValues = splitCache.get(filter, splitOp, combineOp)
+      # console.log "cachedValues", cachedValues
+      return null unless cachedValues?  # TODO: BE SMARTER ABOUT ABORTING MAYBE TRY FILTER SPLIT
+      splits = []
+
+      for value in cachedValues
+        ret = getKnownTreeHelper(condensedQuery, addToFilter(filter, createFilter(value, splitOp)), level + 1)
+        # console.log "ret", ret
+        return null unless ret?
+        ret.prop[splitOp.name] = value
+        splits.push ret
+
+      if combineOp?.sort?
+        sortProp = combineOp.sort.prop
+        if combineOp.sort.direction is 'descending'
+          splits.sort((a, b) ->
+            if a.prop[sortProp][0]?
+              return b.prop[sortProp][0] - a.prop[sortProp][0]
+            return b.prop[sortProp] - a.prop[sortProp])
+        else if 'ascending'
+          splits.sort((a, b) ->
+            if a.prop[sortProp][0]?
+              return a.prop[sortProp][0] - b.prop[sortProp][0]
+            return a.prop[sortProp] - b.prop[sortProp])
+
+        if combineOp.limit?
+          splits.splice(combineOp.limit)
+
+      return {
+        prop
+        splits
+      }
+
+    root = getKnownTree(condensedQuery)
+    # console.log JSON.stringify(root, null, 2)
+    # Do get unknown query
+    if root?
+      callback(null, root)
+      return
+
+    # querySetter(async, unknownQuery)
+    return driver async, (err, root) ->
+      if err?
+        callback(err, null)
+        return
+
+      splitCache.put(condensedQuery, root)
+      filterCache.put(condensedQuery, root)
+      callback(null, getKnownTree(condensedQuery))
     return
 
 

@@ -60,21 +60,23 @@ describe "Cache tests", ->
       ]
     }
 
-  # Top N Cache Test
-  describe "split page; apply deleted, count; combine descending", ->
-    it "should have the same results for different drivers", testEquality {
-      drivers: ['mySqlCached', 'mySql']
-      query: [
+  describe 'topN Cache', ->
+    setUpQuery = [
         { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
         { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'namespace' }
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
         { operation: 'apply', name: 'Deleted', aggregate: 'sum', attribute: 'deleted' }
         { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Deleted', direction: 'descending' }, limit: 5 }
       ]
-    }
 
-  describe "[cache tests on] topN", ->
-    before -> allowQuery = false
+    before (done) ->
+      driverFns.mySqlCached(setUpQuery, (err, result) ->
+        throw err if err?
+        allowQuery = false
+        done()
+        return
+      )
+
     after -> allowQuery = true
 
     describe "split page; apply deleted; combine descending", ->
@@ -149,19 +151,22 @@ describe "Cache tests", ->
 
   # Cache Test
   describe "split time; apply count; apply added", ->
-    it "should have the same results for different drivers", testEquality {
-      drivers: ['mySqlCached', 'mySql']
-      query: [
+    setUpQuery = [
         { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
         { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
         { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
         { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
       ]
-    }
 
-  describe "[cache tests on] split time; apply count; apply added", ->
-    before -> allowQuery = false
+    before (done) ->
+      driverFns.mySqlCached(setUpQuery, (err, result) ->
+        throw err if err?
+        allowQuery = false
+        done()
+        return
+      )
+
     after -> allowQuery = true
 
     describe "split time; apply count", ->
@@ -211,9 +216,7 @@ describe "Cache tests", ->
 
     # Cache Test 2
   describe "filter; split time; apply count; apply added", ->
-    it "should have the same results for different drivers", testEquality {
-      drivers: ['mySqlCached', 'mySql']
-      query: [
+    setUpQuery = [
         { operation: 'filter', type: 'and', filters: [
           { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
           { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
@@ -223,10 +226,15 @@ describe "Cache tests", ->
         { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
         { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
       ]
-    }
 
-  describe "[cache tests on] filter; split time; apply count", ->
-    before -> allowQuery = false
+    before (done) ->
+      driverFns.mySqlCached(setUpQuery, (err, result) ->
+        throw err if err?
+        allowQuery = false
+        done()
+        return
+      )
+
     after -> allowQuery = true
 
     describe "filter; split time; apply count; apply added", ->
@@ -299,20 +307,10 @@ describe "Cache tests", ->
       { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
     ]
 
-    testQuery = [
-      { operation: 'filter', type: 'and', filters: [
-        { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
-        { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
-      ]}
-      { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-      { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
-    ]
-
     before (done) ->
       driverFns.mySqlCached(setUpQuery, (err, result) ->
         throw err if err?
         allowQuery = false
-        console.log(JSON.stringify(result, null, 2))
         done()
         return
       )
@@ -320,6 +318,15 @@ describe "Cache tests", ->
     after -> allowQuery = true
 
     describe "filter; split time; apply count; apply added; combine time descending", ->
+      testQuery = [
+        { operation: 'filter', type: 'and', filters: [
+          { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
+          { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+        ]}
+        { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+        { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+      ]
+
       it "should have the same results for different drivers", testEquality {
         drivers: ['mySqlCached', 'mySql']
         query: testQuery

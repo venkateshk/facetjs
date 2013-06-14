@@ -47,8 +47,8 @@ separateTimeFilter = (filter) ->
       filter.filters = filtersWithoutTime
       return {
         filter: {
-          operation: 'filter'
           type: 'and'
+          operation: 'filter'
           filters: filtersWithoutTime
         }
         timeFilter
@@ -61,8 +61,12 @@ separateTimeFilter = (filter) ->
 
 addToFilter = (filter, newFilterPiece) ->
   if filter?
+    if newFilterPiece.type is 'within'
+      { filter, timeFilter } = separateTimeFilter(filter)
+
     return {
       type: 'and'
+      operation: 'filter'
       filters: [newFilterPiece, filter]
     }
   return newFilterPiece
@@ -71,15 +75,18 @@ createFilter = (value, splitOp) ->
   if splitOp.bucket in ['timePeriod', 'timeDuration']
     newFilterPiece = {
       attribute: splitOp.attribute
+      operation: 'filter'
       type: 'within'
       value
     }
   else
     newFilterPiece = {
       attribute: splitOp.attribute
+      operation: 'filter'
       type: 'is'
       value
     }
+  return newFilterPiece
 
 class FilterCache
   # { key: filter,
@@ -128,12 +135,10 @@ class SplitCache
     # ]
     if splitOp.bucket in ['timePeriod', 'timeDuration']
       return @_timeCalculate(filter, splitOp)
-    # console.log generateHash(filter, splitOp, combineOp)
     return @hashmap[generateHash(filter, splitOp, combineOp)]
 
   put: (condensedQuery, root) -> # Recursively deconstruct root and add to cache
     @_splitPutHelper(condensedQuery, root, condensedQuery[0].filter, 0)
-    # console.log JSON.stringify(@hashmap,null,2)
     return
 
   _splitPutHelper: (condensedQuery, root, filter, level) ->
@@ -185,40 +190,6 @@ module.exports = ({driver, queryGetter, querySetter}) ->
 
   if (queryGetter? and not querySetter?) or (not queryGetter? and querySetter?)
     throw new Error("Both querySetter and queryGetter must be supplied")
-
-  fillTree = (root, cachedData, condensedQuery) -> # Fill in the missing piece
-    splitOp = condensedQuery[1].split
-    splitOpName = splitOp.name
-    applysAfterSplit = condensedQuery[1].applies.map((command) -> return command.name)
-
-    return root unless root.prop or root.splits
-
-    # Handle 1 split for now
-    for split in root.splits
-      splitName = split.prop[splitOpName]
-      for apply in applysAfterSplit
-        split.prop[apply] ?= cachedData[splitName]?[apply]
-    return root
-
-  createTree = (cachedData, condensedQuery) ->
-    splitOp = condensedQuery[1].split
-    splitOpName = splitOp.name
-    applysAfterSplit = condensedQuery[1].applies.map((command) -> return command.name)
-    # Handle 1 split for now
-    root = {
-      prop: {}
-    }
-    root.splits = splits = []
-    for key, value of cachedData
-      prop = {}
-      prop[splitOpName] = value[splitOpName]
-      for apply in applysAfterSplit
-        prop[apply] = value[apply]
-      splits.push {
-        prop
-      }
-
-    return root
 
   getUnknownQuery = (query, cachedData, condensedQuery) ->
     # Look at cache to see what we know
@@ -276,14 +247,11 @@ module.exports = ({driver, queryGetter, querySetter}) ->
       combineOp = condensedQuery[level + 1]?.combine
       filterCacheResult = filterCache.get(filter)
 
-      # console.log filterCacheResult
-
-      return null unless filterCacheResult?
+      if applies.length > 0
+        return null unless filterCacheResult?
       prop = {}
       for apply in applies
         prop[apply.name] = filterCacheResult[apply.name]
-
-      # console.log prop
 
       if not splitOp? # end case
         return {
@@ -291,13 +259,11 @@ module.exports = ({driver, queryGetter, querySetter}) ->
         }
 
       cachedValues = splitCache.get(filter, splitOp, combineOp)
-      # console.log "cachedValues", cachedValues
       return null unless cachedValues?  # TODO: BE SMARTER ABOUT ABORTING MAYBE TRY FILTER SPLIT
       splits = []
 
       for value in cachedValues
         ret = getKnownTreeHelper(condensedQuery, addToFilter(filter, createFilter(value, splitOp)), level + 1)
-        # console.log "ret", ret
         return null unless ret?
         ret.prop[splitOp.name] = value
         splits.push ret
@@ -324,7 +290,6 @@ module.exports = ({driver, queryGetter, querySetter}) ->
       }
 
     root = getKnownTree(condensedQuery)
-    # console.log JSON.stringify(root, null, 2)
     # Do get unknown query
     if root?
       callback(null, root)

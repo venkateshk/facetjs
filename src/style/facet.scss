@@ -124,7 +124,17 @@ svg.facet {
   }
 }
 
+table.facet {
+  border-collapse: collapse;
 
+  td {
+    border: 1px solid black;
+  }
+
+  tr.heightlight {
+    background: #fff0f0;
+  }
+}
 
 
 

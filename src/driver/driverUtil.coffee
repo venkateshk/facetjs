@@ -22,7 +22,6 @@ exports.inPlaceFilter = (array, fn) ->
       array.splice(i, 1)
   return
 
-
 # Filter and map
 exports.filterMap = (array, fn) ->
   ret = []
@@ -32,6 +31,12 @@ exports.filterMap = (array, fn) ->
     ret.push(v)
   return ret
 
+# Check if the apply is additive
+exports.isAdditiveApply = isAdditiveApply = (apply) ->
+  return apply.aggregate in ['constant', 'count', 'sum'] or
+         (apply.arithmetic in ['add', 'subtract'] and
+           isAdditiveApply(apply.operands[0]) and
+           isAdditiveApply(apply.operands[1]))
 
 bucketFilterFns = {
   is: ({prop, value}) ->

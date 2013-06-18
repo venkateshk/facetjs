@@ -191,21 +191,25 @@ module.exports = ({driver, queryGetter, querySetter}) ->
   if (queryGetter? and not querySetter?) or (not queryGetter? and querySetter?)
     throw new Error("Both querySetter and queryGetter must be supplied")
 
+  checkDeep = (node, currentLevel, targetLevel, name, bucketFilter) ->
+    if currentLevel is targetLevel
+      return node.prop[name]?
+
+    if node.splits?
+      if bucketFilter?
+        filterFn = ({prop}) ->
+          return prop[bucketFilter.prop] in bucketFilter.values
+      else
+        filterFn = () -> return true
+
+      return node.splits.filter(filterFn)
+        .every((split) -> return checkDeep(split, currentLevel + 1, targetLevel, name))
+
+    return false
+
   getUnknownQuery = (query, root, condensedQuery) ->
     return query unless root?
     unknownQuery = []
-    addAll = false
-    currentNode = root
-
-    checkDeep = (node, currentLevel, targetLevel, name) ->
-      if currentLevel is targetLevel
-        return node.prop[name]?
-
-      if node.splits?
-        return node.splits.every((split) -> return checkDeep(split, currentLevel + 1, targetLevel, name))
-
-      return false
-
     added = false
 
     for condensedCommand, i in condensedQuery
@@ -220,7 +224,7 @@ module.exports = ({driver, queryGetter, querySetter}) ->
 
       if condensedCommand.applies?
         for apply in condensedCommand.applies
-          exists = checkDeep(root, 0, i, apply.name)
+          exists = checkDeep(root, 0, i, apply.name, condensedCommand.split.bucketFilter)
           if not exists
             added = true
 
@@ -236,7 +240,7 @@ module.exports = ({driver, queryGetter, querySetter}) ->
 
     return null
 
-  getKnownTreeHelper = (condensedQuery, filter, level) ->
+  getKnownTreeHelper = (condensedQuery, filter, level, upperSplitValue) ->
     applies = condensedQuery[level].applies
     splitOp = condensedQuery[level + 1]?.split
     combineOp = condensedQuery[level + 1]?.combine
@@ -258,11 +262,26 @@ module.exports = ({driver, queryGetter, querySetter}) ->
         prop
       }
 
+    bucketFilter = splitOp.bucketFilter
+    if bucketFilter?
+      if upperSplitValue not in bucketFilter.values
+        return {
+          prop
+        }
+
     splits = []
 
     for value in cachedValues
-      ret = getKnownTreeHelper(condensedQuery, addToFilter(filter, createFilter(value, splitOp)), level + 1)
-      # return null unless ret?
+      ret = getKnownTreeHelper(condensedQuery, addToFilter(filter, createFilter(value, splitOp)), level + 1, value)
+      # console.log '\n---------------------------------------------------------'
+      # console.log ret
+      # console.log level - 1
+      # console.log condensedQuery[level - 1]?.split
+      # console.log condensedQuery[level]?.split
+      # console.log condensedQuery[level + 1]?.split
+      # console.log value
+      # console.log upperSplitValue
+      # console.log '---------------------------------------------------------'
       ret.prop[splitOp.name] = value
       splits.push ret
 
@@ -305,7 +324,6 @@ module.exports = ({driver, queryGetter, querySetter}) ->
 
     root = getKnownTree(condensedQuery)
     unknownQuery = getUnknownQuery(query, root, condensedQuery)
-
     if not unknownQuery?
       callback(null, root)
       return

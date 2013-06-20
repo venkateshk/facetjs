@@ -319,51 +319,162 @@ facet.define = (selector, width, height, driver) ->
   return new FacetJob(selector, width, height, driver)
 
 
-facet.table = ({parent, query, data}) ->
-  condensedQuery = driverUtil.condenseQuery(query)
+# Country     City             Football Team   Rev
+#                                              10000
+# - UK                                          3000
+#             - London                           300
+#                              + Arsenal          30
+#                              + Chelsea          20
+#             + Manchester                       200
+# - Russia                                      2000
+#             + Moscow                           300
+#             + St. Petersburg                   250
+# + Israel                                      1200
+# + US and A                                    1000
 
-  # Expects a table element with correctly bound data
-  makePropTbody = (tableParent, condensedCommand) ->
-    propTbodySelection = tableParent.selectAll('tbody.prop')
-      .data((d) -> if d.prop then [d.prop] else [])
+facet.table = ({parent, query, data, pre, onClick, onHover}) ->
+  pre or= true
 
-    propTbodySelection.enter().append('tbody')
-      .attr('class', 'prop')
-      .append('tr')
+  flattenHelper = (root, result, parentSegment) ->
+    root.parent = parentSegment
+    if pre
+      result.push(root)
 
-    propTbodySelection.exit().remove()
+    splits = root.splits or []
+    for split in splits
+      flattenHelper(split, result, root)
 
-    propTdSel = propTbodySelection.select('tr')
-      .selectAll('td')
-      .data((d) -> condensedCommand.applies.map(({name}) -> name + '=' + d[name]))
-
-    propTdSel.enter().append('td')
-    propTdSel.exit().remove()
-    propTdSel.text(String)
-    return
-
-  # Expects a table element with correctly bound data
-  tableHelper = (tableParent, condensedQuery) ->
-    condensedQueryTail = condensedQuery.slice()
-    condensedCommand = condensedQueryTail.shift()
-
-    makePropTbody(tableParent, condensedCommand)
-
-    splitsTbodySelection = tableParent.selectAll('tbody.splits')
-      .data((d) -> if d.splits then [d.splits] else [])
-
-    splitsTbodySelection.enter().append('tbody')
-      .attr('class', 'prop')
-
-    splits.exit().remove()
-
+    if not pre
+      result.push(root)
 
     return
 
-  tableParent = parent.append('table').datum(data)
-  window.tableParent = tableParent
-  tableHelper(tableParent, condensedQuery)
+  res = []
+  flattenHelper(data, res, null)
+
+  # ----------------
+  h = res.filter(({splits}) -> splits)
+  heightlight = h[Math.floor(Math.random() * h.length)]
+  isHeighlighted = (segment) ->
+    while segment
+      return true if segment is heightlight
+      segment = segment.parent
+    return false
+  # ----------------
+
+  splits = []
+  applies = []
+  seen = {}
+  for cmd in query
+    if cmd.operation is 'split'
+      if not seen[cmd.name]
+        splits.push({ prop: cmd.name, type: 'split' })
+        seen[cmd.name] = 1
+
+    if cmd.operation is 'apply'
+      if not seen[cmd.name]
+        applies.push({ prop: cmd.name, type: 'apply' })
+        seen[cmd.name] = 1
+
+  props = splits.concat(applies)
+
+  table = parent.append('table')
+    .attr('class', 'facet')
+
+  headColumnsSelection = table.append('thead')
+    .append('tr')
+    .selectAll('th')
+    .data(props)
+
+  headColumnsSelection.enter().append('th')
+  headColumnsSelection.exit().remove()
+
+  headColumnsSelection
+    .attr('class', ({type, prop}) -> type)
+    .text(({prop}) -> prop)
+
+
+  bodyRowsSelection = table.append('tbody')
+    .selectAll('tr')
+    .data(res)
+
+  bodyRowsSelection.enter().append('tr')
+  bodyRowsSelection.exit().remove()
+
+  bodyRowsSelection
+    .attr('class', (segment) ->
+      classes = [if segment.splits then 'split' else 'leaf']
+      classes.push('no-parent') if not segment.parent
+      classes.push('heightlight') if isHeighlighted(segment)
+      return classes.join(' ')
+    )
+
+  bodyColumnsSelection = bodyRowsSelection
+    .selectAll('td')
+    .data((segment) -> props.map(({prop, type}) -> { type, prop, segment }))
+
+  bodyColumnsSelection.enter().append('td')
+  bodyColumnsSelection.exit().remove()
+
+  bodyColumnsSelection
+    .attr('class', ({type, prop, segment}) ->
+      return type + ' ' + if segment.prop.hasOwnProperty(prop) then 'full' else 'blank'
+    )
+    .text(({prop, segment}) -> segment.prop[prop])
+
   return
+
+
+
+
+
+
+
+# facet.table = ({parent, query, data}) ->
+#   condensedQuery = driverUtil.condenseQuery(query)
+
+#   # Expects a table element with correctly bound data
+#   makePropTbody = (tableParent, condensedCommand) ->
+#     propTbodySelection = tableParent.selectAll('tbody.prop')
+#       .data((d) -> if d.prop then [d.prop] else [])
+
+#     propTbodySelection.enter().append('tbody')
+#       .attr('class', 'prop')
+#       .append('tr')
+
+#     propTbodySelection.exit().remove()
+
+#     propTdSel = propTbodySelection.select('tr')
+#       .selectAll('td')
+#       .data((d) -> condensedCommand.applies.map(({name}) -> name + '=' + d[name]))
+
+#     propTdSel.enter().append('td')
+#     propTdSel.exit().remove()
+#     propTdSel.text(String)
+#     return
+
+#   # Expects a table element with correctly bound data
+#   tableHelper = (tableParent, condensedQuery) ->
+#     condensedQueryTail = condensedQuery.slice()
+#     condensedCommand = condensedQueryTail.shift()
+
+#     makePropTbody(tableParent, condensedCommand)
+
+#     splitsTbodySelection = tableParent.selectAll('tbody.splits')
+#       .data((d) -> if d.splits then [d.splits] else [])
+
+#     splitsTbodySelection.enter().append('tbody')
+#       .attr('class', 'prop')
+
+#     splits.exit().remove()
+
+
+#     return
+
+#   tableParent = parent.append('table').datum(data)
+#   window.tableParent = tableParent
+#   tableHelper(tableParent, condensedQuery)
+#   return
 
 
 

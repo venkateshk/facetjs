@@ -7,13 +7,6 @@ arithemticMap = {
   'divide': "/"
 }
 
-arithemticType = {
-  'add': 'addition'
-  'subtract': "addition"
-  'multiply': "multiplication"
-  'divide': "multiplication"
-}
-
 convertApplyHelper = (apply, from) ->
   if apply.aggregate
     switch apply.aggregate
@@ -21,24 +14,31 @@ convertApplyHelper = (apply, from) ->
         expr = String(apply.value)
 
       when 'sum', 'min', 'max', 'uniqueCount'
+        throw new Error("must have attribute") unless apply.attribute
         expr = "#{apply.aggregate}(`#{apply.attribute}`)"
 
       else
-        throw new Error("unsupported aggregate")
+        throw new Error("unsupported aggregate '#{apply.aggregate}'")
 
   else if apply.arithmetic
-    arType = arithemticType[apply.arithmetic]
-    mappedArithmetic = arithemticMap[apply.arithmetic]
-    throw "no such arithmetic" unless mappedArithmetic
-    expr = "#{convertApplyHelper(apply.operands[0], arType)} #{mappedArithmetic} #{convertApplyHelper(apply.operands[1], arType)}"
-    if from is 'multiplication' and arType is 'addition'
+    arithmetic = apply.arithmetic
+    mappedArithmetic = arithemticMap[arithmetic]
+    throw new Error("no such arithmetic '#{arithmetic}'") unless mappedArithmetic
+    throw new Error("must have operands") unless apply.operands
+    [op1, op2] = apply.operands
+    expr = "#{convertApplyHelper(op1, arithmetic)} #{mappedArithmetic} #{convertApplyHelper(op2, arithmetic)}"
+    if from is 'divide' or (from is 'multiply' and arithmetic in ['add', 'subtract'])
       expr = "(#{expr})"
+
+  else
+    throw new Error("must have an aggregate or an arithmetic")
 
   return expr
 
 
 module.exports = convertApply = (apply) ->
-  return "#{apply.name} <- #{convertApplyHelper(apply, 'addition')}"
+  throw new Error("must have name") unless apply.name
+  return "#{apply.name} <- #{convertApplyHelper(apply, 'add')}"
 
 # console.log convertApply(
 #   {

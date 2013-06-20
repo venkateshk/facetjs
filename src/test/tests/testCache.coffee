@@ -38,7 +38,7 @@ mySqlWrap = (query, callback) ->
     expect(query).to.deep.equal(expectedQuery)
 
   if not allowQuery
-    console.log '---------------'
+    console.log '\n---------------'
     console.log query
     console.log '---------------'
     throw new Error("query not allowed")
@@ -444,7 +444,7 @@ describe "Cache tests", ->
         return
       )
 
-    describe "filter; split time; apply count; split time; apply count; combine count descending", ->
+    describe "included filter", ->
       before -> allowQuery = false
       after -> allowQuery = true
 
@@ -471,7 +471,7 @@ describe "Cache tests", ->
         ]
       }
 
-    describe "addition", ->
+    describe "adding a new element outside filter", ->
       before ->
         checkEquality = true
         expectedQuery = [
@@ -519,7 +519,7 @@ describe "Cache tests", ->
         ]
       }
 
-    describe "Totally new query", ->
+    describe "only with a new element", ->
       before ->
         checkEquality = true
         expectedQuery = [
@@ -567,3 +567,56 @@ describe "Cache tests", ->
         ]
       }
 
+    describe "combine all filters", ->
+      before -> allowQuery = false
+      after -> allowQuery = true
+
+      it "should have the same results for different drivers", testEquality {
+        drivers: ['mySqlCached', 'mySql']
+        query: [
+          { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+          { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
+          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
+          {
+            operation: 'split'
+            name: 'Namespace'
+            bucket: 'identity'
+            attribute: 'namespace',
+            bucketFilter: {
+              prop: 'Language'
+              type: 'in'
+              values: ['en','de','fr','it']
+            }
+          }
+          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
+        ]
+      }
+
+    describe "same filter in a different order", ->
+      before -> allowQuery = false
+      after -> allowQuery = true
+
+      it "should have the same results for different drivers", testEquality {
+        drivers: ['mySqlCached', 'mySql']
+        query: [
+          { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+          { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
+          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
+          {
+            operation: 'split'
+            name: 'Namespace'
+            bucket: 'identity'
+            attribute: 'namespace',
+            bucketFilter: {
+              prop: 'Language'
+              type: 'in'
+              values: ['fr','en']
+            }
+          }
+          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
+        ]
+      }

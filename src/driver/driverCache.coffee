@@ -18,7 +18,7 @@ filterToHash = (filter) ->
 splitToHash = (split) ->
   hash = []
   for own k, v of split
-    continue if k is 'name'
+    continue if k in ['name', 'bucketFilter']
     hash.push(k + ":" + v)
 
   return hash.sort().join('|')
@@ -59,17 +59,19 @@ separateTimeFilter = (filter) ->
       timeFilter: filter
     }
 
-addToFilter = (filter, newFilterPiece) ->
+addToFilter = (filter, newFilterPieces...) ->
   if filter?
-    if newFilterPiece.type is 'within'
+    newTimeFilterPiece = newFilterPieces.filter(({type}) -> return type is 'within')[0]
+    if newTimeFilterPiece?.type is 'within'
       { filter, timeFilter } = separateTimeFilter(filter)
-
+    newFilterPieces.push filter
+  if newFilterPieces.length > 1
     return {
       type: 'and'
       operation: 'filter'
-      filters: [newFilterPiece, filter]
+      filters: newFilterPieces
     }
-  return newFilterPiece
+  return newFilterPieces[0]
 
 createFilter = (value, splitOp) ->
   if splitOp.bucket in ['timePeriod', 'timeDuration']
@@ -106,16 +108,17 @@ class FilterCache
     @_filterPutHelper(condensedQuery, root, condensedQuery[0].filter, 0)
     return
 
-  _filterPutHelper: (condensedQuery, root, filter, level) ->
+  _filterPutHelper: (condensedQuery, node, filter, level) ->
     hashValue = @hashmap[filterToHash(filter)] ?= {}
     applies = condensedQuery[level].applies
     for apply in applies
-      hashValue[apply.name] = root.prop[apply.name] or hashValue[apply.name]
+      hashValue[apply.name] = node.prop[apply.name] or hashValue[apply.name]
 
-    if root.splits?
+    if node.splits?
       splitOp = condensedQuery[level + 1].split
-      for split in root.splits
-        @_filterPutHelper(condensedQuery, split, addToFilter(filter, createFilter(split.prop[splitOp.name], splitOp)), level + 1)
+      for split in node.splits
+        newFilter = addToFilter(filter, createFilter(split.prop[splitOp.name], splitOp))
+        @_filterPutHelper(condensedQuery, split, newFilter, level + 1)
     return
 
 
@@ -152,7 +155,8 @@ class SplitCache
 
     if condensedQuery[level + 2]?
       for split in node.splits
-        @_splitPutHelper(condensedQuery, split, addToFilter(filter, createFilter(split.prop[splitOpName], splitOp)), level + 1)
+        newFilter = addToFilter(filter, createFilter(split.prop[splitOpName], splitOp))
+        @_splitPutHelper(condensedQuery, split, newFilter, level + 1)
     return
 
   _timeCalculate: (filter, splitOp) ->
@@ -209,6 +213,7 @@ module.exports = ({driver, queryGetter, querySetter}) ->
 
   getUnknownQuery = (query, root, condensedQuery) ->
     return query unless root?
+    # console.log JSON.stringify(root, null, 2)
     unknownQuery = []
     added = false
 
@@ -224,7 +229,7 @@ module.exports = ({driver, queryGetter, querySetter}) ->
 
       if condensedCommand.applies?
         for apply in condensedCommand.applies
-          exists = checkDeep(root, 0, i, apply.name, condensedCommand.split.bucketFilter)
+          exists = checkDeep(root, 0, i, apply.name, condensedCommand.split?.bucketFilter)
           if not exists
             added = true
 
@@ -272,7 +277,8 @@ module.exports = ({driver, queryGetter, querySetter}) ->
     splits = []
 
     for value in cachedValues
-      ret = getKnownTreeHelper(condensedQuery, addToFilter(filter, createFilter(value, splitOp)), level + 1, value)
+      newFilter = addToFilter(filter, createFilter(value, splitOp))
+      ret = getKnownTreeHelper(condensedQuery, newFilter, level + 1, value)
       # console.log '\n---------------------------------------------------------'
       # console.log ret
       # console.log level - 1

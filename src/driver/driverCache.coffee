@@ -199,21 +199,32 @@ module.exports = ({driver, queryGetter, querySetter}) ->
     if currentLevel is targetLevel
       return node.prop[name]?
 
-    if node.splits?
-      if bucketFilter?
-        filterFn = ({prop}) ->
-          return prop[bucketFilter.prop] in bucketFilter.values
+    if filteredSplitValue = node.prop[bucketFilter?.prop]
+      if filteredSplitValue in bucketFilter?.values
+        if node.splits?
+          return node.splits.every((split) -> return checkDeep(split, currentLevel + 1, targetLevel, name))
+        return false
       else
-        filterFn = () -> return true
+        return true
 
-      return node.splits.filter(filterFn)
-        .every((split) -> return checkDeep(split, currentLevel + 1, targetLevel, name))
-
+    if node.splits?
+      return node.splits.every((split) -> return checkDeep(split, currentLevel + 1, targetLevel, name, bucketFilter))
     return false
+
+  bucketFilterValueCheck = (node, currentLevel, targetLevel, bucketFilter) ->
+    if currentLevel is targetLevel
+      return bucketFilter.values unless node.splits?
+      currentSplits = node.splits.filter(({splits}) -> return splits?).map((split) -> split.prop[bucketFilter.prop])
+      return bucketFilter.values.filter((value) -> value not in currentSplits)
+
+    if node.splits?
+      return node.splits.map((split) -> return bucketFilterValueCheck(split, currentLevel + 1, targetLevel, bucketFilter))
+              .reduce(((prevValue, currValue) -> prevValue.push currValue; return prevValue), [])
+
+    return bucketFilter.values
 
   getUnknownQuery = (query, root, condensedQuery) ->
     return query unless root?
-    # console.log JSON.stringify(root, null, 2)
     unknownQuery = []
     added = false
 
@@ -222,7 +233,16 @@ module.exports = ({driver, queryGetter, querySetter}) ->
         unknownQuery.push condensedCommand.filter
 
       if condensedCommand.split?
-        unknownQuery.push condensedCommand.split
+        newSplit = JSON.parse(JSON.stringify(condensedCommand.split))
+        if condensedCommand.split.bucketFilter?
+          console.log root, condensedCommand.split.bucketFilter, i - 2
+          newValues = bucketFilterValueCheck(root, 0, i - 2, condensedCommand.split.bucketFilter)
+          console.log newValues
+          newSplit.bucketFilter.values = newValues
+          if newValues.length > 0
+            added = true
+          console.log JSON.stringify(newSplit)
+        unknownQuery.push newSplit
 
       if condensedCommand.combine?
         mustApply = condensedCommand.combine.sort.prop
@@ -235,7 +255,6 @@ module.exports = ({driver, queryGetter, querySetter}) ->
 
           if (apply.name is mustApply) or (not exists)
             unknownQuery.push apply
-
 
       if condensedCommand.combine?
         unknownQuery.push condensedCommand.combine
@@ -250,7 +269,6 @@ module.exports = ({driver, queryGetter, querySetter}) ->
     splitOp = condensedQuery[level + 1]?.split
     combineOp = condensedQuery[level + 1]?.combine
     filterCacheResult = filterCache.get(filter)
-
     prop = {}
     for apply in applies
       prop[apply.name] = filterCacheResult?[apply.name]
@@ -269,6 +287,7 @@ module.exports = ({driver, queryGetter, querySetter}) ->
 
     bucketFilter = splitOp.bucketFilter
     if bucketFilter?
+      # console.log upperSplitValue, bucketFilter.values
       if upperSplitValue not in bucketFilter.values
         return {
           prop
@@ -329,13 +348,15 @@ module.exports = ({driver, queryGetter, querySetter}) ->
       return driver async, callback
 
     root = getKnownTree(condensedQuery)
+    console.log JSON.stringify(root, null, 2)
     unknownQuery = getUnknownQuery(query, root, condensedQuery)
+    console.log JSON.stringify(unknownQuery, null, 2)
     if not unknownQuery?
       callback(null, root)
       return
 
     querySetter(async, unknownQuery)
-    return driver async, (err, root) ->
+    return driver unknownQuery, (err, root) ->
       if err?
         callback(err, null)
         return

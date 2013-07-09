@@ -274,6 +274,56 @@ exports.createColumns = createColumns = (query) ->
     apply.push applyName
   return split.concat(apply)
 
+
+
+filterTypePresedence = {
+  'within': 1
+  'is': 2
+  'in': 3
+  'fragments': 4
+  'match': 5
+  'not': 6
+  'and': 7
+  'or': 8
+}
+
+filterCompare = (filter1, filter2) ->
+  typeDiff = filterTypePresedence[filter1.type] - filterTypePresedence[filter2.type]
+  return typeDiff if typeDiff isnt 0 or filter1.type in ['not', 'and', 'or']
+  return -1 if filter1.attribute < filter2.attribute
+  return +1 if filter1.attribute > filter2.attribute
+
+  # ToDo: expand this to all filters
+  if filter1.type is 'is'
+    return -1 if filter1.value < filter2.value
+    return +1 if filter1.value > filter2.value
+
+  return 0
+
+# Reduces a filter into a (potentially) simpler form the input is never modified
+# Specifically this function:
+# - flattens nested ANDs
+# - flattens nested ORs
+# - sorts lists of filters within an AND / OR by attribute
+exports.simplifyFilter = simplifyFilter = (filter) ->
+  return filter if filter.type in ['is', 'in', 'fragments', 'match', 'within', 'not']
+  type = filter.type
+  throw new Error("unexpected filter type") unless type in ['and', 'or']
+  newFilters = []
+  for f in filter.filters
+    f = simplifyFilter(f)
+    if f.type is type
+      Array::push.apply(newFilters, f.filters)
+    else
+      newFilters.push(f)
+
+  newFilters.sort(filterCompare)
+  return {
+    type
+    filters: newFilters
+  }
+
+
 # -----------------------------------------------------
 # Handle commonJS crap
 `return module.exports; }).call(this,

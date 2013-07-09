@@ -136,3 +136,137 @@ describe "Utility tests", ->
           '"Cut_Test"\t"Count_Test"\r\n"A"\t"1"\r\n"B"\t"2"\r\n"C"\t"3"\r\n"D"\t"4"\r\n"E"\t"5"\r\n"F\"\""\t"6"'
           "TSV of the table is incorrect"
         )
+
+  describe.only "simplify filter", ->
+    it "it keeps regular filters unchanged", ->
+      expect(driverUtil.simplifyFilter({
+        type: 'is'
+        attribute: 'lady'
+        value: 'GaGa'
+      })).to.deep.equal({
+        type: 'is'
+        attribute: 'lady'
+        value: 'GaGa'
+      })
+
+    it "flattens (and sorts) nested ANDs", ->
+      expect(driverUtil.simplifyFilter({
+        type: 'and'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Google'
+          }
+          {
+            type: 'and'
+            filters: [
+              {
+                type: 'is'
+                attribute: 'country'
+                value: 'USA'
+              }
+              {
+                type: 'and'
+                filters: [
+                  {
+                    type: 'is'
+                    attribute: 'moon'
+                    value: 'new'
+                  }
+                  {
+                    type: 'within'
+                    attribute: 'age'
+                    range: [5, 90]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      })).to.deep.equal({
+        type: 'and'
+        filters: [
+          {
+            type: 'within'
+            attribute: 'age'
+            range: [5, 90]
+          }
+          {
+            type: 'is'
+            attribute: 'country'
+            value: 'USA'
+          }
+          {
+            type: 'is'
+            attribute: 'moon'
+            value: 'new'
+          }
+          {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Google'
+          }
+        ]
+      })
+
+    it "flattens (and sorts) nested ORs", ->
+      expect(driverUtil.simplifyFilter({
+        type: 'or'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Google'
+          }
+          {
+            type: 'or'
+            filters: [
+              {
+                type: 'is'
+                attribute: 'country'
+                value: 'USA'
+              }
+              {
+                type: 'or'
+                filters: [
+                  {
+                    type: 'is'
+                    attribute: 'moon'
+                    value: 'new'
+                  }
+                  {
+                    type: 'within'
+                    attribute: 'age'
+                    range: [5, 90]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      })).to.deep.equal({
+        type: 'or'
+        filters: [
+          {
+            type: 'within'
+            attribute: 'age'
+            range: [5, 90]
+          }
+          {
+            type: 'is'
+            attribute: 'country'
+            value: 'USA'
+          }
+          {
+            type: 'is'
+            attribute: 'moon'
+            value: 'new'
+          }
+          {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Google'
+          }
+        ]
+      })

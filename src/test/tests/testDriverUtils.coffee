@@ -137,6 +137,7 @@ describe "Utility tests", ->
           "TSV of the table is incorrect"
         )
 
+
   describe "simplify filter", ->
     it "it keeps regular filters unchanged", ->
       expect(driverUtil.simplifyFilter({
@@ -270,3 +271,183 @@ describe "Utility tests", ->
           }
         ]
       })
+
+  describe 'filterToString', ->
+    it 'properly translates is filter', ->
+      filter = {
+        type: 'is'
+        attribute: 'Color'
+        value: 'Red'
+      }
+      expect(driverUtil.filterToString(filter)).to.equal('Color is Red')
+      return
+
+    it 'properly translates in filter', ->
+      filter = {
+        type: 'in'
+        attribute: 'Color'
+        values: ['Red']
+      }
+      expect(driverUtil.filterToString(filter)).to.equal('Color is Red')
+
+      filter = {
+        type: 'in'
+        attribute: 'Color'
+        values: ['Red', 'Blue']
+      }
+      expect(driverUtil.filterToString(filter)).to.equal('Color is either Red or Blue')
+
+      filter = {
+        type: 'in'
+        attribute: 'Color'
+        values: ['Red', 'Blue', 'Green']
+      }
+      expect(driverUtil.filterToString(filter)).to.equal('Color is one of: Red, Blue, or Green')
+      return
+
+    it 'properly translates fragements filter', ->
+      filter = {
+        type: 'fragments'
+        attribute: 'Color'
+        fragments: ['Red', 'Blue']
+      }
+      expect(driverUtil.filterToString(filter)).to.equal("'Color contains 'Red', 'Blue'")
+      return
+
+    it 'properly translates match filter', ->
+      filter = {
+        type: 'match'
+        attribute: 'Color'
+        match: "^R"
+      }
+      expect(driverUtil.filterToString(filter)).to.equal('Color matches /^R/')
+      return
+
+    it 'properly translates within filter', ->
+      filter = {
+        type: 'within'
+        attribute: 'Number'
+        range: [1, 10]
+      }
+      expect(driverUtil.filterToString(filter)).to.equal('Number is within 1 and 10')
+
+      filter = {
+        type: 'within'
+        attribute: 'Time'
+        range: ["2013-07-09T20:30:40.251Z", "2014-07-09T20:30:40.251Z"]
+      }
+      expect(driverUtil.filterToString(filter)).to.equal("Time is within 2013-07-09T20:30:40.251Z and 2014-07-09T20:30:40.251Z")
+      return
+
+    it 'properly translates not filter', ->
+      filter = {
+        type: 'not'
+        filter: {
+          type: 'is'
+          attribute: 'Color'
+          value: 'Red'
+        }
+      }
+      expect(driverUtil.filterToString(filter)).to.equal('not (Color is Red)')
+      return
+
+    it 'properly translates and filter', ->
+      filter = {
+        type: 'and'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'Color'
+            value: 'Red'
+          }
+          {
+            type: 'in'
+            attribute: 'Color'
+            values: ['Red', 'Blue']
+          }
+        ]
+      }
+      expect(driverUtil.filterToString(filter)).to.equal("(Color is Red) and (Color is in Red,Blue)")
+      return
+
+    it 'properly translates or filter', ->
+      filter = {
+        type: 'or'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'Color'
+            value: 'Red'
+          }
+          {
+            type: 'in'
+            attribute: 'Color'
+            values: ['Red', 'Blue']
+          }
+        ]
+      }
+      expect(driverUtil.filterToString(filter)).to.equal("(Color is Red) or (Color is in Red,Blue)")
+
+      return
+
+    it 'handles bad filter type', ->
+      filter = {
+        type: 'hello'
+        attribute: 'Color'
+        value: 'Red'
+      }
+      testFn = () ->
+        return driverUtil.filterToString(filter)
+      expect(testFn).to.throw(TypeError, 'bad filter type')
+      return
+
+    it 'properly translates nested filter 1', ->
+      filter = {
+        type: 'not'
+        filter: {
+          type: 'or'
+          filters: [
+            {
+              type: 'is'
+              attribute: 'Color'
+              value: 'Red'
+            }
+            {
+              type: 'in'
+              attribute: 'Color'
+              values: ['Red', 'Blue']
+            }
+          ]
+        }
+      }
+      expect(driverUtil.filterToString(filter)).to.equal("not ((Color is Red) or (Color is in Red,Blue))")
+
+      return
+
+    it 'properly translates nested filter 2', ->
+      filter = {
+        type: 'and'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'Color'
+            value: 'Red'
+          }
+          {
+            type: 'in'
+            attribute: 'Color'
+            values: ['Red', 'Blue']
+          }
+          {
+            type: 'not'
+            filter: {
+              type: 'is'
+              attribute: 'Color'
+              value: 'Red'
+            }
+          }
+        ]
+      }
+      expect(driverUtil.filterToString(filter)).to.equal("(Color is Red) and (Color is in Red,Blue) and (not (Color is Red))")
+
+      return

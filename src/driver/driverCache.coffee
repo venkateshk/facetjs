@@ -141,17 +141,17 @@ class SplitCache
     @_splitPutHelper(condensedQuery, root, condensedQuery[0].filter, 0)
     return
 
-  _splitPutHelper: (condensedQuery, root, filter, level) ->
-    return unless condensedQuery[level + 1]?
+  _splitPutHelper: (condensedQuery, node, filter, level) ->
+    return unless node.splits?
 
     splitOp = condensedQuery[level + 1].split
     combineOp = condensedQuery[level + 1].combine
     splitOpName = splitOp.name
-    splitValues = root.splits.map((node) -> return node.prop[splitOpName])
+    splitValues = node.splits.map((node) -> return node.prop[splitOpName])
     @hashmap[generateHash(filter, splitOp, combineOp)] = splitValues
 
     if condensedQuery[level + 2]?
-      for split in root.splits
+      for split in node.splits
         @_splitPutHelper(condensedQuery, split, addToFilter(filter, createFilter(split.prop[splitOpName], splitOp)), level + 1)
     return
 
@@ -310,7 +310,8 @@ module.exports = ({driver, queryGetter, querySetter}) ->
       callback(null, root)
       return
 
-    return driver unknownQuery, (err, root) ->
+    querySetter(async, unknownQuery)
+    return driver async, (err, root) ->
       if err?
         callback(err, null)
         return

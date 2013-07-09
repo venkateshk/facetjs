@@ -38,16 +38,20 @@ exports.isAdditiveApply = isAdditiveApply = (apply) ->
            isAdditiveApply(apply.operands[0]) and
            isAdditiveApply(apply.operands[1]))
 
+getPropFromSegment = (segment, prop) ->
+  return null unless segment
+  return segment.prop[prop] or getPropFromSegment(segment.parent, prop)
+
 bucketFilterFns = {
   is: ({prop, value}) ->
-    return (segment) -> segment.prop[prop] is value
+    return (segment) -> getPropFromSegment(segment, prop) is value
 
   in: ({prop, values}) ->
-    return (segment) -> segment.prop[prop] in values
+    return (segment) -> getPropFromSegment(segment, prop) in values
 
   within: ({prop, range}) ->
     throw new TypeError("range must be an array of two things") unless Array.isArray(range) and range.length is 2
-    return (segment) -> range[0] <= segment.prop[prop] < range[1]
+    return (segment) -> range[0] <= getPropFromSegment(segment, prop) < range[1]
 
   not: ({filter}) ->
     throw new TypeError("filter must be a filter object") unless typeof filter is 'object'
@@ -71,7 +75,7 @@ bucketFilterFns = {
       return false
 }
 
-exports.makeBucketFilterFn = (filter) ->
+exports.makeBucketFilterFn = makeBucketFilterFn = (filter) ->
   throw new Error("type not defined in filter") unless filter.hasOwnProperty('type')
   throw new Error("invalid type in filter") unless typeof filter.type is 'string'
   bucketFilterFn = bucketFilterFns[filter.type]
@@ -168,16 +172,22 @@ exports.cleanProp = (prop) ->
       delete prop[key]
   return
 
-exports.cleanSegment = (segment) ->
-  for key of segment
-    if key[0] is '_'
-      delete segment[key]
+exports.cleanSegments = cleanSegments = (segment) ->
+  delete segment.parent
+  delete segment._filter
+  delete segment._raw
 
   prop = segment.prop
   for key of prop
     if key[0] is '_'
       delete prop[key]
-  return
+
+  splits = segment.splits
+  if splits
+    for split in splits
+      cleanSegments(split)
+
+  return segment
 
 createTabularHelper = (node, rangeFn, history) ->
   newHistory = {}

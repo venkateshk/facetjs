@@ -120,7 +120,7 @@ class DruidQueryBuilder
         [{
           type: 'selector'
           dimension: filter.attribute
-          value: filter.value
+          value: filter.value ? '' # In Druid null == '' and null is illegal
         }]
 
       when 'in'
@@ -131,7 +131,7 @@ class DruidQueryBuilder
             return {
               type: 'selector'
               dimension: filter.attribute
-              value
+              value: value ? '' # In Druid null == '' and null is illegal
             }
           ), this)
         }]
@@ -1059,7 +1059,10 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
       return
 
     init = true
-    rootSegment = { _filter: filter }
+    rootSegment = {
+      parent: null
+      _filter: filter
+    }
     segments = [rootSegment]
 
     queryDruid = (condensedCommand, lastCmd, callback) ->
@@ -1118,17 +1121,28 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
             propToSplit = if lastCmd
               (prop) ->
                 driverUtil.cleanProp(prop)
-                return { prop }
+                return {
+                  parent: parentSegment
+                  prop
+                }
             else
               (prop) ->
                 driverUtil.cleanProp(prop)
-                return { prop, _filter: andFilters(myFilter, makeFilter(splitAttribute, prop[splitName])) }
+                return {
+                  parent: parentSegment
+                  prop
+                  _filter: andFilters(myFilter, makeFilter(splitAttribute, prop[splitName]))
+                }
+
             parentSegment.splits = splits = props.map(propToSplit)
-            driverUtil.cleanSegment(parentSegment)
           else
             prop = props[0]
             driverUtil.cleanProp(prop)
-            splits = [if lastCmd then { prop: prop } else { prop: prop, _filter: myFilter }]
+            splits = [{
+              parent: parentSegment
+              prop
+              _filter: myFilter
+            }]
 
           callback(null, splits)
           return
@@ -1137,12 +1151,7 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
 
       if condensedCommand.split?.bucketFilter
         bucketFilterFn = driverUtil.makeBucketFilterFn(condensedCommand.split.bucketFilter)
-        driverUtil.inPlaceFilter segments, (segment) ->
-          if bucketFilterFn(segment)
-            return true
-          else
-            driverUtil.cleanSegment(segment)
-            return false
+        driverUtil.inPlaceFilter(segments, bucketFilterFn)
 
       # do the query in parallel
       async.mapLimit(
@@ -1181,7 +1190,7 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
           callback(err)
           return
 
-        callback(null, rootSegment or {})
+        callback(null, driverUtil.cleanSegments(rootSegment or {}))
         return
     )
     return

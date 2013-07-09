@@ -274,6 +274,27 @@ exports.createColumns = createColumns = (query) ->
     apply.push applyName
   return split.concat(apply)
 
+exports.filterToString = filterToString = (filter) ->
+  switch filter.type
+    when "is"
+      return "#{filter.attribute} is #{filter.value}"
+    when "in"
+      return "#{filter.attribute} is in #{filter.values}"
+    when "fragments"
+      return "#{filter.attribute} contains #{filter.fragments}"
+    when "match"
+      return "#{filter.attribute} matches #{filter.match}"
+    when "within"
+      return "#{filter.attribute} is within #{filter.range}"
+    when "not"
+      return "not (#{filterToString(filter.filter)})"
+    when "and"
+      return "#{filter.filters.map((filter) -> return '(' + filterToString(filter) + ')').join(' and ')}"
+    when "or"
+      return "#{filter.filters.map((filter) -> return '(' + filterToString(filter) + ')').join(' or ')}"
+
+  throw new TypeError('bad filter type')
+
 # -----------------------------------------------------
 # Handle commonJS crap
 `return module.exports; }).call(this,

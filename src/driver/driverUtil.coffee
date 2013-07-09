@@ -39,7 +39,7 @@ exports.isAdditiveApply = isAdditiveApply = (apply) ->
            isAdditiveApply(apply.operands[1]))
 
 getPropFromSegment = (segment, prop) ->
-  return null unless segment
+  return null unless segment and segment.prop
   return segment.prop[prop] or getPropFromSegment(segment.parent, prop)
 
 bucketFilterFns = {

@@ -286,6 +286,13 @@ describe "Utility tests", ->
       filter = {
         type: 'in'
         attribute: 'Color'
+        values: []
+      }
+      expect(driverUtil.filterToString(filter)).to.equal('NOTHING')
+
+      filter = {
+        type: 'in'
+        attribute: 'Color'
         values: ['Red']
       }
       expect(driverUtil.filterToString(filter)).to.equal('Color is Red')
@@ -367,7 +374,7 @@ describe "Utility tests", ->
           }
         ]
       }
-      expect(driverUtil.filterToString(filter)).to.equal("(Color is Red) and (Color is in Red,Blue)")
+      expect(driverUtil.filterToString(filter)).to.equal("(Color is Red) and (Color is in Red, Blue)")
       return
 
     it 'properly translates or filter', ->
@@ -386,7 +393,7 @@ describe "Utility tests", ->
           }
         ]
       }
-      expect(driverUtil.filterToString(filter)).to.equal("(Color is Red) or (Color is in Red,Blue)")
+      expect(driverUtil.filterToString(filter)).to.equal("(Color is Red) or (Color is in Red, Blue)")
 
       return
 

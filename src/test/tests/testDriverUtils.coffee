@@ -137,7 +137,7 @@ describe "Utility tests", ->
           "TSV of the table is incorrect"
         )
 
-  describe.only "simplify filter", ->
+  describe "simplify filter", ->
     it "it keeps regular filters unchanged", ->
       expect(driverUtil.simplifyFilter({
         type: 'is'

@@ -322,6 +322,18 @@ exports.simplifyFilter = simplifyFilter = (filter) ->
     filters: newFilters
   }
 
+orReduceFunction = (prev, now, index, all) ->
+  if (index < all.length - 1)
+    return prev + ', ' + now
+  else
+    return prev + ', or ' + now
+
+andReduceFunction = (prev, now, index, all) ->
+  if (index < all.length - 1)
+    return prev + ', ' + now
+  else
+    return prev + ', and ' + now
+
 exports.filterToString = filterToString = (filter) ->
   switch filter.type
     when "is"
@@ -331,9 +343,10 @@ exports.filterToString = filterToString = (filter) ->
         when 0 then return "NOTHING"
         when 1 then return "#{filter.attribute} is #{filter.values[0]}"
         when 2 then return "#{filter.attribute} is either #{filter.values[0]} or #{filter.values[1]}"
-        else return "#{filter.attribute} is one of: #{filter.values.join(', ')}"
+        else return "#{filter.attribute} is one of: #{filter.values.reduce(orReduceFunction)}"
     when "fragments"
-      return "#{filter.attribute} contains #{filter.fragments}"
+      return "#{filter.attribute} contains #{filter.fragments.map((fragment) -> return '\'' + fragment + '\'' )
+        .reduce(andReduceFunction)}"
     when "match"
       return "#{filter.attribute} matches /#{filter.match}/"
     when "within"

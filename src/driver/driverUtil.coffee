@@ -335,6 +335,8 @@ andReduceFunction = (prev, now, index, all) ->
     return prev + ', and ' + now
 
 exports.filterToString = filterToString = (filter) ->
+  return "No filter exists" unless filter?
+
   switch filter.type
     when "is"
       return "#{filter.attribute} is #{filter.value}"
@@ -354,12 +356,30 @@ exports.filterToString = filterToString = (filter) ->
     when "not"
       return "not (#{filterToString(filter.filter)})"
     when "and"
-      return "#{filter.filters.map((filter) -> return '(' + filterToString(filter) + ')').join(' and ')}"
+      if filter.filters.length > 1
+        return "#{filter.filters.map((filter) -> return '(' + filterToString(filter) + ')').join(' and ')}"
+      else
+        return "#{filterToString(filter.filters[0])}"
     when "or"
-      return "#{filter.filters.map((filter) -> return '(' + filterToString(filter) + ')').join(' or ')}"
+      if filter.filters.length > 1
+        return "#{filter.filters.map((filter) -> return '(' + filterToString(filter) + ')').join(' or ')}"
+      else
+        return "#{filterToString(filter.filters[0])}"
 
   throw new TypeError('bad filter type')
   return
+
+exports.removeWithinFilter = removeWithinFilter = (filter) ->
+  if filter.type is 'within'
+    return null
+
+  if filter.type is 'not'
+    filter.filter = removeWithinFilter(filter.filter)
+
+  if filter.type in ['and', 'or']
+    filter.filters = filter.filters.map(removeWithinFilter).filter((filter) -> return filter?)
+
+  return filter
 
 # -----------------------------------------------------
 # Handle commonJS crap

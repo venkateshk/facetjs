@@ -483,6 +483,8 @@ class DruidQueryBuilder
             throw new Error("unsupported aggregate '#{apply.aggregate}'")
 
       else if apply.arithmetic
+        if apply.operands.length isnt 2
+          throw new Error("arithmetic apply must have 2 operands (has: #{apply.operands.length})")
         druidFn = arithmeticToDruidFn[apply.arithmetic]
         if druidFn
           a = @addApplyHelper(apply.operands[0], true)

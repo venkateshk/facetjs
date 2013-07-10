@@ -318,7 +318,7 @@ describe "Utility tests", ->
         attribute: 'Color'
         fragments: ['Red', 'Blue']
       }
-      expect(driverUtil.filterToString(filter)).to.equal("'Color contains 'Red', 'Blue'")
+      expect(driverUtil.filterToString(filter)).to.equal("Color contains 'Red', and 'Blue'")
       return
 
     it 'properly translates match filter', ->
@@ -374,7 +374,7 @@ describe "Utility tests", ->
           }
         ]
       }
-      expect(driverUtil.filterToString(filter)).to.equal("(Color is Red) and (Color is in Red, Blue)")
+      expect(driverUtil.filterToString(filter)).to.equal("(Color is Red) and (Color is either Red or Blue)")
       return
 
     it 'properly translates or filter', ->
@@ -393,7 +393,7 @@ describe "Utility tests", ->
           }
         ]
       }
-      expect(driverUtil.filterToString(filter)).to.equal("(Color is Red) or (Color is in Red, Blue)")
+      expect(driverUtil.filterToString(filter)).to.equal("(Color is Red) or (Color is either Red or Blue)")
 
       return
 
@@ -427,7 +427,7 @@ describe "Utility tests", ->
           ]
         }
       }
-      expect(driverUtil.filterToString(filter)).to.equal("not ((Color is Red) or (Color is in Red,Blue))")
+      expect(driverUtil.filterToString(filter)).to.equal("not ((Color is Red) or (Color is either Red or Blue))")
 
       return
 
@@ -455,6 +455,6 @@ describe "Utility tests", ->
           }
         ]
       }
-      expect(driverUtil.filterToString(filter)).to.equal("(Color is Red) and (Color is in Red,Blue) and (not (Color is Red))")
+      expect(driverUtil.filterToString(filter)).to.equal("(Color is Red) and (Color is either Red or Blue) and (not (Color is Red))")
 
       return

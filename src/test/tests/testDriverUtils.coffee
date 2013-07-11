@@ -272,6 +272,103 @@ describe "Utility tests", ->
         ]
       })
 
+    it "gets rid of empty ANDs", ->
+      expect(driverUtil.simplifyFilter({
+        type: 'and'
+        filters: []
+      })).to.deep.equal(null)
+
+    it "gets rid of single ANDs", ->
+      expect(driverUtil.simplifyFilter({
+        type: 'and'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Google'
+          }
+        ]
+      })).to.deep.equal({
+        type: 'is'
+        attribute: 'venue'
+        value: 'Google'
+      })
+
+    it "gets rid of nested single and empty ANDs", ->
+      expect(driverUtil.simplifyFilter({
+        type: 'and'
+        filters: [
+          {
+            type: 'and'
+            filters: [
+              {
+                type: 'is'
+                attribute: 'venue'
+                value: 'Google'
+              }
+            ]
+          }
+          {
+            type: 'and'
+            filters: []
+          }
+        ]
+      })).to.deep.equal({
+        type: 'is'
+        attribute: 'venue'
+        value: 'Google'
+      })
+
+    it "gets rid of empty ORs", ->
+      expect(driverUtil.simplifyFilter({
+        type: 'or'
+        filters: []
+      })).to.deep.equal({
+        type: 'block'
+      })
+
+    it "gets rid of single ORs", ->
+      expect(driverUtil.simplifyFilter({
+        type: 'or'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Google'
+          }
+        ]
+      })).to.deep.equal({
+        type: 'is'
+        attribute: 'venue'
+        value: 'Google'
+      })
+
+    it "gets rid of nested single and empty ORs", ->
+      expect(driverUtil.simplifyFilter({
+        type: 'or'
+        filters: [
+          {
+            type: 'or'
+            filters: [
+              {
+                type: 'is'
+                attribute: 'venue'
+                value: 'Google'
+              }
+            ]
+          }
+          {
+            type: 'or'
+            filters: []
+          }
+        ]
+      })).to.deep.equal({
+        type: 'is'
+        attribute: 'venue'
+        value: 'Google'
+      })
+
+
   describe 'filterToString', ->
     it 'properly translates empty filter', ->
       filter = null

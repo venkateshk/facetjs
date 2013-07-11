@@ -6,6 +6,9 @@ driverUtil = require('./driverUtil')
 # -----------------------------------------------------
 
 filterFns = {
+  block: ->
+    return -> false
+
   is: ({attribute, value}) ->
     return (d) -> d[attribute] is value
 

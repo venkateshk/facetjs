@@ -305,16 +305,36 @@ filterCompare = (filter1, filter2) ->
 # - flattens nested ORs
 # - sorts lists of filters within an AND / OR by attribute
 exports.simplifyFilter = simplifyFilter = (filter) ->
-  return filter if filter.type in ['is', 'in', 'fragments', 'match', 'within', 'not']
+  return filter if not filter or filter.type in ['is', 'in', 'fragments', 'match', 'within', 'not']
   type = filter.type
   throw new Error("unexpected filter type") unless type in ['and', 'or']
   newFilters = []
   for f in filter.filters
     f = simplifyFilter(f)
+
+    # everything
+    if f is null
+      if type is 'and'
+        continue # Makes no difference in an AND
+      else
+        return null # An OR with 'true' inside of it is always true
+
+    # nothing
+    if f.type is 'block'
+      if type is 'or'
+        continue # Makes no difference in an OR
+      else
+        return { type: 'block' } # An AND with 'false' inside of it is always false
+
     if f.type is type
       Array::push.apply(newFilters, f.filters)
     else
       newFilters.push(f)
+
+  if newFilters.length is 0
+    return if type is 'and' then null else { type: 'block' }
+
+  return newFilters[0] if newFilters.length is 1
 
   newFilters.sort(filterCompare)
   return {

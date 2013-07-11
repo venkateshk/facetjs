@@ -46,6 +46,9 @@ class SQLQueryBuilder
 
   filterToSQL: (filter) ->
     switch filter.type
+      when 'block'
+        "1 = 2"
+
       when 'is'
         "#{@escapeAttribute(filter.attribute)} = #{@escapeValue(filter.value)}"
 

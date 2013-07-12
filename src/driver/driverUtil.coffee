@@ -389,6 +389,7 @@ exports.filterToString = filterToString = (filter) ->
   throw new TypeError('bad filter type')
   return
 
+# I do not like this method -VO
 exports.removeWithinFilter = removeWithinFilter = (filter) ->
   if filter.type is 'within'
     return null
@@ -400,6 +401,43 @@ exports.removeWithinFilter = removeWithinFilter = (filter) ->
     filter.filters = filter.filters.map(removeWithinFilter).filter((filter) -> return filter?)
 
   return filter
+
+
+# Flattens the split tree into an array
+#
+# @param {SplitTree} root - the root of the split tree
+# @param {prepend,append,none} order - what to do with the root of the tree
+# @return {Array(SplitTree)} the tree nodes in the order specified
+exports.flatten = (root, order) ->
+  throw new TypeError('must have a tree') unless root
+  throw new TypeError('order must be on of prepend, append, or none') unless order in ['prepend', 'append', 'none']
+  result = []
+  flattenHelper(root, null, order, result)
+  return result
+
+flattenHelper = (root, order, result) ->
+  result.push(root) if order is 'prepend'
+
+  if root.splits
+    for split in root.splits
+      flattenHelper(split, preorder, result)
+
+  result.push(root) if order is 'append'
+  return
+
+
+# Adds parents to a split tree in place
+#
+# @param {SplitTree} root - the root of the split tree
+# @param {SplitTree} parent [null] - the parent for the initial node
+# @return {SplitTree} the input tree (with parent pointers)
+exports.parentify = parentify = (root, parent = null) ->
+  root.parent = parent
+  if root.splits
+    for split in root.splits
+      parentify(split, root)
+  return root
+
 
 # -----------------------------------------------------
 # Handle commonJS crap

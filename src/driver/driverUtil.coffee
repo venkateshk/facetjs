@@ -43,6 +43,9 @@ getPropFromSegment = (segment, prop) ->
   return segment.prop[prop] or getPropFromSegment(segment.parent, prop)
 
 bucketFilterFns = {
+  block: ->
+    return false
+
   is: ({prop, value}) ->
     return (segment) -> getPropFromSegment(segment, prop) is value
 
@@ -408,19 +411,18 @@ exports.removeWithinFilter = removeWithinFilter = (filter) ->
 # @param {SplitTree} root - the root of the split tree
 # @param {prepend,append,none} order - what to do with the root of the tree
 # @return {Array(SplitTree)} the tree nodes in the order specified
-exports.flatten = (root, order) ->
+exports.flattenTree = (root, order) ->
   throw new TypeError('must have a tree') unless root
   throw new TypeError('order must be on of prepend, append, or none') unless order in ['prepend', 'append', 'none']
-  result = []
-  flattenHelper(root, null, order, result)
+  flattenTreeHelper(root, order, result = [])
   return result
 
-flattenHelper = (root, order, result) ->
+flattenTreeHelper = (root, order, result) ->
   result.push(root) if order is 'prepend'
 
   if root.splits
     for split in root.splits
-      flattenHelper(split, preorder, result)
+      flattenTreeHelper(split, order, result)
 
   result.push(root) if order is 'append'
   return

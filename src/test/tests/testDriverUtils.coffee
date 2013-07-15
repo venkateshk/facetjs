@@ -368,6 +368,23 @@ describe "Utility tests", ->
         value: 'Google'
       })
 
+    it "gets rid of not(not())", ->
+      expect(driverUtil.simplifyFilter({
+        type: 'not'
+        filter: {
+          type: 'not'
+          filter: {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Google'
+          }
+        }
+      })).to.deep.equal({
+        type: 'is'
+        attribute: 'venue'
+        value: 'Google'
+      })
+
 
   describe 'filterToString', ->
     it 'properly translates empty filter', ->

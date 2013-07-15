@@ -380,46 +380,65 @@ class DruidQueryBuilder
               return
 
           when 'count', 'sum', 'min', 'max'
-            if apply.filter
-              { jsFilter, context } = @filterToJS(apply.filter)
-              fieldNames = []
-              varNames = []
-              for fieldName, varName of context
-                fieldNames.push(fieldName)
-                varNames.push(varName)
+            if @approximate and apply.aggregate in ['min', 'max'] and /_hist$/.test(apply.attribute)
+              # A hacky way to determine that this is a histogram aggregated column (it ends with _hist)
 
-              [zero, jsAgg] = aggregateToJS[apply.aggregate]
+              histogramAggregationName = @addAggregation {
+                type: "approxHistogramFold"
+                fieldName: apply.attribute
+              }
+              postAggregation = {
+                type: apply.aggregate
+                fieldName: histogramAggregationName
+              }
 
-              if apply.aggregate is 'count'
-                jsIf = "(#{jsFilter}?1:#{zero})"
+              if returnPostAggregation
+                return postAggregation
               else
-                fieldNames.push(apply.attribute)
-                varNames.push('a')
-                jsIf = "(#{jsFilter}?a:#{zero})"
-
-              aggregation = {
-                type: "javascript"
-                name: applyName
-                fieldNames: fieldNames
-                fnAggregate: "function(cur,#{varNames.join(',')}){return #{jsAgg('cur', jsIf)};}"
-                fnCombine: "function(pa,pb){return #{jsAgg('pa', 'pb')};}"
-                fnReset: "function(){return #{zero};}"
-              }
+                postAggregation.name = applyName
+                @addPostAggregation(postAggregation)
+                return
             else
-              aggregation = {
-                type: if apply.aggregate is 'sum' then 'doubleSum' else apply.aggregate
-                name: applyName
-              }
+              if apply.filter
+                { jsFilter, context } = @filterToJS(apply.filter)
+                fieldNames = []
+                varNames = []
+                for fieldName, varName of context
+                  fieldNames.push(fieldName)
+                  varNames.push(varName)
 
-              if apply.aggregate isnt 'count'
-                throw new Error("#{apply.aggregate} must have an attribute") unless apply.attribute
-                aggregation.fieldName = apply.attribute
+                [zero, jsAgg] = aggregateToJS[apply.aggregate]
 
-            aggregationName = @addAggregation(aggregation)
-            if returnPostAggregation
-              return { type: "fieldAccess", fieldName: aggregationName }
-            else
-              return
+                if apply.aggregate is 'count'
+                  jsIf = "(#{jsFilter}?1:#{zero})"
+                else
+                  fieldNames.push(apply.attribute)
+                  varNames.push('a')
+                  jsIf = "(#{jsFilter}?a:#{zero})"
+
+                aggregation = {
+                  type: "javascript"
+                  name: applyName
+                  fieldNames: fieldNames
+                  fnAggregate: "function(cur,#{varNames.join(',')}){return #{jsAgg('cur', jsIf)};}"
+                  fnCombine: "function(pa,pb){return #{jsAgg('pa', 'pb')};}"
+                  fnReset: "function(){return #{zero};}"
+                }
+              else
+                aggregation = {
+                  type: if apply.aggregate is 'sum' then 'doubleSum' else apply.aggregate
+                  name: applyName
+                }
+
+                if apply.aggregate isnt 'count'
+                  throw new Error("#{apply.aggregate} must have an attribute") unless apply.attribute
+                  aggregation.fieldName = apply.attribute
+
+              aggregationName = @addAggregation(aggregation)
+              if returnPostAggregation
+                return { type: "fieldAccess", fieldName: aggregationName }
+              else
+                return
 
           when 'uniqueCount'
             throw new Error("approximate queries not allowed") unless @approximate

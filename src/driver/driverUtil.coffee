@@ -44,7 +44,7 @@ getPropFromSegment = (segment, prop) ->
 
 bucketFilterFns = {
   block: ->
-    return false
+    return -> false
 
   is: ({prop, value}) ->
     return (segment) -> getPropFromSegment(segment, prop) is value

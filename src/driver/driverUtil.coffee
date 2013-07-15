@@ -308,7 +308,11 @@ filterCompare = (filter1, filter2) ->
 # - flattens nested ORs
 # - sorts lists of filters within an AND / OR by attribute
 exports.simplifyFilter = simplifyFilter = (filter) ->
-  return filter if not filter or filter.type in ['is', 'in', 'fragments', 'match', 'within', 'not']
+  return filter if not filter or filter.type in ['is', 'in', 'fragments', 'match', 'within']
+
+  if filter.type is 'not'
+    return simplifyFilter(if filter.filter.type is 'not' then filter.filter.filter else filter)
+
   type = filter.type
   throw new Error("unexpected filter type") unless type in ['and', 'or']
   newFilters = []
@@ -344,6 +348,7 @@ exports.simplifyFilter = simplifyFilter = (filter) ->
     type
     filters: newFilters
   }
+
 
 orReduceFunction = (prev, now, index, all) ->
   if (index < all.length - 1)

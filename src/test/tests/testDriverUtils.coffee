@@ -368,6 +368,39 @@ describe "Utility tests", ->
         value: 'Google'
       })
 
+    it "gets rid of not(null)", ->
+      expect(driverUtil.simplifyFilter({
+        type: 'not'
+        filter: null
+      })).to.deep.equal({
+        type: 'block'
+      })
+
+    it "gets rid of not(block)", ->
+      expect(driverUtil.simplifyFilter({
+        type: 'not'
+        filter: {
+          type: 'block'
+        }
+      })).to.deep.equal(null)
+
+    it "handles not()", ->
+      expect(driverUtil.simplifyFilter({
+        type: 'not'
+        filter: {
+          type: 'is'
+          attribute: 'venue'
+          value: 'Google'
+        }
+      })).to.deep.equal({
+        type: 'not'
+        filter: {
+          type: 'is'
+          attribute: 'venue'
+          value: 'Google'
+        }
+      })
+
     it "gets rid of not(not())", ->
       expect(driverUtil.simplifyFilter({
         type: 'not'
@@ -386,10 +419,202 @@ describe "Utility tests", ->
       })
 
 
+  describe "extractAttributeFilter", ->
+    it 'works on a single included filter', ->
+      expect(driverUtil.extractAttributeFilter({
+        type: 'is'
+        attribute: 'venue'
+        value: 'Google'
+      }, 'venue')).to.deep.equal([
+        {
+          type: 'is'
+          attribute: 'venue'
+          value: 'Google'
+        }
+        null
+      ])
+
+    it 'works on a single excluded filter', ->
+      expect(driverUtil.extractAttributeFilter({
+        type: 'is'
+        attribute: 'venue'
+        value: 'Google'
+      }, 'advertiser')).to.deep.equal([
+        null
+        {
+          type: 'is'
+          attribute: 'venue'
+          value: 'Google'
+        }
+      ])
+
+    it 'works on a small AND filter', ->
+      expect(driverUtil.extractAttributeFilter({
+        type: 'and'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Google'
+          }
+          {
+            type: 'is'
+            attribute: 'country'
+            value: 'USA'
+          }
+        ]
+      }, 'country')).to.deep.equal([
+        {
+          type: 'is'
+          attribute: 'country'
+          value: 'USA'
+        }
+        {
+          type: 'is'
+          attribute: 'venue'
+          value: 'Google'
+        }
+      ])
+
+    it 'works on an AND filter', ->
+      expect(driverUtil.extractAttributeFilter({
+        type: 'and'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Google'
+          }
+          {
+            type: 'is'
+            attribute: 'country'
+            value: 'USA'
+          }
+          {
+            type: 'is'
+            attribute: 'state'
+            value: 'California'
+          }
+        ]
+      }, 'country')).to.deep.equal([
+        {
+          type: 'is'
+          attribute: 'country'
+          value: 'USA'
+        }
+        {
+          type: 'and'
+          filters: [
+            {
+              type: 'is'
+              attribute: 'state'
+              value: 'California'
+            }
+            {
+              type: 'is'
+              attribute: 'venue'
+              value: 'Google'
+            }
+          ]
+        }
+      ])
+
+    it 'extracts a NOT filter', ->
+      expect(driverUtil.extractAttributeFilter({
+        type: 'and'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Google'
+          }
+          {
+            type: 'not'
+            filter: {
+              type: 'is'
+              attribute: 'country'
+              value: 'USA'
+            }
+          }
+          {
+            type: 'is'
+            attribute: 'state'
+            value: 'California'
+          }
+        ]
+      }, 'country')).to.deep.equal([
+        {
+          type: 'not'
+          filter: {
+            type: 'is'
+            attribute: 'country'
+            value: 'USA'
+          }
+        }
+        {
+          type: 'and'
+          filters: [
+            {
+              type: 'is'
+              attribute: 'state'
+              value: 'California'
+            }
+            {
+              type: 'is'
+              attribute: 'venue'
+              value: 'Google'
+            }
+          ]
+        }
+      ])
+
+    it 'works with an empty filter', ->
+      expect(driverUtil.extractAttributeFilter(null, 'country')
+      ).to.deep.equal([
+        null
+        null
+      ])
+
+    it 'works with a block filter', ->
+      expect(driverUtil.extractAttributeFilter({
+        type: 'block'
+      }, 'country')).to.deep.equal([
+        null
+        { type: 'block' }
+      ])
+
+    it 'does not work on OR filter', ->
+      expect(driverUtil.extractAttributeFilter({
+        type: 'or'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Google'
+          }
+          {
+            type: 'is'
+            attribute: 'country'
+            value: 'USA'
+          }
+          {
+            type: 'is'
+            attribute: 'state'
+            value: 'California'
+          }
+        ]
+      }, 'country')).to.deep.equal(null)
+
+
   describe 'filterToString', ->
     it 'properly translates empty filter', ->
       filter = null
       expect(driverUtil.filterToString(filter)).to.equal('No filter exists')
+      return
+
+    it 'properly translates block filter', ->
+      filter = { type: 'block' }
+      expect(driverUtil.filterToString(filter)).to.equal('Nothing')
       return
 
     it 'properly translates is filter', ->
@@ -407,7 +632,7 @@ describe "Utility tests", ->
         attribute: 'Color'
         values: []
       }
-      expect(driverUtil.filterToString(filter)).to.equal('NOTHING')
+      expect(driverUtil.filterToString(filter)).to.equal('Nothing')
 
       filter = {
         type: 'in'

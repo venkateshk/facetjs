@@ -46,7 +46,7 @@ class SQLQueryBuilder
 
   filterToSQL: (filter) ->
     switch filter.type
-      when 'block'
+      when 'false'
         "1 = 2"
 
       when 'is'

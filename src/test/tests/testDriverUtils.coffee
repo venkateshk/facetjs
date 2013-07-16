@@ -324,7 +324,7 @@ describe "Utility tests", ->
         type: 'or'
         filters: []
       })).to.deep.equal({
-        type: 'block'
+        type: 'false'
       })
 
     it "gets rid of single ORs", ->
@@ -373,14 +373,14 @@ describe "Utility tests", ->
         type: 'not'
         filter: null
       })).to.deep.equal({
-        type: 'block'
+        type: 'false'
       })
 
-    it "gets rid of not(block)", ->
+    it "gets rid of not(false)", ->
       expect(driverUtil.simplifyFilter({
         type: 'not'
         filter: {
-          type: 'block'
+          type: 'false'
         }
       })).to.deep.equal(null)
 
@@ -575,12 +575,12 @@ describe "Utility tests", ->
         null
       ])
 
-    it 'works with a block filter', ->
+    it 'works with a false filter', ->
       expect(driverUtil.extractAttributeFilter({
-        type: 'block'
+        type: 'false'
       }, 'country')).to.deep.equal([
         null
-        { type: 'block' }
+        { type: 'false' }
       ])
 
     it 'does not work on OR filter', ->
@@ -612,8 +612,8 @@ describe "Utility tests", ->
       expect(driverUtil.filterToString(filter)).to.equal('No filter exists')
       return
 
-    it 'properly translates block filter', ->
-      filter = { type: 'block' }
+    it 'properly translates false filter', ->
+      filter = { type: 'false' }
       expect(driverUtil.filterToString(filter)).to.equal('Nothing')
       return
 
@@ -822,45 +822,4 @@ describe "Utility tests", ->
         ]
       }
       expect(driverUtil.filterToString(filter)).to.equal("(Color is Red) and (Color is either Red or Blue) and (not (Color is Red))")
-      return
-
-  describe 'removeWithinFilter', ->
-    it 'handles a within filter', ->
-      filter = {
-        type: 'within'
-        attribute: 'Color'
-        values: ['Red', 'Blue']
-      }
-
-      expect(driverUtil.filterToString(driverUtil.removeWithinFilter(filter))).to.equal("No filter exists")
-      return
-
-    it 'handles other types of filters', ->
-      filter = {
-        type: 'in'
-        attribute: 'Color'
-        values: ['Red', 'Blue']
-      }
-
-      expect(driverUtil.filterToString(driverUtil.removeWithinFilter(filter))).to.equal("Color is either Red or Blue")
-      return
-
-    it 'handles a nested filter', ->
-      filter = {
-        type: 'and'
-        filters: [
-          {
-            type: 'is'
-            attribute: 'Color'
-            value: 'Red'
-          }
-          {
-            type: 'within'
-            attribute: 'Color'
-            values: ['Red', 'Blue']
-          }
-        ]
-      }
-
-      expect(driverUtil.filterToString(driverUtil.removeWithinFilter(filter))).to.equal("Color is Red")
       return

@@ -43,7 +43,7 @@ getPropFromSegment = (segment, prop) ->
   return segment.prop[prop] or getPropFromSegment(segment.parent, prop)
 
 bucketFilterFns = {
-  block: ->
+  false: ->
     return -> false
 
   is: ({prop, value}) ->
@@ -311,8 +311,8 @@ exports.simplifyFilter = simplifyFilter = (filter) ->
   return filter if not filter or filter.type in ['is', 'in', 'fragments', 'match', 'within']
 
   if filter.type is 'not'
-    return { type: 'block' } if filter.filter is null
-    return null if filter.filter.type is 'block'
+    return { type: 'false' } if filter.filter is null
+    return null if filter.filter.type is 'false'
     if filter.filter.type is 'not'
       return simplifyFilter(filter.filter.filter)
     else
@@ -335,11 +335,11 @@ exports.simplifyFilter = simplifyFilter = (filter) ->
         return null # An OR with 'true' inside of it is always true
 
     # nothing
-    if f.type is 'block'
+    if f.type is 'false'
       if type is 'or'
         continue # Makes no difference in an OR
       else
-        return { type: 'block' } # An AND with 'false' inside of it is always false
+        return { type: 'false' } # An AND with 'false' inside of it is always false
 
     if f.type is type
       Array::push.apply(newFilters, f.filters)
@@ -347,7 +347,7 @@ exports.simplifyFilter = simplifyFilter = (filter) ->
       newFilters.push(f)
 
   if newFilters.length is 0
-    return if type is 'and' then null else { type: 'block' }
+    return if type is 'and' then null else { type: 'false' }
 
   return newFilters[0] if newFilters.length is 1
 
@@ -374,7 +374,7 @@ exports.filterToString = filterToString = (filter) ->
   return "No filter exists" unless filter?
 
   switch filter.type
-    when "block"
+    when "false"
       return "Nothing"
     when "is"
       return "#{filter.attribute} is #{filter.value}"
@@ -452,15 +452,15 @@ exports.extractAttributeFilter = extractAttributeFilter = (filter, attribute) ->
   if filter is null
     return [null, null]
 
-  if filter.type in ['block', 'is', 'in', 'fragments', 'match', 'within']
-    if filter.type isnt 'block' and filter.attribute is attribute
+  if filter.type in ['false', 'is', 'in', 'fragments', 'match', 'within']
+    if filter.type isnt 'false' and filter.attribute is attribute
       return [filter, null]
     else
       return [null, filter]
 
   if filter.type is 'not'
-    return null unless filter.filter.type in ['block', 'is', 'in', 'fragments', 'match', 'within']
-    if filter.filter.type isnt 'block' and filter.filter.attribute is attribute
+    return null unless filter.filter.type in ['false', 'is', 'in', 'fragments', 'match', 'within']
+    if filter.filter.type isnt 'false' and filter.filter.attribute is attribute
       return [filter, null]
     else
       return [null, filter]

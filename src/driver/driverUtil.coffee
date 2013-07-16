@@ -407,19 +407,6 @@ exports.filterToString = filterToString = (filter) ->
   throw new TypeError('bad filter type')
   return
 
-# I do not like this method -VO
-exports.removeWithinFilter = removeWithinFilter = (filter) ->
-  if filter.type is 'within'
-    return null
-
-  if filter.type is 'not'
-    filter.filter = removeWithinFilter(filter.filter)
-
-  if filter.type in ['and', 'or']
-    filter.filters = filter.filters.map(removeWithinFilter).filter((filter) -> return filter?)
-
-  return filter
-
 
 # Flattens the split tree into an array
 #

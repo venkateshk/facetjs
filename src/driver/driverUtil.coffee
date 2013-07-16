@@ -311,7 +311,15 @@ exports.simplifyFilter = simplifyFilter = (filter) ->
   return filter if not filter or filter.type in ['is', 'in', 'fragments', 'match', 'within']
 
   if filter.type is 'not'
-    return simplifyFilter(if filter.filter.type is 'not' then filter.filter.filter else filter)
+    return { type: 'block' } if filter.filter is null
+    return null if filter.filter.type is 'block'
+    if filter.filter.type is 'not'
+      return simplifyFilter(filter.filter.filter)
+    else
+      return {
+        type: 'not'
+        filter: simplifyFilter(filter.filter)
+      }
 
   type = filter.type
   throw new Error("unexpected filter type") unless type in ['and', 'or']
@@ -366,11 +374,13 @@ exports.filterToString = filterToString = (filter) ->
   return "No filter exists" unless filter?
 
   switch filter.type
+    when "block"
+      return "Nothing"
     when "is"
       return "#{filter.attribute} is #{filter.value}"
     when "in"
       switch filter.values.length
-        when 0 then return "NOTHING"
+        when 0 then return "Nothing"
         when 1 then return "#{filter.attribute} is #{filter.values[0]}"
         when 2 then return "#{filter.attribute} is either #{filter.values[0]} or #{filter.values[1]}"
         else return "#{filter.attribute} is one of: #{filter.values.reduce(orReduceFunction)}"
@@ -445,6 +455,52 @@ exports.parentify = parentify = (root, parent = null) ->
       parentify(split, root)
   return root
 
+# Get filter from query
+exports.getFilter = getFilter = (query) ->
+  return if query[0]?.operation is 'filter' then query[0] else null
+
+
+# Separate filters into ones with a certain attribute and ones without
+exports.extractAttributeFilter = extractAttributeFilter = (filter, attribute) ->
+  if filter is null
+    return [null, null]
+
+  if filter.type in ['block', 'is', 'in', 'fragments', 'match', 'within']
+    if filter.type isnt 'block' and filter.attribute is attribute
+      return [filter, null]
+    else
+      return [null, filter]
+
+  if filter.type is 'not'
+    return null unless filter.filter.type in ['block', 'is', 'in', 'fragments', 'match', 'within']
+    if filter.filter.type isnt 'block' and filter.filter.attribute is attribute
+      return [filter, null]
+    else
+      return [null, filter]
+
+  if filter.type is 'or'
+    hasNoClaim = (f) ->
+      extract = extractAttributeFilter(f, attribute)
+      return extract and extract[0] is null
+
+    if filter.filters.every(hasNoClaim)
+      return [null, filter]
+    else
+      return null
+
+  # filter.type is 'and'
+  extractedFilters = []
+  remainingFilters = []
+  for f,i in filter.filters
+    ex = extractAttributeFilter(f, attribute)
+    return null if ex is null
+    extractedFilters.push(ex[0])
+    remainingFilters.push(ex[1])
+
+  return [
+    simplifyFilter({ type: 'and', filters: extractedFilters })
+    simplifyFilter({ type: 'and', filters: remainingFilters })
+  ]
 
 # -----------------------------------------------------
 # Handle commonJS crap

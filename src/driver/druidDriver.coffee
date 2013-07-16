@@ -81,7 +81,7 @@ class DruidQueryBuilder
   # return { jsFilter, context }
   filterToJSHelper: (filter, context) ->
     switch filter.type
-      when 'block'
+      when 'false'
         "false"
 
       when 'is'
@@ -118,7 +118,7 @@ class DruidQueryBuilder
   # return a (up to) two element array [druid_filter_object, druid_intervals_array]
   filterToDruid: (filter) ->
     switch filter.type
-      when 'block'
+      when 'false'
         [
           null,
           [{ start: new Date("9001/01/01"), end: new Date("9001/01/02") }] # over 9000!

@@ -7,8 +7,8 @@
 # { type: "or", filters: [{...}] }
 
 facet.filter = {
-  block: -> {
-    type: 'block'
+  false: -> {
+    type: 'false'
   }
 
   is: (attribute, value) -> {

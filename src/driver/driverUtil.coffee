@@ -47,7 +47,16 @@ bucketFilterFns = {
     return -> false
 
   is: ({prop, value}) ->
-    return (segment) -> getPropFromSegment(segment, prop) is value
+    if Array.isArray(value)
+      # value can also be a range for direct interval comparisons
+      [start, end] = value
+      start = Date.parse(start) if typeof start is 'string'
+      end = Date.parse(end) if typeof end is 'string'
+      return (segment) ->
+        [segStart, segEnd] = getPropFromSegment(segment, prop)
+        return segStart.valueOf() is start and segEnd.valueOf() is end
+    else
+      return (segment) -> getPropFromSegment(segment, prop) is value
 
   in: ({prop, values}) ->
     return (segment) -> getPropFromSegment(segment, prop) in values

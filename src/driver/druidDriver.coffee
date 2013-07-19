@@ -555,8 +555,10 @@ class DruidQueryBuilder
             @queryType = 'topN'
             @threshold = limit
             if sort.prop is @dimension.outputName
-              throw new Error("lexicographic dimension must be 'ascending'") unless sort.direction is 'ascending'
-              @metric = { type: "lexicographic" }
+              if sort.direction is 'ascending'
+                @metric = { type: "lexicographic" }
+              else
+                @metric = { type: "inverted", metric: { type: "lexicographic" } }
             else
               if sort.direction is 'descending'
                 @metric = sort.prop

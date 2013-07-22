@@ -5,12 +5,6 @@ driverUtil = require('./driverUtil')
 
 # -----------------------------------------------------
 
-makeFilter = (attribute, value) ->
-  if Array.isArray(value)
-    return { type: 'within', attribute, range: value }
-  else
-    return { type: 'is', attribute, value }
-
 andFilters = (filters...) ->
   filters = filters.filter((filter) -> filter?)
   switch filters.length
@@ -353,7 +347,10 @@ condensedQueryToSQL = ({requester, table, filter, condensedQuery}, callback) ->
 
       splits = ds.map (prop) -> {
         prop
-        _filter: andFilters(filter, makeFilter(splitAttribute, prop[splitProp]))
+        _filter: andFilters(
+          filter
+          driverUtil.filterFromSplit(condensedQuery.split, prop[splitProp])
+        )
       }
     else
       splits = ds.map (prop) -> {

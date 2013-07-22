@@ -31,6 +31,29 @@ exports.filterMap = (array, fn) ->
     ret.push(v)
   return ret
 
+
+# Construct a filter that represents the split
+exports.filterFromSplit = filterFromSplit = (split, propValue) ->
+  switch split.bucket
+    when 'identity'
+      return {
+        type: 'is'
+        attribute: split.attribute
+        value: propValue
+      }
+    when 'continuous', 'timeDuration', 'timePeriod'
+      return {
+        type: 'within'
+        attribute: split.attribute
+        range: propValue
+      }
+    when 'tuple'
+      throw new Error("tuple split not supported yet")
+    else
+      throw new Error("missing bucket") unless split.bucket
+      throw new Error("unknown bucketing: #{split.bucket}")
+
+
 # Check if the apply is additive
 exports.isAdditiveApply = isAdditiveApply = (apply) ->
   return apply.aggregate in ['constant', 'count', 'sum'] or

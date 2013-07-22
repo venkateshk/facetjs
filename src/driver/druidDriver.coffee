@@ -8,12 +8,6 @@ driverUtil = require('./driverUtil')
 # Open source Druid issues:
 # - add limit to groupBy
 
-makeFilter = (attribute, value) ->
-  if Array.isArray(value)
-    return { type: 'within', attribute, range: value }
-  else
-    return { type: 'is', attribute, value }
-
 andFilters = (filters...) ->
   filters = filters.filter((filter) -> filter?)
   switch filters.length
@@ -1148,8 +1142,6 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
 
           # Make the results into segments and build the tree
           if condensedCommand.split
-            splitAttribute = condensedCommand.split.attribute
-            splitName = condensedCommand.split.name
             propToSplit = if lastCmd
               (prop) ->
                 driverUtil.cleanProp(prop)
@@ -1163,7 +1155,10 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
                 return {
                   parent: parentSegment
                   prop
-                  _filter: andFilters(myFilter, makeFilter(splitAttribute, prop[splitName]))
+                  _filter: andFilters(
+                    myFilter
+                    driverUtil.filterFromSplit(condensedCommand.split, prop[condensedCommand.split.name])
+                  )
                 }
 
             parentSegment.splits = splits = props.map(propToSplit)

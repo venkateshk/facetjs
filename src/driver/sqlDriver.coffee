@@ -5,12 +5,6 @@ driverUtil = require('./driverUtil')
 
 # -----------------------------------------------------
 
-makeFilter = (attribute, value) ->
-  if Array.isArray(value)
-    return { type: 'within', attribute, range: value }
-  else
-    return { type: 'is', attribute, value }
-
 andFilters = (filters...) ->
   filters = filters.filter((filter) -> filter?)
   switch filters.length
@@ -46,6 +40,9 @@ class SQLQueryBuilder
 
   filterToSQL: (filter) ->
     switch filter.type
+      when 'false'
+        "1 = 2"
+
       when 'is'
         "#{@escapeAttribute(filter.attribute)} = #{@escapeValue(filter.value)}"
 
@@ -350,7 +347,10 @@ condensedQueryToSQL = ({requester, table, filter, condensedQuery}, callback) ->
 
       splits = ds.map (prop) -> {
         prop
-        _filter: andFilters(filter, makeFilter(splitAttribute, prop[splitProp]))
+        _filter: andFilters(
+          filter
+          driverUtil.filterFromSplit(condensedQuery.split, prop[splitProp])
+        )
       }
     else
       splits = ds.map (prop) -> {
@@ -373,7 +373,10 @@ module.exports = ({requester, table, filter}) ->
       return
 
     init = true
-    rootSegment = { _filter: filter }
+    rootSegment = {
+      parent: null
+      _filter: filter
+    }
     segments = [rootSegment]
 
     querySQL = (condensedCommand, callback) ->
@@ -382,12 +385,7 @@ module.exports = ({requester, table, filter}) ->
 
       if condensedCommand.split?.bucketFilter
         bucketFilterFn = driverUtil.makeBucketFilterFn(condensedCommand.split.bucketFilter)
-        driverUtil.inPlaceFilter segments, (segment) ->
-          if bucketFilterFn(segment)
-            return true
-          else
-            driverUtil.cleanSegment(segment)
-            return false
+        driverUtil.inPlaceFilter(segments, bucketFilterFn)
 
       queryFns = async.mapLimit(
         segments
@@ -409,7 +407,10 @@ module.exports = ({requester, table, filter}) ->
 
             # Make the results into segments and build the tree
             parentSegment.splits = splits
-            driverUtil.cleanSegment(parentSegment)
+
+            for split in splits
+              split.parent = parentSegment
+
             callback(null, splits)
             return
           )
@@ -444,11 +445,7 @@ module.exports = ({requester, table, filter}) ->
           callback(err)
           return
 
-        if segments
-          # Clean up the last segments
-          segments.forEach(driverUtil.cleanSegment)
-
-        callback(null, rootSegment or {})
+        callback(null, driverUtil.cleanSegments(rootSegment or {}))
         return
     )
 

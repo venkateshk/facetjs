@@ -341,7 +341,7 @@ describe "Wikipedia dataset test", ->
       ]
     }
 
-    # Should work once druid with advanced JS aggregate is deployed
+  # Should work once druid with advanced JS aggregate is deployed
   describe "apply sum(count, robot=0), sum(added, robot=1)", ->
     it "should have the same results for different drivers", testEquality {
       drivers: ['mySql', 'druid']

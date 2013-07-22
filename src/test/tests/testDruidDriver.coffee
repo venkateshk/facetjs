@@ -121,3 +121,46 @@ describe "Druid driver tests", ->
             expect(withFilterRes).to.be.an('object')
             expect(noFilterRes).to.deep.equal(withFilterRes)
             done()
+
+
+    describe "should work with a null filter", ->
+      druidPass = druidRequester({
+        host: '10.60.134.138'
+        port: 8080
+      })
+
+      driver = druidDriver({
+        requester: druidPass
+        dataSource: 'wikipedia_editstream'
+        timeAttribute: 'time'
+        approximate: true
+        forceInterval: true
+      })
+
+      filter = {
+        operation: 'filter'
+        type: 'and'
+        filters: [
+          {
+            type: 'within'
+            attribute: 'time'
+            range: [
+              new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0))
+              new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))
+            ]
+          },
+          {
+            type: 'is'
+            attribute: 'page'
+            value: null
+          }
+        ]
+      }
+
+      it "should get back a result and not crash", (done) ->
+        driver [
+          filter
+          { operation: 'apply', name: 'Count', aggregate: 'count' }
+        ], (err, res) ->
+          expect(res).to.be.an('object') # to.deep.equal({})
+          done()

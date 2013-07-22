@@ -222,7 +222,7 @@
             if (err) {
               d3.select("#output").text("An error occurred:\n" + err.message);
               d3.select('.time-show').text("Query had an error");
-              console.log(err);
+              throw err;
               return;
             }
 

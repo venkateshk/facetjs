@@ -6,6 +6,9 @@ driverUtil = require('./driverUtil')
 # -----------------------------------------------------
 
 filterFns = {
+  false: ->
+    return -> false
+
   is: ({attribute, value}) ->
     return (d) -> d[attribute] is value
 
@@ -263,6 +266,7 @@ computeQuery = (data, query) ->
 
   rootSegment = {
     prop: {}
+    parent: null
     _raw: data
   }
   originalSegmentGroups = segmentGroups = [[rootSegment]]
@@ -286,35 +290,32 @@ computeQuery = (data, query) ->
         splitFn = makeSplitFn(cmd)
         bucketFilterFn = if cmd.bucketFilter then driverUtil.makeBucketFilterFn(cmd.bucketFilter) else null
         segmentGroups = driverUtil.filterMap driverUtil.flatten(segmentGroups), (segment) ->
-          if not bucketFilterFn or bucketFilterFn(segment)
-            keys = []
-            buckets = {}
-            bucketValue = {}
-            for d in segment._raw
-              key = splitFn(d)
-              throw new Error("bucket returned undefined") unless key? # ToDo: handle nulls
-              keyString = String(key)
+          return if bucketFilterFn and not bucketFilterFn(segment)
+          keys = []
+          buckets = {}
+          bucketValue = {}
+          for d in segment._raw
+            key = splitFn(d)
+            throw new Error("bucket returned undefined") unless key? # ToDo: handle nulls
+            keyString = String(key)
 
-              if not buckets[keyString]
-                keys.push(keyString)
-                buckets[keyString] = []
-                bucketValue[keyString] = key
-              buckets[keyString].push(d)
+            if not buckets[keyString]
+              keys.push(keyString)
+              buckets[keyString] = []
+              bucketValue[keyString] = key
+            buckets[keyString].push(d)
 
-            segment.splits = keys.map((keyString) ->
-              prop = {}
-              prop[propName] = bucketValue[keyString]
+          segment.splits = keys.map((keyString) ->
+            prop = {}
+            prop[propName] = bucketValue[keyString]
 
-              return {
-                _raw: buckets[keyString]
-                prop
-              }
-            )
-            driverUtil.cleanSegment(segment)
-            return segment.splits
-          else
-            driverUtil.cleanSegment(segment)
-            return
+            return {
+              _raw: buckets[keyString]
+              prop
+              parent: segment
+            }
+          )
+          return segment.splits
 
       when 'apply'
         propName = cmd.name
@@ -340,11 +341,7 @@ computeQuery = (data, query) ->
         throw new Error("invalid operation") unless typeof cmd.operation is 'string'
         throw new Error("unknown operation '#{cmd.operation}'")
 
-  # Cleanup _raw data on last segment
-  for segmentGroup in segmentGroups
-    segmentGroup.forEach(driverUtil.cleanSegment)
-
-  return originalSegmentGroups[0][0] or {}
+  return driverUtil.cleanSegments(originalSegmentGroups[0][0] or {})
 
 
 module.exports = (data) -> (query, callback) ->

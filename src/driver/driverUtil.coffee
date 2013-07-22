@@ -31,6 +31,29 @@ exports.filterMap = (array, fn) ->
     ret.push(v)
   return ret
 
+
+# Construct a filter that represents the split
+exports.filterFromSplit = filterFromSplit = (split, propValue) ->
+  switch split.bucket
+    when 'identity'
+      return {
+        type: 'is'
+        attribute: split.attribute
+        value: propValue
+      }
+    when 'continuous', 'timeDuration', 'timePeriod'
+      return {
+        type: 'within'
+        attribute: split.attribute
+        range: propValue
+      }
+    when 'tuple'
+      throw new Error("tuple split not supported yet")
+    else
+      throw new Error("missing bucket") unless split.bucket
+      throw new Error("unknown bucketing: #{split.bucket}")
+
+
 # Check if the apply is additive
 exports.isAdditiveApply = isAdditiveApply = (apply) ->
   return apply.aggregate in ['constant', 'count', 'sum'] or
@@ -38,16 +61,32 @@ exports.isAdditiveApply = isAdditiveApply = (apply) ->
            isAdditiveApply(apply.operands[0]) and
            isAdditiveApply(apply.operands[1]))
 
+getPropFromSegment = (segment, prop) ->
+  return null unless segment and segment.prop
+  return segment.prop[prop] or getPropFromSegment(segment.parent, prop)
+
 bucketFilterFns = {
+  false: ->
+    return -> false
+
   is: ({prop, value}) ->
-    return (segment) -> segment.prop[prop] is value
+    if Array.isArray(value)
+      # value can also be a range for direct interval comparisons
+      [start, end] = value
+      start = Date.parse(start) if typeof start is 'string'
+      end = Date.parse(end) if typeof end is 'string'
+      return (segment) ->
+        [segStart, segEnd] = getPropFromSegment(segment, prop)
+        return segStart.valueOf() is start and segEnd.valueOf() is end
+    else
+      return (segment) -> getPropFromSegment(segment, prop) is value
 
   in: ({prop, values}) ->
-    return (segment) -> segment.prop[prop] in values
+    return (segment) -> getPropFromSegment(segment, prop) in values
 
   within: ({prop, range}) ->
     throw new TypeError("range must be an array of two things") unless Array.isArray(range) and range.length is 2
-    return (segment) -> range[0] <= segment.prop[prop] < range[1]
+    return (segment) -> range[0] <= getPropFromSegment(segment, prop) < range[1]
 
   not: ({filter}) ->
     throw new TypeError("filter must be a filter object") unless typeof filter is 'object'
@@ -71,7 +110,7 @@ bucketFilterFns = {
       return false
 }
 
-exports.makeBucketFilterFn = (filter) ->
+exports.makeBucketFilterFn = makeBucketFilterFn = (filter) ->
   throw new Error("type not defined in filter") unless filter.hasOwnProperty('type')
   throw new Error("invalid type in filter") unless typeof filter.type is 'string'
   bucketFilterFn = bucketFilterFns[filter.type]
@@ -168,16 +207,22 @@ exports.cleanProp = (prop) ->
       delete prop[key]
   return
 
-exports.cleanSegment = (segment) ->
-  for key of segment
-    if key[0] is '_'
-      delete segment[key]
+exports.cleanSegments = cleanSegments = (segment) ->
+  delete segment.parent
+  delete segment._filter
+  delete segment._raw
 
   prop = segment.prop
   for key of prop
     if key[0] is '_'
       delete prop[key]
-  return
+
+  splits = segment.splits
+  if splits
+    for split in splits
+      cleanSegments(split)
+
+  return segment
 
 createTabularHelper = (node, rangeFn, history) ->
   newHistory = {}
@@ -263,6 +308,218 @@ exports.createColumns = createColumns = (query) ->
       apply.splice(apply.indexOf(applyName), 1)
     apply.push applyName
   return split.concat(apply)
+
+
+filterTypePresedence = {
+  'within': 1
+  'is': 2
+  'in': 3
+  'fragments': 4
+  'match': 5
+  'not': 6
+  'and': 7
+  'or': 8
+}
+
+filterCompare = (filter1, filter2) ->
+  typeDiff = filterTypePresedence[filter1.type] - filterTypePresedence[filter2.type]
+  return typeDiff if typeDiff isnt 0 or filter1.type in ['not', 'and', 'or']
+  return -1 if filter1.attribute < filter2.attribute
+  return +1 if filter1.attribute > filter2.attribute
+
+  # ToDo: expand this to all filters
+  if filter1.type is 'is'
+    return -1 if filter1.value < filter2.value
+    return +1 if filter1.value > filter2.value
+
+  return 0
+
+# Reduces a filter into a (potentially) simpler form the input is never modified
+# Specifically this function:
+# - flattens nested ANDs
+# - flattens nested ORs
+# - sorts lists of filters within an AND / OR by attribute
+exports.simplifyFilter = simplifyFilter = (filter) ->
+  return filter if not filter or filter.type in ['is', 'in', 'fragments', 'match', 'within']
+
+  if filter.type is 'not'
+    return { type: 'false' } if filter.filter is null
+    return null if filter.filter.type is 'false'
+    if filter.filter.type is 'not'
+      return simplifyFilter(filter.filter.filter)
+    else
+      return {
+        type: 'not'
+        filter: simplifyFilter(filter.filter)
+      }
+
+  type = filter.type
+  throw new Error("unexpected filter type") unless type in ['and', 'or']
+  newFilters = []
+  for f in filter.filters
+    f = simplifyFilter(f)
+
+    # everything
+    if f is null
+      if type is 'and'
+        continue # Makes no difference in an AND
+      else
+        return null # An OR with 'true' inside of it is always true
+
+    # nothing
+    if f.type is 'false'
+      if type is 'or'
+        continue # Makes no difference in an OR
+      else
+        return { type: 'false' } # An AND with 'false' inside of it is always false
+
+    if f.type is type
+      Array::push.apply(newFilters, f.filters)
+    else
+      newFilters.push(f)
+
+  if newFilters.length is 0
+    return if type is 'and' then null else { type: 'false' }
+
+  return newFilters[0] if newFilters.length is 1
+
+  newFilters.sort(filterCompare)
+  return {
+    type
+    filters: newFilters
+  }
+
+
+orReduceFunction = (prev, now, index, all) ->
+  if (index < all.length - 1)
+    return prev + ', ' + now
+  else
+    return prev + ', or ' + now
+
+andReduceFunction = (prev, now, index, all) ->
+  if (index < all.length - 1)
+    return prev + ', ' + now
+  else
+    return prev + ', and ' + now
+
+exports.filterToString = filterToString = (filter) ->
+  return "No filter exists" unless filter?
+
+  switch filter.type
+    when "false"
+      return "Nothing"
+    when "is"
+      return "#{filter.attribute} is #{filter.value}"
+    when "in"
+      switch filter.values.length
+        when 0 then return "Nothing"
+        when 1 then return "#{filter.attribute} is #{filter.values[0]}"
+        when 2 then return "#{filter.attribute} is either #{filter.values[0]} or #{filter.values[1]}"
+        else return "#{filter.attribute} is one of: #{filter.values.reduce(orReduceFunction)}"
+    when "fragments"
+      return "#{filter.attribute} contains #{filter.fragments.map((fragment) -> return '\'' + fragment + '\'' )
+        .reduce(andReduceFunction)}"
+    when "match"
+      return "#{filter.attribute} matches /#{filter.match}/"
+    when "within"
+      return "#{filter.attribute} is within #{filter.range[0]} and #{filter.range[1]}"
+    when "not"
+      return "not (#{filterToString(filter.filter)})"
+    when "and"
+      if filter.filters.length > 1
+        return "#{filter.filters.map((filter) -> return '(' + filterToString(filter) + ')').join(' and ')}"
+      else
+        return "#{filterToString(filter.filters[0])}"
+    when "or"
+      if filter.filters.length > 1
+        return "#{filter.filters.map((filter) -> return '(' + filterToString(filter) + ')').join(' or ')}"
+      else
+        return "#{filterToString(filter.filters[0])}"
+
+  throw new TypeError('bad filter type')
+  return
+
+
+# Flattens the split tree into an array
+#
+# @param {SplitTree} root - the root of the split tree
+# @param {prepend,append,none} order - what to do with the root of the tree
+# @return {Array(SplitTree)} the tree nodes in the order specified
+exports.flattenTree = (root, order) ->
+  throw new TypeError('must have a tree') unless root
+  throw new TypeError('order must be on of prepend, append, or none') unless order in ['prepend', 'append', 'none']
+  flattenTreeHelper(root, order, result = [])
+  return result
+
+flattenTreeHelper = (root, order, result) ->
+  result.push(root) if order is 'prepend'
+
+  if root.splits
+    for split in root.splits
+      flattenTreeHelper(split, order, result)
+
+  result.push(root) if order is 'append'
+  return
+
+
+# Adds parents to a split tree in place
+#
+# @param {SplitTree} root - the root of the split tree
+# @param {SplitTree} parent [null] - the parent for the initial node
+# @return {SplitTree} the input tree (with parent pointers)
+exports.parentify = parentify = (root, parent = null) ->
+  root.parent = parent
+  if root.splits
+    for split in root.splits
+      parentify(split, root)
+  return root
+
+# Get filter from query
+exports.getFilter = getFilter = (query) ->
+  return if query[0]?.operation is 'filter' then query[0] else null
+
+
+# Separate filters into ones with a certain attribute and ones without
+exports.extractAttributeFilter = extractAttributeFilter = (filter, attribute) ->
+  if filter is null
+    return [null, null]
+
+  if filter.type in ['false', 'is', 'in', 'fragments', 'match', 'within']
+    if filter.type isnt 'false' and filter.attribute is attribute
+      return [filter, null]
+    else
+      return [null, filter]
+
+  if filter.type is 'not'
+    return null unless filter.filter.type in ['false', 'is', 'in', 'fragments', 'match', 'within']
+    if filter.filter.type isnt 'false' and filter.filter.attribute is attribute
+      return [filter, null]
+    else
+      return [null, filter]
+
+  if filter.type is 'or'
+    hasNoClaim = (f) ->
+      extract = extractAttributeFilter(f, attribute)
+      return extract and extract[0] is null
+
+    if filter.filters.every(hasNoClaim)
+      return [null, filter]
+    else
+      return null
+
+  # filter.type is 'and'
+  extractedFilters = []
+  remainingFilters = []
+  for f,i in filter.filters
+    ex = extractAttributeFilter(f, attribute)
+    return null if ex is null
+    extractedFilters.push(ex[0])
+    remainingFilters.push(ex[1])
+
+  return [
+    simplifyFilter({ type: 'and', filters: extractedFilters })
+    simplifyFilter({ type: 'and', filters: remainingFilters })
+  ]
 
 # -----------------------------------------------------
 # Handle commonJS crap

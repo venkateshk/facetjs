@@ -8,12 +8,6 @@ driverUtil = require('./driverUtil')
 # Open source Druid issues:
 # - add limit to groupBy
 
-makeFilter = (attribute, value) ->
-  if Array.isArray(value)
-    return { type: 'within', attribute, range: value }
-  else
-    return { type: 'is', attribute, value }
-
 andFilters = (filters...) ->
   filters = filters.filter((filter) -> filter?)
   switch filters.length
@@ -81,6 +75,9 @@ class DruidQueryBuilder
   # return { jsFilter, context }
   filterToJSHelper: (filter, context) ->
     switch filter.type
+      when 'false'
+        "false"
+
       when 'is'
         throw new Error("can not filter on specific time") if filter.attribute is @timeAttribute
         varName = @addToContext(context, filter.attribute)
@@ -115,12 +112,18 @@ class DruidQueryBuilder
   # return a (up to) two element array [druid_filter_object, druid_intervals_array]
   filterToDruid: (filter) ->
     switch filter.type
+      when 'false'
+        [
+          null,
+          [{ start: new Date("9001/01/01"), end: new Date("9001/01/02") }] # over 9000!
+        ]
+
       when 'is'
         throw new Error("can not filter on specific time") if filter.attribute is @timeAttribute
         [{
           type: 'selector'
           dimension: filter.attribute
-          value: filter.value
+          value: filter.value ? '' # In Druid null == '' and null is illegal
         }]
 
       when 'in'
@@ -131,7 +134,7 @@ class DruidQueryBuilder
             return {
               type: 'selector'
               dimension: filter.attribute
-              value
+              value: value ? '' # In Druid null == '' and null is illegal
             }
           ), this)
         }]
@@ -371,46 +374,65 @@ class DruidQueryBuilder
               return
 
           when 'count', 'sum', 'min', 'max'
-            if apply.filter
-              { jsFilter, context } = @filterToJS(apply.filter)
-              fieldNames = []
-              varNames = []
-              for fieldName, varName of context
-                fieldNames.push(fieldName)
-                varNames.push(varName)
+            if @approximate and apply.aggregate in ['min', 'max'] and /_hist$/.test(apply.attribute)
+              # A hacky way to determine that this is a histogram aggregated column (it ends with _hist)
 
-              [zero, jsAgg] = aggregateToJS[apply.aggregate]
+              histogramAggregationName = @addAggregation {
+                type: "approxHistogramFold"
+                fieldName: apply.attribute
+              }
+              postAggregation = {
+                type: apply.aggregate
+                fieldName: histogramAggregationName
+              }
 
-              if apply.aggregate is 'count'
-                jsIf = "(#{jsFilter}?1:#{zero})"
+              if returnPostAggregation
+                return postAggregation
               else
-                fieldNames.push(apply.attribute)
-                varNames.push('a')
-                jsIf = "(#{jsFilter}?a:#{zero})"
-
-              aggregation = {
-                type: "javascript"
-                name: applyName
-                fieldNames: fieldNames
-                fnAggregate: "function(cur,#{varNames.join(',')}){return #{jsAgg('cur', jsIf)};}"
-                fnCombine: "function(pa,pb){return #{jsAgg('pa', 'pb')};}"
-                fnReset: "function(){return #{zero};}"
-              }
+                postAggregation.name = applyName
+                @addPostAggregation(postAggregation)
+                return
             else
-              aggregation = {
-                type: if apply.aggregate is 'sum' then 'doubleSum' else apply.aggregate
-                name: applyName
-              }
+              if apply.filter
+                { jsFilter, context } = @filterToJS(apply.filter)
+                fieldNames = []
+                varNames = []
+                for fieldName, varName of context
+                  fieldNames.push(fieldName)
+                  varNames.push(varName)
 
-              if apply.aggregate isnt 'count'
-                throw new Error("#{apply.aggregate} must have an attribute") unless apply.attribute
-                aggregation.fieldName = apply.attribute
+                [zero, jsAgg] = aggregateToJS[apply.aggregate]
 
-            aggregationName = @addAggregation(aggregation)
-            if returnPostAggregation
-              return { type: "fieldAccess", fieldName: aggregationName }
-            else
-              return
+                if apply.aggregate is 'count'
+                  jsIf = "(#{jsFilter}?1:#{zero})"
+                else
+                  fieldNames.push(apply.attribute)
+                  varNames.push('a')
+                  jsIf = "(#{jsFilter}?a:#{zero})"
+
+                aggregation = {
+                  type: "javascript"
+                  name: applyName
+                  fieldNames: fieldNames
+                  fnAggregate: "function(cur,#{varNames.join(',')}){return #{jsAgg('cur', jsIf)};}"
+                  fnCombine: "function(pa,pb){return #{jsAgg('pa', 'pb')};}"
+                  fnReset: "function(){return #{zero};}"
+                }
+              else
+                aggregation = {
+                  type: if apply.aggregate is 'sum' then 'doubleSum' else apply.aggregate
+                  name: applyName
+                }
+
+                if apply.aggregate isnt 'count'
+                  throw new Error("#{apply.aggregate} must have an attribute") unless apply.attribute
+                  aggregation.fieldName = apply.attribute
+
+              aggregationName = @addAggregation(aggregation)
+              if returnPostAggregation
+                return { type: "fieldAccess", fieldName: aggregationName }
+              else
+                return
 
           when 'uniqueCount'
             throw new Error("approximate queries not allowed") unless @approximate
@@ -483,6 +505,8 @@ class DruidQueryBuilder
             throw new Error("unsupported aggregate '#{apply.aggregate}'")
 
       else if apply.arithmetic
+        if apply.operands.length isnt 2
+          throw new Error("arithmetic apply must have 2 operands (has: #{apply.operands.length})")
         druidFn = arithmeticToDruidFn[apply.arithmetic]
         if druidFn
           a = @addApplyHelper(apply.operands[0], true)
@@ -525,8 +549,10 @@ class DruidQueryBuilder
             @queryType = 'topN'
             @threshold = limit
             if sort.prop is @dimension.outputName
-              throw new Error("lexicographic dimension must be 'ascending'") unless sort.direction is 'ascending'
-              @metric = { type: "lexicographic" }
+              if sort.direction is 'ascending'
+                @metric = { type: "lexicographic" }
+              else
+                @metric = { type: "inverted", metric: { type: "lexicographic" } }
             else
               if sort.direction is 'descending'
                 @metric = sort.prop
@@ -1059,7 +1085,10 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
       return
 
     init = true
-    rootSegment = { _filter: filter }
+    rootSegment = {
+      parent: null
+      _filter: filter
+    }
     segments = [rootSegment]
 
     queryDruid = (condensedCommand, lastCmd, callback) ->
@@ -1113,22 +1142,34 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
 
           # Make the results into segments and build the tree
           if condensedCommand.split
-            splitAttribute = condensedCommand.split.attribute
-            splitName = condensedCommand.split.name
             propToSplit = if lastCmd
               (prop) ->
                 driverUtil.cleanProp(prop)
-                return { prop }
+                return {
+                  parent: parentSegment
+                  prop
+                }
             else
               (prop) ->
                 driverUtil.cleanProp(prop)
-                return { prop, _filter: andFilters(myFilter, makeFilter(splitAttribute, prop[splitName])) }
+                return {
+                  parent: parentSegment
+                  prop
+                  _filter: andFilters(
+                    myFilter
+                    driverUtil.filterFromSplit(condensedCommand.split, prop[condensedCommand.split.name])
+                  )
+                }
+
             parentSegment.splits = splits = props.map(propToSplit)
-            driverUtil.cleanSegment(parentSegment)
           else
             prop = props[0]
             driverUtil.cleanProp(prop)
-            splits = [if lastCmd then { prop: prop } else { prop: prop, _filter: myFilter }]
+            splits = [{
+              parent: parentSegment
+              prop
+              _filter: myFilter
+            }]
 
           callback(null, splits)
           return
@@ -1137,12 +1178,7 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
 
       if condensedCommand.split?.bucketFilter
         bucketFilterFn = driverUtil.makeBucketFilterFn(condensedCommand.split.bucketFilter)
-        driverUtil.inPlaceFilter segments, (segment) ->
-          if bucketFilterFn(segment)
-            return true
-          else
-            driverUtil.cleanSegment(segment)
-            return false
+        driverUtil.inPlaceFilter(segments, bucketFilterFn)
 
       # do the query in parallel
       async.mapLimit(
@@ -1181,7 +1217,7 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
           callback(err)
           return
 
-        callback(null, rootSegment or {})
+        callback(null, driverUtil.cleanSegments(rootSegment or {}))
         return
     )
     return

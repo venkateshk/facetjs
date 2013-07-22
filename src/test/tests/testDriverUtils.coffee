@@ -136,3 +136,690 @@ describe "Utility tests", ->
           '"Cut_Test"\t"Count_Test"\r\n"A"\t"1"\r\n"B"\t"2"\r\n"C"\t"3"\r\n"D"\t"4"\r\n"E"\t"5"\r\n"F\"\""\t"6"'
           "TSV of the table is incorrect"
         )
+
+
+  describe "simplify filter", ->
+    it "it keeps regular filters unchanged", ->
+      expect(driverUtil.simplifyFilter({
+        type: 'is'
+        attribute: 'lady'
+        value: 'GaGa'
+      })).to.deep.equal({
+        type: 'is'
+        attribute: 'lady'
+        value: 'GaGa'
+      })
+
+    it "flattens (and sorts) nested ANDs", ->
+      expect(driverUtil.simplifyFilter({
+        type: 'and'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Google'
+          }
+          {
+            type: 'and'
+            filters: [
+              {
+                type: 'is'
+                attribute: 'country'
+                value: 'USA'
+              }
+              {
+                type: 'and'
+                filters: [
+                  {
+                    type: 'is'
+                    attribute: 'moon'
+                    value: 'new'
+                  }
+                  {
+                    type: 'within'
+                    attribute: 'age'
+                    range: [5, 90]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      })).to.deep.equal({
+        type: 'and'
+        filters: [
+          {
+            type: 'within'
+            attribute: 'age'
+            range: [5, 90]
+          }
+          {
+            type: 'is'
+            attribute: 'country'
+            value: 'USA'
+          }
+          {
+            type: 'is'
+            attribute: 'moon'
+            value: 'new'
+          }
+          {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Google'
+          }
+        ]
+      })
+
+    it "flattens (and sorts) nested ORs", ->
+      expect(driverUtil.simplifyFilter({
+        type: 'or'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Google'
+          }
+          {
+            type: 'or'
+            filters: [
+              {
+                type: 'is'
+                attribute: 'country'
+                value: 'USA'
+              }
+              {
+                type: 'or'
+                filters: [
+                  {
+                    type: 'is'
+                    attribute: 'moon'
+                    value: 'new'
+                  }
+                  {
+                    type: 'within'
+                    attribute: 'age'
+                    range: [5, 90]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      })).to.deep.equal({
+        type: 'or'
+        filters: [
+          {
+            type: 'within'
+            attribute: 'age'
+            range: [5, 90]
+          }
+          {
+            type: 'is'
+            attribute: 'country'
+            value: 'USA'
+          }
+          {
+            type: 'is'
+            attribute: 'moon'
+            value: 'new'
+          }
+          {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Google'
+          }
+        ]
+      })
+
+    it "gets rid of empty ANDs", ->
+      expect(driverUtil.simplifyFilter({
+        type: 'and'
+        filters: []
+      })).to.deep.equal(null)
+
+    it "gets rid of single ANDs", ->
+      expect(driverUtil.simplifyFilter({
+        type: 'and'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Google'
+          }
+        ]
+      })).to.deep.equal({
+        type: 'is'
+        attribute: 'venue'
+        value: 'Google'
+      })
+
+    it "gets rid of nested single and empty ANDs", ->
+      expect(driverUtil.simplifyFilter({
+        type: 'and'
+        filters: [
+          {
+            type: 'and'
+            filters: [
+              {
+                type: 'is'
+                attribute: 'venue'
+                value: 'Google'
+              }
+            ]
+          }
+          {
+            type: 'and'
+            filters: []
+          }
+        ]
+      })).to.deep.equal({
+        type: 'is'
+        attribute: 'venue'
+        value: 'Google'
+      })
+
+    it "gets rid of empty ORs", ->
+      expect(driverUtil.simplifyFilter({
+        type: 'or'
+        filters: []
+      })).to.deep.equal({
+        type: 'false'
+      })
+
+    it "gets rid of single ORs", ->
+      expect(driverUtil.simplifyFilter({
+        type: 'or'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Google'
+          }
+        ]
+      })).to.deep.equal({
+        type: 'is'
+        attribute: 'venue'
+        value: 'Google'
+      })
+
+    it "gets rid of nested single and empty ORs", ->
+      expect(driverUtil.simplifyFilter({
+        type: 'or'
+        filters: [
+          {
+            type: 'or'
+            filters: [
+              {
+                type: 'is'
+                attribute: 'venue'
+                value: 'Google'
+              }
+            ]
+          }
+          {
+            type: 'or'
+            filters: []
+          }
+        ]
+      })).to.deep.equal({
+        type: 'is'
+        attribute: 'venue'
+        value: 'Google'
+      })
+
+    it "gets rid of not(null)", ->
+      expect(driverUtil.simplifyFilter({
+        type: 'not'
+        filter: null
+      })).to.deep.equal({
+        type: 'false'
+      })
+
+    it "gets rid of not(false)", ->
+      expect(driverUtil.simplifyFilter({
+        type: 'not'
+        filter: {
+          type: 'false'
+        }
+      })).to.deep.equal(null)
+
+    it "handles not()", ->
+      expect(driverUtil.simplifyFilter({
+        type: 'not'
+        filter: {
+          type: 'is'
+          attribute: 'venue'
+          value: 'Google'
+        }
+      })).to.deep.equal({
+        type: 'not'
+        filter: {
+          type: 'is'
+          attribute: 'venue'
+          value: 'Google'
+        }
+      })
+
+    it "gets rid of not(not())", ->
+      expect(driverUtil.simplifyFilter({
+        type: 'not'
+        filter: {
+          type: 'not'
+          filter: {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Google'
+          }
+        }
+      })).to.deep.equal({
+        type: 'is'
+        attribute: 'venue'
+        value: 'Google'
+      })
+
+
+  describe "extractAttributeFilter", ->
+    it 'works on a single included filter', ->
+      expect(driverUtil.extractAttributeFilter({
+        type: 'is'
+        attribute: 'venue'
+        value: 'Google'
+      }, 'venue')).to.deep.equal([
+        {
+          type: 'is'
+          attribute: 'venue'
+          value: 'Google'
+        }
+        null
+      ])
+
+    it 'works on a single excluded filter', ->
+      expect(driverUtil.extractAttributeFilter({
+        type: 'is'
+        attribute: 'venue'
+        value: 'Google'
+      }, 'advertiser')).to.deep.equal([
+        null
+        {
+          type: 'is'
+          attribute: 'venue'
+          value: 'Google'
+        }
+      ])
+
+    it 'works on a small AND filter', ->
+      expect(driverUtil.extractAttributeFilter({
+        type: 'and'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Google'
+          }
+          {
+            type: 'is'
+            attribute: 'country'
+            value: 'USA'
+          }
+        ]
+      }, 'country')).to.deep.equal([
+        {
+          type: 'is'
+          attribute: 'country'
+          value: 'USA'
+        }
+        {
+          type: 'is'
+          attribute: 'venue'
+          value: 'Google'
+        }
+      ])
+
+    it 'works on an AND filter', ->
+      expect(driverUtil.extractAttributeFilter({
+        type: 'and'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Google'
+          }
+          {
+            type: 'is'
+            attribute: 'country'
+            value: 'USA'
+          }
+          {
+            type: 'is'
+            attribute: 'state'
+            value: 'California'
+          }
+        ]
+      }, 'country')).to.deep.equal([
+        {
+          type: 'is'
+          attribute: 'country'
+          value: 'USA'
+        }
+        {
+          type: 'and'
+          filters: [
+            {
+              type: 'is'
+              attribute: 'state'
+              value: 'California'
+            }
+            {
+              type: 'is'
+              attribute: 'venue'
+              value: 'Google'
+            }
+          ]
+        }
+      ])
+
+    it 'extracts a NOT filter', ->
+      expect(driverUtil.extractAttributeFilter({
+        type: 'and'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Google'
+          }
+          {
+            type: 'not'
+            filter: {
+              type: 'is'
+              attribute: 'country'
+              value: 'USA'
+            }
+          }
+          {
+            type: 'is'
+            attribute: 'state'
+            value: 'California'
+          }
+        ]
+      }, 'country')).to.deep.equal([
+        {
+          type: 'not'
+          filter: {
+            type: 'is'
+            attribute: 'country'
+            value: 'USA'
+          }
+        }
+        {
+          type: 'and'
+          filters: [
+            {
+              type: 'is'
+              attribute: 'state'
+              value: 'California'
+            }
+            {
+              type: 'is'
+              attribute: 'venue'
+              value: 'Google'
+            }
+          ]
+        }
+      ])
+
+    it 'works with an empty filter', ->
+      expect(driverUtil.extractAttributeFilter(null, 'country')
+      ).to.deep.equal([
+        null
+        null
+      ])
+
+    it 'works with a false filter', ->
+      expect(driverUtil.extractAttributeFilter({
+        type: 'false'
+      }, 'country')).to.deep.equal([
+        null
+        { type: 'false' }
+      ])
+
+    it 'does not work on OR filter', ->
+      expect(driverUtil.extractAttributeFilter({
+        type: 'or'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Google'
+          }
+          {
+            type: 'is'
+            attribute: 'country'
+            value: 'USA'
+          }
+          {
+            type: 'is'
+            attribute: 'state'
+            value: 'California'
+          }
+        ]
+      }, 'country')).to.deep.equal(null)
+
+
+  describe 'filterToString', ->
+    it 'properly translates empty filter', ->
+      filter = null
+      expect(driverUtil.filterToString(filter)).to.equal('No filter exists')
+      return
+
+    it 'properly translates false filter', ->
+      filter = { type: 'false' }
+      expect(driverUtil.filterToString(filter)).to.equal('Nothing')
+      return
+
+    it 'properly translates is filter', ->
+      filter = {
+        type: 'is'
+        attribute: 'Color'
+        value: 'Red'
+      }
+      expect(driverUtil.filterToString(filter)).to.equal('Color is Red')
+      return
+
+    it 'properly translates in filter', ->
+      filter = {
+        type: 'in'
+        attribute: 'Color'
+        values: []
+      }
+      expect(driverUtil.filterToString(filter)).to.equal('Nothing')
+
+      filter = {
+        type: 'in'
+        attribute: 'Color'
+        values: ['Red']
+      }
+      expect(driverUtil.filterToString(filter)).to.equal('Color is Red')
+
+      filter = {
+        type: 'in'
+        attribute: 'Color'
+        values: ['Red', 'Blue']
+      }
+      expect(driverUtil.filterToString(filter)).to.equal('Color is either Red or Blue')
+
+      filter = {
+        type: 'in'
+        attribute: 'Color'
+        values: ['Red', 'Blue', 'Green']
+      }
+      expect(driverUtil.filterToString(filter)).to.equal('Color is one of: Red, Blue, or Green')
+      return
+
+    it 'properly translates fragements filter', ->
+      filter = {
+        type: 'fragments'
+        attribute: 'Color'
+        fragments: ['Red', 'Blue']
+      }
+      expect(driverUtil.filterToString(filter)).to.equal("Color contains 'Red', and 'Blue'")
+      return
+
+    it 'properly translates match filter', ->
+      filter = {
+        type: 'match'
+        attribute: 'Color'
+        match: "^R"
+      }
+      expect(driverUtil.filterToString(filter)).to.equal('Color matches /^R/')
+      return
+
+    it 'properly translates within filter', ->
+      filter = {
+        type: 'within'
+        attribute: 'Number'
+        range: [1, 10]
+      }
+      expect(driverUtil.filterToString(filter)).to.equal('Number is within 1 and 10')
+
+      filter = {
+        type: 'within'
+        attribute: 'Time'
+        range: ["2013-07-09T20:30:40.251Z", "2014-07-09T20:30:40.251Z"]
+      }
+      expect(driverUtil.filterToString(filter)).to.equal("Time is within 2013-07-09T20:30:40.251Z and 2014-07-09T20:30:40.251Z")
+      return
+
+    it 'properly translates not filter', ->
+      filter = {
+        type: 'not'
+        filter: {
+          type: 'is'
+          attribute: 'Color'
+          value: 'Red'
+        }
+      }
+      expect(driverUtil.filterToString(filter)).to.equal('not (Color is Red)')
+      return
+
+    it 'properly translates and filter', ->
+      filter = {
+        type: 'and'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'Color'
+            value: 'Red'
+          }
+        ]
+      }
+      expect(driverUtil.filterToString(filter)).to.equal("Color is Red")
+
+      filter = {
+        type: 'and'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'Color'
+            value: 'Red'
+          }
+          {
+            type: 'in'
+            attribute: 'Color'
+            values: ['Red', 'Blue']
+          }
+        ]
+      }
+      expect(driverUtil.filterToString(filter)).to.equal("(Color is Red) and (Color is either Red or Blue)")
+      return
+
+    it 'properly translates or filter', ->
+      filter = {
+        type: 'or'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'Color'
+            value: 'Red'
+          }
+        ]
+      }
+      expect(driverUtil.filterToString(filter)).to.equal("Color is Red")
+
+      filter = {
+        type: 'or'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'Color'
+            value: 'Red'
+          }
+          {
+            type: 'in'
+            attribute: 'Color'
+            values: ['Red', 'Blue']
+          }
+        ]
+      }
+      expect(driverUtil.filterToString(filter)).to.equal("(Color is Red) or (Color is either Red or Blue)")
+      return
+
+    it 'handles bad filter type', ->
+      filter = {
+        type: 'hello'
+        attribute: 'Color'
+        value: 'Red'
+      }
+      testFn = () ->
+        return driverUtil.filterToString(filter)
+      expect(testFn).to.throw(TypeError, 'bad filter type')
+      return
+
+    it 'properly translates nested filter 1', ->
+      filter = {
+        type: 'not'
+        filter: {
+          type: 'or'
+          filters: [
+            {
+              type: 'is'
+              attribute: 'Color'
+              value: 'Red'
+            }
+            {
+              type: 'in'
+              attribute: 'Color'
+              values: ['Red', 'Blue']
+            }
+          ]
+        }
+      }
+      expect(driverUtil.filterToString(filter)).to.equal("not ((Color is Red) or (Color is either Red or Blue))")
+      return
+
+    it 'properly translates nested filter 2', ->
+      filter = {
+        type: 'and'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'Color'
+            value: 'Red'
+          }
+          {
+            type: 'in'
+            attribute: 'Color'
+            values: ['Red', 'Blue']
+          }
+          {
+            type: 'not'
+            filter: {
+              type: 'is'
+              attribute: 'Color'
+              value: 'Red'
+            }
+          }
+        ]
+      }
+      expect(driverUtil.filterToString(filter)).to.equal("(Color is Red) and (Color is either Red or Blue) and (not (Color is Red))")
+      return

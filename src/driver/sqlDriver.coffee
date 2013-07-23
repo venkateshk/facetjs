@@ -365,7 +365,9 @@ condensedQueryToSQL = ({requester, table, filter, condensedQuery}, callback) ->
 
 module.exports = ({requester, table, filter}) ->
   throw new Error("must have table") unless typeof table is 'string'
-  return (query, callback) ->
+  return (request, callback) ->
+    throw new Error("request not supplied") unless request
+    {context, query} = request
     try
       condensedQuery = driverUtil.condenseQuery(query)
     catch e

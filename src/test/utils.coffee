@@ -52,7 +52,7 @@ exports.makeEqualityTest = (driverFns) ->
       driverFn = driverFns[driverName]
       throw new Error("no such driver #{driverName}") unless driverFn
       return (callback) ->
-        driverFn(query, callback)
+        driverFn({query}, callback)
         return
 
     return (done) ->
@@ -82,7 +82,7 @@ exports.makeEqualityTest = (driverFns) ->
         return
 
 exports.makeErrorTest = (driverFns) ->
-  return ({drivers, query, error, verbose}) -> (done) ->
+  return ({drivers, request, error, verbose}) -> (done) ->
     throw new Error("must have at least one driver") if drivers.length < 1
 
     numberOfTestsLeft = drivers.length
@@ -90,7 +90,7 @@ exports.makeErrorTest = (driverFns) ->
     drivers.forEach (driverName) ->
       driverFn = driverFns[driverName]
       throw new Error("no such driver #{driverName}") unless driverFn
-      driverFn query, (err, results) ->
+      driverFn request, (err, results) ->
         numberOfTestsLeft--
         expect(err).to.be.ok
         expect(err.message).equal(error, "#{driverName} driver error should match")

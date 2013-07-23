@@ -294,6 +294,23 @@ describe "Utility tests", ->
         value: 'Google'
       })
 
+    it "gets rid of nulls in ANDs", ->
+      expect(driverUtil.simplifyFilter({
+        type: 'and'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Google'
+          }
+          null
+        ]
+      })).to.deep.equal({
+        type: 'is'
+        attribute: 'venue'
+        value: 'Google'
+      })
+
     it "gets rid of nested single and empty ANDs", ->
       expect(driverUtil.simplifyFilter({
         type: 'and'

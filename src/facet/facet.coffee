@@ -185,7 +185,7 @@ class FacetJob
 
     operations = @ops
 
-    @driver @getQuery(), (err, res) ->
+    @driver { query: @getQuery() }, (err, res) ->
       svg.classed('loading', false)
       if err
         svg.classed('error', true)

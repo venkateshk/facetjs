@@ -1077,7 +1077,9 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
   queryLimit or= Infinity
 
   queriesMade = 0
-  return (query, callback) ->
+  return (request, callback) ->
+    throw new Error("request not supplied") unless request
+    {context, query} = request
     try
       condensedQuery = driverUtil.condenseQuery(query)
     catch e

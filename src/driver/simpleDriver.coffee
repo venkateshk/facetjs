@@ -344,7 +344,9 @@ computeQuery = (data, query) ->
   return driverUtil.cleanSegments(originalSegmentGroups[0][0] or {})
 
 
-module.exports = (data) -> (query, callback) ->
+module.exports = (data) -> (request, callback) ->
+  throw new Error("request not supplied") unless request
+  {context, query} = request
   try
     result = computeQuery(data, query)
   catch e

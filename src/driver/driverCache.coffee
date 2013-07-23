@@ -181,15 +181,9 @@ class SplitCache
     return timestamps
 
 
-module.exports = ({driver, queryGetter, querySetter}) ->
+module.exports = ({driver}) ->
   splitCache = new SplitCache()
   filterCache = new FilterCache()
-
-  querySetter ?= (async, query) -> return
-  queryGetter ?= (async) -> return async
-
-  if (queryGetter? and not querySetter?) or (not queryGetter? and querySetter?)
-    throw new Error("Both querySetter and queryGetter must be supplied")
 
   getUnknownQuery = (query, root, condensedQuery) ->
     return query unless root?
@@ -290,8 +284,9 @@ module.exports = ({driver, queryGetter, querySetter}) ->
   getKnownTree = (condensedQuery) ->
     return getKnownTreeHelper(condensedQuery, condensedQuery[0].filter, 0)
 
-  return (async, callback) ->
-    query = queryGetter(async)
+  return (request, callback) ->
+    throw new Error("request not supplied") unless request
+    {context, query:async} = request
 
     try
       condensedQuery = driverUtil.condenseQuery(query)
@@ -301,7 +296,7 @@ module.exports = ({driver, queryGetter, querySetter}) ->
 
     # If there is a split for contnuous dimension, don't use cache. Doable. but not now
     if condensedQuery[1]?.split?.bucket in ['continuous', 'tuple']
-      return driver async, callback
+      return driver({query: async}, callback)
 
     root = getKnownTree(condensedQuery)
     unknownQuery = getUnknownQuery(query, root, condensedQuery)
@@ -310,8 +305,7 @@ module.exports = ({driver, queryGetter, querySetter}) ->
       callback(null, root)
       return
 
-    querySetter(async, unknownQuery)
-    return driver async, (err, root) ->
+    return driver {query: async}, (err, root) ->
       if err?
         callback(err, null)
         return

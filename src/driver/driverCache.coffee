@@ -79,7 +79,7 @@ createFilter = (value, splitOp) ->
       attribute: splitOp.attribute
       operation: 'filter'
       type: 'within'
-      value: value.map((time) -> time.toISOString())
+      value: value.map((time) -> if time instanceof Date then time.toISOString() else time)
     }
   else
     newFilterPiece = {
@@ -235,13 +235,10 @@ module.exports = ({driver, queryGetter, querySetter}) ->
       if condensedCommand.split?
         newSplit = JSON.parse(JSON.stringify(condensedCommand.split))
         if condensedCommand.split.bucketFilter?
-          console.log root, condensedCommand.split.bucketFilter, i - 2
           newValues = bucketFilterValueCheck(root, 0, i - 2, condensedCommand.split.bucketFilter)
-          console.log newValues
           newSplit.bucketFilter.values = newValues
           if newValues.length > 0
             added = true
-          console.log JSON.stringify(newSplit)
         unknownQuery.push newSplit
 
       if condensedCommand.combine?
@@ -287,7 +284,6 @@ module.exports = ({driver, queryGetter, querySetter}) ->
 
     bucketFilter = splitOp.bucketFilter
     if bucketFilter?
-      # console.log upperSplitValue, bucketFilter.values
       if upperSplitValue not in bucketFilter.values
         return {
           prop
@@ -298,15 +294,6 @@ module.exports = ({driver, queryGetter, querySetter}) ->
     for value in cachedValues
       newFilter = addToFilter(filter, createFilter(value, splitOp))
       ret = getKnownTreeHelper(condensedQuery, newFilter, level + 1, value)
-      # console.log '\n---------------------------------------------------------'
-      # console.log ret
-      # console.log level - 1
-      # console.log condensedQuery[level - 1]?.split
-      # console.log condensedQuery[level]?.split
-      # console.log condensedQuery[level + 1]?.split
-      # console.log value
-      # console.log upperSplitValue
-      # console.log '---------------------------------------------------------'
       ret.prop[splitOp.name] = value
       splits.push ret
 
@@ -348,9 +335,7 @@ module.exports = ({driver, queryGetter, querySetter}) ->
       return driver async, callback
 
     root = getKnownTree(condensedQuery)
-    console.log JSON.stringify(root, null, 2)
     unknownQuery = getUnknownQuery(query, root, condensedQuery)
-    console.log JSON.stringify(unknownQuery, null, 2)
     if not unknownQuery?
       callback(null, root)
       return

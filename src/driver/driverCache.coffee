@@ -79,7 +79,7 @@ createFilter = (value, splitOp) ->
       attribute: splitOp.attribute
       operation: 'filter'
       type: 'within'
-      value
+      value: value.map((time) -> time.toISOString())
     }
   else
     newFilterPiece = {

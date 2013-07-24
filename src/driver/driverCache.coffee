@@ -112,7 +112,8 @@ class FilterCache
     hashValue = @hashmap[filterToHash(filter)] ?= {}
     applies = condensedQuery[level].applies
     for apply in applies
-      hashValue[apply.name] = node.prop[apply.name] or hashValue[apply.name]
+      continue if not node.prop?
+      hashValue[apply.name] = node.prop[apply.name] ? hashValue[apply.name]
 
     if node.splits?
       splitOp = condensedQuery[level + 1].split
@@ -266,9 +267,13 @@ module.exports = ({driver, queryGetter, querySetter}) ->
     splitOp = condensedQuery[level + 1]?.split
     combineOp = condensedQuery[level + 1]?.combine
     filterCacheResult = filterCache.get(filter)
+
+    return unless filterCacheResult?
+    return if filterCacheResult is {}
+
     prop = {}
     for apply in applies
-      prop[apply.name] = filterCacheResult?[apply.name]
+      prop[apply.name] = filterCacheResult[apply.name]
 
     if not splitOp? # end case
       return {
@@ -294,6 +299,7 @@ module.exports = ({driver, queryGetter, querySetter}) ->
     for value in cachedValues
       newFilter = addToFilter(filter, createFilter(value, splitOp))
       ret = getKnownTreeHelper(condensedQuery, newFilter, level + 1, value)
+      continue unless ret?
       ret.prop[splitOp.name] = value
       splits.push ret
 

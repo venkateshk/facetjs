@@ -4,16 +4,18 @@ utils = require('../utils')
 
 sqlRequester = require('../../../target/mySqlRequester')
 sqlDriver = require('../../../target/sqlDriver')
+simpleDriver = require('../../../target/simpleDriver')
 driverCache = require('../../../target/driverCache')
 
 # Set up drivers
 driverFns = {}
+allowQuery = true
+checkEquality = false
+expectedQuery = null
 
 # Simple
-# diamondsData = require('../../../data/diamonds.js')
-# driverFns.simple = simpleDriver(diamondsData)
-
-verbose = false
+diamondsData = require('../../../data/diamonds.js')
+driverFns.simple = simple = simpleDriver(diamondsData)
 
 # MySQL
 sqlPass = sqlRequester({
@@ -23,6 +25,7 @@ sqlPass = sqlRequester({
   password: 'HadleyWickham'
 })
 
+verbose = false
 sqlPass = utils.wrapVerbose(sqlPass, 'MySQL') if verbose
 
 driverFns.mySql = mySql = sqlDriver({
@@ -30,24 +33,35 @@ driverFns.mySql = mySql = sqlDriver({
   table: 'wiki_day_agg'
 })
 
-allowQuery = true
-checkEquality = false
-expectedQuery = null
-mySqlWrap = (query, callback) ->
-  if checkEquality
-    expect(query).to.deep.equal(expectedQuery)
+# Cached Versions
+driverFns.simpleCached = driverCache({
+  driver: (query, callback) ->
+    if checkEquality
+      expect(query.query).to.deep.equal(expectedQuery)
 
-  if not allowQuery
-    console.log '\n---------------'
-    console.log query
-    console.log '---------------'
-    throw new Error("query not allowed")
+    if not allowQuery
+      console.log '\n---------------'
+      console.log JSON.stringify(query, null, 2)
+      console.log '---------------'
+      throw new Error("query not allowed")
 
-  mySql(query, callback)
-  return
+    simple(query, callback)
+    return
+})
 
 driverFns.mySqlCached = driverCache({
-  driver: mySqlWrap
+  driver: (query, callback) ->
+    if checkEquality
+      expect(query.query).to.deep.equal(expectedQuery)
+
+    if not allowQuery
+      console.log '\n---------------'
+      console.log JSON.stringify(query, null, 2)
+      console.log '---------------'
+      throw new Error("query not allowed")
+
+    mySql(query, callback)
+    return
 })
 
 testEquality = utils.makeEqualityTest(driverFns)
@@ -98,25 +112,23 @@ describe "Cache tests", ->
 
   describe "(sanity check) apply count", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['mySqlCached', 'mySql']
+      drivers: ['simpleCached', 'simple']
       query: [
-        { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
-        { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-        { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+        { operation: 'apply', name: 'Cheapest', aggregate: 'min', attribute: 'price' }
+        { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
       ]
     }
 
   describe 'topN Cache', ->
     setUpQuery = [
-        { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
-        { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'namespace' }
-        { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-        { operation: 'apply', name: 'Deleted', aggregate: 'sum', attribute: 'deleted' }
-        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Deleted', direction: 'descending' }, limit: 5 }
+        { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+        { operation: 'apply', name: 'Cheapest', aggregate: 'min', attribute: 'price' }
+        { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
       ]
 
     before (done) ->
-      driverFns.mySqlCached({ query: setUpQuery}, (err, result) ->
+      driverFns.simpleCached({ query: setUpQuery}, (err, result) ->
         throw err if err?
         allowQuery = false
         done()
@@ -125,72 +137,59 @@ describe "Cache tests", ->
 
     after -> allowQuery = true
 
-    describe "split page; apply deleted; combine descending", ->
-      it "should have the same results for different drivers", testEquality {
-        drivers: ['mySqlCached', 'mySql']
+    it "split Color; apply Revenue; combine descending", testEquality {
+        drivers: ['simpleCached', 'simple']
         query: [
-          { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
-          { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'namespace' }
-          { operation: 'apply', name: 'Deleted', aggregate: 'sum', attribute: 'deleted' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Deleted', direction: 'descending' }, limit: 5 }
+          { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
         ]
       }
 
-    describe "split page; apply deleted, count; combine descending", ->
-      it "should have the same results for different drivers", testEquality {
-        drivers: ['mySqlCached', 'mySql']
+    it "split Color; apply Revenue, Cheapest; combine descending", testEquality {
+        drivers: ['simpleCached', 'simple']
         query: [
-          { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
-          { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'namespace' }
-          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-          { operation: 'apply', name: 'Deleted', aggregate: 'sum', attribute: 'deleted' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Deleted', direction: 'descending' }, limit: 5 }
+          { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+          { operation: 'apply', name: 'Cheapest', aggregate: 'min', attribute: 'price' }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
         ]
       }
-
 
   describe "different sorting works", ->
-    describe "split page; apply deleted; combine descending", ->
-      it "should have the same results for different drivers", testEquality {
-        drivers: ['mySqlCached', 'mySql']
+    it "split Color; apply Revenue; combine Revenue, descending", testEquality {
+        drivers: ['simpleCached', 'simple']
         query: [
-          { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
-          { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'namespace' }
-          { operation: 'apply', name: 'Deleted', aggregate: 'sum', attribute: 'deleted' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Deleted', direction: 'descending' }, limit: 5 }
+          { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
         ]
       }
 
-    describe "split page; apply deleted; combine ascending", ->
-      it "should have the same results for different drivers", testEquality {
-        drivers: ['mySqlCached', 'mySql']
+    it "split Color; apply Revenue; combine Revenue, ascending", testEquality {
+        drivers: ['simpleCached', 'simple']
         query: [
-          { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
-          { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'namespace' }
-          { operation: 'apply', name: 'Deleted', aggregate: 'sum', attribute: 'deleted' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Deleted', direction: 'ascending' }, limit: 5 }
+          { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'ascending' }, limit: 5 }
         ]
       }
 
-    describe "split page; apply deleted; combine Page, descending", ->
-      it "should have the same results for different drivers", testEquality {
-        drivers: ['mySqlCached', 'mySql']
+    it "split Color; apply Revenue; combine Color, descending", testEquality {
+        drivers: ['simpleCached', 'simple']
         query: [
-          { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
-          { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'namespace' }
-          { operation: 'apply', name: 'Deleted', aggregate: 'sum', attribute: 'deleted' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Page', direction: 'descending' }, limit: 5 }
+          { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Color', direction: 'descending' }, limit: 5 }
         ]
       }
 
-    describe "split page; apply deleted; combine Page, ascending", ->
-      it "should have the same results for different drivers", testEquality {
-        drivers: ['mySqlCached', 'mySql']
+    it "split Color; apply Revenue; combine Color, ascending", testEquality {
+        drivers: ['simpleCached', 'simple']
         query: [
-          { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
-          { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'namespace' }
-          { operation: 'apply', name: 'Deleted', aggregate: 'sum', attribute: 'deleted' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Page', direction: 'ascending' }, limit: 5 }
+          { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Color', direction: 'ascending' }, limit: 5 }
         ]
       }
 
@@ -215,8 +214,7 @@ describe "Cache tests", ->
 
     after -> allowQuery = true
 
-    describe "split time; apply count", ->
-      it "should have the same results for different drivers", testEquality {
+    it "split time; apply count", testEquality {
         drivers: ['mySqlCached', 'mySql']
         query: [
           { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
@@ -226,8 +224,7 @@ describe "Cache tests", ->
         ]
       }
 
-    describe "split time; apply count; combine not by time", ->
-      it "should have the same results for different drivers", testEquality {
+    it "split time; apply count; combine not by time", testEquality {
         drivers: ['mySqlCached', 'mySql']
         query: [
           { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
@@ -237,8 +234,7 @@ describe "Cache tests", ->
         ]
       }
 
-    describe "split time; apply count; filter within another time filter", ->
-      it "should have the same results for different drivers", testEquality {
+    it "split time; apply count; filter within another time filter", testEquality {
         drivers: ['mySqlCached', 'mySql']
         query: [
           { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 26, 12, 0, 0))] }
@@ -248,8 +244,7 @@ describe "Cache tests", ->
         ]
       }
 
-    describe "split time; apply count; limit", ->
-      it "should have the same results for different drivers", testEquality {
+    it "split time; apply count; limit", testEquality {
         drivers: ['mySqlCached', 'mySql']
         query: [
           { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
@@ -283,8 +278,7 @@ describe "Cache tests", ->
 
     after -> allowQuery = true
 
-    describe "filter; split time; apply count; apply added", ->
-      it "should have the same results for different drivers", testEquality {
+    it "filter; split time; apply count; apply added", testEquality {
         drivers: ['mySqlCached', 'mySql']
         query: [
           { operation: 'filter', type: 'and', filters: [
@@ -298,8 +292,7 @@ describe "Cache tests", ->
         ]
       }
 
-    describe "filter; split time; apply count; apply added; combine time descending", ->
-      it "should have the same results for different drivers", testEquality {
+    it "filter; split time; apply count; apply added; combine time descending", testEquality {
         drivers: ['mySqlCached', 'mySql']
         query: [
           { operation: 'filter', type: 'and', filters: [
@@ -315,8 +308,7 @@ describe "Cache tests", ->
 
 
   describe "fillTree test", ->
-    describe "filter; split time; apply count; apply added", ->
-      it "should have the same results for different drivers", testEquality {
+    it "filter; split time; apply count; apply added", testEquality {
         drivers: ['mySqlCached', 'mySql']
         query: [
           { operation: 'filter', type: 'and', filters: [
@@ -329,8 +321,7 @@ describe "Cache tests", ->
         ]
       }
 
-    describe "filter; split time; apply count; apply added; combine time descending", ->
-      it "should have the same results for different drivers", testEquality {
+    it "filter; split time; apply count; apply added; combine time descending", testEquality {
         drivers: ['mySqlCached', 'mySql']
         query: [
           { operation: 'filter', type: 'and', filters: [
@@ -424,17 +415,16 @@ describe "Cache tests", ->
 
   describe "handles multiple splits", ->
     setUpQuery = [
-      { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
-      { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
-      { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
-      { operation: 'split', name: 'Namespace', bucket: 'identity', attribute: 'namespace' }
-      { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
+      { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+      { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+      { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
+      { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
     ]
 
     before (done) ->
-      driverFns.mySqlCached({query: setUpQuery}, (err, result) ->
+      driverFns.simpleCached({query: setUpQuery}, (err, result) ->
         throw err if err?
         allowQuery = false
         done()
@@ -443,43 +433,35 @@ describe "Cache tests", ->
 
     after -> allowQuery = true
 
-    describe "filter; split time; apply count; split time; apply count; combine count descending", ->
-      it "should have the same results for different drivers", testEquality {
-        drivers: ['mySqlCached', 'mySql']
+    it "filter; split time; apply count; split time; apply count; combine count descending", testEquality {
+        drivers: ['simpleCached', 'simple']
         query: [
-          { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
-          { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
-          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
-          { operation: 'split', name: 'Namespace', bucket: 'identity', attribute: 'namespace' }
-          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
+          { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+          { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
         ]
       }
 
   describe "handles filtered splits", ->
     setUpQuery = [
-      { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
-      { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
-      { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
-      {
-        operation: 'split'
-        name: 'Namespace'
-        bucket: 'identity'
-        attribute: 'namespace',
-        bucketFilter: {
-          prop: 'Language'
+      { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+      { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+      { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut', bucketFilter: {
+          prop: 'Color'
           type: 'in'
-          values: ['en', 'de']
+          values: ['E', 'I']
         }
       }
-      { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
+      { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
     ]
 
     before (done) ->
-      driverFns.mySqlCached({query: setUpQuery}, (err, result) ->
+      driverFns.simpleCached({query: setUpQuery}, (err, result) ->
         throw err if err?
         done()
         return
@@ -490,25 +472,19 @@ describe "Cache tests", ->
       after -> allowQuery = true
 
       it "should have the same results for different drivers", testEquality {
-        drivers: ['mySqlCached', 'mySql']
+        drivers: ['simpleCached', 'simple']
         query: [
-          { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
-          { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
-          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
-          {
-            operation: 'split'
-            name: 'Namespace'
-            bucket: 'identity'
-            attribute: 'namespace',
-            bucketFilter: {
-              prop: 'Language'
+          { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+          { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut', bucketFilter: {
+              prop: 'Color'
               type: 'in'
-              values: ['en']
+              values: ['E']
             }
           }
-          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
         ]
       }
 
@@ -516,23 +492,17 @@ describe "Cache tests", ->
       before ->
         checkEquality = true
         expectedQuery = [
-          { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
-          { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
-          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
-          {
-            operation: 'split'
-            name: 'Namespace'
-            bucket: 'identity'
-            attribute: 'namespace',
-            bucketFilter: {
-              prop: 'Language'
+          { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+          { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut', bucketFilter: {
+              prop: 'Color'
               type: 'in'
-              values: ['fr']
+              values: ['G']
             }
           }
-          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
         ]
 
       after ->
@@ -540,25 +510,19 @@ describe "Cache tests", ->
         expectedQuery = null
 
       it "should have the same results for different drivers", testEquality {
-        drivers: ['mySqlCached', 'mySql']
+        drivers: ['simpleCached', 'simple']
         query: [
-          { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
-          { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
-          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
-          {
-            operation: 'split'
-            name: 'Namespace'
-            bucket: 'identity'
-            attribute: 'namespace',
-            bucketFilter: {
-              prop: 'Language'
+          { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+          { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut', bucketFilter: {
+              prop: 'Color'
               type: 'in'
-              values: ['en', 'fr']
+              values: ['I', 'G']
             }
           }
-          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
         ]
       }
 
@@ -566,47 +530,35 @@ describe "Cache tests", ->
       before ->
         checkEquality = true
         expectedQuery = [
-          { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
-          { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
-          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
-          {
-            operation: 'split'
-            name: 'Namespace'
-            bucket: 'identity'
-            attribute: 'namespace',
-            bucketFilter: {
-              prop: 'Language'
+          { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+          { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut', bucketFilter: {
+              prop: 'Color'
               type: 'in'
-              values: ['it']
+              values: ['H']
             }
           }
-          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
         ]
 
       after -> checkEquality = false
 
       it "should have the same results for different drivers", testEquality {
-        drivers: ['mySqlCached', 'mySql']
+        drivers: ['simpleCached', 'simple']
         query: [
-          { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
-          { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
-          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
-          {
-            operation: 'split'
-            name: 'Namespace'
-            bucket: 'identity'
-            attribute: 'namespace',
-            bucketFilter: {
-              prop: 'Language'
+          { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+          { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut', bucketFilter: {
+              prop: 'Color'
               type: 'in'
-              values: ['it']
+              values: ['H']
             }
           }
-          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
         ]
       }
 
@@ -615,25 +567,19 @@ describe "Cache tests", ->
       after -> allowQuery = true
 
       it "should have the same results for different drivers", testEquality {
-        drivers: ['mySqlCached', 'mySql']
+        drivers: ['simpleCached', 'simple']
         query: [
-          { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
-          { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
-          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
-          {
-            operation: 'split'
-            name: 'Namespace'
-            bucket: 'identity'
-            attribute: 'namespace',
-            bucketFilter: {
-              prop: 'Language'
+          { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+          { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut', bucketFilter: {
+              prop: 'Color'
               type: 'in'
-              values: ['en','de','fr','it']
+              values: ['E', 'H', 'I', 'G']
             }
           }
-          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
         ]
       }
 
@@ -642,24 +588,18 @@ describe "Cache tests", ->
       after -> allowQuery = true
 
       it "should have the same results for different drivers", testEquality {
-        drivers: ['mySqlCached', 'mySql']
+        drivers: ['simpleCached', 'simple']
         query: [
-          { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
-          { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
-          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
-          {
-            operation: 'split'
-            name: 'Namespace'
-            bucket: 'identity'
-            attribute: 'namespace',
-            bucketFilter: {
-              prop: 'Language'
+          { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+          { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut', bucketFilter: {
+              prop: 'Color'
               type: 'in'
-              values: ['fr','en']
+              values: ['I', 'E']
             }
           }
-          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
         ]
       }

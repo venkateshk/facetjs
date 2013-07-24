@@ -37,13 +37,13 @@ describe "SQL driver tests", ->
       ]
 
       it "should work with [] return", (done) ->
-        nullDriver query, (err, result) ->
+        nullDriver {query}, (err, result) ->
           expect(result).to.deep.equal({})
           done()
           return
 
       it "should work with [{result:[]}] return", (done) ->
-        emptyDriver query, (err, result) ->
+        emptyDriver {query}, (err, result) ->
           expect(result).to.deep.equal({})
           done()
           return
@@ -56,13 +56,13 @@ describe "SQL driver tests", ->
       ]
 
       it "should work with [] return", (done) ->
-        nullDriver query, (err, result) ->
+        nullDriver {query}, (err, result) ->
           expect(result).to.deep.equal({})
           done()
           return
 
       it "should work with [{result:[]}] return", (done) ->
-        emptyDriver query, (err, result) ->
+        emptyDriver {query}, (err, result) ->
           expect(result).to.deep.equal({})
           done()
 
@@ -87,14 +87,18 @@ describe "SQL driver tests", ->
     })
 
     it "should get back the same result", (done) ->
-      noFilter [
-        { operation: 'filter', type: 'is', attribute: 'color', value: 'E' }
-        { operation: 'apply', name: 'Count', aggregate: 'count' }
-      ], (err, noFilterRes) ->
-        expect(noFilterRes).to.be.an('object')
-        withFilter [
+      noFilter {
+        query: [
+          { operation: 'filter', type: 'is', attribute: 'color', value: 'E' }
           { operation: 'apply', name: 'Count', aggregate: 'count' }
-        ], (err, withFilterRes) ->
+        ]
+      }, (err, noFilterRes) ->
+        expect(noFilterRes).to.be.an('object')
+        withFilter {
+          query: [
+            { operation: 'apply', name: 'Count', aggregate: 'count' }
+          ]
+        }, (err, withFilterRes) ->
           expect(withFilterRes).to.be.an('object')
           expect(noFilterRes).to.deep.equal(withFilterRes)
           done()

@@ -37,13 +37,13 @@ describe "Druid driver tests", ->
       ]
 
       it "should work with [] return", (done) ->
-        nullDriver query, (err, result) ->
+        nullDriver {query}, (err, result) ->
           expect(result).to.deep.equal({})
           done()
           return
 
       it "should work with [{result:[]}] return", (done) ->
-        emptyDriver query, (err, result) ->
+        emptyDriver {query}, (err, result) ->
           expect(result).to.deep.equal({})
           done()
           return
@@ -56,13 +56,13 @@ describe "Druid driver tests", ->
       ]
 
       it "should work with [] return", (done) ->
-        nullDriver query, (err, result) ->
+        nullDriver {query}, (err, result) ->
           expect(result).to.deep.equal({})
           done()
           return
 
       it "should work with [{result:[]}] return", (done) ->
-        emptyDriver query, (err, result) ->
+        emptyDriver {query}, (err, result) ->
           expect(result).to.deep.equal({})
           done()
 
@@ -110,14 +110,18 @@ describe "Druid driver tests", ->
       })
 
       it "should get back the same result", (done) ->
-        noFilter [
-          filter
-          { operation: 'apply', name: 'Count', aggregate: 'count' }
-        ], (err, noFilterRes) ->
-          expect(noFilterRes).to.be.an('object')
-          withFilter [
+        noFilter {
+          query: [
+            filter
             { operation: 'apply', name: 'Count', aggregate: 'count' }
-          ], (err, withFilterRes) ->
+          ]
+        }, (err, noFilterRes) ->
+          expect(noFilterRes).to.be.an('object')
+          withFilter {
+            query: [
+              { operation: 'apply', name: 'Count', aggregate: 'count' }
+            ]
+          }, (err, withFilterRes) ->
             expect(withFilterRes).to.be.an('object')
             expect(noFilterRes).to.deep.equal(withFilterRes)
             done()
@@ -158,9 +162,11 @@ describe "Druid driver tests", ->
       }
 
       it "should get back a result and not crash", (done) ->
-        driver [
-          filter
-          { operation: 'apply', name: 'Count', aggregate: 'count' }
-        ], (err, res) ->
+        driver {
+          query: [
+            filter
+            { operation: 'apply', name: 'Count', aggregate: 'count' }
+          ]
+        }, (err, res) ->
           expect(res).to.be.an('object') # to.deep.equal({})
           done()

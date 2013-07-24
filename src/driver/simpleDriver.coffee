@@ -345,9 +345,9 @@ computeQuery = (data, query) ->
 
 
 module.exports = (data) -> (request, callback) ->
-  throw new Error("request not supplied") unless request
-  {context, query} = request
   try
+    throw new Error("request not supplied") unless request
+    {context, query} = request
     result = computeQuery(data, query)
   catch e
     callback({ message: e.message, stack: e.stack }); return

@@ -293,7 +293,7 @@ class DruidQueryBuilder
 
   renameAggregationInPostAgregation: (postAggregation, from, to) ->
     switch postAggregation.type
-      when 'fieldAccess', 'quantile'
+      when 'fieldAccess', 'hyperUniqueCardinality', 'quantile'
         if postAggregation.fieldName is from
           postAggregation.fieldName = to
 
@@ -1057,8 +1057,6 @@ druidQueryFns = {
 
 # This is the Druid driver. It translates facet queries to Druid
 #
-# @author Vadim
-#
 # @param {Requester} requester, a function to make requests to Druid
 # @param {string} dataSource, name of the datasource in Druid
 # @param {string} timeAttribute [optional, default="time"], name by which the time attribute will be referred to
@@ -1078,9 +1076,9 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
 
   queriesMade = 0
   return (request, callback) ->
-    throw new Error("request not supplied") unless request
-    {context, query} = request
     try
+      throw new Error("request not supplied") unless request
+      {context, query} = request
       condensedQuery = driverUtil.condenseQuery(query)
     catch e
       callback(e)

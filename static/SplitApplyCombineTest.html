@@ -218,7 +218,7 @@
           }
 
           var start = Date.now();
-          driver(input, function(err, res) {
+          driver({ query: input }, function(err, res) {
             if (err) {
               d3.select("#output").text("An error occurred:\n" + err.message);
               d3.select('.time-show').text("Query had an error");

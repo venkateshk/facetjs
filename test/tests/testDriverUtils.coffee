@@ -1,6 +1,6 @@
 chai = require("chai")
 expect = chai.expect
-driverUtil = require('../../../target/driverUtil')
+driverUtil = require('../../target/driverUtil')
 data = require('../data')
 
 describe "Utility tests", ->

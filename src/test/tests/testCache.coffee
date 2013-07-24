@@ -76,7 +76,7 @@ describe "Cache tests", ->
         expect(result).to.deep.equal({})
         done()
 
-  describe.only "zero checker", ->
+  describe "zero checker", ->
     zeroDriver = (request, callback) ->
       callback(null, { prop: { Count: 0 } })
       return

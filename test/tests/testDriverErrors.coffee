@@ -2,18 +2,18 @@ chai = require("chai")
 expect = chai.expect
 utils = require('../utils')
 
-druidRequester = require('../../../target/druidRequester')
-sqlRequester = require('../../../target/mySqlRequester')
+druidRequester = require('../../target/druidRequester')
+sqlRequester = require('../../target/mySqlRequester')
 
-simpleDriver = require('../../../target/simpleDriver')
-sqlDriver = require('../../../target/sqlDriver')
-druidDriver = require('../../../target/druidDriver')
+simpleDriver = require('../../target/simpleDriver')
+sqlDriver = require('../../target/sqlDriver')
+druidDriver = require('../../target/druidDriver')
 
 # Set up drivers
 driverFns = {}
 
 # Simple
-diamondsData = require('../../../data/diamonds.js')
+diamondsData = require('../../data/diamonds.js')
 driverFns.simple = simpleDriver(diamondsData)
 
 # MySQL

@@ -2,15 +2,15 @@ chai = require("chai")
 expect = chai.expect
 utils = require('../utils')
 
-sqlRequester = require('../../../target/mySqlRequester')
-sqlDriver = require('../../../target/sqlDriver')
-driverCache = require('../../../target/driverCache')
+sqlRequester = require('../../target/mySqlRequester')
+sqlDriver = require('../../target/sqlDriver')
+driverCache = require('../../target/driverCache')
 
 # Set up drivers
 driverFns = {}
 
 # Simple
-# diamondsData = require('../../../data/diamonds.js')
+# diamondsData = require('../../data/diamonds.js')
 # driverFns.simple = simpleDriver(diamondsData)
 
 verbose = false

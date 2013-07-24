@@ -55,6 +55,27 @@ testEquality = utils.makeEqualityTest(driverFns)
 describe "Cache tests", ->
   @timeout(40 * 1000)
 
+  describe "emptyness checker", ->
+    emptyDriver = (request, callback) ->
+      callback(null, {})
+      return
+
+    emptyDriverCached = driverCache({
+      driver: emptyDriver
+    })
+
+    it "should handle {}", (done) ->
+      emptyDriverCached {
+        query: [
+          { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+          { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+        ]
+      }, (err, result) ->
+        expect(err).to.be.null
+        expect(result).to.deep.equal({})
+        done()
+
   describe "(sanity check) apply count", ->
     it "should have the same results for different drivers", testEquality {
       drivers: ['mySqlCached', 'mySql']

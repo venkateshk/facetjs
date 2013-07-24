@@ -38,12 +38,14 @@ describe "SQL driver tests", ->
 
       it "should work with [] return", (done) ->
         nullDriver {query}, (err, result) ->
+          expect(err).to.be.null
           expect(result).to.deep.equal({})
           done()
           return
 
       it "should work with [{result:[]}] return", (done) ->
         emptyDriver {query}, (err, result) ->
+          expect(err).to.be.null
           expect(result).to.deep.equal({})
           done()
           return
@@ -57,12 +59,14 @@ describe "SQL driver tests", ->
 
       it "should work with [] return", (done) ->
         nullDriver {query}, (err, result) ->
+          expect(err).to.be.null
           expect(result).to.deep.equal({})
           done()
           return
 
       it "should work with [{result:[]}] return", (done) ->
         emptyDriver {query}, (err, result) ->
+          expect(err).to.be.null
           expect(result).to.deep.equal({})
           done()
 

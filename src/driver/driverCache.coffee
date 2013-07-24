@@ -109,10 +109,11 @@ class FilterCache
     return
 
   _filterPutHelper: (condensedQuery, node, filter, level) ->
+    return unless node.prop?
+
     hashValue = @hashmap[filterToHash(filter)] ?= {}
     applies = condensedQuery[level].applies
     for apply in applies
-      continue if not node.prop?
       hashValue[apply.name] = node.prop[apply.name] ? hashValue[apply.name]
 
     if node.splits?
@@ -262,12 +263,10 @@ module.exports = ({driver}) ->
     combineOp = condensedQuery[level + 1]?.combine
     filterCacheResult = filterCache.get(filter)
 
-    return unless filterCacheResult?
-    return if filterCacheResult is {}
-
     prop = {}
-    for apply in applies
-      prop[apply.name] = filterCacheResult[apply.name]
+    if filterCacheResult?
+      for apply in applies
+        prop[apply.name] = filterCacheResult[apply.name]
 
     if not splitOp? # end case
       return {
@@ -293,7 +292,6 @@ module.exports = ({driver}) ->
     for value in cachedValues
       newFilter = addToFilter(filter, createFilter(value, splitOp))
       ret = getKnownTreeHelper(condensedQuery, newFilter, level + 1, value)
-      continue unless ret?
       ret.prop[splitOp.name] = value
       splits.push ret
 
@@ -320,6 +318,12 @@ module.exports = ({driver}) ->
 
   getKnownTree = (condensedQuery) ->
     return getKnownTreeHelper(condensedQuery, condensedQuery[0].filter, 0)
+
+  convertEmptyTreeToEmptyObject = (tree) ->
+    propKeys = (key for key, value of tree.prop)
+    return {} if (propKeys.length is 0 and not tree.splits?)
+    return tree
+
 
   return (request, callback) ->
     throw new Error("request not supplied") unless request
@@ -349,7 +353,8 @@ module.exports = ({driver}) ->
 
       splitCache.put(condensedQuery, root)
       filterCache.put(condensedQuery, root)
-      callback(null, getKnownTree(condensedQuery))
+      knownTree = convertEmptyTreeToEmptyObject(getKnownTree(condensedQuery))
+      callback(null, knownTree)
     return
 
 

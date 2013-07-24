@@ -3,14 +3,14 @@ expect = chai.expect
 
 d3 = require("d3")
 
-facet = require('../../../target/facet')
+facet = require('../../target/facet')
 { filter, split, apply, layout, scale, plot, use, combine, sort, transform } = facet
 
-simpleDriver = require('../../../target/simpleDriver')
-diamondsData = require('../../../data/diamonds.js')
+simpleDriver = require('../../target/simpleDriver')
+diamondsData = require('../../data/diamonds.js')
 diamondsSimpleDriver = simpleDriver(diamondsData)
 
-describe "init", ->
+describe "Facet", ->
   it "should make the right number of groups", (done) ->
     facet.define('body', 800, 600, diamondsSimpleDriver)
       .scale('color', scale.color())

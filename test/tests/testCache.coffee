@@ -2,10 +2,10 @@ chai = require("chai")
 expect = chai.expect
 utils = require('../utils')
 
-sqlRequester = require('../../../target/mySqlRequester')
-sqlDriver = require('../../../target/sqlDriver')
-simpleDriver = require('../../../target/simpleDriver')
-driverCache = require('../../../target/driverCache')
+sqlRequester = require('../../target/mySqlRequester')
+sqlDriver = require('../../target/sqlDriver')
+simpleDriver = require('../../target/simpleDriver')
+driverCache = require('../../target/driverCache')
 
 # Set up drivers
 driverFns = {}
@@ -14,7 +14,7 @@ checkEquality = false
 expectedQuery = null
 
 # Simple
-diamondsData = require('../../../data/diamonds.js')
+diamondsData = require('../../data/diamonds.js')
 driverFns.simple = simple = simpleDriver(diamondsData)
 
 # MySQL

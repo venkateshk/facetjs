@@ -76,6 +76,26 @@ describe "Cache tests", ->
         expect(result).to.deep.equal({})
         done()
 
+  describe "zero checker", ->
+    zeroDriver = (request, callback) ->
+      callback(null, { prop: { Count: 0 } })
+      return
+
+    zeroDriverCached = driverCache({
+      driver: zeroDriver
+    })
+
+    it "should handle zeroes", (done) ->
+      zeroDriverCached {
+        query: [
+          { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+          { operation: 'apply', name: 'Count', aggregate: 'constant', value: '0' }
+        ]
+      }, (err, result) ->
+        expect(err).to.be.null
+        expect(result).to.deep.equal({ prop: { Count: 0 } })
+        done()
+
   describe "(sanity check) apply count", ->
     it "should have the same results for different drivers", testEquality {
       drivers: ['mySqlCached', 'mySql']

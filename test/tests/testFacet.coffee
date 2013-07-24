@@ -10,7 +10,7 @@ simpleDriver = require('../../target/simpleDriver')
 diamondsData = require('../../data/diamonds.js')
 diamondsSimpleDriver = simpleDriver(diamondsData)
 
-describe "init", ->
+describe "Facet", ->
   it "should make the right number of groups", (done) ->
     facet.define('body', 800, 600, diamondsSimpleDriver)
       .scale('color', scale.color())

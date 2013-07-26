@@ -13,28 +13,14 @@ allowQuery = true
 checkEquality = false
 expectedQuery = null
 
-# Simple
+# Drivers
 diamondsData = require('../../data/diamonds.js')
-driverFns.simple = simple = simpleDriver(diamondsData)
-
-# MySQL
-sqlPass = sqlRequester({
-  host: 'localhost'
-  database: 'facet'
-  user: 'facet_user'
-  password: 'HadleyWickham'
-})
-
-verbose = false
-sqlPass = utils.wrapVerbose(sqlPass, 'MySQL') if verbose
-
-driverFns.mySql = mySql = sqlDriver({
-  requester: sqlPass
-  table: 'wiki_day_agg'
-})
+wikipediaData = require('../../data/wikipedia.js')
+driverFns.diamonds = diamonds = simpleDriver(diamondsData)
+driverFns.wikipedia = wikipedia = simpleDriver(wikipediaData)
 
 # Cached Versions
-driverFns.simpleCached = driverCache({
+driverFns.diamondsCached = driverCache({
   driver: (query, callback) ->
     if checkEquality
       expect(query.query).to.deep.equal(expectedQuery)
@@ -45,12 +31,12 @@ driverFns.simpleCached = driverCache({
       console.log '---------------'
       throw new Error("query not allowed")
 
-    simple(query, callback)
+    diamonds(query, callback)
     return
   timeAttribute: 'time'
 })
 
-driverFns.mySqlCached = driverCache({
+driverFns.wikipediaCached = driverCache({
   driver: (query, callback) ->
     if checkEquality
       expect(query.query).to.deep.equal(expectedQuery)
@@ -61,7 +47,7 @@ driverFns.mySqlCached = driverCache({
       console.log '---------------'
       throw new Error("query not allowed")
 
-    mySql(query, callback)
+    wikipedia(query, callback)
     return
   timeAttribute: 'time'
 })
@@ -114,7 +100,7 @@ describe "Cache tests", ->
 
   describe "(sanity check) apply count", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['simpleCached', 'simple']
+      drivers: ['diamondsCached', 'diamonds']
       query: [
         { operation: 'apply', name: 'Cheapest', aggregate: 'min', attribute: 'price' }
         { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
@@ -130,7 +116,7 @@ describe "Cache tests", ->
       ]
 
     before (done) ->
-      driverFns.simpleCached({ query: setUpQuery}, (err, result) ->
+      driverFns.diamondsCached({ query: setUpQuery}, (err, result) ->
         throw err if err?
         allowQuery = false
         done()
@@ -140,7 +126,7 @@ describe "Cache tests", ->
     after -> allowQuery = true
 
     it "split Color; apply Revenue; combine descending", testEquality {
-        drivers: ['simpleCached', 'simple']
+        drivers: ['diamondsCached', 'diamonds']
         query: [
           { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
           { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
@@ -149,7 +135,7 @@ describe "Cache tests", ->
       }
 
     it "split Color; apply Revenue, Cheapest; combine descending", testEquality {
-        drivers: ['simpleCached', 'simple']
+        drivers: ['diamondsCached', 'diamonds']
         query: [
           { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
           { operation: 'apply', name: 'Cheapest', aggregate: 'min', attribute: 'price' }
@@ -162,7 +148,7 @@ describe "Cache tests", ->
       before -> allowQuery = true
 
       it "split Color; apply Revenue; combine Revenue, descending", testEquality {
-          drivers: ['simpleCached', 'simple']
+          drivers: ['diamondsCached', 'diamonds']
           query: [
             { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
             { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
@@ -171,7 +157,7 @@ describe "Cache tests", ->
         }
 
       it "split Color; apply Revenue; combine Revenue, ascending", testEquality {
-          drivers: ['simpleCached', 'simple']
+          drivers: ['diamondsCached', 'diamonds']
           query: [
             { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
             { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
@@ -180,7 +166,7 @@ describe "Cache tests", ->
         }
 
       it "split Color; apply Revenue; combine Color, descending", testEquality {
-          drivers: ['simpleCached', 'simple']
+          drivers: ['diamondsCached', 'diamonds']
           query: [
             { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
             { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
@@ -189,7 +175,7 @@ describe "Cache tests", ->
         }
 
       it "split Color; apply Revenue; combine Color, ascending", testEquality {
-          drivers: ['simpleCached', 'simple']
+          drivers: ['diamondsCached', 'diamonds']
           query: [
             { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
             { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
@@ -209,7 +195,7 @@ describe "Cache tests", ->
         ]
 
       before (done) ->
-        driverFns.mySqlCached({query: setUpQuery}, (err, result) ->
+        driverFns.wikipediaCached({query: setUpQuery}, (err, result) ->
           throw err if err?
           allowQuery = false
           done()
@@ -219,7 +205,7 @@ describe "Cache tests", ->
       after -> allowQuery = true
 
       it "split time; apply count", testEquality {
-          drivers: ['mySqlCached', 'mySql']
+          drivers: ['wikipediaCached', 'wikipedia']
           query: [
             { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
             { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
@@ -229,7 +215,7 @@ describe "Cache tests", ->
         }
 
       it "split time; apply count; combine not by time", testEquality {
-          drivers: ['mySqlCached', 'mySql']
+          drivers: ['wikipediaCached', 'wikipedia']
           query: [
             { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
             { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
@@ -239,7 +225,7 @@ describe "Cache tests", ->
         }
 
       it "split time; apply count; filter within another time filter", testEquality {
-          drivers: ['mySqlCached', 'mySql']
+          drivers: ['wikipediaCached', 'wikipedia']
           query: [
             { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 26, 12, 0, 0))] }
             { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
@@ -249,7 +235,7 @@ describe "Cache tests", ->
         }
 
       it "split time; apply count; limit", testEquality {
-          drivers: ['mySqlCached', 'mySql']
+          drivers: ['wikipediaCached', 'wikipedia']
           query: [
             { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
             { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
@@ -272,7 +258,7 @@ describe "Cache tests", ->
         ]
 
       before (done) ->
-        driverFns.mySqlCached({query: setUpQuery}, (err, result) ->
+        driverFns.wikipediaCached({query: setUpQuery}, (err, result) ->
           throw err if err?
           allowQuery = false
           done()
@@ -282,7 +268,7 @@ describe "Cache tests", ->
       after -> allowQuery = true
 
       it "filter; split time; apply count; apply added", testEquality {
-          drivers: ['mySqlCached', 'mySql']
+          drivers: ['wikipediaCached', 'wikipedia']
           query: [
             { operation: 'filter', type: 'and', filters: [
               { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
@@ -296,7 +282,7 @@ describe "Cache tests", ->
         }
 
       it "filter; split time; apply count; apply added; combine time descending", testEquality {
-          drivers: ['mySqlCached', 'mySql']
+          drivers: ['wikipediaCached', 'wikipedia']
           query: [
             { operation: 'filter', type: 'and', filters: [
               { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
@@ -324,7 +310,7 @@ describe "Cache tests", ->
         ]
 
       before (done) ->
-        driverFns.mySqlCached({query: setUpQuery}, (err, result) ->
+        driverFns.wikipediaCached({query: setUpQuery}, (err, result) ->
           throw err if err?
           allowQuery = false
           done()
@@ -334,7 +320,7 @@ describe "Cache tests", ->
       after -> allowQuery = true
 
       it "filter; split time; apply count; apply added", testEquality {
-          drivers: ['mySqlCached', 'mySql']
+          drivers: ['wikipediaCached', 'wikipedia']
           query: [
             { operation: 'filter', type: 'and', filters: [
               { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
@@ -349,7 +335,7 @@ describe "Cache tests", ->
         }
 
       it "filter; split time; apply count; apply added; combine time descending", testEquality {
-          drivers: ['mySqlCached', 'mySql']
+          drivers: ['wikipediaCached', 'wikipedia']
           query: [
             { operation: 'filter', type: 'and', filters: [
               { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
@@ -366,7 +352,7 @@ describe "Cache tests", ->
 
   describe "fillTree test", ->
     it "filter; split time; apply count; apply added", testEquality {
-        drivers: ['mySqlCached', 'mySql']
+        drivers: ['wikipediaCached', 'wikipedia']
         query: [
           { operation: 'filter', type: 'and', filters: [
             { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
@@ -379,7 +365,7 @@ describe "Cache tests", ->
       }
 
     it "filter; split time; apply count; apply added; combine time descending", testEquality {
-        drivers: ['mySqlCached', 'mySql']
+        drivers: ['wikipediaCached', 'wikipedia']
         query: [
           { operation: 'filter', type: 'and', filters: [
             { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
@@ -402,7 +388,7 @@ describe "Cache tests", ->
     ]
 
     before (done) ->
-      driverFns.mySqlCached({query: setUpQuery}, (err, result) ->
+      driverFns.wikipediaCached({query: setUpQuery}, (err, result) ->
         throw err if err?
         allowQuery = false
         done()
@@ -412,7 +398,7 @@ describe "Cache tests", ->
     after -> allowQuery = true
 
     it "filter; split time; apply count; apply added; combine time descending", testEquality {
-        drivers: ['mySqlCached', 'mySql']
+        drivers: ['wikipediaCached', 'wikipedia']
         query: [
           { operation: 'filter', type: 'and', filters: [
             { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
@@ -433,7 +419,7 @@ describe "Cache tests", ->
     ]
 
     before (done) ->
-      driverFns.mySqlCached({query: setUpQuery}, (err, result) ->
+      driverFns.wikipediaCached({query: setUpQuery}, (err, result) ->
         throw err if err?
         checkEquality = true
         done()
@@ -456,7 +442,7 @@ describe "Cache tests", ->
         expectedQuery = null
 
       it "should have the same results for different drivers", testEquality {
-        drivers: ['mySqlCached', 'mySql']
+        drivers: ['wikipediaCached', 'wikipedia']
         query: [
           { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
           { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
@@ -478,7 +464,7 @@ describe "Cache tests", ->
     ]
 
     before (done) ->
-      driverFns.simpleCached({query: setUpQuery}, (err, result) ->
+      driverFns.diamondsCached({query: setUpQuery}, (err, result) ->
         throw err if err?
         allowQuery = false
         done()
@@ -488,7 +474,7 @@ describe "Cache tests", ->
     after -> allowQuery = true
 
     it "filter; split time; apply count; split time; apply count; combine count descending", testEquality {
-        drivers: ['simpleCached', 'simple']
+        drivers: ['diamondsCached', 'diamonds']
         query: [
           { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
           { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
@@ -515,7 +501,7 @@ describe "Cache tests", ->
     ]
 
     before (done) ->
-      driverFns.simpleCached({query: setUpQuery}, (err, result) ->
+      driverFns.diamondsCached({query: setUpQuery}, (err, result) ->
         throw err if err?
         done()
         return
@@ -526,7 +512,7 @@ describe "Cache tests", ->
       after -> allowQuery = true
 
       it "should have the same results for different drivers", testEquality {
-        drivers: ['simpleCached', 'simple']
+        drivers: ['diamondsCached', 'diamonds']
         query: [
           { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
           { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
@@ -564,7 +550,7 @@ describe "Cache tests", ->
         expectedQuery = null
 
       it "should have the same results for different drivers", testEquality {
-        drivers: ['simpleCached', 'simple']
+        drivers: ['diamondsCached', 'diamonds']
         query: [
           { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
           { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
@@ -600,7 +586,7 @@ describe "Cache tests", ->
       after -> checkEquality = false
 
       it "should have the same results for different drivers", testEquality {
-        drivers: ['simpleCached', 'simple']
+        drivers: ['diamondsCached', 'diamonds']
         query: [
           { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
           { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
@@ -621,7 +607,7 @@ describe "Cache tests", ->
       after -> allowQuery = true
 
       it "should have the same results for different drivers", testEquality {
-        drivers: ['simpleCached', 'simple']
+        drivers: ['diamondsCached', 'diamonds']
         query: [
           { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
           { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
@@ -642,7 +628,7 @@ describe "Cache tests", ->
       after -> allowQuery = true
 
       it "should have the same results for different drivers", testEquality {
-        drivers: ['simpleCached', 'simple']
+        drivers: ['diamondsCached', 'diamonds']
         query: [
           { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
           { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }

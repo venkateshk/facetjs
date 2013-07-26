@@ -37,14 +37,13 @@ generateHash = (filter, splitOp, combineOp) ->
 separateTimeFilter = (filter) ->
   if filter.filters?
     timeFilter = filter.filters.filter((({type}) -> type is 'within'), this)[0]
-    filtersWithoutTime = filter.filters.filter((({type}) -> type is 'within'), this)
+    filtersWithoutTime = filter.filters.filter((({type}) -> type isnt 'within'), this)
     if filtersWithoutTime.length is 1
       return {
         filter: filtersWithoutTime[0]
         timeFilter
       }
     else
-      filter.filters = filtersWithoutTime
       return {
         filter: {
           type: 'and'
@@ -59,18 +58,20 @@ separateTimeFilter = (filter) ->
       timeFilter: filter
     }
 
-addToFilter = (filter, newFilterPieces...) ->
-  if filter?
+addToFilter = (givenFilter, newFilterPieces...) ->
+  if givenFilter?
     newTimeFilterPiece = newFilterPieces.filter(({type}) -> return type is 'within')[0]
-    if newTimeFilterPiece?.type is 'within'
-      { filter, timeFilter } = separateTimeFilter(filter)
-    newFilterPieces.push filter
+    if newTimeFilterPiece?
+      { filter: givenFilter, timeFilter } = separateTimeFilter(givenFilter)
+    newFilterPieces.push givenFilter
+
   if newFilterPieces.length > 1
     return {
       type: 'and'
       operation: 'filter'
       filters: newFilterPieces
     }
+
   return newFilterPieces[0]
 
 createFilter = (value, splitOp) ->
@@ -184,6 +185,7 @@ class SplitCache
         timestamp = new Date(timestamp.valueOf() + period)
     else
       throw new Error("unknown time bucket")
+
     return timestamps
 
 
@@ -346,7 +348,7 @@ module.exports = ({driver}) ->
       callback(null, root)
       return
 
-    return driver {query: unknownQuery}, (err, root) ->
+    return driver {context, query: unknownQuery}, (err, root) ->
       if err?
         callback(err, null)
         return

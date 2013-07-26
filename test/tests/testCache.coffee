@@ -256,7 +256,7 @@ describe "Cache tests", ->
 
 
     # Cache Test 2
-  describe "filter; split time; apply count; apply added", ->
+  describe "filter one thing; split time; apply count; apply added", ->
     setUpQuery = [
         { operation: 'filter', type: 'and', filters: [
           { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
@@ -297,6 +297,59 @@ describe "Cache tests", ->
         query: [
           { operation: 'filter', type: 'and', filters: [
             { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
+            { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+          ]}
+          { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
+          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+          { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'descending' } }
+        ]
+      }
+
+  describe "filter 2 things; split time; apply count; apply added", ->
+    setUpQuery = [
+        { operation: 'filter', type: 'and', filters: [
+          { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
+          { operation: 'filter', attribute: 'namespace', type: 'is', value: 'article' }
+          { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+        ]}
+        { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
+        { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+        { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
+      ]
+
+    before (done) ->
+      driverFns.mySqlCached({query: setUpQuery}, (err, result) ->
+        throw err if err?
+        allowQuery = false
+        done()
+        return
+      )
+
+    after -> allowQuery = true
+
+    it "filter; split time; apply count; apply added", testEquality {
+        drivers: ['mySqlCached', 'mySql']
+        query: [
+          { operation: 'filter', type: 'and', filters: [
+            { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
+            { operation: 'filter', attribute: 'namespace', type: 'is', value: 'article' }
+            { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+          ]}
+          { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
+          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+          { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
+        ]
+      }
+
+    it "filter; split time; apply count; apply added; combine time descending", testEquality {
+        drivers: ['mySqlCached', 'mySql']
+        query: [
+          { operation: 'filter', type: 'and', filters: [
+            { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
+            { operation: 'filter', attribute: 'namespace', type: 'is', value: 'article' }
             { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
           ]}
           { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }

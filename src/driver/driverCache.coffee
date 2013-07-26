@@ -6,6 +6,7 @@ driverUtil = require('./driverUtil')
 filterToHash = (filter) ->
   return '' unless filter?
   hash = []
+  filter = driverUtil.simplifyFilter(filter)
   if filter.filters?
     for subFilter in filter.filters
       hash.push filterToHash(subFilter)
@@ -34,35 +35,13 @@ generateHash = (filter, splitOp, combineOp) ->
   # Get Filter and Split
   return filterToHash(filter) + '&' + splitToHash(splitOp) + '&' + combineToHash(combineOp)
 
-separateTimeFilter = (filter) ->
-  if filter.filters?
-    timeFilter = filter.filters.filter((({type}) -> type is 'within'), this)[0]
-    filtersWithoutTime = filter.filters.filter((({type}) -> type isnt 'within'), this)
-    if filtersWithoutTime.length is 1
-      return {
-        filter: filtersWithoutTime[0]
-        timeFilter
-      }
-    else
-      return {
-        filter: {
-          type: 'and'
-          operation: 'filter'
-          filters: filtersWithoutTime
-        }
-        timeFilter
-      }
-  else # Only time filter exists
-    return {
-      filter: null
-      timeFilter: filter
-    }
-
-addToFilter = (givenFilter, newFilterPieces...) ->
+addToFilter = (givenFilter, timeAttribute, newFilterPieces...) ->
   if givenFilter?
-    newTimeFilterPiece = newFilterPieces.filter(({type}) -> return type is 'within')[0]
+    newTimeFilterPiece = newFilterPieces.filter(({attribute}) -> return attribute is timeAttribute)[0]
     if newTimeFilterPiece?
-      { filter: givenFilter, timeFilter } = separateTimeFilter(givenFilter)
+      separatedFilters = driverUtil.extractAttributeFilter(givenFilter, timeAttribute)
+      timeFilter = separatedFilters[0]
+      givenFilter = separatedFilters[1]
     newFilterPieces.push givenFilter
 
   if newFilterPieces.length > 1
@@ -95,7 +74,7 @@ class FilterCache
   # { key: filter,
   #   value: { key: metric,
   #            value: value } }
-  constructor: ->
+  constructor: (@timeAttribute) ->
     @hashmap = {}
 
   get: (filter) ->
@@ -120,7 +99,7 @@ class FilterCache
     if node.splits?
       splitOp = condensedQuery[level + 1].split
       for split in node.splits
-        newFilter = addToFilter(filter, createFilter(split.prop[splitOp.name], splitOp))
+        newFilter = addToFilter(filter, @timeAttribute, createFilter(split.prop[splitOp.name], splitOp))
         @_filterPutHelper(condensedQuery, split, newFilter, level + 1)
     return
 
@@ -129,7 +108,7 @@ class SplitCache
   # { key: filter,
   #   value: { key: split,
   #            value: [list of dimension values] } }
-  constructor: ->
+  constructor: (@timeAttribute) ->
     @hashmap = {}
 
   get: (filter, splitOp, combineOp) ->
@@ -158,12 +137,13 @@ class SplitCache
 
     if condensedQuery[level + 2]?
       for split in node.splits
-        newFilter = addToFilter(filter, createFilter(split.prop[splitOpName], splitOp))
+        newFilter = addToFilter(filter, @timeAttribute, createFilter(split.prop[splitOpName], splitOp))
         @_splitPutHelper(condensedQuery, split, newFilter, level + 1)
     return
 
   _timeCalculate: (filter, splitOp) ->
-    {timeFilter} = separateTimeFilter(filter)
+    separatedFilters = driverUtil.extractAttributeFilter(filter, @timeAttribute)
+    timeFilter = separatedFilters[0]
     timestamps = []
     timestamp = new Date(timeFilter.range[0])
     end = new Date(timeFilter.range[1])
@@ -189,9 +169,10 @@ class SplitCache
     return timestamps
 
 
-module.exports = ({driver}) ->
-  splitCache = new SplitCache()
-  filterCache = new FilterCache()
+module.exports = ({driver, timeAttribute}) ->
+  timeAttribute ?= 'timestamp'
+  splitCache = new SplitCache(timeAttribute)
+  filterCache = new FilterCache(timeAttribute)
 
   checkDeep = (node, currentLevel, targetLevel, name, bucketFilter) ->
     if currentLevel is targetLevel
@@ -292,7 +273,7 @@ module.exports = ({driver}) ->
     splits = []
 
     for value in cachedValues
-      newFilter = addToFilter(filter, createFilter(value, splitOp))
+      newFilter = addToFilter(filter, timeAttribute, createFilter(value, splitOp))
       ret = getKnownTreeHelper(condensedQuery, newFilter, level + 1, value)
       ret.prop[splitOp.name] = value
       splits.push ret

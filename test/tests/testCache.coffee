@@ -47,6 +47,7 @@ driverFns.simpleCached = driverCache({
 
     simple(query, callback)
     return
+  timeAttribute: 'time'
 })
 
 driverFns.mySqlCached = driverCache({
@@ -62,6 +63,7 @@ driverFns.mySqlCached = driverCache({
 
     mySql(query, callback)
     return
+  timeAttribute: 'time'
 })
 
 testEquality = utils.makeEqualityTest(driverFns)

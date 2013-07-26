@@ -474,12 +474,18 @@ exports.parentify = parentify = (root, parent = null) ->
       parentify(split, root)
   return root
 
+
 # Get filter from query
 exports.getFilter = getFilter = (query) ->
   return if query[0]?.operation is 'filter' then query[0] else null
 
 
 # Separate filters into ones with a certain attribute and ones without
+# Such that the WithFilter AND WithoutFilter are semantically equivalent to the original filter
+#
+# @param {FacetFilter} filter - the filter to separate
+# @param {String} attribute - the attribute which to separate out
+# @return {null|Array} null|[WithFilter, WithoutFilter] - the separated filters
 exports.extractAttributeFilter = extractAttributeFilter = (filter, attribute) ->
   if filter is null
     return [null, null]

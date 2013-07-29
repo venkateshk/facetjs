@@ -285,7 +285,7 @@ module.exports = ({driver, timeAttribute}) ->
           if a.prop[sortProp][0]?
             return b.prop[sortProp][0] - a.prop[sortProp][0]
           return b.prop[sortProp] - a.prop[sortProp])
-      else if 'ascending'
+      else if combineOp.sort.direction is 'ascending'
         splits.sort((a, b) ->
           if a.prop[sortProp][0]?
             return a.prop[sortProp][0] - b.prop[sortProp][0]

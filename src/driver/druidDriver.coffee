@@ -261,7 +261,8 @@ class DruidQueryBuilder
         }
         aggregation.lowerLimit = split.lowerLimit if split.lowerLimit?
         aggregation.upperLimit = split.upperLimit if split.upperLimit?
-
+        options = split.options or {}
+        aggregation.resolution = options.druidResolution if options.druidResolution
         tempHistogramName = @addAggregation(aggregation)
         @addPostAggregation {
           type: "buckets"
@@ -320,6 +321,9 @@ class DruidQueryBuilder
          existingAggregation.fnAggregate is aggregation.fnAggregate and
          existingAggregation.fnCombine is aggregation.fnCombine and
          existingAggregation.fnReset is aggregation.fnReset and
+         existingAggregation.resolution is aggregation.resolution and
+         existingAggregation.lowerLimit is aggregation.lowerLimit and
+         existingAggregation.upperLimit is aggregation.upperLimit and
          (@isThrowawayName(existingAggregation.name) or @isThrowawayName(aggregation.name))
 
         if @isThrowawayName(aggregation.name)
@@ -485,11 +489,15 @@ class DruidQueryBuilder
           when 'quantile'
             throw new Error("approximate queries not allowed") unless @approximate
             throw new Error("quantile apply must have quantile") unless apply.quantile
-
-            histogramAggregationName = @addAggregation {
+            aggregation = {
               type: "approxHistogramFold"
               fieldName: apply.attribute
             }
+            options = apply.options or {}
+            aggregation.lowerLimit = options.druidLowerLimit if options.druidLowerLimit?
+            aggregation.lowerUpper = options.druidLowerUpper if options.druidLowerUpper?
+            aggregation.resolution = options.druidResolution if options.druidResolution
+            histogramAggregationName = @addAggregation(aggregation)
             postAggregation = {
               type: "quantile"
               fieldName: histogramAggregationName

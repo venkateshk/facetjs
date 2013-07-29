@@ -340,6 +340,14 @@ describe "Utility", ->
         value: 'Google'
       })
 
+    it "gets rid of empty IN", ->
+      expect(driverUtil.simplifyFilter({
+        type: 'in'
+        values: []
+      })).to.deep.equal({
+        type: 'false'
+      })
+
     it "gets rid of empty ORs", ->
       expect(driverUtil.simplifyFilter({
         type: 'or'

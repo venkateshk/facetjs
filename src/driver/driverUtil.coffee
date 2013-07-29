@@ -341,49 +341,58 @@ filterCompare = (filter1, filter2) ->
 # - sorts lists of filters within an AND / OR by attribute
 exports.simplifyFilter = simplifyFilter = (filter) ->
   throw new TypeError("must have filter") unless filter
-  return filter if filter.type in ['true', 'false', 'is', 'in', 'fragments', 'match', 'within']
-
-  if filter.type is 'not'
-    switch filter.filter.type
-      when 'true' then return { type: 'false' }
-      when 'false' then return { type: 'true' }
-      when 'not' then return simplifyFilter(filter.filter.filter)
-      else return { type: 'not', filter: simplifyFilter(filter.filter) }
-
   type = filter.type
-  throw new Error("unexpected filter type") unless type in ['and', 'or']
-  newFilters = []
-  for f in filter.filters
-    f = simplifyFilter(f)
 
-    # everything
-    if f.type is 'true'
-      if type is 'and'
-        continue # Makes no difference in an AND
-      else
-        return { type: 'true' } # An OR with 'true' inside of it is always true
+  switch type
+    when 'in'
+      return if filter.values.length then filter else { type: 'false' }
 
-    # nothing
-    if f.type is 'false'
-      if type is 'or'
-        continue # Makes no difference in an OR
-      else
-        return { type: 'false' } # An AND with 'false' inside of it is always false
+    when 'true', 'false', 'is', 'fragments', 'match', 'within'
+      return filter
 
-    if f.type is type
-      Array::push.apply(newFilters, f.filters)
+    when 'not'
+      switch filter.filter.type
+        when 'true' then return { type: 'false' }
+        when 'false' then return { type: 'true' }
+        when 'not' then return simplifyFilter(filter.filter.filter)
+        else return { type: 'not', filter: simplifyFilter(filter.filter) }
+
+    when 'and', 'or'
+      newFilters = []
+      for f in filter.filters
+        f = simplifyFilter(f)
+
+        # everything
+        if f.type is 'true'
+          if type is 'and'
+            continue # Makes no difference in an AND
+          else
+            return { type: 'true' } # An OR with 'true' inside of it is always true
+
+        # nothing
+        if f.type is 'false'
+          if type is 'or'
+            continue # Makes no difference in an OR
+          else
+            return { type: 'false' } # An AND with 'false' inside of it is always false
+
+        if f.type is type
+          Array::push.apply(newFilters, f.filters)
+        else
+          newFilters.push(f)
+
+      switch newFilters.length
+        when 0 then return { type: String(type is 'and') }
+        when 1 then return newFilters[0]
+        else
+          newFilters.sort(filterCompare)
+          return {
+            type
+            filters: newFilters
+          }
+
     else
-      newFilters.push(f)
-
-  return { type: String(type is 'and') } if newFilters.length is 0
-  return newFilters[0] if newFilters.length is 1
-
-  newFilters.sort(filterCompare)
-  return {
-    type
-    filters: newFilters
-  }
-
+      throw new Error("unexpected filter type '#{type}'")
 
 orReduceFunction = (prev, now, index, all) ->
   if (index < all.length - 1)

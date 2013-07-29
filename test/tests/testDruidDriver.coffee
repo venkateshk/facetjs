@@ -7,8 +7,8 @@ druidDriver = require('../../target/druidDriver')
 
 verbose = false
 
-describe "Druid driver tests", ->
-  #@timeout(40 * 1000)
+describe "Druid driver", ->
+  @timeout(5 * 1000)
 
   describe "should work when getting back [] and [{result:[]}]", ->
     nullRequester = (query, callback) ->

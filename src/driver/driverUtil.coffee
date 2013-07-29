@@ -340,18 +340,15 @@ filterCompare = (filter1, filter2) ->
 # - flattens nested ORs
 # - sorts lists of filters within an AND / OR by attribute
 exports.simplifyFilter = simplifyFilter = (filter) ->
-  return filter if not filter or filter.type in ['is', 'in', 'fragments', 'match', 'within']
+  throw new TypeError("must have filter") unless filter
+  return filter if filter.type in ['true', 'false', 'is', 'in', 'fragments', 'match', 'within']
 
   if filter.type is 'not'
-    return { type: 'false' } if filter.filter is null
-    return null if filter.filter.type is 'false'
-    if filter.filter.type is 'not'
-      return simplifyFilter(filter.filter.filter)
-    else
-      return {
-        type: 'not'
-        filter: simplifyFilter(filter.filter)
-      }
+    switch filter.filter.type
+      when 'true' then return { type: 'false' }
+      when 'false' then return { type: 'true' }
+      when 'not' then return simplifyFilter(filter.filter.filter)
+      else return { type: 'not', filter: simplifyFilter(filter.filter) }
 
   type = filter.type
   throw new Error("unexpected filter type") unless type in ['and', 'or']
@@ -360,11 +357,11 @@ exports.simplifyFilter = simplifyFilter = (filter) ->
     f = simplifyFilter(f)
 
     # everything
-    if f is null
+    if f.type is 'true'
       if type is 'and'
         continue # Makes no difference in an AND
       else
-        return null # An OR with 'true' inside of it is always true
+        return { type: 'true' } # An OR with 'true' inside of it is always true
 
     # nothing
     if f.type is 'false'
@@ -378,9 +375,7 @@ exports.simplifyFilter = simplifyFilter = (filter) ->
     else
       newFilters.push(f)
 
-  if newFilters.length is 0
-    return if type is 'and' then null else { type: 'false' }
-
+  return { type: String(type is 'and') } if newFilters.length is 0
   return newFilters[0] if newFilters.length is 1
 
   newFilters.sort(filterCompare)
@@ -403,9 +398,11 @@ andReduceFunction = (prev, now, index, all) ->
     return prev + ', and ' + now
 
 exports.filterToString = filterToString = (filter) ->
-  return "No filter exists" unless filter?
+  throw new TypeError("must have filter") unless filter
 
   switch filter.type
+    when "true"
+      return "Everything"
     when "false"
       return "Nothing"
     when "is"
@@ -477,54 +474,54 @@ exports.parentify = parentify = (root, parent = null) ->
 
 # Get filter from query
 exports.getFilter = getFilter = (query) ->
-  return if query[0]?.operation is 'filter' then query[0] else null
+  return if query[0]?.operation is 'filter' then query[0] else { type: 'true' }
 
 
 # Separate filters into ones with a certain attribute and ones without
-# Such that the WithFilter AND WithoutFilter are semantically equivalent to the original filter
+# Such that the WithoutFilter AND WithFilter are semantically equivalent to the original filter
 #
 # @param {FacetFilter} filter - the filter to separate
 # @param {String} attribute - the attribute which to separate out
-# @return {null|Array} null|[WithFilter, WithoutFilter] - the separated filters
-exports.extractAttributeFilter = extractAttributeFilter = (filter, attribute) ->
+# @return {null|Array} null|[WithoutFilter, WithFilter] - the separated filters
+exports.extractFilterByAttribute = extractFilterByAttribute = (filter, attribute) ->
+  throw new TypeError("must have filter") unless filter
+  throw new TypeError("must have attribute") unless typeof attribute is 'string'
+
   if filter is null
     return [null, null]
 
-  if filter.type in ['false', 'is', 'in', 'fragments', 'match', 'within']
-    if filter.type isnt 'false' and filter.attribute is attribute
-      return [filter, null]
+  if filter.type in ['true', 'false', 'is', 'in', 'fragments', 'match', 'within']
+    if filter.type in ['true', 'false'] or filter.attribute isnt attribute
+      return [filter]
     else
-      return [null, filter]
+      return [{type: 'true'}, filter]
 
   if filter.type is 'not'
-    return null unless filter.filter.type in ['false', 'is', 'in', 'fragments', 'match', 'within']
-    if filter.filter.type isnt 'false' and filter.filter.attribute is attribute
-      return [filter, null]
+    return null unless filter.filter.type in ['true', 'false', 'is', 'in', 'fragments', 'match', 'within']
+    if filter.filter.type is ['true', 'false'] or filter.filter.attribute isnt attribute
+      return [filter]
     else
-      return [null, filter]
+      return [{type: 'true'}, filter]
 
   if filter.type is 'or'
     hasNoClaim = (f) ->
-      extract = extractAttributeFilter(f, attribute)
-      return extract and extract[0] is null
+      extract = extractFilterByAttribute(f, attribute)
+      return extract and extract.length is 1
 
-    if filter.filters.every(hasNoClaim)
-      return [null, filter]
-    else
-      return null
+    return if filter.filters.every(hasNoClaim) then [filter] else null
 
   # filter.type is 'and'
-  extractedFilters = []
   remainingFilters = []
+  extractedFilters = []
   for f,i in filter.filters
-    ex = extractAttributeFilter(f, attribute)
+    ex = extractFilterByAttribute(f, attribute)
     return null if ex is null
-    extractedFilters.push(ex[0])
-    remainingFilters.push(ex[1])
+    remainingFilters.push(ex[0])
+    extractedFilters.push(ex[1]) if ex.length > 1
 
   return [
-    simplifyFilter({ type: 'and', filters: extractedFilters })
     simplifyFilter({ type: 'and', filters: remainingFilters })
+    simplifyFilter({ type: 'and', filters: extractedFilters })
   ]
 
 # -----------------------------------------------------

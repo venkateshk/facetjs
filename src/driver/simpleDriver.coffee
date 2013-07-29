@@ -6,6 +6,9 @@ driverUtil = require('./driverUtil')
 # -----------------------------------------------------
 
 filterFns = {
+  true: ->
+    return -> true
+
   false: ->
     return -> false
 

@@ -48,12 +48,27 @@ A filter is a function that filters out parts of the dashboards
 
 Filters need to be tagged with ```operation: 'filter'```
 
-#### block
+#### true
 Facet:
 
 ```javascript
 {
-  type: 'block'
+  type: 'true'
+}
+```
+
+SQL WHERE:
+
+```sql
+1 = 1
+```
+
+#### false
+Facet:
+
+```javascript
+{
+  type: 'false'
 }
 ```
 

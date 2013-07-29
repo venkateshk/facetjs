@@ -39,9 +39,9 @@ addToFilter = (givenFilter, timeAttribute, newFilterPieces...) ->
   if givenFilter?
     newTimeFilterPiece = newFilterPieces.filter(({attribute}) -> return attribute is timeAttribute)[0]
     if newTimeFilterPiece?
-      separatedFilters = driverUtil.extractAttributeFilter(givenFilter, timeAttribute)
-      timeFilter = separatedFilters[0]
-      givenFilter = separatedFilters[1]
+      separatedFilters = driverUtil.extractFilterByAttribute(givenFilter, timeAttribute)
+      givenFilter = separatedFilters[0]
+      timeFilter = separatedFilters[1]
     newFilterPieces.push givenFilter
 
   if newFilterPieces.length > 1
@@ -142,8 +142,8 @@ class SplitCache
     return
 
   _timeCalculate: (filter, splitOp) ->
-    separatedFilters = driverUtil.extractAttributeFilter(filter, @timeAttribute)
-    timeFilter = separatedFilters[0]
+    separatedFilters = driverUtil.extractFilterByAttribute(filter, @timeAttribute)
+    timeFilter = separatedFilters[1]
     timestamps = []
     timestamp = new Date(timeFilter.range[0])
     end = new Date(timeFilter.range[1])

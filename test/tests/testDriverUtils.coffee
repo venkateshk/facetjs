@@ -3,7 +3,7 @@ expect = chai.expect
 driverUtil = require('../../target/driverUtil')
 data = require('../data')
 
-describe "Utility tests", ->
+describe "Utility", ->
   describe "flatten", ->
     it "should work on an empty list", ->
       expect(driverUtil.flatten([])).to.deep.equal([])
@@ -276,7 +276,9 @@ describe "Utility tests", ->
       expect(driverUtil.simplifyFilter({
         type: 'and'
         filters: []
-      })).to.deep.equal(null)
+      })).to.deep.equal({
+        type: 'true'
+      })
 
     it "gets rid of single ANDs", ->
       expect(driverUtil.simplifyFilter({
@@ -294,7 +296,7 @@ describe "Utility tests", ->
         value: 'Google'
       })
 
-    it "gets rid of nulls in ANDs", ->
+    it "gets rid of TRUEs in ANDs", ->
       expect(driverUtil.simplifyFilter({
         type: 'and'
         filters: [
@@ -303,7 +305,9 @@ describe "Utility tests", ->
             attribute: 'venue'
             value: 'Google'
           }
-          null
+          {
+            type: 'true'
+          }
         ]
       })).to.deep.equal({
         type: 'is'
@@ -385,21 +389,25 @@ describe "Utility tests", ->
         value: 'Google'
       })
 
-    it "gets rid of not(null)", ->
+    it "gets rid of NOT(TRUE)", ->
       expect(driverUtil.simplifyFilter({
         type: 'not'
-        filter: null
+        filter: {
+          type: 'true'
+        }
       })).to.deep.equal({
         type: 'false'
       })
 
-    it "gets rid of not(false)", ->
+    it "gets rid of NOT(FALSE)", ->
       expect(driverUtil.simplifyFilter({
         type: 'not'
         filter: {
           type: 'false'
         }
-      })).to.deep.equal(null)
+      })).to.deep.equal({
+        type: 'true'
+      })
 
     it "handles not()", ->
       expect(driverUtil.simplifyFilter({
@@ -418,7 +426,7 @@ describe "Utility tests", ->
         }
       })
 
-    it "gets rid of not(not())", ->
+    it "gets rid of NOT(NOT(*))", ->
       expect(driverUtil.simplifyFilter({
         type: 'not'
         filter: {
@@ -436,28 +444,38 @@ describe "Utility tests", ->
       })
 
 
-  describe "extractAttributeFilter", ->
+  describe "extractFilterByAttribute", ->
+    it 'throws on bad input', ->
+      expect(->
+        driverUtil.extractFilterByAttribute(null, 'country')
+      ).to.throw(TypeError)
+
+      expect(->
+        driverUtil.extractFilterByAttribute({ type: 'true' })
+      ).to.throw(TypeError)
+
     it 'works on a single included filter', ->
-      expect(driverUtil.extractAttributeFilter({
+      expect(driverUtil.extractFilterByAttribute({
         type: 'is'
         attribute: 'venue'
         value: 'Google'
       }, 'venue')).to.deep.equal([
         {
+          type: 'true'
+        }
+        {
           type: 'is'
           attribute: 'venue'
           value: 'Google'
         }
-        null
       ])
 
     it 'works on a single excluded filter', ->
-      expect(driverUtil.extractAttributeFilter({
+      expect(driverUtil.extractFilterByAttribute({
         type: 'is'
         attribute: 'venue'
         value: 'Google'
       }, 'advertiser')).to.deep.equal([
-        null
         {
           type: 'is'
           attribute: 'venue'
@@ -466,7 +484,7 @@ describe "Utility tests", ->
       ])
 
     it 'works on a small AND filter', ->
-      expect(driverUtil.extractAttributeFilter({
+      expect(driverUtil.extractFilterByAttribute({
         type: 'and'
         filters: [
           {
@@ -483,18 +501,18 @@ describe "Utility tests", ->
       }, 'country')).to.deep.equal([
         {
           type: 'is'
-          attribute: 'country'
-          value: 'USA'
+          attribute: 'venue'
+          value: 'Google'
         }
         {
           type: 'is'
-          attribute: 'venue'
-          value: 'Google'
+          attribute: 'country'
+          value: 'USA'
         }
       ])
 
     it 'works on an AND filter', ->
-      expect(driverUtil.extractAttributeFilter({
+      expect(driverUtil.extractFilterByAttribute({
         type: 'and'
         filters: [
           {
@@ -515,11 +533,6 @@ describe "Utility tests", ->
         ]
       }, 'country')).to.deep.equal([
         {
-          type: 'is'
-          attribute: 'country'
-          value: 'USA'
-        }
-        {
           type: 'and'
           filters: [
             {
@@ -534,10 +547,15 @@ describe "Utility tests", ->
             }
           ]
         }
+        {
+          type: 'is'
+          attribute: 'country'
+          value: 'USA'
+        }
       ])
 
     it 'extracts a NOT filter', ->
-      expect(driverUtil.extractAttributeFilter({
+      expect(driverUtil.extractFilterByAttribute({
         type: 'and'
         filters: [
           {
@@ -561,14 +579,6 @@ describe "Utility tests", ->
         ]
       }, 'country')).to.deep.equal([
         {
-          type: 'not'
-          filter: {
-            type: 'is'
-            attribute: 'country'
-            value: 'USA'
-          }
-        }
-        {
           type: 'and'
           filters: [
             {
@@ -583,25 +593,32 @@ describe "Utility tests", ->
             }
           ]
         }
+        {
+          type: 'not'
+          filter: {
+            type: 'is'
+            attribute: 'country'
+            value: 'USA'
+          }
+        }
       ])
 
-    it 'works with an empty filter', ->
-      expect(driverUtil.extractAttributeFilter(null, 'country')
-      ).to.deep.equal([
-        null
-        null
+    it 'works with a true filter', ->
+      expect(driverUtil.extractFilterByAttribute({
+        type: 'true'
+      }, 'country')).to.deep.equal([
+        { type: 'true' }
       ])
 
     it 'works with a false filter', ->
-      expect(driverUtil.extractAttributeFilter({
+      expect(driverUtil.extractFilterByAttribute({
         type: 'false'
       }, 'country')).to.deep.equal([
-        null
         { type: 'false' }
       ])
 
     it 'does not work on OR filter', ->
-      expect(driverUtil.extractAttributeFilter({
+      expect(driverUtil.extractFilterByAttribute({
         type: 'or'
         filters: [
           {
@@ -624,15 +641,18 @@ describe "Utility tests", ->
 
 
   describe 'filterToString', ->
+    it 'needs a filter', ->
+      expect(->
+        driverUtil.filterToString(null)
+      ).to.throw(TypeError)
+
     it 'properly translates empty filter', ->
-      filter = null
-      expect(driverUtil.filterToString(filter)).to.equal('No filter exists')
-      return
+      filter = { type: 'true' }
+      expect(driverUtil.filterToString(filter)).to.equal('Everything')
 
     it 'properly translates false filter', ->
       filter = { type: 'false' }
       expect(driverUtil.filterToString(filter)).to.equal('Nothing')
-      return
 
     it 'properly translates is filter', ->
       filter = {
@@ -641,7 +661,6 @@ describe "Utility tests", ->
         value: 'Red'
       }
       expect(driverUtil.filterToString(filter)).to.equal('Color is Red')
-      return
 
     it 'properly translates in filter', ->
       filter = {
@@ -671,7 +690,6 @@ describe "Utility tests", ->
         values: ['Red', 'Blue', 'Green']
       }
       expect(driverUtil.filterToString(filter)).to.equal('Color is one of: Red, Blue, or Green')
-      return
 
     it 'properly translates fragements filter', ->
       filter = {
@@ -680,7 +698,6 @@ describe "Utility tests", ->
         fragments: ['Red', 'Blue']
       }
       expect(driverUtil.filterToString(filter)).to.equal("Color contains 'Red', and 'Blue'")
-      return
 
     it 'properly translates match filter', ->
       filter = {
@@ -689,7 +706,6 @@ describe "Utility tests", ->
         match: "^R"
       }
       expect(driverUtil.filterToString(filter)).to.equal('Color matches /^R/')
-      return
 
     it 'properly translates within filter', ->
       filter = {
@@ -705,7 +721,6 @@ describe "Utility tests", ->
         range: ["2013-07-09T20:30:40.251Z", "2014-07-09T20:30:40.251Z"]
       }
       expect(driverUtil.filterToString(filter)).to.equal("Time is within 2013-07-09T20:30:40.251Z and 2014-07-09T20:30:40.251Z")
-      return
 
     it 'properly translates not filter', ->
       filter = {
@@ -717,7 +732,6 @@ describe "Utility tests", ->
         }
       }
       expect(driverUtil.filterToString(filter)).to.equal('not (Color is Red)')
-      return
 
     it 'properly translates and filter', ->
       filter = {
@@ -748,7 +762,6 @@ describe "Utility tests", ->
         ]
       }
       expect(driverUtil.filterToString(filter)).to.equal("(Color is Red) and (Color is either Red or Blue)")
-      return
 
     it 'properly translates or filter', ->
       filter = {
@@ -779,7 +792,6 @@ describe "Utility tests", ->
         ]
       }
       expect(driverUtil.filterToString(filter)).to.equal("(Color is Red) or (Color is either Red or Blue)")
-      return
 
     it 'handles bad filter type', ->
       filter = {
@@ -787,10 +799,9 @@ describe "Utility tests", ->
         attribute: 'Color'
         value: 'Red'
       }
-      testFn = () ->
-        return driverUtil.filterToString(filter)
-      expect(testFn).to.throw(TypeError, 'bad filter type')
-      return
+      expect(->
+        driverUtil.filterToString(filter)
+      ).to.throw(TypeError, 'bad filter type')
 
     it 'properly translates nested filter 1', ->
       filter = {
@@ -812,7 +823,6 @@ describe "Utility tests", ->
         }
       }
       expect(driverUtil.filterToString(filter)).to.equal("not ((Color is Red) or (Color is either Red or Blue))")
-      return
 
     it 'properly translates nested filter 2', ->
       filter = {
@@ -839,4 +849,3 @@ describe "Utility tests", ->
         ]
       }
       expect(driverUtil.filterToString(filter)).to.equal("(Color is Red) and (Color is either Red or Blue) and (not (Color is Red))")
-      return

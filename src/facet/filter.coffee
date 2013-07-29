@@ -7,6 +7,10 @@
 # { type: "or", filters: [{...}] }
 
 facet.filter = {
+  true: -> {
+    type: 'true'
+  }
+
   false: -> {
     type: 'false'
   }

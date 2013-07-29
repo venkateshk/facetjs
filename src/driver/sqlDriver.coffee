@@ -40,6 +40,9 @@ class SQLQueryBuilder
 
   filterToSQL: (filter) ->
     switch filter.type
+      when 'true'
+        "1 = 1"
+
       when 'false'
         "1 = 2"
 

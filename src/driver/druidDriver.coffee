@@ -75,8 +75,7 @@ class DruidQueryBuilder
   # return { jsFilter, context }
   filterToJSHelper: (filter, context) ->
     switch filter.type
-      when 'false'
-        "false"
+      when 'true', 'false' then filter.type
 
       when 'is'
         throw new Error("can not filter on specific time") if filter.attribute is @timeAttribute
@@ -112,6 +111,9 @@ class DruidQueryBuilder
   # return a (up to) two element array [druid_filter_object, druid_intervals_array]
   filterToDruid: (filter) ->
     switch filter.type
+      when 'true'
+        [null, null]
+
       when 'false'
         [
           null,

@@ -3,6 +3,25 @@
 # -----------------------------------------------------
 driverUtil = require('./driverUtil')
 
+moveTimestamp = (timestamp, period, timezone) ->
+  newTimestamp = new Date(timestamp)
+
+  switch period
+    when 'PT1S'
+      newTimestamp.setSeconds(newTimestamp.getSeconds() + 1)
+    when 'PT1M'
+      newTimestamp.setMinutes(newTimestamp.getMinutes() + 1)
+    when 'PT1H'
+      newTimestamp.setHours(newTimestamp.getHours() + 1)
+      newTimestamp = driverUtil.adjust.hour.ceil(newTimestamp, timezone)
+    when 'P1D'
+      newTimestamp.setDate(newTimestamp.getDate() + 1)
+      newTimestamp = driverUtil.adjust.day.ceil(newTimestamp, timezone)
+    else
+      throw new Error("unknown time period")
+
+  return newTimestamp
+
 filterToHash = (filter) ->
   return '' unless filter?
   hash = []
@@ -144,25 +163,23 @@ class SplitCache
   _timeCalculate: (filter, splitOp) ->
     separatedFilters = driverUtil.extractAttributeFilter(filter, @timeAttribute)
     timeFilter = separatedFilters[0]
+    timezone = splitOp.timezone or 'Etc/UTC'
     timestamps = []
-    timestamp = new Date(timeFilter.range[0])
-    end = new Date(timeFilter.range[1])
+    [timestamp, end] = driverUtil.convertToTimezoneJS(timeFilter.range, timezone)
     if splitOp.bucket is 'timeDuration'
       duration = splitOp.duration
-      while new Date(timestamp.valueOf() + duration) <= end
-        timestamps.push([timestamp, new Date(timestamp.valueOf() + duration)])
-        timestamp = new Date(timestamp.valueOf() + duration)
+      while true
+        newTimestamp = new Date(timestamp.valueOf() + duration)
+        break if newTimestamp > end
+        timestamps.push([new Date(timestamp), new Date(newTimestamp)])
+        timestamp = newTimestamp
+
     else if splitOp.bucket is 'timePeriod'
-      periodMap = {
-        'PT1S': 1000
-        'PT1M': 60 * 1000
-        'PT1H': 60 * 60 * 1000
-        'P1D' : 24 * 60 * 60 * 1000
-      }
-      period = periodMap[splitOp.period]
-      while new Date(timestamp.valueOf() + period) <= end
-        timestamps.push([timestamp, new Date(timestamp.valueOf() + period)])
-        timestamp = new Date(timestamp.valueOf() + period)
+      while true
+        newTimestamp = moveTimestamp(timestamp, splitOp.period, timezone)
+        break if newTimestamp > end
+        timestamps.push([new Date(timestamp), new Date(newTimestamp)])
+        timestamp = newTimestamp
     else
       throw new Error("unknown time bucket")
 

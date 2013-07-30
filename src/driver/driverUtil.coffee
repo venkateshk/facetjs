@@ -1,6 +1,12 @@
 `(typeof window === 'undefined' ? {} : window)['driverUtil'] = (function(module, require){"use strict"; var exports = module.exports`
 
 # -----------------------------------------------------
+timezoneJS = require('timezone-js') or require('./timezoneJS')
+tz_info = require('../utils/timezone') or require('mmx_tz_info')
+
+tz = timezoneJS.timezone
+tz.loadingScheme = tz.loadingSchemes.MANUAL_LOAD
+tz.loadZoneDataFromObject(tz_info)
 
 # Flatten an array of array in to a single array
 # flatten([[1,3], [3,6,7]]) => [1,3,3,6,7]
@@ -526,6 +532,97 @@ exports.extractAttributeFilter = extractAttributeFilter = (filter, attribute) ->
     simplifyFilter({ type: 'and', filters: extractedFilters })
     simplifyFilter({ type: 'and', filters: remainingFilters })
   ]
+
+
+isTimezone = (tz) ->
+  return typeof tz is 'string' and tz.indexOf('/') isnt -1
+
+exports.adjust = {
+  second: {
+    ceil: (dt, tz) ->
+      throw new TypeError("#{tz} is not a valid timezone") unless isTimezone(tz)
+      # Seconds do not actually need a timezone because all timezones align on seconds... for now...
+      dt = new Date(dt)
+      if dt.getMilliseconds()
+        dt.setMilliseconds(1000)
+      return dt
+    floor: (dt, tz) ->
+      throw new TypeError("#{tz} is not a valid timezone") unless isTimezone(tz)
+      # Seconds do not actually need a timezone because all timezones align on seconds... for now...
+      dt = new Date(dt)
+      dt.setMilliseconds(0)
+      return dt
+    round: (dt, tz) ->
+      throw new TypeError("#{tz} is not a valid timezone") unless isTimezone(tz)
+      # Seconds do not actually need a timezone because all timezones align on seconds... for now...
+      dt = new Date(dt)
+      dt.setMilliseconds(Math.round(dt.getMilliseconds() / 1000 ) * 1000)
+      return dt
+  }
+  minute: {
+    ceil: (dt, tz) ->
+      throw new TypeError("#{tz} is not a valid timezone") unless isTimezone(tz)
+      # Minutes do not actually need a timezone because all timezones align on minutes... for now...
+      dt = new Date(dt)
+      if dt.getMilliseconds() or dt.getSeconds()
+        dt.setSeconds(60, 0)
+      return dt
+    floor: (dt, tz) ->
+      throw new TypeError("#{tz} is not a valid timezone") unless isTimezone(tz)
+      # Minutes do not actually need a timezone because all timezones align on minutes... for now...
+      dt = new Date(dt)
+      dt.setSeconds(0, 0)
+      return dt
+    round: (dt, tz) ->
+      throw new TypeError("#{tz} is not a valid timezone") unless isTimezone(tz)
+      # Minutes do not actually need a timezone because all timezones align on minutes... for now...
+      dt = new Date(dt)
+      dt.setSeconds(Math.round(dt.getSeconds() / 60 ) * 60, 0)
+      return dt
+  }
+  hour: {
+    ceil: (dt, tz) ->
+      throw new TypeError("#{tz} is not a valid timezone") unless isTimezone(tz)
+      # Not all timezones align on hours! (India)
+      dt = new timezoneJS.Date(dt, tz)
+      if dt.getMilliseconds() or dt.getSeconds() or dt.getMinutes()
+        dt.setMinutes(60, 0, 0)
+      return new Date(dt.valueOf())
+    floor: (dt, tz) ->
+      throw new TypeError("#{tz} is not a valid timezone") unless isTimezone(tz)
+      # Not all timezones align on hours! (India)
+      dt = new timezoneJS.Date(dt, tz)
+      dt.setMinutes(0, 0, 0)
+      return new Date(dt.valueOf())
+    round: (dt, tz) ->
+      throw new TypeError("#{tz} is not a valid timezone") unless isTimezone(tz)
+      # Not all timezones align on hours! (India)
+      dt = new timezoneJS.Date(dt, tz)
+      dt.setMinutes(Math.round(dt.getMinutes() / 60 ) * 60, 0, 0)
+      return new Date(dt.valueOf())
+  }
+  day: {
+    ceil: (dt, tz) ->
+      throw new TypeError("#{tz} is not a valid timezone") unless isTimezone(tz)
+      dt = new timezoneJS.Date(dt, tz)
+      if dt.getMilliseconds() or dt.getSeconds() or dt.getMinutes() or dt.getHours()
+        dt.setHours(24, 0, 0, 0)
+      return new Date(dt.valueOf())
+    floor: (dt, tz) ->
+      throw new TypeError("#{tz} is not a valid timezone") unless isTimezone(tz)
+      dt = new timezoneJS.Date(dt, tz)
+      dt.setHours(0, 0, 0, 0)
+      return new Date(dt.valueOf())
+    round: (dt, tz) ->
+      throw new TypeError("#{tz} is not a valid timezone") unless isTimezone(tz)
+      dt = new timezoneJS.Date(dt, tz)
+      dt.setHours(Math.round(dt.getHours() / 60 ) * 60, 0, 0, 0)
+      return new Date(dt.valueOf())
+  }
+}
+
+exports.convertToTimezoneJS = (timerange, timezone) ->
+  return timerange.map((time) -> new timezoneJS.Date(time, timezone))
 
 # -----------------------------------------------------
 # Handle commonJS crap

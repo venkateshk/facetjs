@@ -21,6 +21,7 @@
     "express": "3.1.0",
     "async": "0.2.5",
     "pg": "0.13.1",
+    "timezone-js": "0.4.4",
     "mysql": "2.0.0-alpha7"
   },
   "devDependencies": {

@@ -98,8 +98,8 @@ describe "Cache tests", ->
         expect(result).to.deep.equal({ prop: { Count: 0 } })
         done()
 
-  describe "dateLightSaving checker", ->
-    dateLightSavingData = JSON.parse('{"prop":{},"splits":[{"prop":{"avg_latency":0.013069229864317534,"bid_depth_adj":1.2466818548667042,"uniques":0,"timerange":["2012-11-02T07:00:00.000Z","2012-11-03T07:00:00.000Z"]}},{"prop":{"avg_latency":0.013148476570233917,"bid_depth_adj":1.212463873557697,"uniques":0,"timerange":["2012-11-03T07:00:00.000Z","2012-11-04T07:00:00.000Z"]}},{"prop":{"avg_latency":0.01260590998216896,"bid_depth_adj":1.1883019697926953,"uniques":0,"timerange":["2012-11-04T07:00:00.000Z","2012-11-05T07:00:00.000Z"]}},{"prop":{"avg_latency":0.018073973399774193,"bid_depth_adj":1.0214784473305347,"uniques":0,"timerange":["2012-11-05T08:00:00.000Z","2012-11-06T08:00:00.000Z"]}},{"prop":{"avg_latency":0.017976455114079474,"bid_depth_adj":0.9800624388099162,"uniques":0,"timerange":["2012-11-06T08:00:00.000Z","2012-11-07T08:00:00.000Z"]}},{"prop":{"avg_latency":0.016441307868576543,"bid_depth_adj":0.9009174579839136,"uniques":0,"timerange":["2012-11-07T08:00:00.000Z","2012-11-08T08:00:00.000Z"]}}]}')
+  describe.only "dateLightSaving checker", ->
+    dateLightSavingData = JSON.parse('{"prop":{},"splits":[{"prop":{"bid_depth_adj":1.2466818548667042,"avg_latency":0.013069229864317534,"uniques":0,"timerange":["2012-11-02T07:00:00.000Z","2012-11-03T07:00:00.000Z"]}},{"prop":{"avg_latency":0.013148476570233917,"bid_depth_adj":1.212463873557697,"uniques":0,"timerange":["2012-11-03T07:00:00.000Z","2012-11-04T07:00:00.000Z"]}},{"prop":{"avg_latency":0.01260590998216896,"bid_depth_adj":1.1883019697926953,"uniques":0,"timerange":["2012-11-04T07:00:00.000Z","2012-11-05T08:00:00.000Z"]}},{"prop":{"avg_latency":0.018073973399774193,"bid_depth_adj":1.0214784473305347,"uniques":0,"timerange":["2012-11-05T08:00:00.000Z","2012-11-06T08:00:00.000Z"]}},{"prop":{"avg_latency":0.017976455114079474,"bid_depth_adj":0.9800624388099162,"uniques":0,"timerange":["2012-11-06T08:00:00.000Z","2012-11-07T08:00:00.000Z"]}},{"prop":{"avg_latency":0.016441307868576543,"bid_depth_adj":0.9009174579839136,"uniques":0,"timerange":["2012-11-07T08:00:00.000Z","2012-11-08T08:00:00.000Z"]}}]}')
 
     dateLightSavingDriver = (request, callback) ->
       callback(null, dateLightSavingData)
@@ -177,7 +177,7 @@ describe "Cache tests", ->
         ]
       }, (err, result) ->
         expect(err).to.be.null
-        expect(result).to.deep.equal(dateLightSavingData)
+        expect(JSON.parse(JSON.stringify(result))).to.deep.equal(dateLightSavingData)
         done()
 
   describe "(sanity check) apply count", ->

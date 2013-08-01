@@ -174,7 +174,6 @@ class SplitCache
         timestamp = newTimestamp
     else
       throw new Error("unknown time bucket")
-
     return timestamps
 
 

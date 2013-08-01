@@ -5,9 +5,6 @@ driverUtil = require('./driverUtil')
 
 # -----------------------------------------------------
 
-# Open source Druid issues:
-# - add limit to groupBy
-
 andFilters = (filters...) ->
   filters = filters.filter((filter) -> filter?)
   switch filters.length
@@ -31,9 +28,11 @@ class DruidQueryBuilder
       .replace(/:00$/, '') # remove minutes if 0
       .replace(/T00$/, '') # remove hours if 0
 
-  constructor: (@dataSource, @timeAttribute, @forceInterval, @approximate) ->
+  constructor: (@dataSource, @timeAttribute, @forceInterval, @approximate, @priority) ->
     throw new Error("must have a dataSource") unless typeof @dataSource is 'string'
     throw new Error("must have a timeAttribute") unless typeof @timeAttribute is 'string'
+    @priority ?= 'default'
+    throw new TypeError("invalid priority") if @priority isnt 'default' and isNaN(@priority)
     @queryType = 'timeseries'
     @granularity = 'all'
     @filter = null
@@ -42,27 +41,6 @@ class DruidQueryBuilder
     @nameIndex = 0
     @intervals = null
     @useCache = true
-
-  unionIntervals: (intervals) ->
-    null # ToDo
-
-  intersectIntervals: (intervals) ->
-    # ToDo: rewrite this to actually work
-    startTime = -Infinity
-    endTime = Infinity
-    for interval in intervals
-      intStart = interval[0].start.valueOf()
-      intEnd = interval[0].end.valueOf()
-      if startTime < intStart
-        startTime = intStart
-      if intEnd < endTime
-        endTime = intEnd
-    return null unless isFinite(startTime) and isFinite(endTime)
-    ret = [{
-      start: new Date(startTime)
-      end: new Date(endTime)
-    }]
-    return ret
 
   addToContext: (context, attribute) ->
     if context[attribute]
@@ -108,29 +86,23 @@ class DruidQueryBuilder
       context
     }
 
-  # return a (up to) two element array [druid_filter_object, druid_intervals_array]
-  filterToDruid: (filter) ->
+  timelessFilterToDruid: (filter) ->
     switch filter.type
       when 'true'
-        [null, null]
+        null
 
       when 'false'
-        [
-          null,
-          [{ start: new Date("9001/01/01"), end: new Date("9001/01/02") }] # over 9000!
-        ]
+        throw new Error("should never get here")
 
       when 'is'
-        throw new Error("can not filter on specific time") if filter.attribute is @timeAttribute
-        [{
+        {
           type: 'selector'
           dimension: filter.attribute
           value: filter.value ? '' # In Druid null == '' and null is illegal
-        }]
+        }
 
       when 'in'
-        throw new Error("can not filter on specific time") if filter.attribute is @timeAttribute
-        [{
+        {
           type: 'or'
           fields: filter.values.map(((value) ->
             return {
@@ -139,87 +111,77 @@ class DruidQueryBuilder
               value: value ? '' # In Druid null == '' and null is illegal
             }
           ), this)
-        }]
+        }
 
       when 'fragments'
-        throw new Error("can not fragments filter time") if filter.attribute is @timeAttribute
-        [{
+        {
           type: "search"
           dimension: filter.attribute
           query: {
             type: "fragment"
             values: filter.fragments
           }
-        }]
+        }
 
       when 'match'
-        throw new Error("can not match filter time") if filter.attribute is @timeAttribute
-        [{
+        {
           type: "regex"
           dimension: filter.attribute
           pattern: filter.expression
-        }]
+        }
 
       when 'within'
         [r0, r1] = filter.range
-        if filter.attribute is @timeAttribute
-          r0 = new Date(r0) if typeof r0 is 'string'
-          r1 = new Date(r1) if typeof r1 is 'string'
-          throw new Error("start and end must be dates") unless r0 instanceof Date and r1 instanceof Date
-          throw new Error("invalid dates") if isNaN(r0) or isNaN(r1)
-          [
-            null,
-            [{ start: r0, end: r1 }]
-          ]
-        else if typeof r0 is 'number' and typeof r1 is 'number'
-          [{
+        if typeof r0 is 'number' and typeof r1 is 'number'
+          {
             type: 'javascript'
             dimension: filter.attribute
             function: "function(a){return a=~~a,#{r0}<=a&&a<#{r1};}"
-          }]
+          }
         else
           throw new Error("has to be a numeric range")
 
       when 'not'
-        [f, i] = @filterToDruid(filter.filter)
-        throw new Error("can not use a 'not' filter on a time interval") if i
-        [{
+        {
           type: 'not'
-          field: f
-        }]
+          field: @timelessFilterToDruid(filter.filter)
+        }
 
-      when 'and'
-        fis = filter.filters.map(@filterToDruid, this)
-        druidFields = fis.map((d) -> d[0]).filter((d) -> d?)
-        druidIntervals = fis.map((d) -> d[1]).filter((d) -> d?)
-        druidFilter = switch druidFields.length
-          when 0 then null
-          when 1 then druidFields[0]
-          else { type: 'and', fields: druidFields }
-        [
-          druidFilter
-          @intersectIntervals(druidIntervals)
-        ]
-
-      when 'or'
-        fis = filter.filters.map(@filterToDruid, this)
-        for [f, i] in fis
-          throw new Error("can not 'or' time... yet") if i # ToDo
-        [{
-          type: 'or'
-          fields: fis.map((d) -> d[0]).filter((d) -> d?)
-        }]
+      when 'and', 'or'
+        {
+          type: filter.type
+          fields: filter.filters.map(@timelessFilterToDruid, this)
+        }
 
       else
         throw new Error("filter type '#{filter.type}' not defined")
 
+  timeFilterToDruid: (filter) ->
+    return null unless filter
+    ors = if filter.type is 'or' then filter.filters else [filter]
+    timeAttribute = @timeAttribute
+    return ors.map ({type, attribute, range}) ->
+      throw new Error("can only time filter with a 'within' filter") unless type is 'within'
+      throw new Error("attribute has to be a time attribute") unless attribute is timeAttribute
+      return "#{DruidQueryBuilder.dateToIntervalPart(range[0])}/#{DruidQueryBuilder.dateToIntervalPart(range[1])}"
+
+
   addFilter: (filter) ->
     dateToIntervalPart = DruidQueryBuilder.dateToIntervalPart
     return unless filter
-    [@filter, intervals] = @filterToDruid(filter)
-    if intervals
-      @intervals = intervals.map((({start, end}) -> "#{dateToIntervalPart(start)}/#{dateToIntervalPart(end)}"), this)
+    extract = driverUtil.extractFilterByAttribute(filter, @timeAttribute)
+    throw new Error("could not separate time filter") unless extract
+    [timelessFilter, timeFilter] = extract
+
+    if timelessFilter.type is 'false'
+      @filter = null
+      @intervals = ["9001-01-01/9001-01-02"] # over 9000!
+    else
+      @filter = @timelessFilterToDruid(timelessFilter)
+      @intervals = @timeFilterToDruid(timeFilter)
+
     return this
+
 
   addSplit: (split) ->
     switch split.bucket
@@ -383,10 +345,15 @@ class DruidQueryBuilder
             if @approximate and apply.aggregate in ['min', 'max'] and /_hist$/.test(apply.attribute)
               # A hacky way to determine that this is a histogram aggregated column (it ends with _hist)
 
-              histogramAggregationName = @addAggregation {
+              aggregation = {
                 type: "approxHistogramFold"
                 fieldName: apply.attribute
               }
+              options = apply.options or {}
+              aggregation.lowerLimit = options.druidLowerLimit if options.druidLowerLimit?
+              aggregation.lowerUpper = options.druidLowerUpper if options.druidLowerUpper?
+              aggregation.resolution = options.druidResolution if options.druidResolution
+              histogramAggregationName = @addAggregation(aggregation)
               postAggregation = {
                 type: apply.aggregate
                 fieldName: histogramAggregationName
@@ -609,10 +576,13 @@ class DruidQueryBuilder
     }
 
     if not @useCache
-      query.context = {
-        useCache: false
-        populateCache: false
-      }
+      query.context or= {}
+      query.context.useCache = false
+      query.context.populateCache = false
+
+    if @priority isnt 'default'
+      query.context or= {}
+      query.priority = @priority
 
     query.filter = @filter if @filter
 
@@ -646,12 +616,12 @@ emptySingletonDruidResult = (result) ->
   return result.length is 0 or result[0].result.length is 0
 
 druidQueryFns = {
-  all: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate}, callback) ->
+  all: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate, priority}, callback) ->
     if condensedCommand.applies.length is 0
       callback(null, [{}])
       return
 
-    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval, approximate)
+    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval, approximate, priority)
 
     try
       # filter
@@ -689,8 +659,8 @@ druidQueryFns = {
       return
     return
 
-  timeseries: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate}, callback) ->
-    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval, approximate)
+  timeseries: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate, priority}, callback) ->
+    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval, approximate, priority)
 
     try
       # filter
@@ -768,8 +738,8 @@ druidQueryFns = {
       return
     return
 
-  topN: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate}, callback) ->
-    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval, approximate)
+  topN: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate, priority}, callback) ->
+    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval, approximate, priority)
 
     try
       # filter
@@ -813,8 +783,8 @@ druidQueryFns = {
       return
     return
 
-  allData: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate}, callback) ->
-    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval, approximate)
+  allData: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate, priority}, callback) ->
+    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval, approximate, priority)
     allDataChunks = DruidQueryBuilder.ALL_DATA_CHUNKS
 
     try
@@ -883,8 +853,8 @@ druidQueryFns = {
     )
     return
 
-  groupBy: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate}, callback) ->
-    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval, approximate)
+  groupBy: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate, priority}, callback) ->
+    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval, approximate, priority)
 
     try
       # filter
@@ -926,8 +896,8 @@ druidQueryFns = {
       return
     return
 
-  histogram: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate}, callback) ->
-    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval, approximate)
+  histogram: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate, priority}, callback) ->
+    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval, approximate, priority)
 
     try
       # filter
@@ -996,8 +966,8 @@ druidQueryFns = {
       return
     return
 
-  heatmap: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate}, callback) ->
-    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval, approximate)
+  heatmap: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate, priority}, callback) ->
+    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval, approximate, priority)
 
     try
       # filter
@@ -1089,6 +1059,7 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
     try
       throw new Error("request not supplied") unless request
       {context, query} = request
+      context or= {}
       condensedQuery = driverUtil.condenseQuery(query)
     catch e
       callback(e)
@@ -1141,6 +1112,7 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
           forceInterval
           condensedCommand
           approximate
+          priority: context.priority
         }, (err, props) ->
           if err
             callback(err)

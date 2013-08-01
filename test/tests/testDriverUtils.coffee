@@ -451,6 +451,141 @@ describe "Utility", ->
         value: 'Google'
       })
 
+    it "merges WITHIN filters in AND", ->
+      expect(driverUtil.simplifyFilter({
+        type: 'and'
+        filters: [
+          {
+            type: 'within'
+            attribute: 'age'
+            range: [20, 40]
+          }
+          {
+            type: 'within'
+            attribute: 'age'
+            range: [30, 50]
+          }
+        ]
+      })).to.deep.equal({
+        type: 'within'
+        attribute: 'age'
+        range: [30, 40]
+      })
+
+      expect(driverUtil.simplifyFilter({
+        type: 'and'
+        filters: [
+          {
+            type: 'within'
+            attribute: 'age'
+            range: [20, 25]
+          }
+          {
+            type: 'within'
+            attribute: 'age'
+            range: [30, 50]
+          }
+        ]
+      })).to.deep.equal({
+        type: 'and'
+        filters: [
+          {
+            type: 'within'
+            attribute: 'age'
+            range: [20, 25]
+          }
+          {
+            type: 'within'
+            attribute: 'age'
+            range: [30, 50]
+          }
+        ]
+      })
+
+      expect(driverUtil.simplifyFilter({
+        type: 'or'
+        filters: [
+          {
+            type: 'within'
+            attribute: 'time'
+            range: [new Date('2013/01/05'), new Date('2013/01/10')]
+          }
+          {
+            type: 'within'
+            attribute: 'time'
+            range: [new Date('2013/01/08'), new Date('2013/01/20')]
+          }
+        ]
+      })).to.deep.equal({
+        type: 'within'
+        attribute: 'time'
+        range: [new Date('2013/01/05'), new Date('2013/01/20')]
+      })
+
+    it "merges WITHIN filters in OR", ->
+      expect(driverUtil.simplifyFilter({
+        type: 'or'
+        filters: [
+          {
+            type: 'within'
+            attribute: 'age'
+            range: [20, 40]
+          }
+          {
+            type: 'within'
+            attribute: 'age'
+            range: [30, 50]
+          }
+        ]
+      })).to.deep.equal({
+        type: 'within'
+        attribute: 'age'
+        range: [20, 50]
+      })
+
+      expect(driverUtil.simplifyFilter({
+        type: 'or'
+        filters: [
+          {
+            type: 'within'
+            attribute: 'age'
+            range: [20, 30]
+          }
+          {
+            type: 'within'
+            attribute: 'age'
+            range: [30, 50]
+          }
+        ]
+      })).to.deep.equal({
+        type: 'within'
+        attribute: 'age'
+        range: [20, 50]
+      })
+
+      expect(driverUtil.simplifyFilter({
+        type: 'or'
+        filters: [
+          {
+            type: 'within'
+            attribute: 'age'
+            range: [20, 25]
+          }
+          {
+            type: 'within'
+            attribute: 'age'
+            range: [30, 50]
+          }
+        ]
+      })).to.deep.equal({
+        type: 'false'
+      })
+
+
+
+
+
+
 
   describe "extractFilterByAttribute", ->
     it 'throws on bad input', ->

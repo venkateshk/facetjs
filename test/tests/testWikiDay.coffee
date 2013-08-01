@@ -59,7 +59,7 @@ driverFns.druid = druidDriver({
 
 testEquality = utils.makeEqualityTest(driverFns)
 
-describe "Wikipedia dataset test", ->
+describe "Wikipedia dataset", ->
   @timeout(40 * 1000)
 
   describe "apply count", ->
@@ -205,8 +205,8 @@ describe "Wikipedia dataset test", ->
           type: 'within'
           attribute: 'time'
           range: [
-            new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0))
-            new Date(Date.UTC(2013, 2-1, 27, 1, 0, 0))
+            new Date(Date.UTC(2013, 2-1, 26, 3, 0, 0))
+            new Date(Date.UTC(2013, 2-1, 26, 5, 0, 0))
           ]
         }
         { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
@@ -324,7 +324,7 @@ describe "Wikipedia dataset test", ->
               attribute: "time"
               range: [
                 new Date(Date.UTC(2013, 2-1, 26, 10, 0, 0))
-                new Date(Date.UTC(2013, 2-1, 27, 15, 0, 0))
+                new Date(Date.UTC(2013, 2-1, 26, 15, 0, 0))
               ]
             }
             {

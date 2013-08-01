@@ -52,7 +52,12 @@ exports.makeEqualityTest = (driverFns) ->
       driverFn = driverFns[driverName]
       throw new Error("no such driver #{driverName}") unless driverFn
       return (callback) ->
-        driverFn({query}, callback)
+        driverFn({
+          query
+          context: {
+            priority: -3
+          }
+        }, callback)
         return
 
     return (done) ->

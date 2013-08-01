@@ -209,6 +209,7 @@ module.exports = ({driver, timeAttribute}) ->
 
     for condensedCommand, i in condensedQuery
       if condensedCommand.filter?
+        condensedCommand.filter.operation = 'filter'
         unknownQuery.push condensedCommand.filter
 
       if condensedCommand.split?
@@ -319,7 +320,7 @@ module.exports = ({driver, timeAttribute}) ->
       callback(e)
       return
 
-    # If there is a split for contnuous dimension, don't use cache. Doable. but not now
+    # If there is a split for continuous dimension, don't use cache. Doable. but not now
     if condensedQuery[1]?.split?.bucket in ['continuous', 'tuple']
       return driver({query}, callback)
 

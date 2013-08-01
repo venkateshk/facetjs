@@ -54,7 +54,7 @@ driverFns.wikipediaCached = driverCache({
 
 testEquality = utils.makeEqualityTest(driverFns)
 
-describe "Cache tests", ->
+describe "Cache", ->
   @timeout(40 * 1000)
 
   describe "emptyness checker", ->
@@ -69,7 +69,7 @@ describe "Cache tests", ->
     it "should handle {}", (done) ->
       emptyDriverCached {
         query: [
-          { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
           { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
           { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
         ]
@@ -90,7 +90,7 @@ describe "Cache tests", ->
     it "should handle zeroes", (done) ->
       zeroDriverCached {
         query: [
-          { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
           { operation: 'apply', name: 'Count', aggregate: 'constant', value: '0' }
         ]
       }, (err, result) ->
@@ -187,7 +187,7 @@ describe "Cache tests", ->
   describe "timeseries cache", ->
     describe "without filters", ->
       setUpQuery = [
-          { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
           { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
           { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
           { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
@@ -207,7 +207,7 @@ describe "Cache tests", ->
       it "split time; apply count", testEquality {
           drivers: ['wikipediaCached', 'wikipedia']
           query: [
-            { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+            { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
             { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
             { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
             { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
@@ -217,7 +217,7 @@ describe "Cache tests", ->
       it "split time; apply count; combine not by time", testEquality {
           drivers: ['wikipediaCached', 'wikipedia']
           query: [
-            { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+            { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
             { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
             { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
             { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'ascending' } }
@@ -227,7 +227,7 @@ describe "Cache tests", ->
       it "split time; apply count; filter within another time filter", testEquality {
           drivers: ['wikipediaCached', 'wikipedia']
           query: [
-            { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 26, 12, 0, 0))] }
+            { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 26, 12, 0, 0))] }
             { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
             { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
             { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
@@ -237,7 +237,7 @@ describe "Cache tests", ->
       it "split time; apply count; limit", testEquality {
           drivers: ['wikipediaCached', 'wikipedia']
           query: [
-            { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+            { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
             { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
             { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
             { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' }, limit: 5 }
@@ -249,7 +249,7 @@ describe "Cache tests", ->
       setUpQuery = [
           { operation: 'filter', type: 'and', filters: [
             { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
-            { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+            { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
           ]}
           { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
           { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
@@ -272,7 +272,7 @@ describe "Cache tests", ->
           query: [
             { operation: 'filter', type: 'and', filters: [
               { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
-              { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+              { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
             ]}
             { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
             { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
@@ -286,7 +286,7 @@ describe "Cache tests", ->
           query: [
             { operation: 'filter', type: 'and', filters: [
               { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
-              { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+              { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
             ]}
             { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
             { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
@@ -301,7 +301,7 @@ describe "Cache tests", ->
           { operation: 'filter', type: 'and', filters: [
             { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
             { operation: 'filter', attribute: 'namespace', type: 'is', value: 'article' }
-            { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+            { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
           ]}
           { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
           { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
@@ -325,7 +325,7 @@ describe "Cache tests", ->
             { operation: 'filter', type: 'and', filters: [
               { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
               { operation: 'filter', attribute: 'namespace', type: 'is', value: 'article' }
-              { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+              { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
             ]}
             { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
             { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
@@ -340,7 +340,7 @@ describe "Cache tests", ->
             { operation: 'filter', type: 'and', filters: [
               { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
               { operation: 'filter', attribute: 'namespace', type: 'is', value: 'article' }
-              { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+              { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
             ]}
             { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
             { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
@@ -356,7 +356,7 @@ describe "Cache tests", ->
         query: [
           { operation: 'filter', type: 'and', filters: [
             { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
-            { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+            { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
           ]}
           { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
           { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
@@ -369,7 +369,7 @@ describe "Cache tests", ->
         query: [
           { operation: 'filter', type: 'and', filters: [
             { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
-            { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+            { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
           ]}
           { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
           { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
@@ -380,7 +380,7 @@ describe "Cache tests", ->
 
   describe "splitCache fills filterCache as well", ->
     setUpQuery = [
-      { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+      { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
       { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
       { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
       { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
@@ -402,7 +402,7 @@ describe "Cache tests", ->
         query: [
           { operation: 'filter', type: 'and', filters: [
             { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
-            { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+            { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
           ]}
           { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
           { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
@@ -411,7 +411,7 @@ describe "Cache tests", ->
 
   describe "selected applies", ->
     setUpQuery = [
-      { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+      { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
       { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
       { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
       { operation: 'apply', name: 'Deleted', aggregate: 'sum', attribute: 'deleted' }
@@ -431,7 +431,7 @@ describe "Cache tests", ->
     describe "filter; split time; apply count; apply added; combine time descending", ->
       before ->
         expectedQuery = [
-          { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
           { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
           { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
           { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
@@ -444,7 +444,7 @@ describe "Cache tests", ->
       it "should have the same results for different drivers", testEquality {
         drivers: ['wikipediaCached', 'wikipedia']
         query: [
-          { operation: 'filter', type:'within', attribute:'time', range: [ new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
           { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
           { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
           { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }

@@ -12,6 +12,7 @@ exports.inPlaceTrim = (array, n) ->
   array.splice(n, array.length - n)
   return
 
+
 # Filter the array in place
 exports.inPlaceFilter = (array, fn) ->
   i = 0
@@ -22,7 +23,8 @@ exports.inPlaceFilter = (array, fn) ->
       array.splice(i, 1)
   return
 
-# Filter and map
+
+# Filter and map (how is this method not part of native JS?!)
 exports.filterMap = (array, fn) ->
   ret = []
   for a in array
@@ -145,7 +147,7 @@ exports.condenseQuery = (query) ->
         throw new Error("can not have more than one filter") if curQuery.filter
         throw new Error("type not defined in filter") unless cmd.hasOwnProperty('type')
         throw new Error("invalid type in filter") unless typeof cmd.type is 'string'
-        curQuery.filter = cmd
+        curQuery.filter = upgradeFilter(cmd)
 
       when 'split'
         condensed.push(curQuery)
@@ -311,14 +313,16 @@ exports.createColumns = createColumns = (query) ->
 
 
 filterTypePresedence = {
-  'within': 1
-  'is': 2
-  'in': 3
-  'fragments': 4
-  'match': 5
-  'not': 6
-  'and': 7
-  'or': 8
+  'true': 1
+  'false': 2
+  'within': 3
+  'is': 4
+  'in': 5
+  'fragments': 6
+  'match': 7
+  'not': 8
+  'and': 9
+  'or': 10
 }
 
 filterCompare = (filter1, filter2) ->
@@ -333,6 +337,95 @@ filterCompare = (filter1, filter2) ->
     return +1 if filter1.value > filter2.value
 
   return 0
+
+rangesIntersect = (range1, range2) ->
+  if range2[1] < range1[0] or range2[0] > range1[1]
+    return false;
+  else if range1[0] <= range2[1] and range2[0] <= range1[1]
+    return true
+  else
+    return false
+
+
+smaller = (a, b) -> if a < b then a else b
+larger = (a, b) -> if a < b then b else a
+
+mergeFilters = {
+  "and": (filter1, filter2) ->
+    return { type: 'false' } if filter1.type is 'false' or filter2.type is 'false'
+    return filter2 if filter1.type is 'true'
+    return filter1 if filter2.type is 'true'
+    return unless filter1.type is filter2.type and filter1.attribute is filter2.attribute
+    switch filter1.type
+      when 'within'
+        if rangesIntersect(filter1.range, filter2.range)
+          [start1, end1] = filter1.range
+          [start2, end2] = filter2.range
+          return {
+            type: 'within'
+            attribute: filter1.attribute
+            range: [larger(start1, start2), smaller(end1, end2)]
+          }
+        else
+          return
+
+      else
+        return
+
+  "or": (filter1, filter2) ->
+    return { type: 'true' } if filter1.type is 'true' or filter2.type is 'true'
+    return filter2 if filter1.type is 'false'
+    return filter1 if filter2.type is 'false'
+    return unless filter1.type is filter2.type and filter1.attribute is filter2.attribute
+    switch filter1.type
+      when 'within'
+        if rangesIntersect(filter1.range, filter2.range)
+          [start1, end1] = filter1.range
+          [start2, end2] = filter2.range
+          return {
+            type: 'within'
+            attribute: filter1.attribute
+            range: [smaller(start1, start2), larger(end1, end2)]
+          }
+        else
+          return { type: 'false' }
+
+      else
+        return
+}
+
+
+exports.upgradeFilter = upgradeFilter = (filter) ->
+  throw new TypeError("must have filter") unless filter
+
+  switch filter.type
+    when 'true', 'false', 'in', 'is', 'fragments', 'match' then return filter
+
+    when 'within'
+      [r0, r1] = filter.range
+      r0 = new Date(r0) if typeof r0 is 'string'
+      r1 = new Date(r1) if typeof r1 is 'string'
+      throw new TypeError("invalid range in 'within' filter") if isNaN(r0) or isNaN(r1)
+      return {
+        type: 'within'
+        attribute: filter.attribute
+        range: [r0, r1]
+      }
+
+    when 'not'
+      return {
+        type: 'not'
+        filter: upgradeFilter(filter.filter)
+      }
+
+    when 'and', 'or'
+      return {
+        type: filter.type
+        filters: filter.filters.map(upgradeFilter)
+      }
+
+    else
+      throw new Error("unexpected filter type '#{type}'")
 
 # Reduces a filter into a (potentially) simpler form the input is never modified
 # Specifically this function:
@@ -361,38 +454,37 @@ exports.simplifyFilter = simplifyFilter = (filter) ->
       newFilters = []
       for f in filter.filters
         f = simplifyFilter(f)
-
-        # everything
-        if f.type is 'true'
-          if type is 'and'
-            continue # Makes no difference in an AND
-          else
-            return { type: 'true' } # An OR with 'true' inside of it is always true
-
-        # nothing
-        if f.type is 'false'
-          if type is 'or'
-            continue # Makes no difference in an OR
-          else
-            return { type: 'false' } # An AND with 'false' inside of it is always false
-
         if f.type is type
           Array::push.apply(newFilters, f.filters)
         else
           newFilters.push(f)
 
+      newFilters.sort(filterCompare)
+
+      if newFilters.length > 1
+        mergedFilters = []
+        acc = newFilters[0]
+        i = 1
+        while i < newFilters.length
+          currentFilter = newFilters[i]
+          merged = mergeFilters[type](acc, currentFilter)
+          if merged
+            acc = merged
+          else
+            mergedFilters.push(acc)
+            acc = currentFilter
+          i++
+        mergedFilters.push(acc)
+        newFilters = mergedFilters
+
       switch newFilters.length
         when 0 then return { type: String(type is 'and') }
         when 1 then return newFilters[0]
-        else
-          newFilters.sort(filterCompare)
-          return {
-            type
-            filters: newFilters
-          }
+        else return { type, filters: newFilters }
 
     else
       throw new Error("unexpected filter type '#{type}'")
+
 
 orReduceFunction = (prev, now, index, all) ->
   if (index < all.length - 1)
@@ -451,6 +543,7 @@ exports.filterToString = filterToString = (filter) ->
 # @param {SplitTree} root - the root of the split tree
 # @param {prepend,append,none} order - what to do with the root of the tree
 # @return {Array(SplitTree)} the tree nodes in the order specified
+
 exports.flattenTree = (root, order) ->
   throw new TypeError('must have a tree') unless root
   throw new TypeError('order must be on of prepend, append, or none') unless order in ['prepend', 'append', 'none']
@@ -473,6 +566,7 @@ flattenTreeHelper = (root, order, result) ->
 # @param {SplitTree} root - the root of the split tree
 # @param {SplitTree} parent [null] - the parent for the initial node
 # @return {SplitTree} the input tree (with parent pointers)
+
 exports.parentify = parentify = (root, parent = null) ->
   root.parent = parent
   if root.splits
@@ -482,6 +576,7 @@ exports.parentify = parentify = (root, parent = null) ->
 
 
 # Get filter from query
+
 exports.getFilter = getFilter = (query) ->
   return if query[0]?.operation is 'filter' then query[0] else { type: 'true' }
 
@@ -492,6 +587,7 @@ exports.getFilter = getFilter = (query) ->
 # @param {FacetFilter} filter - the filter to separate
 # @param {String} attribute - the attribute which to separate out
 # @return {null|Array} null|[WithoutFilter, WithFilter] - the separated filters
+
 exports.extractFilterByAttribute = extractFilterByAttribute = (filter, attribute) ->
   throw new TypeError("must have filter") unless filter
   throw new TypeError("must have attribute") unless typeof attribute is 'string'

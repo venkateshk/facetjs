@@ -48,7 +48,7 @@ driverFns.mySql = sqlDriver({
 testEquality = utils.makeEqualityTest(driverFns)
 
 
-describe "Diamonds dataset Test", ->
+describe "Diamonds dataset", ->
   @timeout(40 * 1000)
 
   describe "apply count", ->

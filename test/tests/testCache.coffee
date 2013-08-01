@@ -98,6 +98,88 @@ describe "Cache", ->
         expect(result).to.deep.equal({ prop: { Count: 0 } })
         done()
 
+  describe "dateLightSaving checker", ->
+    dateLightSavingData = JSON.parse('{"prop":{},"splits":[{"prop":{"bid_depth_adj":1.2466818548667042,"avg_latency":0.013069229864317534,"uniques":0,"timerange":["2012-11-02T07:00:00.000Z","2012-11-03T07:00:00.000Z"]}},{"prop":{"avg_latency":0.013148476570233917,"bid_depth_adj":1.212463873557697,"uniques":0,"timerange":["2012-11-03T07:00:00.000Z","2012-11-04T07:00:00.000Z"]}},{"prop":{"avg_latency":0.01260590998216896,"bid_depth_adj":1.1883019697926953,"uniques":0,"timerange":["2012-11-04T07:00:00.000Z","2012-11-05T08:00:00.000Z"]}},{"prop":{"avg_latency":0.018073973399774193,"bid_depth_adj":1.0214784473305347,"uniques":0,"timerange":["2012-11-05T08:00:00.000Z","2012-11-06T08:00:00.000Z"]}},{"prop":{"avg_latency":0.017976455114079474,"bid_depth_adj":0.9800624388099162,"uniques":0,"timerange":["2012-11-06T08:00:00.000Z","2012-11-07T08:00:00.000Z"]}},{"prop":{"avg_latency":0.016441307868576543,"bid_depth_adj":0.9009174579839136,"uniques":0,"timerange":["2012-11-07T08:00:00.000Z","2012-11-08T08:00:00.000Z"]}}]}')
+
+    dateLightSavingDriver = (request, callback) ->
+      callback(null, dateLightSavingData)
+      return
+
+    dateLightSavingDriverCached = driverCache({
+      driver: dateLightSavingDriver
+    })
+
+    it "should handle preset data", (done) ->
+      dateLightSavingDriverCached {
+        query: [
+          {
+            "type": "within",
+            "attribute": "timestamp",
+            "range": [
+              "2012-11-02T07:00:00.000Z",
+              "2012-11-08T08:00:00.000Z"
+            ],
+            "operation": "filter"
+          },
+          {
+            "name": "timerange",
+            "attribute": "timestamp",
+            "bucket": "timePeriod",
+            "period": "P1D",
+            "timezone": "America/Los_Angeles",
+            "operation": "split"
+          },
+          {
+            "name": "bid_depth_adj",
+            "arithmetic": "divide",
+            "operands": [
+              {
+                "attribute": "bid_depth",
+                "aggregate": "sum"
+              },
+              {
+                "attribute": "impressions",
+                "aggregate": "sum"
+              }
+            ],
+            "operation": "apply"
+          },
+          {
+            "name": "avg_latency",
+            "arithmetic": "divide",
+            "operands": [
+              {
+                "attribute": "latency",
+                "aggregate": "sum"
+              },
+              {
+                "attribute": "impressions",
+                "aggregate": "sum"
+              }
+            ],
+            "operation": "apply"
+          },
+          {
+            "name": "uniques",
+            "aggregate": "uniqueCount",
+            "attribute": "unique_dpid",
+            "operation": "apply"
+          },
+          {
+            "operation": "combine",
+            "combine": "slice",
+            "sort": {
+              "compare": "natural",
+              "prop": "timerange",
+              "direction": "ascending"
+            }
+          }
+        ]
+      }, (err, result) ->
+        expect(err).to.be.null
+        expect(JSON.parse(JSON.stringify(result))).to.deep.equal(dateLightSavingData)
+        done()
+
   describe "(sanity check) apply count", ->
     it "should have the same results for different drivers", testEquality {
       drivers: ['diamondsCached', 'diamonds']

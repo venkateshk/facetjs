@@ -3,18 +3,44 @@
 # -----------------------------------------------------
 driverUtil = require('./driverUtil')
 
+moveTimestamp = (timestamp, period, timezone) ->
+  newTimestamp = new Date(timestamp)
+
+  switch period
+    when 'PT1S'
+      newTimestamp.setSeconds(newTimestamp.getSeconds() + 1)
+    when 'PT1M'
+      newTimestamp.setMinutes(newTimestamp.getMinutes() + 1)
+    when 'PT1H'
+      newTimestamp.setHours(newTimestamp.getHours() + 1)
+      newTimestamp = driverUtil.adjust.hour.ceil(newTimestamp, timezone)
+    when 'P1D'
+      newTimestamp.setDate(newTimestamp.getDate() + 1)
+      newTimestamp = driverUtil.adjust.day.ceil(newTimestamp, timezone)
+    else
+      throw new Error("unknown time period")
+
+  return newTimestamp
+
+
+filterToHashHelper = (filter) ->
+  return switch filter.type
+    when 'true'      then "T"
+    when 'false'     then "F"
+    when 'is'        then "IS:#{filter.attribute}:#{filter.value}"
+    when 'in'        then "IN:#{filter.attribute}:#{filter.values.join(';')}"
+    when 'fragments' then "F:#{filter.attribute}:#{filter.fragments.join(' ')}"
+    when 'match'     then "F:#{filter.attribute}:#{filter.expression}"
+    when 'within'    then "W:#{filter.attribute}:#{filter.range[0].valueOf()}:#{filter.range[1].valueOf()}"
+    when 'not'       then "N(#{filterToHashHelper(filter.filter)})"
+    when 'and'       then "A:(#{filter.filters.map(filterToHashHelper).join(')(')})"
+    when 'or'        then "O:(#{filter.filters.map(filterToHashHelper).join(')(')})"
+    else throw new Error("unsupported filter type")
+
 filterToHash = (filter) ->
   return '' unless filter?
   hash = []
-  filter = driverUtil.simplifyFilter(filter)
-  if filter.filters?
-    for subFilter in filter.filters
-      hash.push filterToHash(subFilter)
-    return hash.sort().join(filter.type)
-  else
-    for k, v of filter
-      hash.push(k + ":" + v)
-  return hash.sort().join('|')
+  return filterToHashHelper(driverUtil.simplifyFilter(filter))
 
 splitToHash = (split) ->
   hash = []
@@ -120,7 +146,10 @@ class SplitCache
     # ]
     if splitOp.bucket in ['timePeriod', 'timeDuration']
       return @_timeCalculate(filter, splitOp)
-    return @hashmap[generateHash(filter, splitOp, combineOp)]
+    else
+      hash = generateHash(filter, splitOp, combineOp)
+      console.log 'GET', hash
+      return @hashmap[hash]
 
   put: (condensedQuery, root) -> # Recursively deconstruct root and add to cache
     @_splitPutHelper(condensedQuery, root, condensedQuery[0].filter, 0)
@@ -133,7 +162,9 @@ class SplitCache
     combineOp = condensedQuery[level + 1].combine
     splitOpName = splitOp.name
     splitValues = node.splits.map((node) -> return node.prop[splitOpName])
-    @hashmap[generateHash(filter, splitOp, combineOp)] = splitValues
+    hash = generateHash(filter, splitOp, combineOp)
+    console.log 'PUT', hash
+    @hashmap[hash] = splitValues
 
     if condensedQuery[level + 2]?
       for split in node.splits
@@ -144,25 +175,23 @@ class SplitCache
   _timeCalculate: (filter, splitOp) ->
     separatedFilters = driverUtil.extractFilterByAttribute(filter, @timeAttribute)
     timeFilter = separatedFilters[1]
+    timezone = splitOp.timezone or 'Etc/UTC'
     timestamps = []
-    timestamp = new Date(timeFilter.range[0])
-    end = new Date(timeFilter.range[1])
+    [timestamp, end] = driverUtil.convertToTimezoneJS(timeFilter.range, timezone)
     if splitOp.bucket is 'timeDuration'
       duration = splitOp.duration
-      while new Date(timestamp.valueOf() + duration) <= end
-        timestamps.push([timestamp, new Date(timestamp.valueOf() + duration)])
-        timestamp = new Date(timestamp.valueOf() + duration)
+      while true
+        newTimestamp = new Date(timestamp.valueOf() + duration)
+        break if newTimestamp > end
+        timestamps.push([new Date(timestamp), new Date(newTimestamp)])
+        timestamp = newTimestamp
+
     else if splitOp.bucket is 'timePeriod'
-      periodMap = {
-        'PT1S': 1000
-        'PT1M': 60 * 1000
-        'PT1H': 60 * 60 * 1000
-        'P1D' : 24 * 60 * 60 * 1000
-      }
-      period = periodMap[splitOp.period]
-      while new Date(timestamp.valueOf() + period) <= end
-        timestamps.push([timestamp, new Date(timestamp.valueOf() + period)])
-        timestamp = new Date(timestamp.valueOf() + period)
+      while true
+        newTimestamp = moveTimestamp(timestamp, splitOp.period, timezone)
+        break if newTimestamp > end
+        timestamps.push([new Date(timestamp), new Date(newTimestamp)])
+        timestamp = newTimestamp
     else
       throw new Error("unknown time bucket")
 
@@ -286,7 +315,7 @@ module.exports = ({driver, timeAttribute}) ->
           if a.prop[sortProp][0]?
             return b.prop[sortProp][0] - a.prop[sortProp][0]
           return b.prop[sortProp] - a.prop[sortProp])
-      else if 'ascending'
+      else if combineOp.sort.direction is 'ascending'
         splits.sort((a, b) ->
           if a.prop[sortProp][0]?
             return a.prop[sortProp][0] - b.prop[sortProp][0]

@@ -33,8 +33,8 @@ filterToHashHelper = (filter) ->
     when 'match'     then "F:#{filter.attribute}:#{filter.expression}"
     when 'within'    then "W:#{filter.attribute}:#{filter.range[0].valueOf()}:#{filter.range[1].valueOf()}"
     when 'not'       then "N(#{filterToHashHelper(filter.filter)})"
-    when 'and'       then "A:(#{filter.filters.map(filterToHashHelper).join(')(')})"
-    when 'or'        then "O:(#{filter.filters.map(filterToHashHelper).join(')(')})"
+    when 'and'       then "A(#{filter.filters.map(filterToHashHelper).join(')(')})"
+    when 'or'        then "O(#{filter.filters.map(filterToHashHelper).join(')(')})"
     else throw new Error("unsupported filter type")
 
 filterToHash = (filter) ->
@@ -73,28 +73,10 @@ addToFilter = (givenFilter, timeAttribute, newFilterPieces...) ->
   if newFilterPieces.length > 1
     return {
       type: 'and'
-      operation: 'filter'
       filters: newFilterPieces
     }
 
   return newFilterPieces[0]
-
-createFilter = (value, splitOp) ->
-  if splitOp.bucket in ['timePeriod', 'timeDuration']
-    newFilterPiece = {
-      attribute: splitOp.attribute
-      operation: 'filter'
-      type: 'within'
-      value: value.map((time) -> if time instanceof Date then time.toISOString() else time)
-    }
-  else
-    newFilterPiece = {
-      attribute: splitOp.attribute
-      operation: 'filter'
-      type: 'is'
-      value
-    }
-  return newFilterPiece
 
 class FilterCache
   # { key: filter,
@@ -125,7 +107,7 @@ class FilterCache
     if node.splits?
       splitOp = condensedQuery[level + 1].split
       for split in node.splits
-        newFilter = addToFilter(filter, @timeAttribute, createFilter(split.prop[splitOp.name], splitOp))
+        newFilter = addToFilter(filter, @timeAttribute, driverUtil.filterFromSplit(splitOp, split.prop[splitOp.name]))
         @_filterPutHelper(condensedQuery, split, newFilter, level + 1)
     return
 
@@ -148,7 +130,6 @@ class SplitCache
       return @_timeCalculate(filter, splitOp)
     else
       hash = generateHash(filter, splitOp, combineOp)
-      console.log 'GET', hash
       return @hashmap[hash]
 
   put: (condensedQuery, root) -> # Recursively deconstruct root and add to cache
@@ -161,14 +142,13 @@ class SplitCache
     splitOp = condensedQuery[level + 1].split
     combineOp = condensedQuery[level + 1].combine
     splitOpName = splitOp.name
-    splitValues = node.splits.map((node) -> return node.prop[splitOpName])
+    splitValues = node.splits.map((node) -> node.prop[splitOpName])
     hash = generateHash(filter, splitOp, combineOp)
-    console.log 'PUT', hash
     @hashmap[hash] = splitValues
 
     if condensedQuery[level + 2]?
       for split in node.splits
-        newFilter = addToFilter(filter, @timeAttribute, createFilter(split.prop[splitOpName], splitOp))
+        newFilter = addToFilter(filter, @timeAttribute, driverUtil.filterFromSplit(splitOp, split.prop[splitOpName]))
         @_splitPutHelper(condensedQuery, split, newFilter, level + 1)
     return
 
@@ -303,7 +283,7 @@ module.exports = ({driver, timeAttribute}) ->
     splits = []
 
     for value in cachedValues
-      newFilter = addToFilter(filter, timeAttribute, createFilter(value, splitOp))
+      newFilter = addToFilter(filter, timeAttribute, driverUtil.filterFromSplit(splitOp, value))
       ret = getKnownTreeHelper(condensedQuery, newFilter, level + 1, value)
       ret.prop[splitOp.name] = value
       splits.push ret

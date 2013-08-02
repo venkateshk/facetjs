@@ -280,7 +280,7 @@ computeQuery = (data, query) ->
   for cmd in query
     switch cmd.operation
       when 'filter'
-        filterFn = makeFilterFn(cmd)
+        filterFn = makeFilterFn(driverUtil.upgradeFilter(cmd))
         for segmentGroup in segmentGroups
           driverUtil.inPlaceFilter(segmentGroup, (segment) ->
             segment._raw = segment._raw.filter(filterFn)

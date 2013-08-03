@@ -31,7 +31,11 @@ filterToHashHelper = (filter) ->
     when 'in'        then "IN:#{filter.attribute}:#{filter.values.join(';')}"
     when 'fragments' then "F:#{filter.attribute}:#{filter.fragments.join(' ')}"
     when 'match'     then "F:#{filter.attribute}:#{filter.expression}"
-    when 'within'    then "W:#{filter.attribute}:#{filter.range[0].valueOf()}:#{filter.range[1].valueOf()}"
+    when 'within'
+      if isNaN(new Date(filter.range[0]))
+        "W:#{filter.attribute}:#{filter.range[0].valueOf()}:#{filter.range[1].valueOf()}"
+      else
+        "W:#{filter.attribute}:#{(new Date(filter.range[0])).valueOf()}:#{(new Date(filter.range[1])).valueOf()}"
     when 'not'       then "N(#{filterToHashHelper(filter.filter)})"
     when 'and'       then "A(#{filter.filters.map(filterToHashHelper).join(')(')})"
     when 'or'        then "O(#{filter.filters.map(filterToHashHelper).join(')(')})"
@@ -174,6 +178,7 @@ class SplitCache
         timestamp = newTimestamp
     else
       throw new Error("unknown time bucket")
+
     return timestamps
 
 

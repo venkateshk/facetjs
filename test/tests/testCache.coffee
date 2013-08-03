@@ -108,8 +108,8 @@ describe "Cache", ->
             avg_latency: 0.013069229864317534,
             uniques: 0,
             timerange: [
-              new Date("2012-11-02T07:00:00.000Z"),
-              new Date("2012-11-03T07:00:00.000Z")
+              "2012-11-02T07:00:00.000Z",
+              "2012-11-03T07:00:00.000Z"
             ]
           }
         },
@@ -119,8 +119,8 @@ describe "Cache", ->
             bid_depth_adj: 1.212463873557697,
             uniques: 0,
             timerange: [
-              new Date("2012-11-03T07:00:00.000Z"),
-              new Date("2012-11-04T07:00:00.000Z")
+              "2012-11-03T07:00:00.000Z",
+              "2012-11-04T07:00:00.000Z"
             ]
           }
         },
@@ -130,8 +130,8 @@ describe "Cache", ->
             bid_depth_adj: 1.1883019697926953,
             uniques: 0,
             timerange: [
-              new Date("2012-11-04T07:00:00.000Z"),
-              new Date("2012-11-05T08:00:00.000Z")
+              "2012-11-04T07:00:00.000Z",
+              "2012-11-05T08:00:00.000Z"
             ]
           }
         },
@@ -141,8 +141,8 @@ describe "Cache", ->
             bid_depth_adj: 1.0214784473305347,
             uniques: 0,
             timerange: [
-              new Date("2012-11-05T08:00:00.000Z"),
-              new Date("2012-11-06T08:00:00.000Z")
+              "2012-11-05T08:00:00.000Z",
+              "2012-11-06T08:00:00.000Z"
             ]
           }
         },
@@ -152,8 +152,8 @@ describe "Cache", ->
             bid_depth_adj: 0.9800624388099162,
             uniques: 0,
             timerange: [
-              new Date("2012-11-06T08:00:00.000Z"),
-              new Date("2012-11-07T08:00:00.000Z")
+              "2012-11-06T08:00:00.000Z",
+              "2012-11-07T08:00:00.000Z"
             ]
           }
         },
@@ -163,8 +163,8 @@ describe "Cache", ->
             bid_depth_adj: 0.9009174579839136,
             uniques: 0,
             timerange: [
-              new Date("2012-11-07T08:00:00.000Z"),
-              new Date("2012-11-08T08:00:00.000Z")
+              "2012-11-07T08:00:00.000Z",
+              "2012-11-08T08:00:00.000Z"
             ]
           }
         }
@@ -247,7 +247,7 @@ describe "Cache", ->
         ]
       }, (err, result) ->
         expect(err).to.be.null
-        expect(result).to.deep.equal(dateLightSavingData)
+        expect(JSON.parse(JSON.stringify(result))).to.deep.equal(dateLightSavingData)
         done()
 
   describe "(sanity check) apply count", ->

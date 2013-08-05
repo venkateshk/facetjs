@@ -1,3 +1,24 @@
+
+rangesIntersect = (range1, range2) ->
+  if range2[1] < range1[0] or range2[0] > range1[1]
+    return false
+  else
+    return range1[0] <= range2[1] and range2[0] <= range1[1]
+
+
+smaller = (a, b) -> if a < b then a else b
+larger  = (a, b) -> if a < b then b else a
+
+
+specialJoin = (array, sep, lastSep) ->
+  lengthMinus1 = array.length - 1
+  return array.reduce (prev, now, index) -> prev + (if index < lengthMinus1 then sep else lastSep) + now
+
+
+throwBadArgs = ->
+  throw new Error("bad number of arguments")
+
+
 filterTypePresedence = {
   'true': 1
   'false': 2
@@ -10,24 +31,6 @@ filterTypePresedence = {
   'and': 9
   'or': 10
 }
-
-rangesIntersect = (range1, range2) ->
-  if range2[1] < range1[0] or range2[0] > range1[1]
-    return false;
-  else if range1[0] <= range2[1] and range2[0] <= range1[1]
-    return true
-  else
-    return false
-
-
-smaller = (a, b) -> if a < b then a else b
-larger  = (a, b) -> if a < b then b else a
-
-
-specialJoin = (array, sep, lastSep) ->
-  lengthMinus1 = array.length - 1
-  return array.reduce (prev, now, index) -> prev + (if index < lengthMinus1 then sep else lastSep) + now
-
 
 class FacetFilter
   @compare = (filter1, filter2) ->
@@ -47,11 +50,12 @@ class FacetFilter
     @type = 'base'
     return
 
-  ensureType: (filterType) ->
+  _ensureType: (filterType) ->
     if not @type
       @type = filterType # Set the type if it is so far undefined
       return
-    throw new TypeError("incorrect filter type '#{@type}' (needs to be: '#{filterType}')") unless @type is filterType
+    if @type isnt filterType
+      throw new TypeError("incorrect filter type '#{@type}' (needs to be: '#{filterType}')")
     return
 
   toString: ->
@@ -87,8 +91,8 @@ class TrueFilter extends FacetFilter
     if arguments.length is 1
       { @type } = arguments[0]
     else if arguments.length isnt 0
-      throw new Error("bad number of arguments")
-    @ensureType('true')
+      throwBadArgs()
+    @_ensureType('true')
 
   toString: ->
     return "Everything"
@@ -103,8 +107,8 @@ class FalseFilter extends FacetFilter
     if arguments.length is 1
       { @type } = arguments[0]
     else if arguments.length isnt 0
-      throw new Error("bad number of arguments")
-    @ensureType('false')
+      throwBadArgs()
+    @_ensureType('false')
 
   toString: ->
     return "Nothing"
@@ -121,8 +125,8 @@ class IsFilter extends FacetFilter
     else if arguments.length is 2
       [@attribute, @value] = arguments
     else
-      throw new Error("bad number of arguments")
-    @ensureType('is')
+      throwBadArgs()
+    @_ensureType('is')
 
   toString: ->
     return "#{@attribute} is #{@value}"
@@ -138,8 +142,8 @@ class InFilter extends FacetFilter
     else if arguments.length is 2
       [@attribute, @values] = arguments
     else
-      throw new Error("bad number of arguments")
-    @ensureType('in')
+      throwBadArgs()
+    @_ensureType('in')
     throw new TypeError('values must be an array') unless Array.isArray(@values)
 
   toString: ->
@@ -164,8 +168,8 @@ class FragmentsFilter extends FacetFilter
     else if arguments.length is 2
       [@attribute, @fragments] = arguments
     else
-      throw new Error("bad number of arguments")
-    @ensureType('fragments')
+      throwBadArgs()
+    @_ensureType('fragments')
     throw new TypeError('fragments must be an array') unless Array.isArray(@fragments)
 
   toString: ->
@@ -183,8 +187,8 @@ class MatchFilter extends FacetFilter
     else if arguments.length is 2
       [@attribute, @match] = arguments
     else
-      throw new Error("bad number of arguments")
-    @ensureType('match')
+      throwBadArgs()
+    @_ensureType('match')
 
   toString: ->
     return "#{@attribute} matches /#{@match}/"
@@ -201,8 +205,8 @@ class WithinFilter extends FacetFilter
     else if arguments.length is 2
       [@attribute, @range] = arguments
     else
-      throw new Error("bad number of arguments")
-    @ensureType('within')
+      throwBadArgs()
+    @_ensureType('within')
     throw new TypeError('range must be an array of length 2') unless Array.isArray(@range) and @range.length is 2
     [r0, r1] = @range
     if typeof r0 is 'string' and typeof r1 is 'string'
@@ -227,8 +231,8 @@ class NotFilter extends FacetFilter
       else
         @filter = arguments[0]
     else
-      throw new Error("bad number of arguments")
-    @ensureType('not')
+      throwBadArgs()
+    @_ensureType('not')
 
   toString: ->
     return "not (#{@filter})"
@@ -263,8 +267,8 @@ class AndFilter extends FacetFilter
         throw new TypeError('filters must be an array') unless Array.isArray(@filters)
         @filters = @filters.map(FacetFilter.fromSpec)
     else
-      throw new Error("bad number of arguments")
-    @ensureType('and')
+      throwBadArgs()
+    @_ensureType('and')
 
   toString: ->
     if @filters.length > 1
@@ -350,8 +354,8 @@ class OrFilter extends FacetFilter
         throw new TypeError('filters must be an array') unless Array.isArray(@filters)
         @filters = @filters.map(FacetFilter.fromSpec)
     else
-      throw new Error("bad number of arguments")
-    @ensureType('or')
+      throwBadArgs()
+    @_ensureType('or')
 
   toString: ->
     if @filters.length > 1
@@ -418,6 +422,8 @@ class OrFilter extends FacetFilter
 
     return if @filters.every(hasNoClaim) then [this] else null
 
+
+
 # Make lookup
 filterConstructorMap = {
   "true": TrueFilter
@@ -433,10 +439,10 @@ filterConstructorMap = {
 }
 
 FacetFilter.fromSpec = (filterSpec) ->
-  return filterSpec if filterSpec instanceof FacetFilter
   FilterConstructor = filterConstructorMap[filterSpec.type]
   throw new Error("unsupported filter type: '#{filterSpec.type}'") unless FilterConstructor
   return new FilterConstructor(filterSpec)
+
 
 # Export!
 exports.FacetFilter = FacetFilter

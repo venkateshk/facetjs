@@ -39,6 +39,9 @@ class ConstantApply extends FacetApply
         { @aggregate, @value } = arg
     else if arguments.length isnt 0
       throwBadArgs()
+
+
+
     @_ensureAggregate('constant')
 
   toString: ->
@@ -73,13 +76,21 @@ class CountApply extends FacetApply
 
 class SumApply extends FacetApply
   constructor: (arg) ->
-    if arguments.length is 1
-      if typeof arg is 'String'
-        @attribute = arg
+    switch arguments.length
+      when 1
+        if typeof arg isnt 'string'
+          { @aggregate, @attribute } = arguments[0]
+        else
+          [@attribute] = arguments
+      when 2
+        if typeof arguments[1] is 'string'
+          [@name, @attribute] = arguments
+        else
+          [@attribute, @options] = arguments
+      when 3
+        [@name, @attribute, @options] = arguments
       else
-        { @aggregate, @attribute } = arg
-    else if arguments.length isnt 0
-      throwBadArgs()
+        throwBadArgs()
     @_ensureAggregate('sum')
 
   toString: ->

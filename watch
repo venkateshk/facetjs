@@ -28,4 +28,5 @@ coffee --compile --watch --bare --output target --join target/query.js \
   src/query/split.coffee \
   src/query/apply.coffee \
   src/query/combine.coffee \
+  src/query/query.coffee \
   src/query/_end.coffee &

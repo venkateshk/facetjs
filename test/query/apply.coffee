@@ -8,6 +8,7 @@ expect = chai.expect
 describe "apply", ->
   it "preserves inputs", ->
     expect(FacetApply.fromSpec({
+      name: "p99"
       aggregate: 'quantile'
       attribute: 'bid_hist'
       quantile: 0.99
@@ -17,6 +18,7 @@ describe "apply", ->
         druidResolution: 200
       }
     }).valueOf()).to.deep.equal({
+      name: "p99"
       aggregate: 'quantile'
       attribute: 'bid_hist'
       quantile: 0.99

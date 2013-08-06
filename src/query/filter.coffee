@@ -1,22 +1,4 @@
 
-rangesIntersect = (range1, range2) ->
-  if range2[1] < range1[0] or range2[0] > range1[1]
-    return false
-  else
-    return range1[0] <= range2[1] and range2[0] <= range1[1]
-
-
-smaller = (a, b) -> if a < b then a else b
-larger  = (a, b) -> if a < b then b else a
-
-
-specialJoin = (array, sep, lastSep) ->
-  lengthMinus1 = array.length - 1
-  return array.reduce (prev, now, index) -> prev + (if index < lengthMinus1 then sep else lastSep) + now
-
-
-throwBadArgs = ->
-  throw new Error("bad number of arguments")
 
 
 filterTypePresedence = {
@@ -277,7 +259,7 @@ class AndFilter extends FacetFilter
       return String(@filters[0])
 
   valueOf: ->
-    return { type: @type, filters: @filters.map((filter) -> filter.valueOf()) }
+    return { type: @type, filters: @filters.map(getValueOf) }
 
   _mergeFilters: (filter1, filter2) ->
     return new FalseFilter() if filter1.type is 'false' or filter2.type is 'false'
@@ -364,7 +346,7 @@ class OrFilter extends FacetFilter
       return String(@filters[0])
 
   valueOf: ->
-    return { type: @type, filters: @filters.map((filter) -> filter.valueOf()) }
+    return { type: @type, filters: @filters.map(getValueOf) }
 
   _mergeFilters: (filter1, filter2) ->
     return new TrueFilter() if filter1.type is 'true' or filter2.type is 'true'

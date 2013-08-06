@@ -6,25 +6,43 @@ expect = chai.expect
 } = require('../../target/query')
 
 describe "apply", ->
-  it "preserves inputs", ->
-    expect(FacetApply.fromSpec({
-      name: "p99"
-      aggregate: 'quantile'
-      attribute: 'bid_hist'
-      quantile: 0.99
-      options: {
-        druidLowerLimit: 0
-        druidLowerUpper: 10
-        druidResolution: 200
+  describe "preserves", ->
+    it "quantile", ->
+      applySpec = {
+        name: "p99"
+        aggregate: 'quantile'
+        attribute: 'bid_hist'
+        quantile: 0.99
+        options: {
+          druidLowerLimit: 0
+          druidLowerUpper: 10
+          druidResolution: 200
+        }
       }
-    }).valueOf()).to.deep.equal({
-      name: "p99"
-      aggregate: 'quantile'
-      attribute: 'bid_hist'
-      quantile: 0.99
-      options: {
-        druidLowerLimit: 0
-        druidLowerUpper: 10
-        druidResolution: 200
+      expect(FacetApply.fromSpec(applySpec).valueOf()).to.deep.equal(applySpec)
+
+    it "complex", ->
+      applySpec = {
+        name: "lag"
+        arithmetic: "divide"
+        operands: [
+          {
+            arithmetic: "divide"
+            operands: [
+              {
+                aggregate: "sum"
+                attribute: "value"
+              }
+              {
+                aggregate: "sum"
+                attribute: "count"
+              }
+            ]
+          }
+          {
+            aggregate: "constant"
+            value: 3600
+          }
+        ]
       }
-    })
+      expect(FacetApply.fromSpec(applySpec).valueOf()).to.deep.equal(applySpec)

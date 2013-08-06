@@ -24,25 +24,9 @@ class FacetSplit
 
 
 class IdentitySplit extends FacetSplit
-  constructor: ->
-    switch args.length
-      when 1
-        if typeof args[0] isnt 'string'
-          { @name, @bucket, @attribute } = args[0]
-        else
-          [@attribute] = args
-
-      when 2
-        if typeof args[1] is 'string'
-          [@name, @attribute] = args
-        else
-          [@attribute, @options] = args
-
-      when 3
-        [@name, @attribute, @options] = args
-
-      else
-        throwBadArgs()
+  constructor: ({name, @bucket, @attribute, options}) ->
+    @name = name if name
+    @options = new FacetOptions(options) if option
     @_ensureBucket('identity')
 
   toString: ->
@@ -56,25 +40,33 @@ class IdentitySplit extends FacetSplit
 
 
 class ContinuousSplit extends FacetSplit
-  constructor: ->
+  constructor: ({name, @bucket, @attribute, options}) ->
+    @name = name if name
+    @options = new FacetOptions(options) if option
     @_ensureBucket('continuous')
 
 
 
 class TimeDurationSplit extends FacetSplit
-  constructor: ->
+  constructor: ({name, @bucket, @attribute, options}) ->
+    @name = name if name
+    @options = new FacetOptions(options) if option
     @_ensureBucket('timeDuration')
 
 
 
 class TimePeriodSplit extends FacetSplit
-  constructor: ->
+  constructor: ({name, @bucket, @attribute, options}) ->
+    @name = name if name
+    @options = new FacetOptions(options) if option
     @_ensureBucket('timePeriod')
 
 
 
 class TupleSplit extends FacetSplit
-  constructor: ->
+  constructor: ({name, @bucket, @attribute, options}) ->
+    @name = name if name
+    @options = new FacetOptions(options) if option
     @_ensureBucket('tuple')
 
 

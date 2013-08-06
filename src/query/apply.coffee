@@ -19,46 +19,6 @@ class FacetApply
       throw new TypeError("incorrect apply arithmetic '#{@arithmetic}' (needs to be: '#{applyArithmetic}')")
     return
 
-  _initSimpleAggregator: (args) ->
-    argsLength = args.length
-    if args[argsLength - 1] instanceof FacetOptions
-      argsLength--
-      @options = args[argsLength]
-
-    switch argsLength
-      when 1
-        if typeof args[0] isnt 'string'
-          { @name, @aggregate, @attribute, options } = args[0]
-          @options = new FacetOptions(options) if options
-        else
-          [@attribute] = args
-
-      when 2
-        [@name, @attribute] = args
-
-      else
-        throwBadArgs()
-
-    return
-
-  _initArithmetic: (args) ->
-    switch args.length
-      when 1
-        if not Array.isArray(args[0])
-          { @name, @arithmetic, @operands } = args[0]
-          @operands = @operands.map(FacetApply.fromSpec)
-        else
-          [@operands] = args
-
-      when 2
-        [@name, @operands] = args
-
-      else
-        throwBadArgs()
-
-    throw new Error("must have two operands got #{@operands.length}") unless @operands.length is 2
-    return
-
   _addName: (str) ->
     return str unless @name
     return "#{@name} <- #{str}"
@@ -67,7 +27,10 @@ class FacetApply
     return @_addName("base apply")
 
   valueOf: ->
-    throw new Error("base apply has no value")
+    apply = {}
+    apply.name = @name if @name
+    apply.options = @options.valueOf() if @options
+    return apply
 
   isAdditive: ->
     return false
@@ -75,7 +38,8 @@ class FacetApply
 
 
 class ConstantApply extends FacetApply
-  constructor: ({@name, @aggregate, @value, options}) ->
+  constructor: ({name, @aggregate, @value, options}) ->
+    @name = name if name
     @options = new FacetOptions(options) if options
     @_ensureAggregate('constant')
 
@@ -83,8 +47,9 @@ class ConstantApply extends FacetApply
     return @_addName(String(@value))
 
   valueOf: ->
-    apply = { aggregate: @aggregate, value: @value }
-    apply.name = @name if @name
+    apply = super.valueOf()
+    apply.aggregate = @aggregate
+    apply.value = @value
     return apply
 
   isAdditive: ->
@@ -93,24 +58,17 @@ class ConstantApply extends FacetApply
 
 
 class CountApply extends FacetApply
-  constructor: ->
-    argsLength = args.length
-    if args[argsLength - 1] instanceof FacetOptions
-      argsLength--
-      @options = args[argsLength]
-
-    if arguments.length is 1
-      { @aggregate } = arguments[0]
-    else if arguments.length isnt 0
-      throwBadArgs()
+  constructor: ({name, @aggregate, options}) ->
+    @name = name if name
+    @options = new FacetOptions(options) if options
     @_ensureAggregate('count')
 
   toString: ->
     return @_addName("count()")
 
   valueOf: ->
-    apply = { aggregate: @aggregate }
-    apply.name = @name if @name
+    apply = super.valueOf()
+    apply.aggregate = @aggregate
     return apply
 
   isAdditive: ->
@@ -119,16 +77,18 @@ class CountApply extends FacetApply
 
 
 class SumApply extends FacetApply
-  constructor: ->
-    @_initSimpleAggregator(arguments)
+  constructor: ({name, @aggregate, @attribute, options}) ->
+    @name = name if name
+    @options = new FacetOptions(options) if options
     @_ensureAggregate('sum')
 
   toString: ->
     return @_addName("#{@aggregate}(#{@attribute})")
 
   valueOf: ->
-    apply = { aggregate: @aggregate, attribute: @attribute }
-    apply.name = @name if @name
+    apply = super.valueOf()
+    apply.aggregate = @aggregate
+    apply.attribute = @attribute
     return apply
 
   isAdditive: ->
@@ -137,97 +97,87 @@ class SumApply extends FacetApply
 
 
 class AverageApply extends FacetApply
-  constructor: (arg) ->
-    @_initSimpleAggregator(arguments)
+  constructor: ({name, @aggregate, @attribute, options}) ->
+    @name = name if name
+    @options = new FacetOptions(options) if options
     @_ensureAggregate('average')
 
   toString: ->
     return @_addName("#{@aggregate}(#{@attribute})")
 
   valueOf: ->
-    apply = { aggregate: @aggregate, attribute: @attribute }
-    apply.name = @name if @name
+    apply = super.valueOf()
+    apply.aggregate = @aggregate
+    apply.attribute = @attribute
     return apply
 
 
 
 class MinApply extends FacetApply
-  constructor: (arg) ->
-    @_initSimpleAggregator(arguments)
+  constructor: ({name, @aggregate, @attribute, options}) ->
+    @name = name if name
+    @options = new FacetOptions(options) if options
     @_ensureAggregate('min')
 
   toString: ->
     return @_addName("#{@aggregate}(#{@attribute})")
 
   valueOf: ->
-    apply = { aggregate: @aggregate, attribute: @attribute }
-    apply.name = @name if @name
+    apply = super.valueOf()
+    apply.aggregate = @aggregate
+    apply.attribute = @attribute
     return apply
 
 
 
 class MaxApply extends FacetApply
-  constructor: (arg) ->
-    @_initSimpleAggregator(arguments)
+  constructor: ({name, @aggregate, @attribute, options}) ->
+    @name = name if name
+    @options = new FacetOptions(options) if options
     @_ensureAggregate('max')
 
   toString: ->
     return @_addName("#{@aggregate}(#{@attribute})")
 
   valueOf: ->
-    apply = { aggregate: @aggregate, attribute: @attribute }
-    apply.name = @name if @name
+    apply = super.valueOf()
+    apply.aggregate = @aggregate
+    apply.attribute = @attribute
     return apply
 
 
 
 class UniqueCountApply extends FacetApply
-  constructor: (arg) ->
-    @_initSimpleAggregator(arguments)
+  constructor: ({name, @aggregate, @attribute, options}) ->
+    @name = name if name
+    @options = new FacetOptions(options) if options
     @_ensureAggregate('uniqueCount')
 
   toString: ->
     return @_addName("#{@aggregate}(#{@attribute})")
 
   valueOf: ->
-    apply = { aggregate: @aggregate, attribute: @attribute }
-    apply.name = @name if @name
+    apply = super.valueOf()
+    apply.aggregate = @aggregate
+    apply.attribute = @attribute
     return apply
 
 
 
 class QuantileApply extends FacetApply
-  constructor: ->
-    argsLength = args.length
-    if args[argsLength - 1] instanceof FacetOptions
-      argsLength--
-      @options = args[argsLength]
-
-    switch argsLength
-      when 1
-        if typeof arguments[0] isnt 'string'
-          { @name, @attribute, @quantile, options } = arguments[0]
-          @options = new FacetOptions(options) if options
-        else
-          throwBadArgs()
-
-      when 2
-        [@attribute, @quantile] = arguments
-
-      when 3
-        [@name, @attribute, @quantile] = arguments
-
-      else
-        throwBadArgs()
+  constructor: ({name, @attribute, @quantile, options}) ->
+    @name = name if name
+    @options = new FacetOptions(options) if options
     @_ensureAggregate('quantile')
 
   toString: ->
     return @_addName("quantile(#{@attribute}, #{@quantile})")
 
   valueOf: ->
-    apply = { aggregate: @aggregate, attribute: @attribute, quantile: @quantile }
-    apply.name = @name if @name
-    apply.options = @options if @options
+    apply = super.valueOf()
+    apply.aggregate = @aggregate
+    apply.attribute = @attribute
+    apply.quantile = @quantile
     return apply
 
   isAdditive: ->
@@ -236,8 +186,9 @@ class QuantileApply extends FacetApply
 
 
 class AddApply extends FacetApply
-  constructor: ->
-    @_initArithmetic(arguments)
+  constructor: ({name, @arithmetic, @operands}) ->
+    @name = name if name
+    @operands = @operands.map(FacetApply.fromSpec)
     @_ensureArithmetic('add')
 
   toString: ->
@@ -246,8 +197,9 @@ class AddApply extends FacetApply
     return @_addName(expr)
 
   valueOf: ->
-    apply = { arithmetic: @arithmetic, operands: @operands.map(getValueOf) }
-    apply.name = @name if @name
+    apply = super.valueOf()
+    apply.arithmetic = @arithmetic
+    apply.operands = @operands.map(getValueOf)
     return apply
 
   isAdditive: ->
@@ -256,8 +208,9 @@ class AddApply extends FacetApply
 
 
 class SubtractApply extends FacetApply
-  constructor: ->
-    @_initArithmetic(arguments)
+  constructor: ({name, @arithmetic, @operands}) ->
+    @name = name if name
+    @operands = @operands.map(FacetApply.fromSpec)
     @_ensureArithmetic('subtract')
 
   toString: ->
@@ -266,8 +219,9 @@ class SubtractApply extends FacetApply
     return @_addName(expr)
 
   valueOf: ->
-    apply = { arithmetic: @arithmetic, operands: @operands.map(getValueOf) }
-    apply.name = @name if @name
+    apply = super.valueOf()
+    apply.arithmetic = @arithmetic
+    apply.operands = @operands.map(getValueOf)
     return apply
 
   isAdditive: ->
@@ -276,8 +230,9 @@ class SubtractApply extends FacetApply
 
 
 class MultiplyApply extends FacetApply
-  constructor: ->
-    @_initArithmetic(arguments)
+  constructor: ({name, @arithmetic, @operands}) ->
+    @name = name if name
+    @operands = @operands.map(FacetApply.fromSpec)
     @_ensureArithmetic('multiply')
 
   toString: ->
@@ -286,8 +241,9 @@ class MultiplyApply extends FacetApply
     return @_addName(expr)
 
   valueOf: ->
-    apply = { arithmetic: @arithmetic, operands: @operands.map(getValueOf) }
-    apply.name = @name if @name
+    apply = super.valueOf()
+    apply.arithmetic = @arithmetic
+    apply.operands = @operands.map(getValueOf)
     return apply
 
   isAdditive: ->
@@ -299,8 +255,9 @@ class MultiplyApply extends FacetApply
 
 
 class DivideApply extends FacetApply
-  constructor: ->
-    @_initArithmetic(arguments)
+  constructor: ({name, @arithmetic, @operands}) ->
+    @name = name if name
+    @operands = @operands.map(FacetApply.fromSpec)
     @_ensureArithmetic('divide')
 
   toString: (from = 'add') ->
@@ -309,8 +266,9 @@ class DivideApply extends FacetApply
     return @_addName(expr)
 
   valueOf: ->
-    apply = { arithmetic: @arithmetic, operands: @operands.map(getValueOf) }
-    apply.name = @name if @name
+    apply = super.valueOf()
+    apply.arithmetic = @arithmetic
+    apply.operands = @operands.map(getValueOf)
     return apply
 
   isAdditive: ->

@@ -436,6 +436,7 @@ describe "filter", ->
     it "gets rid of empty IN", ->
       expect(FacetFilter.fromSpec({
         type: 'in'
+        attribute: 'venue'
         values: []
       }).simplify().valueOf()).to.deep.equal({
         type: 'false'

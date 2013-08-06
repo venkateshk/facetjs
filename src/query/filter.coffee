@@ -1,6 +1,4 @@
 
-
-
 filterTypePresedence = {
   'true': 1
   'false': 2
@@ -40,6 +38,10 @@ class FacetFilter
       throw new TypeError("incorrect filter type '#{@type}' (needs to be: '#{filterType}')")
     return
 
+  _validateAttribute: ->
+    if typeof @attribute isnt 'string'
+      throw new TypeError("attribute must be a string")
+
   toString: ->
     return "base filter"
 
@@ -69,11 +71,7 @@ class FacetFilter
 
 
 class TrueFilter extends FacetFilter
-  constructor: ->
-    if arguments.length is 1
-      { @type } = arguments[0]
-    else if arguments.length isnt 0
-      throwBadArgs()
+  constructor: ({@type} = {}) ->
     @_ensureType('true')
 
   toString: ->
@@ -85,11 +83,7 @@ class TrueFilter extends FacetFilter
 
 
 class FalseFilter extends FacetFilter
-  constructor: ->
-    if arguments.length is 1
-      { @type } = arguments[0]
-    else if arguments.length isnt 0
-      throwBadArgs()
+  constructor: ({@type} = {}) ->
     @_ensureType('false')
 
   toString: ->
@@ -101,14 +95,9 @@ class FalseFilter extends FacetFilter
 
 
 class IsFilter extends FacetFilter
-  constructor: ->
-    if arguments.length is 1
-      { @type, @attribute, @value } = arguments[0]
-    else if arguments.length is 2
-      [@attribute, @value] = arguments
-    else
-      throwBadArgs()
+  constructor: ({@type, @attribute, @value}) ->
     @_ensureType('is')
+    @_validateAttribute()
 
   toString: ->
     return "#{@attribute} is #{@value}"
@@ -118,14 +107,9 @@ class IsFilter extends FacetFilter
 
 
 class InFilter extends FacetFilter
-  constructor: ->
-    if arguments.length is 1
-      { @type, @attribute, @values } = arguments[0]
-    else if arguments.length is 2
-      [@attribute, @values] = arguments
-    else
-      throwBadArgs()
+  constructor: ({@type, @attribute, @values}) ->
     @_ensureType('in')
+    @_validateAttribute()
     throw new TypeError('values must be an array') unless Array.isArray(@values)
 
   toString: ->
@@ -144,14 +128,9 @@ class InFilter extends FacetFilter
 
 
 class FragmentsFilter extends FacetFilter
-  constructor: ->
-    if arguments.length is 1
-      { @type, @attribute, @fragments } = arguments[0]
-    else if arguments.length is 2
-      [@attribute, @fragments] = arguments
-    else
-      throwBadArgs()
+  constructor: ({@type, @attribute, @fragments}) ->
     @_ensureType('fragments')
+    @_validateAttribute()
     throw new TypeError('fragments must be an array') unless Array.isArray(@fragments)
 
   toString: ->
@@ -163,14 +142,9 @@ class FragmentsFilter extends FacetFilter
 
 
 class MatchFilter extends FacetFilter
-  constructor: ->
-    if arguments.length is 1
-      { @type, @attribute, @match } = arguments[0]
-    else if arguments.length is 2
-      [@attribute, @match] = arguments
-    else
-      throwBadArgs()
+  constructor: ({@type, @attribute, @match}) ->
     @_ensureType('match')
+    @_validateAttribute()
 
   toString: ->
     return "#{@attribute} matches /#{@match}/"
@@ -181,14 +155,9 @@ class MatchFilter extends FacetFilter
 
 
 class WithinFilter extends FacetFilter
-  constructor: ->
-    if arguments.length is 1
-      { @type, @attribute, @range } = arguments[0]
-    else if arguments.length is 2
-      [@attribute, @range] = arguments
-    else
-      throwBadArgs()
+  constructor: ({@type, @attribute, @range}) ->
     @_ensureType('within')
+    @_validateAttribute()
     throw new TypeError('range must be an array of length 2') unless Array.isArray(@range) and @range.length is 2
     [r0, r1] = @range
     if typeof r0 is 'string' and typeof r1 is 'string'
@@ -206,14 +175,12 @@ class WithinFilter extends FacetFilter
 
 
 class NotFilter extends FacetFilter
-  constructor: ->
-    if arguments.length is 1
-      if arguments[0] not instanceof FacetFilter
-        @filter = FacetFilter.fromSpec(arguments[0].filter)
-      else
-        @filter = arguments[0]
+  constructor: (arg) ->
+    if arg not instanceof FacetFilter
+      {@type, @filter} = arg
+      @filter = FacetFilter.fromSpec(@filter)
     else
-      throwBadArgs()
+      @filter = arg
     @_ensureType('not')
 
   toString: ->
@@ -241,15 +208,13 @@ class NotFilter extends FacetFilter
 
 class AndFilter extends FacetFilter
   constructor: (arg) ->
-    if arguments.length is 1
-      if Array.isArray(arg)
-        @filters = arg
-      else
-        { @type, @filters } = arg
-        throw new TypeError('filters must be an array') unless Array.isArray(@filters)
-        @filters = @filters.map(FacetFilter.fromSpec)
+    if not Array.isArray(arg)
+      {@type, @filters} = arg
+      throw new TypeError('filters must be an array') unless Array.isArray(@filters)
+      @filters = @filters.map(FacetFilter.fromSpec)
     else
-      throwBadArgs()
+      @filters = arg
+
     @_ensureType('and')
 
   toString: ->
@@ -271,7 +236,10 @@ class AndFilter extends FacetFilter
         if rangesIntersect(filter1.range, filter2.range)
           [start1, end1] = filter1.range
           [start2, end2] = filter2.range
-          return new WithinFilter(filter1.attribute, [larger(start1, start2), smaller(end1, end2)])
+          return new WithinFilter({
+            attribute: filter1.attribute
+            range: [larger(start1, start2), smaller(end1, end2)]
+          })
         else
           return
       else
@@ -328,15 +296,13 @@ class AndFilter extends FacetFilter
 
 class OrFilter extends FacetFilter
   constructor: (arg) ->
-    if arguments.length is 1
-      if Array.isArray(arg)
-        @filters = arg
-      else
-        { @type, @filters } = arg
-        throw new TypeError('filters must be an array') unless Array.isArray(@filters)
-        @filters = @filters.map(FacetFilter.fromSpec)
+    if not Array.isArray(arg)
+      {@type, @filters} = arg
+      throw new TypeError('filters must be an array') unless Array.isArray(@filters)
+      @filters = @filters.map(FacetFilter.fromSpec)
     else
-      throwBadArgs()
+      @filters = arg
+
     @_ensureType('or')
 
   toString: ->
@@ -358,7 +324,10 @@ class OrFilter extends FacetFilter
         if rangesIntersect(filter1.range, filter2.range)
           [start1, end1] = filter1.range
           [start2, end2] = filter2.range
-          return new WithinFilter(filter1.attribute, [smaller(start1, start2), larger(end1, end2)])
+          return new WithinFilter({
+            attribute: filter1.attribute
+            range: [smaller(start1, start2), larger(end1, end2)]
+          })
         else
           return new FalseFilter()
       else

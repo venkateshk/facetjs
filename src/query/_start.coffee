@@ -15,7 +15,17 @@ specialJoin = (array, sep, lastSep) ->
   lengthMinus1 = array.length - 1
   return array.reduce (prev, now, index) -> prev + (if index < lengthMinus1 then sep else lastSep) + now
 
+
 throwBadArgs = ->
   throw new Error("bad number of arguments")
 
+
 getValueOf = (d) -> d.valueOf()
+
+
+class FacetOptions
+  constructor: (options) ->
+    for own k, v in options
+      throw new TypeError("bad option value type (key: #{k})") unless typeof v in ['string', 'number']
+      this[k] = v
+

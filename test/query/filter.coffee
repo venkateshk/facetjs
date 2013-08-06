@@ -1,19 +1,7 @@
 chai = require("chai")
 expect = chai.expect
 
-{
-  FacetFilter
-  TrueFilter
-  FalseFilter
-  IsFilter
-  InFilter
-  FragmentsFilter
-  MatchFilter
-  WithinFilter
-  NotFilter
-  AndFilter
-  OrFilter
-} = require('../../target/query')
+{FacetFilter} = require('../../target/query')
 
 describe "filter", ->
 

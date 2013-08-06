@@ -24,6 +24,7 @@ coffee --compile --watch --bare --output target --join target/facet.js \
 
 coffee --compile --watch --bare --output target --join target/query.js \
   src/query/_start.coffee \
+  src/query/common.coffee \
   src/query/filter.coffee \
   src/query/split.coffee \
   src/query/apply.coffee \

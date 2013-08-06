@@ -59,8 +59,12 @@ class FacetApply
     throw new Error("must have two operands got #{@operands.length}") unless @operands.length is 2
     return
 
+  _addName: (str) ->
+    return str unless @name
+    return "#{@name} <- #{str}"
+
   toString: ->
-    return "base apply"
+    return @_addName("base apply")
 
   valueOf: ->
     throw new Error("base apply has no value")
@@ -85,7 +89,7 @@ class ConstantApply extends FacetApply
     @_ensureAggregate('constant')
 
   toString: ->
-    return String(@value)
+    return @_addName(String(@value))
 
   valueOf: ->
     apply = { aggregate: @aggregate, value: @value }
@@ -106,7 +110,7 @@ class CountApply extends FacetApply
     @_ensureAggregate('count')
 
   toString: ->
-    return "count()"
+    return @_addName("count()")
 
   valueOf: ->
     apply = { aggregate: @aggregate }
@@ -124,7 +128,7 @@ class SumApply extends FacetApply
     @_ensureAggregate('sum')
 
   toString: ->
-    return "#{@aggregate}(#{@attribute})"
+    return @_addName("#{@aggregate}(#{@attribute})")
 
   valueOf: ->
     apply = { aggregate: @aggregate, attribute: @attribute }
@@ -142,7 +146,7 @@ class AverageApply extends FacetApply
     @_ensureAggregate('average')
 
   toString: ->
-    return "#{@aggregate}(#{@attribute})"
+    return @_addName("#{@aggregate}(#{@attribute})")
 
   valueOf: ->
     apply = { aggregate: @aggregate, attribute: @attribute }
@@ -157,7 +161,7 @@ class MinApply extends FacetApply
     @_ensureAggregate('min')
 
   toString: ->
-    return "#{@aggregate}(#{@attribute})"
+    return @_addName("#{@aggregate}(#{@attribute})")
 
   valueOf: ->
     apply = { aggregate: @aggregate, attribute: @attribute }
@@ -172,7 +176,7 @@ class MaxApply extends FacetApply
     @_ensureAggregate('max')
 
   toString: ->
-    return "#{@aggregate}(#{@attribute})"
+    return @_addName("#{@aggregate}(#{@attribute})")
 
   valueOf: ->
     apply = { aggregate: @aggregate, attribute: @attribute }
@@ -187,7 +191,7 @@ class UniqueCountApply extends FacetApply
     @_ensureAggregate('uniqueCount')
 
   toString: ->
-    return "#{@aggregate}(#{@attribute})"
+    return @_addName("#{@aggregate}(#{@attribute})")
 
   valueOf: ->
     apply = { aggregate: @aggregate, attribute: @attribute }
@@ -218,7 +222,7 @@ class QuantileApply extends FacetApply
     @_ensureAggregate('quantile')
 
   toString: ->
-    return "quantile(#{@attribute}, #{@quantile})"
+    return @_addName("quantile(#{@attribute}, #{@quantile})")
 
   valueOf: ->
     apply = { aggregate: @aggregate, attribute: @attribute, quantile: @quantile }
@@ -237,7 +241,9 @@ class AddApply extends FacetApply
     @_ensureArithmetic('add')
 
   toString: ->
-    return "(#{@operands[0]}) + (#{@operands[1]})"
+    expr = "#{@operands[0].toString(@arithmetic)} + #{@operands[1].toString(@arithmetic)}"
+    expr = "(#{expr})" if from in ['divide', 'multiply']
+    return @_addName(expr)
 
   valueOf: ->
     apply = { arithmetic: @arithmetic, operands: @operands.map(getValueOf) }
@@ -255,7 +261,9 @@ class SubtractApply extends FacetApply
     @_ensureArithmetic('subtract')
 
   toString: ->
-    return "(#{@operands[0]}) - (#{@operands[1]})"
+    expr = "#{@operands[0].toString(@arithmetic)} - #{@operands[1].toString(@arithmetic)}"
+    expr = "(#{expr})" if from in ['divide', 'multiply']
+    return @_addName(expr)
 
   valueOf: ->
     apply = { arithmetic: @arithmetic, operands: @operands.map(getValueOf) }
@@ -273,7 +281,9 @@ class MultiplyApply extends FacetApply
     @_ensureArithmetic('multiply')
 
   toString: ->
-    return "(#{@operands[0]}) * (#{@operands[1]})"
+    expr = "#{@operands[0].toString(@arithmetic)} * #{@operands[1].toString(@arithmetic)}"
+    expr = "(#{expr})" if from is 'divide'
+    return @_addName(expr)
 
   valueOf: ->
     apply = { arithmetic: @arithmetic, operands: @operands.map(getValueOf) }
@@ -293,8 +303,10 @@ class DivideApply extends FacetApply
     @_initArithmetic(arguments)
     @_ensureArithmetic('divide')
 
-  toString: ->
-    return "(#{@operands[0]}) / (#{@operands[1]})"
+  toString: (from = 'add') ->
+    expr = "#{@operands[0].toString(@arithmetic)} / #{@operands[1].toString(@arithmetic)}"
+    expr = "(#{expr})" if from is 'divide'
+    return @_addName(expr)
 
   valueOf: ->
     apply = { arithmetic: @arithmetic, operands: @operands.map(getValueOf) }

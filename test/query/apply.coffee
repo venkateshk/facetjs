@@ -46,3 +46,54 @@ describe "apply", ->
         ]
       }
       expect(FacetApply.fromSpec(applySpec).valueOf()).to.deep.equal(applySpec)
+
+
+  describe "toString", ->
+    it "complex", ->
+      applySpec = {
+        name: "lag"
+        arithmetic: "divide"
+        operands: [
+          {
+            arithmetic: "divide"
+            operands: [
+              {
+                aggregate: "sum"
+                attribute: "value"
+              }
+              {
+                aggregate: "sum"
+                attribute: "count"
+              }
+            ]
+          }
+          {
+            aggregate: "constant"
+            value: 3600
+          }
+        ]
+      }
+      expect(FacetApply.fromSpec(applySpec).toString()).to.equal("lag <- (sum(value) / sum(count)) / 3600")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -62,13 +62,6 @@ exports.filterFromSplit = filterFromSplit = (split, propValue) ->
       throw new Error("unknown bucketing: #{split.bucket}")
 
 
-# Check if the apply is additive
-exports.isAdditiveApply = isAdditiveApply = (apply) ->
-  return apply.aggregate in ['constant', 'count', 'sum'] or
-         (apply.arithmetic in ['add', 'subtract'] and
-           isAdditiveApply(apply.operands[0]) and
-           isAdditiveApply(apply.operands[1]))
-
 getPropFromSegment = (segment, prop) ->
   return null unless segment and segment.prop
   return segment.prop[prop] or getPropFromSegment(segment.parent, prop)

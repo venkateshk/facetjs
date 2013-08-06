@@ -20,21 +20,21 @@ class FacetApply
     return
 
   _initSimpleAggregator: (args) ->
-    switch args.length
+    argsLength = args.length
+    if args[argsLength - 1] instanceof FacetOptions
+      argsLength--
+      @options = args[argsLength]
+
+    switch argsLength
       when 1
         if typeof args[0] isnt 'string'
-          { @name, @aggregate, @attribute } = args[0]
+          { @name, @aggregate, @attribute, options } = args[0]
+          @options = new FacetOptions(options) if options
         else
           [@attribute] = args
 
       when 2
-        if typeof args[1] is 'string'
-          [@name, @attribute] = args
-        else
-          [@attribute, @options] = args
-
-      when 3
-        [@name, @attribute, @options] = args
+        [@name, @attribute] = args
 
       else
         throwBadArgs()
@@ -75,17 +75,8 @@ class FacetApply
 
 
 class ConstantApply extends FacetApply
-  constructor: (arg) ->
-    if arguments.length is 1
-      if typeof arg is 'number'
-        @value = arg
-      else
-        { @aggregate, @value } = arg
-    else if arguments.length isnt 0
-      throwBadArgs()
-
-
-
+  constructor: ({@name, @aggregate, @value, options}) ->
+    @options = new FacetOptions(options) if options
     @_ensureAggregate('constant')
 
   toString: ->
@@ -103,6 +94,11 @@ class ConstantApply extends FacetApply
 
 class CountApply extends FacetApply
   constructor: ->
+    argsLength = args.length
+    if args[argsLength - 1] instanceof FacetOptions
+      argsLength--
+      @options = args[argsLength]
+
     if arguments.length is 1
       { @aggregate } = arguments[0]
     else if arguments.length isnt 0
@@ -202,21 +198,25 @@ class UniqueCountApply extends FacetApply
 
 class QuantileApply extends FacetApply
   constructor: ->
-    switch arguments.length
+    argsLength = args.length
+    if args[argsLength - 1] instanceof FacetOptions
+      argsLength--
+      @options = args[argsLength]
+
+    switch argsLength
       when 1
         if typeof arguments[0] isnt 'string'
-          { @name, @attribute, @quantile, @options } = arguments[0]
+          { @name, @attribute, @quantile, options } = arguments[0]
+          @options = new FacetOptions(options) if options
         else
           throwBadArgs()
+
       when 2
         [@attribute, @quantile] = arguments
+
       when 3
-        if typeof arguments[2] is 'number'
-          [@name, @attribute, @quantile] = arguments
-        else
-          [@attribute, @quantile, @options] = arguments
-      when 4
-        [@name, @attribute, @qunatile, @options] = arguments
+        [@name, @attribute, @quantile] = arguments
+
       else
         throwBadArgs()
     @_ensureAggregate('quantile')

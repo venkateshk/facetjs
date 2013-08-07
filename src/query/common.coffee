@@ -13,11 +13,6 @@ specialJoin = (array, sep, lastSep) ->
   lengthMinus1 = array.length - 1
   return array.reduce (prev, now, index) -> prev + (if index < lengthMinus1 then sep else lastSep) + now
 
-
-throwBadArgs = ->
-  throw new Error("bad number of arguments")
-
-
 getValueOf = (d) -> d.valueOf()
 
 

@@ -36,9 +36,7 @@ class DruidQueryBuilder
     @useCache = true
 
   addToContext: (context, attribute) ->
-    if context[attribute]
-      return context[attribute]
-
+    return context[attribute] if context[attribute]
     context[attribute] = "v#{@jsCount}"
     @jsCount++
     return context[attribute]
@@ -580,7 +578,7 @@ class DruidQueryBuilder
 
     if @priority isnt 'default'
       query.context or= {}
-      query.priority = @priority
+      query.context.priority = @priority
 
     query.filter = @filter if @filter
 

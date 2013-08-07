@@ -45,6 +45,13 @@ describe "apply", ->
       }
       expect(FacetApply.fromSpec(applySpec).valueOf()).to.deep.equal(applySpec)
 
+    it "filtered", ->
+      applySpec = {
+        name: "Count R=0"
+        aggregate: "sum", attribute: "count"
+        filter: { type: 'is', attribute: "robot", value: "0" }
+      }
+      expect(FacetApply.fromSpec(applySpec).valueOf()).to.deep.equal(applySpec)
 
   describe "toString", ->
     it "complex", ->

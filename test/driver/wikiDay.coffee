@@ -73,11 +73,21 @@ describe "Wikipedia dataset", ->
       ]
     }
 
-  describe "filter; apply count", ->
+  describe "filter is; apply count", ->
     it "should have the same results for different drivers", testEquality {
       drivers: ['mySql', 'druid']
       query: [
         { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
+        { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+        { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+      ]
+    }
+
+  describe "filter contains; apply count", ->
+    it "should have the same results for different drivers", testEquality {
+      drivers: ['mySql', 'druid']
+      query: [
+        { operation: 'filter', attribute: 'language', type: 'contains', value: 'e' }
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
         { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
       ]

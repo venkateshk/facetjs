@@ -2,7 +2,7 @@
 
 async = require('async')
 driverUtil = require('./driverUtil')
-{FacetFilter, FacetSplit, FacetApply, FacetCombine, FacetQuery, AndFilter} = require('./query')
+{FacetFilter, TrueFilter, FacetSplit, FacetApply, FacetCombine, FacetQuery, AndFilter} = require('./query')
 
 # -----------------------------------------------------
 
@@ -354,7 +354,11 @@ condensedQueryToSQL = ({requester, table, filter, condensedQuery}, callback) ->
 
 
 module.exports = ({requester, table, filter}) ->
+  throw new Error("must have a requester") unless typeof requester is 'function'
   throw new Error("must have table") unless typeof table is 'string'
+  filter ?= new TrueFilter()
+  throw new TypeError("filter should be a FacetFilter") unless filter instanceof FacetFilter
+
   return (request, callback) ->
     try
       throw new Error("request not supplied") unless request

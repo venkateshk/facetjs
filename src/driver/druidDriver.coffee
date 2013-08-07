@@ -2,19 +2,12 @@
 
 async = require('async')
 driverUtil = require('./driverUtil')
+{FacetFilter, TrueFilter, FacetSplit, FacetApply, FacetCombine, FacetQuery, AndFilter} = require('./query')
 
 # -----------------------------------------------------
 
-andFilters = (filters...) ->
-  filters = filters.filter((filter) -> filter?)
-  switch filters.length
-    when 0
-      return null
-    when 1
-      return filters[0]
-    else
-      return { type: 'and', filters }
-
+andFilters = (filter1, filter2) ->
+  return new AndFilter([filter1, filter2]).simplify()
 
 class DruidQueryBuilder
   @ALL_DATA_CHUNKS = 10000
@@ -174,7 +167,7 @@ class DruidQueryBuilder
   addFilter: (filter) ->
     dateToIntervalPart = DruidQueryBuilder.dateToIntervalPart
     return unless filter
-    extract = driverUtil.extractFilterByAttribute(filter, @timeAttribute)
+    extract = filter.extractFilterByAttribute(@timeAttribute)
     throw new Error("could not separate time filter") unless extract
     [timelessFilter, timeFilter] = extract
 
@@ -414,7 +407,7 @@ class DruidQueryBuilder
 
           when 'uniqueCount'
             throw new Error("approximate queries not allowed") unless @approximate
-            throw new Error("can not filter a uniqueCount") if apply.filter
+            throw new Error("filtering uniqueCount unsupported by driver") if apply.filter
 
             # ToDo: add a throw here in case approximate is false
             aggregation = {
@@ -521,7 +514,7 @@ class DruidQueryBuilder
     return this
 
   addCombine: (combine) ->
-    switch combine.combine
+    switch combine.method
       when 'slice'
         { sort, limit } = combine
 
@@ -563,7 +556,7 @@ class DruidQueryBuilder
             dim.threshold = limits[i] if limits[i]?
 
       else
-        throw new Error("unsupported combine '#{combine.combine}'")
+        throw new Error("unsupported method '#{combine.method}'")
 
     return this
 
@@ -1054,10 +1047,13 @@ druidQueryFns = {
 # @return {FacetDriver} the driver that does the requests
 
 module.exports = ({requester, dataSource, timeAttribute, approximate, filter, forceInterval, concurrentQueryLimit, queryLimit}) ->
+  throw new Error("must have a requester") unless typeof requester is 'function'
   timeAttribute or= 'time'
   approximate ?= true
   concurrentQueryLimit or= 16
   queryLimit or= Infinity
+  filter ?= new TrueFilter()
+  throw new TypeError("filter should be a FacetFilter") unless filter instanceof FacetFilter
 
   queriesMade = 0
   return (request, callback) ->
@@ -1065,7 +1061,7 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
       throw new Error("request not supplied") unless request
       {context, query} = request
       context or= {}
-      condensedQuery = driverUtil.condenseQuery(query)
+      throw new TypeError("query must be a FacetQuery") unless query instanceof FacetQuery
     catch e
       callback(e)
       return
@@ -1073,9 +1069,11 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
     init = true
     rootSegment = {
       parent: null
-      _filter: filter
+      _filter: andFilters(filter, query.getFilter())
     }
     segments = [rootSegment]
+
+    condensedGroups = query.getGroups()
 
     queryDruid = (condensedCommand, lastCmd, callback) ->
       if condensedCommand.split
@@ -1108,12 +1106,11 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
           callback({ message: 'query limit exceeded' })
           return
 
-        myFilter = andFilters(parentSegment._filter, condensedCommand.filter)
         queryFn({
           requester
           dataSource
           timeAttribute
-          filter: myFilter
+          filter: parentSegment._filter
           forceInterval
           condensedCommand
           approximate
@@ -1142,10 +1139,7 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
                 return {
                   parent: parentSegment
                   prop
-                  _filter: andFilters(
-                    myFilter
-                    driverUtil.filterFromSplit(condensedCommand.split, prop[condensedCommand.split.name])
-                  )
+                  _filter: andFilters(parentSegment._filter, condensedCommand.split.getFilterFor(prop[condensedCommand.split.name]))
                 }
 
             parentSegment.splits = splits = props.map(propToSplit)
@@ -1155,7 +1149,7 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
             splits = [{
               parent: parentSegment
               prop
-              _filter: myFilter
+              _filter: parentSegment._filter
             }]
 
           callback(null, splits)
@@ -1163,9 +1157,9 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
         )
         return
 
-      if condensedCommand.split?.bucketFilter
-        bucketFilterFn = driverUtil.makeBucketFilterFn(condensedCommand.split.bucketFilter)
-        driverUtil.inPlaceFilter(segments, bucketFilterFn)
+      if condensedCommand.split?.segmentFilter
+        segmentFilterFn = driverUtil.makeBucketFilterFn(condensedCommand.split.segmentFilter)
+        driverUtil.inPlaceFilter(segments, segmentFilterFn)
 
       # do the query in parallel
       async.mapLimit(
@@ -1192,12 +1186,12 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
 
     cmdIndex = 0
     async.whilst(
-      -> cmdIndex < condensedQuery.length and rootSegment
+      -> cmdIndex < condensedGroups.length and rootSegment
       (callback) ->
-        condensedCommand = condensedQuery[cmdIndex]
+        condensedGroup = condensedGroups[cmdIndex]
         cmdIndex++
-        last = cmdIndex is condensedQuery.length
-        queryDruid(condensedCommand, last, callback)
+        last = cmdIndex is condensedGroups.length
+        queryDruid(condensedGroup, last, callback)
         return
       (err) ->
         if err

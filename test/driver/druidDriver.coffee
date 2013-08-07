@@ -84,7 +84,7 @@ describe "Druid driver", ->
         forceInterval: true
       })
 
-      filter = {
+      filterSpec = {
         operation: 'filter'
         type: 'and'
         filters: [
@@ -110,13 +110,13 @@ describe "Druid driver", ->
         timeAttribute: 'time'
         approximate: true
         forceInterval: true
-        filter
+        filter: FacetFilter.fromSpec(filterSpec)
       })
 
       it "should get back the same result", (done) ->
         noFilter {
           query: [
-            filter
+            filterSpec
             { operation: 'apply', name: 'Count', aggregate: 'count' }
           ]
         }, (err, noFilterRes) ->
@@ -145,30 +145,28 @@ describe "Druid driver", ->
         forceInterval: true
       })
 
-      filter = {
-        operation: 'filter'
-        type: 'and'
-        filters: [
-          {
-            type: 'within'
-            attribute: 'time'
-            range: [
-              new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0))
-              new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))
-            ]
-          },
-          {
-            type: 'is'
-            attribute: 'page'
-            value: null
-          }
-        ]
-      }
-
       it "should get back a result and not crash", (done) ->
         driver {
           query: [
-            filter
+            {
+              operation: 'filter'
+              type: 'and'
+              filters: [
+                {
+                  type: 'within'
+                  attribute: 'time'
+                  range: [
+                    new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0))
+                    new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))
+                  ]
+                },
+                {
+                  type: 'is'
+                  attribute: 'page'
+                  value: null
+                }
+              ]
+            }
             { operation: 'apply', name: 'Count', aggregate: 'count' }
           ]
         }, (err, res) ->

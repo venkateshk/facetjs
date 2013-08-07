@@ -2,6 +2,8 @@ chai = require("chai")
 expect = chai.expect
 utils = require('../utils')
 
+{FacetFilter} = require('../../build/query')
+
 druidRequester = require('../../build/druidRequester')
 sqlRequester = require('../../build/mySqlRequester')
 
@@ -47,14 +49,14 @@ driverFns.druid = druidDriver({
   timeAttribute: 'time'
   approximate: true
   forceInterval: true
-  filter: {
+  filter: FacetFilter.fromSpec({
     type: 'within'
     attribute: 'time'
     range: [
       new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0))
       new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))
     ]
-  }
+  })
 })
 
 testEquality = utils.makeEqualityTest(driverFns)

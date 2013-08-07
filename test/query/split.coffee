@@ -29,6 +29,27 @@ describe "split", ->
   describe "preserves", ->
     it "identity", ->
       splitSpec = {
+        name: "something"
+        bucket: "identity"
+        attribute: "country"
+      }
+      expect(FacetSplit.fromSpec(splitSpec).valueOf()).to.deep.equal(splitSpec)
+
+    it "identity with bucketFilter", ->
+      splitSpec = {
+        name: "something"
+        bucket: "identity"
+        attribute: "country"
+        bucketFilter: {
+          type: 'is'
+          prop: 'continent'
+          value: 'Asia'
+        }
+      }
+      expect(FacetSplit.fromSpec(splitSpec).valueOf()).to.deep.equal(splitSpec)
+
+    it "continuous", ->
+      splitSpec = {
         name: "Histogram"
         bucket: "continuous"
         attribute: 'bid_hist'

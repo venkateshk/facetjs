@@ -18,8 +18,8 @@ filterFns = {
   in: ({attribute, values}) ->
     return (d) -> d[attribute] in values
 
-  fragments: ({attribute, fragments}) ->
-    throw new Error("implement this")
+  contains: ({attribute, value}) ->
+    return (d) -> d[attribute].indexOf(value) isnt -1
 
   match: ({attribute, expression}) ->
     expression = new RegExp(expression)

@@ -27,10 +27,10 @@ facet.filter = {
     values
   }
 
-  fragments: (attribute, fragments) -> {
-    type: 'fragments'
+  contains: (attribute, value) -> {
+    type: 'contains'
     attribute
-    fragments
+    value
   }
 
   match: (attribute, expression) -> {

@@ -25,16 +25,16 @@ moveTimestamp = (timestamp, period, timezone) ->
 
 filterToHashHelper = (filter) ->
   return switch filter.type
-    when 'true'      then "T"
-    when 'false'     then "F"
-    when 'is'        then "IS:#{filter.attribute}:#{filter.value}"
-    when 'in'        then "IN:#{filter.attribute}:#{filter.values.join(';')}"
-    when 'fragments' then "F:#{filter.attribute}:#{filter.fragments.join(' ')}"
-    when 'match'     then "F:#{filter.attribute}:#{filter.expression}"
-    when 'within'    then "W:#{filter.attribute}:#{filter.range[0].valueOf()}:#{filter.range[1].valueOf()}"
-    when 'not'       then "N(#{filterToHashHelper(filter.filter)})"
-    when 'and'       then "A(#{filter.filters.map(filterToHashHelper).join(')(')})"
-    when 'or'        then "O(#{filter.filters.map(filterToHashHelper).join(')(')})"
+    when 'true'     then "T"
+    when 'false'    then "F"
+    when 'is'       then "IS:#{filter.attribute}:#{filter.value}"
+    when 'in'       then "IN:#{filter.attribute}:#{filter.values.join(';')}"
+    when 'contains' then "C:#{filter.attribute}:#{filter.value}"
+    when 'match'    then "F:#{filter.attribute}:#{filter.expression}"
+    when 'within'   then "W:#{filter.attribute}:#{filter.range[0].valueOf()}:#{filter.range[1].valueOf()}"
+    when 'not'      then "N(#{filterToHashHelper(filter.filter)})"
+    when 'and'      then "A(#{filter.filters.map(filterToHashHelper).join(')(')})"
+    when 'or'       then "O(#{filter.filters.map(filterToHashHelper).join(')(')})"
     else throw new Error("unsupported filter type")
 
 filterToHash = (filter) ->

@@ -113,7 +113,7 @@ describe "Diamonds dataset", ->
       drivers: ['simple', 'mySql']
       query: [
         { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
-        { operation: 'combine', combine: 'slice', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
+        { operation: 'combine', method: 'slice', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
       ]
     }
 
@@ -123,7 +123,7 @@ describe "Diamonds dataset", ->
       query: [
         { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
         { operation: 'apply', name: 'Count', aggregate: 'count' }
-        { operation: 'combine', combine: 'slice', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
+        { operation: 'combine', method: 'slice', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
       ]
     }
 
@@ -133,7 +133,7 @@ describe "Diamonds dataset", ->
       query: [
         { operation: 'split', name: 'Carat', bucket: 'continuous', size: 0.1, offset: 0.005, attribute: 'carat' }
         { operation: 'apply', name: 'Count', aggregate: 'count' }
-        { operation: 'combine', combine: 'slice', sort: { prop: 'Carat', compare: 'natural', direction: 'ascending' } }
+        { operation: 'combine', method: 'slice', sort: { prop: 'Carat', compare: 'natural', direction: 'ascending' } }
       ]
     }
 
@@ -143,11 +143,11 @@ describe "Diamonds dataset", ->
       query: [
         { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
         { operation: 'apply', name: 'Count', aggregate: 'count' }
-        { operation: 'combine', combine: 'slice', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
+        { operation: 'combine', method: 'slice', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
 
         { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
         { operation: 'apply', name: 'Count', aggregate: 'count' }
-        { operation: 'combine', combine: 'slice', sort: { prop: 'Color', compare: 'natural', direction: 'descending' }, limit: 2 }
+        { operation: 'combine', method: 'slice', sort: { prop: 'Color', compare: 'natural', direction: 'descending' }, limit: 2 }
       ]
     }
 
@@ -157,7 +157,7 @@ describe "Diamonds dataset", ->
       query: [
         { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
         { operation: 'apply', name: 'Count', aggregate: 'count' }
-        { operation: 'combine', combine: 'slice', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
+        { operation: 'combine', method: 'slice', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
 
         {
           operation: 'split'
@@ -167,7 +167,7 @@ describe "Diamonds dataset", ->
           bucketFilter: { type: 'in', prop: 'Cut', values: ['Ideal', 'Good'] }
         }
         { operation: 'apply', name: 'Count', aggregate: 'count' }
-        { operation: 'combine', combine: 'slice', sort: { prop: 'Color', compare: 'natural', direction: 'descending' }, limit: 2 }
+        { operation: 'combine', method: 'slice', sort: { prop: 'Color', compare: 'natural', direction: 'descending' }, limit: 2 }
       ]
     }
 
@@ -177,11 +177,11 @@ describe "Diamonds dataset", ->
       query: [
         { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
         { operation: 'apply', name: 'Count', aggregate: 'count' }
-        { operation: 'combine', combine: 'slice', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
+        { operation: 'combine', method: 'slice', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
 
         { operation: 'split', name: 'Carat', bucket: 'continuous', size: 0.1, offset: 0.005, attribute: 'carat' }
         { operation: 'apply', name: 'Count', aggregate: 'count' }
-        { operation: 'combine', combine: 'slice', sort: { prop: 'Carat', compare: 'natural', direction: 'descending' } }
+        { operation: 'combine', method: 'slice', sort: { prop: 'Carat', compare: 'natural', direction: 'descending' } }
       ]
     }
 
@@ -191,11 +191,11 @@ describe "Diamonds dataset", ->
       query: [
         { operation: 'split', name: 'Carat', bucket: 'continuous', size: 1, offset: 0.5, attribute: 'carat' }
         { operation: 'apply', name: 'Count', aggregate: 'count' }
-        { operation: 'combine', combine: 'slice', sort: { prop: 'Count', compare: 'natural', direction: 'descending' }, limit: 5 }
+        { operation: 'combine', method: 'slice', sort: { prop: 'Count', compare: 'natural', direction: 'descending' }, limit: 5 }
 
         { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
         { operation: 'apply', name: 'Count', aggregate: 'count' }
-        { operation: 'combine', combine: 'slice', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
+        { operation: 'combine', method: 'slice', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
       ]
     }
 
@@ -205,11 +205,11 @@ describe "Diamonds dataset", ->
       query: [
         { operation: 'split', name: 'Carat', bucket: 'continuous', size: 0.1, offset: 0.005, attribute: 'carat' }
         { operation: 'apply', name: 'Count', aggregate: 'count' }
-        { operation: 'combine', combine: 'slice', sort: { prop: 'Count', compare: 'natural', direction: 'descending' }, limit: 5 }
+        { operation: 'combine', method: 'slice', sort: { prop: 'Count', compare: 'natural', direction: 'descending' }, limit: 5 }
 
         { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
         { operation: 'apply', name: 'Count', aggregate: 'count' }
-        { operation: 'combine', combine: 'slice', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
+        { operation: 'combine', method: 'slice', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
       ]
     }
 
@@ -311,7 +311,7 @@ describe "Diamonds dataset", ->
         }
         { operation: 'split', name: 'Carat', bucket: 'continuous', size: 0.1, offset: 0.005, attribute: 'carat' }
         { operation: 'apply', name: 'Count', aggregate: 'count' }
-        { operation: 'combine', combine: 'slice', sort: { prop: 'Count', compare: 'natural', direction: 'descending' }, limit: 5 }
+        { operation: 'combine', method: 'slice', sort: { prop: 'Count', compare: 'natural', direction: 'descending' }, limit: 5 }
       ]
     }
 
@@ -369,10 +369,10 @@ describe "Diamonds dataset", ->
 
         { operation: 'split', name: 'Carat', bucket: 'continuous', size: 0.1, offset: 0.005, attribute: 'carat' }
         { operation: 'apply', name: 'Count', aggregate: 'count' }
-        { operation: 'combine', combine: 'slice', sort: { prop: 'Count', compare: 'natural', direction: 'descending' }, limit: 5 }
+        { operation: 'combine', method: 'slice', sort: { prop: 'Count', compare: 'natural', direction: 'descending' }, limit: 5 }
 
         { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
         { operation: 'apply', name: 'Count', aggregate: 'count' }
-        { operation: 'combine', combine: 'slice', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
+        { operation: 'combine', method: 'slice', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
       ]
     }

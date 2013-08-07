@@ -25,14 +25,15 @@ class FacetSplit
   valueOf: ->
     split = { bucket: @bucket }
     split.name = @name if @name
-    split.segemntFilter = @segemntFilter.valueOf() if @segemntFilter
+    split.segmentFilter = @segmentFilter.valueOf() if @segmentFilter
     split.options = @options.valueOf() if @options
     return split
 
 
 class IdentitySplit extends FacetSplit
-  constructor: ({name, @bucket, @attribute, options}) ->
+  constructor: ({name, @bucket, @attribute, segmentFilter, options}) ->
     @name = name if name
+    @segmentFilter = segmentFilter if segmentFilter
     @options = new FacetOptions(options) if options
     @_ensureBucket('identity')
     @_verifyName()
@@ -53,11 +54,13 @@ class IdentitySplit extends FacetSplit
 
 
 class ContinuousSplit extends FacetSplit
-  constructor: ({name, @bucket, @attribute, @size, @offset, options}) ->
+  constructor: ({name, @bucket, @attribute, @size, @offset, segmentFilter, options}) ->
     @name = name if name
+    @segmentFilter = segmentFilter if segmentFilter
     @options = new FacetOptions(options) if options
     @offset ?= 0
     throw new TypeError("size must be a number") unless typeof @size is 'number'
+    throw new Error("size must be positive (is: #{@size})") unless @size > 0
     throw new TypeError("offset must be a number") unless typeof @offset is 'number'
     @_ensureBucket('continuous')
     @_verifyName()
@@ -80,8 +83,9 @@ class ContinuousSplit extends FacetSplit
 
 
 class TimeDurationSplit extends FacetSplit
-  constructor: ({name, @bucket, @attribute, @duration, @offset, options}) ->
+  constructor: ({name, @bucket, @attribute, @duration, @offset, segmentFilter, options}) ->
     @name = name if name
+    @segmentFilter = segmentFilter if segmentFilter
     @options = new FacetOptions(options) if options
     @offset ?= 0
     throw new TypeError("duration must be a number") unless typeof @duration is 'number'
@@ -107,8 +111,9 @@ class TimeDurationSplit extends FacetSplit
 
 
 class TimePeriodSplit extends FacetSplit
-  constructor: ({name, @bucket, @attribute, @period, @timezone, options}) ->
+  constructor: ({name, @bucket, @attribute, @period, @timezone, segmentFilter, options}) ->
     @name = name if name
+    @segmentFilter = segmentFilter if segmentFilter
     @options = new FacetOptions(options) if options
     @timezone ?= 'Etc/UTC'
     throw new TypeError("period must be in ['PT1S', 'PT1M', 'PT1H', 'P1D']") unless @period in ['PT1S', 'PT1M', 'PT1H', 'P1D']

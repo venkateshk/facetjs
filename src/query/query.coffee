@@ -27,15 +27,19 @@ class FacetQuery
           when 'filter' then throw new Error("filter not allowed here")
 
           when 'split'
+            facetSplit = FacetSplit.fromSpec(command)
+            throw new Error("base split must have a name") unless facetSplit.name
             @groups.push {
-              split: FacetSplit.fromSpec(command)
+              split: facetSplit
               applies: []
               combine: null
             }
 
           when 'apply'
             curGroup = @groups[@groups.length - 1]
-            curGroup.applies.push(FacetApply.fromSpec(command))
+            facetApply = FacetApply.fromSpec(command)
+            throw new Error("base apply must have a name") unless facetApply.name
+            curGroup.applies.push(facetApply)
 
           when 'combine'
             curGroup = @groups[@groups.length - 1]
@@ -77,12 +81,12 @@ class FacetQuery
 
     return arr
 
-  getFilter: (query) ->
+  getFilter: ->
     return @filter
 
+  getGroups: ->
+    return @groups
 
 # Export!
 exports.FacetQuery = FacetQuery
-
-
 

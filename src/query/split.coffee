@@ -86,7 +86,7 @@ class TimePeriodSplit extends FacetSplit
     @name = name if name
     @options = new FacetOptions(options) if options
     @timezone ?= 'Etc/UTC'
-    throw new TypeError("period must be in ['PT1S', 'PT1M', 'PT1H', 'P1D']") unless period in ['PT1S', 'PT1M', 'PT1H', 'P1D']
+    throw new TypeError("period must be in ['PT1S', 'PT1M', 'PT1H', 'P1D']") unless @period in ['PT1S', 'PT1M', 'PT1H', 'P1D']
     throw new TypeError("timezone must be a string") unless typeof @timezone is 'string'
     @_ensureBucket('timePeriod')
 

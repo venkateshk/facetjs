@@ -18,6 +18,16 @@ describe "split", ->
       }
       expect(FacetSplit.fromSpec(splitSpec).valueOf()).to.deep.equal(splitSpec)
 
+    it "timePeriod", ->
+      splitSpec = {
+        name: 'Time'
+        bucket: 'timePeriod'
+        attribute: 'time'
+        period: 'PT1H'
+        timezone: 'Etc/UTC'
+      }
+      expect(FacetSplit.fromSpec(splitSpec).valueOf()).to.deep.equal(splitSpec)
+
     it "tuple", ->
       splitSpec = {
         name: "heatmap"

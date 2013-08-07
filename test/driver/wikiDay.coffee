@@ -113,7 +113,7 @@ describe "Wikipedia dataset", ->
       drivers: ['mySql', 'druid']
       query: [
         { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
-        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
+        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
       ]
     }
 
@@ -122,7 +122,7 @@ describe "Wikipedia dataset", ->
       drivers: ['mySql', 'druid']
       query: [
         { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
-        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Page', direction: 'ascending' }, limit: 20 }
+        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Page', direction: 'ascending' }, limit: 20 }
       ]
     }
 
@@ -133,7 +133,7 @@ describe "Wikipedia dataset", ->
         { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
         { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
-        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
+        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
       ]
     }
 
@@ -143,7 +143,7 @@ describe "Wikipedia dataset", ->
       query: [
         { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 3 }
+        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 3 }
       ]
     }
 
@@ -153,7 +153,7 @@ describe "Wikipedia dataset", ->
       query: [
         { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'ascending' }, limit: 3 }
+        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'ascending' }, limit: 3 }
       ]
     }
 
@@ -166,7 +166,7 @@ describe "Wikipedia dataset", ->
         { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
         { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
-        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
+        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
       ]
     }
 
@@ -179,7 +179,7 @@ describe "Wikipedia dataset", ->
         { operation: 'split', name: 'Namespace', bucket: 'identity', attribute: 'namespace' }
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
         { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
-        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Namespace', direction: 'ascending' } }
+        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Namespace', direction: 'ascending' } }
       ]
     }
 
@@ -191,7 +191,7 @@ describe "Wikipedia dataset", ->
         { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
         { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
-        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Language', direction: 'ascending' } }
+        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Language', direction: 'ascending' } }
       ]
     }
 
@@ -212,7 +212,7 @@ describe "Wikipedia dataset", ->
         { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
         { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
-        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Page', direction: 'ascending' } }
+        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Page', direction: 'ascending' } }
       ]
     }
 
@@ -223,12 +223,12 @@ describe "Wikipedia dataset", ->
         { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
         { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
-        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 3 }
+        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 3 }
 
         { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
         { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
-        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 3 }
+        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 3 }
       ]
     }
 
@@ -239,7 +239,7 @@ describe "Wikipedia dataset", ->
         { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
         { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
-        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
+        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
 
         {
           operation: 'split'
@@ -250,7 +250,7 @@ describe "Wikipedia dataset", ->
         }
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
         { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
-        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 3 }
+        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 3 }
       ]
     }
 
@@ -261,7 +261,7 @@ describe "Wikipedia dataset", ->
         { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
         { operation: 'apply', name: 'Deleted', aggregate: 'sum', attribute: 'deleted' }
-        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Deleted', direction: 'ascending' }, limit: 5 }
+        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Deleted', direction: 'ascending' }, limit: 5 }
       ]
     }
 
@@ -295,7 +295,7 @@ describe "Wikipedia dataset", ->
         }
         { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 3 }
+        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 3 }
       ]
     }
 
@@ -307,7 +307,7 @@ describe "Wikipedia dataset", ->
         { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
         { operation: 'apply', name: 'Deleted', aggregate: 'sum', attribute: 'deleted' }
-        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Deleted', direction: 'ascending' }, limit: 5 }
+        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Deleted', direction: 'ascending' }, limit: 5 }
       ]
     }
 
@@ -406,7 +406,7 @@ describe "Wikipedia dataset", ->
           filter: { type: 'is', attribute: "robot", value: "1" }
         }
         {
-          operation: 'combine', combine: 'slice'
+          operation: 'combine', method: 'slice'
           sort: { compare: 'natural', prop: 'Count R=0', direction: 'descending' }
           limit: 5
         }

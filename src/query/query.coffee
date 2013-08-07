@@ -30,7 +30,7 @@ class FacetQuery
 
           when 'combine'
             curGroup = @groups[@groups.length - 1]
-            throw new Error("can not have multiple combines") if curGroup.combine
+            throw new Error("combine called without split") unless curGroup.split
             curGroup.combine = FacetCombine.fromSpec(command)
 
           else

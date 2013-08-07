@@ -4,6 +4,19 @@ expect = chai.expect
 {FacetFilter} = require('../../target/query')
 
 describe "filter", ->
+  describe "errors", ->
+    it "missing type", ->
+      filterSpec = {}
+      expect(-> FacetFilter.fromSpec(filterSpec)).to.throw(Error, "type must be defined")
+
+    it "invalid type in filter", ->
+      filterSpec = { type: ['wtf?'] }
+      expect(-> FacetFilter.fromSpec(filterSpec)).to.throw(Error, "type must be a string")
+
+    it "unknown type in filter", ->
+      filterSpec = { type: 'poo' }
+      expect(-> FacetFilter.fromSpec(filterSpec)).to.throw(Error, "unsupported filter type 'poo'")
+
 
   describe 'toString', ->
     it 'properly describes empty filter', ->
@@ -671,7 +684,9 @@ describe "filter", ->
 
     it 'throws on bad input', ->
       expect(->
-        new TrueFilter().extractFilterByAttribute()
+        FacetFilter.fromSpec({
+          type: 'true'
+        }).extractFilterByAttribute()
       ).to.throw(TypeError)
 
     it 'works on a single included filter', ->

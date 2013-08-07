@@ -19,6 +19,10 @@ class FacetApply
       throw new TypeError("incorrect apply arithmetic '#{@arithmetic}' (needs to be: '#{applyArithmetic}')")
     return
 
+  _verifyName: ->
+    return unless @name
+    throw new TypeError("apply name must be a string") unless typeof @name is 'string'
+
   _addName: (str) ->
     return str unless @name
     return "#{@name} <- #{str}"
@@ -42,6 +46,7 @@ class ConstantApply extends FacetApply
     @name = name if name
     @options = new FacetOptions(options) if options
     @_ensureAggregate('constant')
+    @_verifyName()
 
   toString: ->
     return @_addName(String(@value))
@@ -64,6 +69,7 @@ class CountApply extends FacetApply
     @filter = FacetFilter.fromSpec(filter) if filter
     @options = new FacetOptions(options) if options
     @_ensureAggregate('count')
+    @_verifyName()
 
   toString: ->
     return @_addName("count()")
@@ -85,6 +91,7 @@ class SumApply extends FacetApply
     @filter = FacetFilter.fromSpec(filter) if filter
     @options = new FacetOptions(options) if options
     @_ensureAggregate('sum')
+    @_verifyName()
 
   toString: ->
     return @_addName("#{@aggregate}(#{@attribute})")
@@ -107,6 +114,7 @@ class AverageApply extends FacetApply
     @filter = FacetFilter.fromSpec(filter) if filter
     @options = new FacetOptions(options) if options
     @_ensureAggregate('average')
+    @_verifyName()
 
   toString: ->
     return @_addName("#{@aggregate}(#{@attribute})")
@@ -126,6 +134,7 @@ class MinApply extends FacetApply
     @filter = FacetFilter.fromSpec(filter) if filter
     @options = new FacetOptions(options) if options
     @_ensureAggregate('min')
+    @_verifyName()
 
   toString: ->
     return @_addName("#{@aggregate}(#{@attribute})")
@@ -145,6 +154,7 @@ class MaxApply extends FacetApply
     @filter = FacetFilter.fromSpec(filter) if filter
     @options = new FacetOptions(options) if options
     @_ensureAggregate('max')
+    @_verifyName()
 
   toString: ->
     return @_addName("#{@aggregate}(#{@attribute})")
@@ -164,6 +174,7 @@ class UniqueCountApply extends FacetApply
     @filter = FacetFilter.fromSpec(filter) if filter
     @options = new FacetOptions(options) if options
     @_ensureAggregate('uniqueCount')
+    @_verifyName()
 
   toString: ->
     return @_addName("#{@aggregate}(#{@attribute})")
@@ -182,6 +193,7 @@ class QuantileApply extends FacetApply
     @name = name if name
     @options = new FacetOptions(options) if options
     @_ensureAggregate('quantile')
+    @_verifyName()
 
   toString: ->
     return @_addName("quantile(#{@attribute}, #{@quantile})")
@@ -203,6 +215,7 @@ class AddApply extends FacetApply
     @name = name if name
     @operands = @operands.map(FacetApply.fromSpec)
     @_ensureArithmetic('add')
+    @_verifyName()
 
   toString: ->
     expr = "#{@operands[0].toString(@arithmetic)} + #{@operands[1].toString(@arithmetic)}"
@@ -225,6 +238,7 @@ class SubtractApply extends FacetApply
     @name = name if name
     @operands = @operands.map(FacetApply.fromSpec)
     @_ensureArithmetic('subtract')
+    @_verifyName()
 
   toString: ->
     expr = "#{@operands[0].toString(@arithmetic)} - #{@operands[1].toString(@arithmetic)}"
@@ -247,6 +261,7 @@ class MultiplyApply extends FacetApply
     @name = name if name
     @operands = @operands.map(FacetApply.fromSpec)
     @_ensureArithmetic('multiply')
+    @_verifyName()
 
   toString: ->
     expr = "#{@operands[0].toString(@arithmetic)} * #{@operands[1].toString(@arithmetic)}"
@@ -272,6 +287,7 @@ class DivideApply extends FacetApply
     @name = name if name
     @operands = @operands.map(FacetApply.fromSpec)
     @_ensureArithmetic('divide')
+    @_verifyName()
 
   toString: (from = 'add') ->
     expr = "#{@operands[0].toString(@arithmetic)} / #{@operands[1].toString(@arithmetic)}"
@@ -309,14 +325,17 @@ applyArithmeticConstructorMap = {
 }
 
 FacetApply.fromSpec = (applySpec) ->
-  if applySpec.aggregate
+  throw new Error("unrecognizable apply") unless typeof applySpec is 'object'
+  if applySpec.hasOwnProperty('aggregate')
+    throw new Error("aggregate must be a string") unless typeof applySpec.aggregate is 'string'
     ApplyConstructor = applyAggregateConstructorMap[applySpec.aggregate]
-    throw new Error("unsupported aggregate #{applySpec.aggregate}") unless ApplyConstructor
-  else if applySpec.arithmetic
+    throw new Error("unsupported aggregate '#{applySpec.aggregate}'") unless ApplyConstructor
+  else if applySpec.hasOwnProperty('arithmetic')
+    throw new Error("arithmetic must be a string") unless typeof applySpec.arithmetic is 'string'
     ApplyConstructor = applyArithmeticConstructorMap[applySpec.arithmetic]
-    throw new Error("unsupported arithmetic #{applySpec.arithmetic}") unless ApplyConstructor
+    throw new Error("unsupported arithmetic '#{applySpec.arithmetic}'") unless ApplyConstructor
   else
-    throw new Error("must have an arithmetic or attribute")
+    throw new Error("must have an aggregate or arithmetic")
   return new ApplyConstructor(applySpec)
 
 

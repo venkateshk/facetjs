@@ -2,8 +2,8 @@ chai = require("chai")
 expect = chai.expect
 utils = require('../utils')
 
-druidRequester = require('../../target/druidRequester')
-druidDriver = require('../../target/druidDriver')
+druidRequester = require('../../build/druidRequester')
+druidDriver = require('../../build/druidDriver')
 
 verbose = false
 

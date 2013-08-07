@@ -25,6 +25,7 @@ class FacetSplit
   valueOf: ->
     split = { bucket: @bucket }
     split.name = @name if @name
+    split.segemntFilter = @segemntFilter.valueOf() if @segemntFilter
     split.options = @options.valueOf() if @options
     return split
 

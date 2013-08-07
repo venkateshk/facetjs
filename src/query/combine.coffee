@@ -60,7 +60,11 @@ combineConstructorMap = {
 
 
 FacetCombine.fromSpec = (combineSpec) ->
-  CombineConstructor = combineConstructorMap[combineSpec.method or combineSpec.combine]  # ToDo: combineSpec.combine is a backwards compat. hack, remove it.
+  throw new Error("unrecognizable combine") unless typeof combineSpec is 'object'
+  combineSpec.method ?= combineSpec.combine # ToDo: remove this. combineSpec.combine is a backwards compat. hack, remove it.
+  throw new Error("method not defined") unless combineSpec.hasOwnProperty('method')
+  throw new Error("method must be a string") unless typeof combineSpec.method is 'string'
+  CombineConstructor = combineConstructorMap[combineSpec.method]
   throw new Error("unsupported method #{combineSpec.method}") unless CombineConstructor
   return new CombineConstructor(combineSpec)
 

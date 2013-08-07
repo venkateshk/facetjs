@@ -4,6 +4,28 @@ expect = chai.expect
 {FacetSplit} = require('../../target/query')
 
 describe "split", ->
+  describe "error", ->
+    it "bad input", ->
+      splitSpec = "hello world"
+      expect(-> FacetSplit.fromSpec(splitSpec)).to.throw(Error, "unrecognizable split")
+
+    it "no bucket", ->
+      splitSpec = {}
+      expect(-> FacetSplit.fromSpec(splitSpec)).to.throw(Error, "bucket must be defined")
+
+    it "bad bucket", ->
+      splitSpec = { bucket: ['wtf?'] }
+      expect(-> FacetSplit.fromSpec(splitSpec)).to.throw(Error, "bucket must be a string")
+
+    it "unknown bucket", ->
+      splitSpec = { bucket: 'poo' }
+      expect(-> FacetSplit.fromSpec(splitSpec)).to.throw(Error, "unsupported bucket 'poo'")
+
+    it "bad name", ->
+      splitSpec = { bucket: "identity", name: ["wtf?"] }
+      expect(-> FacetSplit.fromSpec(splitSpec)).to.throw(Error, "split name must be a string")
+
+
   describe "preserves", ->
     it "identity", ->
       splitSpec = {

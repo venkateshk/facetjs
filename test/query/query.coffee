@@ -103,67 +103,12 @@ describe "query", ->
         ]
         expect(-> new FacetQuery(querySpec)).to.throw(Error, "unknown operation 'poo'")
 
-
-    describe "filters", ->
-      it "missing type", ->
-        querySpec = [
-          { operation: 'filter' }
-        ]
-        expect(-> new FacetQuery(querySpec)).to.throw(Error, "type not defined in filter")
-
-      it "invalid type in filter", ->
-        querySpec = [
-          { operation: 'filter', type: ['wtf?'] }
-        ]
-        expect(-> new FacetQuery(querySpec)).to.throw(Error, "invalid type in filter")
-
-      it "unknown type in filter", ->
-        querySpec = [
-          { operation: 'filter', type: 'poo' }
-        ]
-        expect(-> new FacetQuery(querySpec)).to.throw(Error, "filter type 'poo' not defined")
-
-
-    describe "splits", ->
-      it "missing name", ->
-        querySpec = [
-          { operation: 'split' }
-        ]
-        expect(-> new FacetQuery(querySpec)).to.throw(Error, "name not defined in split")
-
-      it "bad name", ->
-        querySpec = [
-          { operation: 'split', name: ["wtf?"] }
-        ]
-        expect(-> new FacetQuery(querySpec)).to.throw(Error, "invalid name in split")
-
-
-    describe "applies", ->
-      it "missing name", ->
-        querySpec = [
-          { operation: 'apply' }
-        ]
-        expect(-> new FacetQuery(querySpec)).to.throw(Error, "name not defined in apply")
-
-      it "bad name", ->
-        querySpec = [
-          { operation: 'apply', name: ["wtf?"] }
-        ]
-        expect(-> new FacetQuery(querySpec)).to.throw(Error, "invalid name in apply")
-
-
-    describe "combines", ->
-      it "combine without split", ->
+      it "unknown operation in command", ->
         querySpec = [
           { operation: 'combine' }
         ]
         expect(-> new FacetQuery(querySpec)).to.throw(Error, "combine called without split")
 
-      it "missing combine", ->
-        querySpec = [
-          { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
-          { operation: 'apply', name: 'Count', aggregate: 'count' }
-          { operation: 'combine' }
-        ]
-        expect(-> new FacetQuery(querySpec)).to.throw(Error, "combine not defined in combine")
+
+
 

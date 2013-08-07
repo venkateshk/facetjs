@@ -11,6 +11,10 @@ class FacetSplit
       throw new TypeError("incorrect split bucket '#{@bucket}' (needs to be: '#{bucket}')")
     return
 
+  _verifyName: ->
+    return unless @name
+    throw new TypeError("split name must be a string") unless typeof @name is 'string'
+
   _addName: (str) ->
     return str unless @name
     return "#{str} -> #{@name}"
@@ -30,6 +34,7 @@ class IdentitySplit extends FacetSplit
     @name = name if name
     @options = new FacetOptions(options) if options
     @_ensureBucket('identity')
+    @_verifyName()
 
   toString: ->
     return @_addName("#{@bucket}(#{@attribute})")
@@ -49,6 +54,7 @@ class ContinuousSplit extends FacetSplit
     throw new TypeError("size must be a number") unless typeof @size is 'number'
     throw new TypeError("offset must be a number") unless typeof @offset is 'number'
     @_ensureBucket('continuous')
+    @_verifyName()
 
   toString: ->
     return @_addName("#{@bucket}(#{@attribute}, #{@size}, #{@offset})")
@@ -69,6 +75,7 @@ class TimeDurationSplit extends FacetSplit
     throw new TypeError("duration must be a number") unless typeof @duration is 'number'
     throw new TypeError("offset must be a number") unless typeof @offset is 'number'
     @_ensureBucket('timeDuration')
+    @_verifyName()
 
   toString: ->
     return @_addName("#{@bucket}(#{@attribute}, #{@duration}, #{@offset})")
@@ -89,6 +96,7 @@ class TimePeriodSplit extends FacetSplit
     throw new TypeError("period must be in ['PT1S', 'PT1M', 'PT1H', 'P1D']") unless @period in ['PT1S', 'PT1M', 'PT1H', 'P1D']
     throw new TypeError("timezone must be a string") unless typeof @timezone is 'string'
     @_ensureBucket('timePeriod')
+    @_verifyName()
 
   toString: ->
     return @_addName("#{@bucket}(#{@attribute}, #{@duration}, #{@offset})")
@@ -107,6 +115,7 @@ class TupleSplit extends FacetSplit
     throw new TypeError("splits must be a non-empty array") unless Array.isArray(@splits) and @splits.length
     @splits = @splits.map(FacetSplit.fromSpec)
     @_ensureBucket('tuple')
+    @_verifyName()
 
   toString: ->
     return @_addName("(#{@splits.join(' x ')})")
@@ -128,8 +137,11 @@ splitConstructorMap = {
 
 
 FacetSplit.fromSpec = (splitSpec) ->
+  throw new Error("unrecognizable split") unless typeof splitSpec is 'object'
+  throw new Error("bucket must be defined") unless splitSpec.hasOwnProperty('bucket')
+  throw new Error("bucket must be a string") unless typeof splitSpec.bucket is 'string'
   SplitConstructor = splitConstructorMap[splitSpec.bucket]
-  throw new Error("unsupported bucket #{splitSpec.bucket}") unless SplitConstructor
+  throw new Error("unsupported bucket '#{splitSpec.bucket}'") unless SplitConstructor
   return new SplitConstructor(splitSpec)
 
 

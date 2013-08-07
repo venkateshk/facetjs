@@ -390,8 +390,11 @@ filterConstructorMap = {
 }
 
 FacetFilter.fromSpec = (filterSpec) ->
+  throw new Error("unrecognizable filter") unless typeof filterSpec is 'object'
+  throw new Error("type must be defined") unless filterSpec.hasOwnProperty('type')
+  throw new Error("type must be a string") unless typeof filterSpec.type is 'string'
   FilterConstructor = filterConstructorMap[filterSpec.type]
-  throw new Error("unsupported filter type: '#{filterSpec.type}'") unless FilterConstructor
+  throw new Error("unsupported filter type '#{filterSpec.type}'") unless FilterConstructor
   return new FilterConstructor(filterSpec)
 
 

@@ -2,18 +2,12 @@
 
 async = require('async')
 driverUtil = require('./driverUtil')
+{FacetFilter, FacetSplit, FacetApply, FacetCombine, FacetQuery, AndFilter} = require('./query')
 
 # -----------------------------------------------------
 
-andFilters = (filters...) ->
-  filters = filters.filter((filter) -> filter?)
-  switch filters.length
-    when 0
-      return null
-    when 1
-      return filters[0]
-    else
-      return { type: 'and', filters }
+andFilters = (filter1, filter2) ->
+  return new AndFilter([filter1, filter2]).simplify()
 
 class SQLQueryBuilder
   constructor: (table) ->
@@ -61,16 +55,10 @@ class SQLQueryBuilder
       when 'within'
         attribute = @escapeAttribute(filter.attribute)
         [r0, r1] = filter.range
-        if (typeof r0 is 'string' and typeof r1 is 'string') or (r0 instanceof Date and r1 instanceof Date)
-          r0 = new Date(r0)
-          r1 = new Date(r1)
-          throw new Error("invalid dates") if isNaN(r0) or isNaN(r1)
+        if r0 instanceof Date and r1 instanceof Date
           "'#{@dateToSQL(r0)}' <= #{attribute} AND #{attribute} < '#{@dateToSQL(r1)}'"
-        else if typeof r0 is 'number' and typeof r1 is 'number'
-          "#{r0} <= #{attribute} AND #{attribute} < #{r1}"
         else
-          throw new Error("unsuported range in within filter")
-
+          "#{r0} <= #{attribute} AND #{attribute} < #{r1}"
 
       when 'not'
         "NOT (#{@filterToSQL(filter.filter)})"
@@ -82,7 +70,7 @@ class SQLQueryBuilder
         '(' + filter.filters.map(@filterToSQL, this).join(') OR (') + ')'
 
       else
-        throw new Error("filter type '#{filter.type}' not defined")
+        throw new Error("filter type '#{filter.type}' unsupported by driver")
 
   addFilter: (filter) ->
     return unless filter
@@ -169,10 +157,11 @@ class SQLQueryBuilder
         }
 
       else
-        throw new Error("unsupported bucketing policy '#{split.bucket}'")
+        throw new Error("bucket '#{split.bucket}' unsupported by driver")
     return
 
   addSplit: (split) ->
+    throw new TypeError("split must be a FacetSplit") unless split instanceof FacetSplit
     @split = split
     { selectPart, groupByPart } = @splitToSQL(split)
     @selectParts.push(selectPart)
@@ -203,6 +192,7 @@ class SQLQueryBuilder
       divide:   '/'
     }
     return (apply) ->
+      throw new TypeError("apply must be a FacetApply") unless apply instanceof FacetApply
       if apply.aggregate
         switch apply.aggregate
           when 'constant'
@@ -242,7 +232,8 @@ class SQLQueryBuilder
   }
 
   addCombine: (combine) ->
-    switch combine.combine
+    throw new TypeError("combine must be a FacetCombine") unless combine instanceof FacetCombine
+    switch combine.method
       when 'slice'
         sort = combine.sort
         if sort
@@ -260,14 +251,14 @@ class SQLQueryBuilder
               throw new Error("not implemented yet (ToDo)")
 
             else
-              throw new Error("unsupported compare '#{sort.compare}'")
+              throw new Error("compare '#{sort.compare}' unsupported by driver")
 
         limit = combine.limit
         if limit?
           @limitPart = "LIMIT #{limit}"
 
       else
-        throw new Error("unsupported combine '#{combine.combine}'")
+        throw new Error("method '#{combine.method}' unsupported by driver")
 
     return this
 
@@ -293,7 +284,6 @@ class SQLQueryBuilder
 condensedQueryToSQL = ({requester, table, filter, condensedQuery}, callback) ->
   sqlQuery = new SQLQueryBuilder(table)
 
-  filter = andFilters(filter, condensedQuery.filter)
   try
     sqlQuery.addFilter(filter)
 
@@ -350,10 +340,7 @@ condensedQueryToSQL = ({requester, table, filter, condensedQuery}, callback) ->
 
       splits = ds.map (prop) -> {
         prop
-        _filter: andFilters(
-          filter
-          driverUtil.filterFromSplit(condensedQuery.split, prop[splitProp])
-        )
+        _filter: andFilters(filter, condensedQuery.split.getFilterFor(prop[splitProp]))
       }
     else
       splits = ds.map (prop) -> {
@@ -372,7 +359,7 @@ module.exports = ({requester, table, filter}) ->
     try
       throw new Error("request not supplied") unless request
       {context, query} = request
-      condensedQuery = driverUtil.condenseQuery(query)
+      throw new TypeError("query must be a FacetQuery") unless query instanceof FacetQuery
     catch e
       callback(e)
       return
@@ -380,17 +367,19 @@ module.exports = ({requester, table, filter}) ->
     init = true
     rootSegment = {
       parent: null
-      _filter: filter
+      _filter: if filter then andFilters(filter, query.getFilter()) else query.getFilter()
     }
     segments = [rootSegment]
+
+    condensedGroups = query.getGroups()
 
     querySQL = (condensedCommand, callback) ->
       # do the query in parallel
       QUERY_LIMIT = 10
 
-      if condensedCommand.split?.bucketFilter
-        bucketFilterFn = driverUtil.makeBucketFilterFn(condensedCommand.split.bucketFilter)
-        driverUtil.inPlaceFilter(segments, bucketFilterFn)
+      if condensedCommand.split?.segmentFilter
+        segmentFilterFn = driverUtil.makeBucketFilterFn(condensedCommand.split.segmentFilter)
+        driverUtil.inPlaceFilter(segments, segmentFilterFn)
 
       queryFns = async.mapLimit(
         segments
@@ -439,11 +428,11 @@ module.exports = ({requester, table, filter}) ->
 
     cmdIndex = 0
     async.whilst(
-      -> cmdIndex < condensedQuery.length and rootSegment
+      -> cmdIndex < condensedGroups.length and rootSegment
       (callback) ->
-        condencedCommand = condensedQuery[cmdIndex]
+        condencedGroup = condensedGroups[cmdIndex]
         cmdIndex++
-        querySQL(condencedCommand, callback)
+        querySQL(condencedGroup, callback)
         return
       (err) ->
         if err

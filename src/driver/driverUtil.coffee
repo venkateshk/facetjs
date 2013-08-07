@@ -40,28 +40,6 @@ exports.filterMap = (array, fn) ->
   return ret
 
 
-# Construct a filter that represents the split
-exports.filterFromSplit = filterFromSplit = (split, propValue) ->
-  switch split.bucket
-    when 'identity'
-      return {
-        type: 'is'
-        attribute: split.attribute
-        value: propValue
-      }
-    when 'continuous', 'timeDuration', 'timePeriod'
-      return {
-        type: 'within'
-        attribute: split.attribute
-        range: propValue
-      }
-    when 'tuple'
-      throw new Error("tuple split not supported yet")
-    else
-      throw new Error("missing bucket") unless split.bucket
-      throw new Error("unknown bucketing: #{split.bucket}")
-
-
 getPropFromSegment = (segment, prop) ->
   return null unless segment and segment.prop
   return segment.prop[prop] or getPropFromSegment(segment.parent, prop)
@@ -117,88 +95,6 @@ exports.makeBucketFilterFn = makeBucketFilterFn = (filter) ->
   bucketFilterFn = bucketFilterFns[filter.type]
   throw new Error("bucket filter type '#{filter.type}' not defined") unless bucketFilterFn
   return bucketFilterFn(filter)
-
-
-# Group the queries steps in to the logical queries that will need to be done
-# output: [
-#   {
-#     filter: { ... }
-#     split: { ... }
-#     applies: [{ ... }, { ... }]
-#     combine: { ... }
-#   }
-#   ...
-# ]
-exports.condenseQuery = (query) ->
-  throw new Error("query not supplied") unless query
-  throw new Error("invalid query") unless Array.isArray(query)
-  curQuery = {
-    filter: null
-    split: null
-    applies: []
-    combine: null
-  }
-  curKnownProps = {}
-  condensed = []
-  for cmd in query
-    switch cmd.operation
-      when 'filter'
-        throw new Error("can not have more than one filter") if curQuery.filter
-        throw new Error("type not defined in filter") unless cmd.hasOwnProperty('type')
-        throw new Error("invalid type in filter") unless typeof cmd.type is 'string'
-        curQuery.filter = upgradeFilter(cmd)
-
-      when 'split'
-        condensed.push(curQuery)
-        if cmd.bucket is 'tuple'
-          throw new Error("tuple split must have splits") unless cmd.splits
-        else
-          throw new Error("name not defined in split") unless cmd.name
-          throw new TypeError("invalid name in split") unless typeof cmd.name is 'string'
-          throw new Error("split must have an attribute") unless cmd.attribute
-          throw new TypeError("invalid attribute in split") unless typeof cmd.attribute is 'string'
-
-        curQuery = {
-          split: cmd
-          applies: []
-          combine: null
-        }
-        curKnownProps = {}
-        curKnownProps[cmd.name] = true
-
-      when 'apply'
-        throw new Error("name not defined in apply") unless cmd.name
-        throw new TypeError("invalid name in apply") unless typeof cmd.name is 'string'
-        curQuery.applies.push(cmd)
-        curKnownProps[cmd.name] = true
-
-      when 'combine'
-        throw new Error("combine called without split") unless curQuery.split
-        throw new Error("can not have more than one combine") if curQuery.combine
-        throw new Error("combine not defined in combine") unless cmd.hasOwnProperty('combine')
-
-        if cmd.sort
-          throw new Error("sort must have a prop") unless cmd.sort.prop
-          throw new Error("sort on undefined prop '#{cmd.sort.prop}'") unless curKnownProps[cmd.sort.prop]
-          throw new Error("sort must have a compare") unless cmd.sort.compare
-          throw new Error("sort must have a direction") unless cmd.sort.direction
-
-          if cmd.sort.direction not in ['ascending', 'descending']
-            throw new Error("sort direction has to be 'ascending' or 'descending'")
-
-        if cmd.limit?
-          throw new TypeError("limit must be a number") if isNaN(cmd.limit)
-
-        curQuery.combine = cmd
-
-      else
-        throw new Error("unrecognizable command") unless typeof cmd is 'object'
-        throw new Error("operation not defined") unless cmd.hasOwnProperty('operation')
-        throw new Error("invalid operation") unless typeof cmd.operation is 'string'
-        throw new Error("unknown operation '#{cmd.operation}'")
-
-  condensed.push(curQuery)
-  return condensed
 
 
 # Clean segment - remove everything in the segment that starts with and underscore
@@ -345,12 +241,6 @@ exports.parentify = parentify = (root, parent = null) ->
     for split in root.splits
       parentify(split, root)
   return root
-
-
-# Get filter from query
-
-exports.getFilter = getFilter = (query) ->
-  return if query[0]?.operation is 'filter' then query[0] else { type: 'true' }
 
 
 isTimezone = (tz) ->

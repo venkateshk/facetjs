@@ -88,3 +88,16 @@ describe "split", ->
       }
       expect(FacetSplit.fromSpec(splitSpec).valueOf()).to.deep.equal(splitSpec)
 
+
+  describe "getFilterFor", ->
+    it "identity", ->
+      expect(FacetSplit.fromSpec({
+        name: "something"
+        bucket: "identity"
+        attribute: "country"
+      }).getFilterFor("UK").valueOf()).to.deep.equal({
+        type: "is"
+        attribute: "country"
+        value: "UK"
+      })
+

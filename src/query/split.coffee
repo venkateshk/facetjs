@@ -44,6 +44,11 @@ class IdentitySplit extends FacetSplit
     split.attribute = @attribute
     return split
 
+  getFilterFor: (propValue) ->
+    return new IsFilter({
+      attribute: @attribute
+      value: propValue
+    })
 
 
 class ContinuousSplit extends FacetSplit
@@ -66,6 +71,12 @@ class ContinuousSplit extends FacetSplit
     split.offset = @offset
     return split
 
+  getFilterFor: (propValue) ->
+    return new WithinFilter({
+      attribute: @attribute
+      range: propValue
+    })
+
 
 class TimeDurationSplit extends FacetSplit
   constructor: ({name, @bucket, @attribute, @duration, @offset, options}) ->
@@ -86,6 +97,12 @@ class TimeDurationSplit extends FacetSplit
     split.duration = @duration
     split.offset = @offset
     return split
+
+  getFilterFor: (propValue) ->
+    return new WithinFilter({
+      attribute: @attribute
+      range: propValue
+    })
 
 
 class TimePeriodSplit extends FacetSplit
@@ -108,12 +125,21 @@ class TimePeriodSplit extends FacetSplit
     split.timezone = @timezone
     return split
 
+  getFilterFor: (propValue) ->
+    return new WithinFilter({
+      attribute: @attribute
+      range: propValue
+    })
+
 
 class TupleSplit extends FacetSplit
   constructor: ({name, @splits}) ->
     @name = name if name
     throw new TypeError("splits must be a non-empty array") unless Array.isArray(@splits) and @splits.length
-    @splits = @splits.map(FacetSplit.fromSpec)
+    @splits = @splits.map((splitSpec) ->
+      throw new Error("tuple splits can not be nested") if splitSpec.bucket is 'tuple'
+      return FacetSplit.fromSpec(splitSpec)
+    )
     @_ensureBucket('tuple')
     @_verifyName()
 
@@ -124,6 +150,10 @@ class TupleSplit extends FacetSplit
     split = super.valueOf()
     split.splits = @splits.map(getValueOf)
     return split
+
+  getFilterFor: (propValues...) ->
+    throw new Error("bad number of values") if propValues.length isnt @splits.length
+    return new AndFilter(@splits.map(split, i) -> split.getFilterFor(propValues[i]))
 
 
 # Make lookup

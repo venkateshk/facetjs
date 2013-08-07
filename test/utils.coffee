@@ -2,6 +2,8 @@ async = require('async')
 chai = require("chai")
 expect = chai.expect
 
+{FacetQuery} = require('../build/query')
+
 uniformizeResults = (result) ->
   if not result?.prop
     return result
@@ -53,7 +55,7 @@ exports.makeEqualityTest = (driverFns) ->
       throw new Error("no such driver #{driverName}") unless driverFn
       return (callback) ->
         driverFn({
-          query
+          query: new FacetQuery(query)
           context: {
             priority: -3
           }

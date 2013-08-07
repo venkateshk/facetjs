@@ -192,6 +192,8 @@ class QuantileApply extends FacetApply
   constructor: ({name, @attribute, @quantile, options}) ->
     @name = name if name
     @options = new FacetOptions(options) if options
+    throw new TypeError("quantile must be a number") unless typeof @quantile is 'number'
+    throw new Error("quantile must be between 0 and 1 (is: #{@quantile})") unless 0 <= @quantile <= 1
     @_ensureAggregate('quantile')
     @_verifyName()
 

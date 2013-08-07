@@ -7,20 +7,10 @@ sqlDriver = require('../../build/sqlDriver')
 
 verbose = false
 
-describe "SQL driver tests", ->
+describe "SQL driver", ->
   #@timeout(40 * 1000)
 
-  describe "should work when getting back [] and [{result:[]}]", ->
-    nullRequester = (query, callback) ->
-      callback(null, [])
-      return
-
-    nullDriver = sqlDriver({
-      requester: nullRequester
-      table: 'blah'
-      filters: null
-    })
-
+  describe "should work when getting back []", ->
     emptyRequester = (query, callback) ->
       callback(null, [])
       return
@@ -37,13 +27,6 @@ describe "SQL driver tests", ->
       ]
 
       it "should work with [] return", (done) ->
-        nullDriver {query}, (err, result) ->
-          expect(err).to.be.null
-          expect(result).to.deep.equal({})
-          done()
-          return
-
-      it "should work with [{result:[]}] return", (done) ->
         emptyDriver {query}, (err, result) ->
           expect(err).to.be.null
           expect(result).to.deep.equal({})
@@ -54,17 +37,10 @@ describe "SQL driver tests", ->
       query = [
         { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'ascending' } }
+        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'ascending' } }
       ]
 
       it "should work with [] return", (done) ->
-        nullDriver {query}, (err, result) ->
-          expect(err).to.be.null
-          expect(result).to.deep.equal({})
-          done()
-          return
-
-      it "should work with [{result:[]}] return", (done) ->
         emptyDriver {query}, (err, result) ->
           expect(err).to.be.null
           expect(result).to.deep.equal({})

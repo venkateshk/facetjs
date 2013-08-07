@@ -35,12 +35,12 @@ describe "split", ->
       }
       expect(FacetSplit.fromSpec(splitSpec).valueOf()).to.deep.equal(splitSpec)
 
-    it "identity with bucketFilter", ->
+    it "identity with segmentFilter", ->
       splitSpec = {
         name: "something"
         bucket: "identity"
         attribute: "country"
-        bucketFilter: {
+        segmentFilter: {
           type: 'is'
           prop: 'continent'
           value: 'Asia'

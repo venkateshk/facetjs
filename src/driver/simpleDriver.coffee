@@ -2,6 +2,7 @@
 
 async = require('async')
 driverUtil = require('./driverUtil')
+{FacetFilter, FacetSplit, FacetApply, FacetCombine, FacetQuery} = require('./query')
 
 # -----------------------------------------------------
 
@@ -26,18 +27,16 @@ filterFns = {
     return (d) -> expression.test(d[attribute])
 
   within: ({attribute, range}) ->
-    throw new TypeError("range must be an array of two things") unless Array.isArray(range) and range.length is 2
     if range[0] instanceof Date
       return (d) -> new Date(range[0]) <= new Date(d[attribute]) < new Date(range[1])
-    return (d) -> range[0] <= d[attribute] < range[1]
+    else
+      return (d) -> range[0] <= Number(d[attribute]) < range[1]
 
   not: ({filter}) ->
-    throw new TypeError("filter must be a filter object") unless typeof filter is 'object'
     filter = makeFilterFn(filter)
     return (d) -> not filter(d)
 
   and: ({filters}) ->
-    throw new TypeError('must have some filters') unless filters.length
     filters = filters.map(makeFilterFn)
     return (d) ->
       for filter in filters
@@ -45,7 +44,6 @@ filterFns = {
       return true
 
   or: ({filters}) ->
-    throw new TypeError('must have some filters') unless filters.length
     filters = filters.map(makeFilterFn)
     return (d) ->
       for filter in filters
@@ -54,21 +52,17 @@ filterFns = {
 }
 
 makeFilterFn = (filter) ->
-  throw new Error("type not defined in filter") unless filter.hasOwnProperty('type')
-  throw new Error("invalid type in filter") unless typeof filter.type is 'string'
+  throw new TypeError("filter must be a FacetFilter") unless filter instanceof FacetFilter
   filterFn = filterFns[filter.type]
-  throw new Error("filter type '#{filter.type}' not defined") unless filterFn
+  throw new Error("filter type '#{filter.type}' not supported by driver") unless filterFn
   return filterFn(filter)
 
 # ------------------------
 splitFns = {
   identity: ({attribute}) ->
-    throw new Error('attribute not defined') unless typeof attribute is 'string'
     return (d) -> d[attribute] ? null
 
   continuous: ({attribute, size, offset}) ->
-    throw new Error('attribute not defined') unless typeof attribute is 'string'
-    throw new Error("size has to be positive (is: #{size})") unless size > 0
     return (d) ->
       num = Number(d[attribute])
       return null if isNaN(num)
@@ -79,9 +73,7 @@ splitFns = {
     throw new Error("not implemented yet") # todo
 
   timePeriod: ({attribute, period, timezone}) ->
-    throw new Error('attribute not defined') unless typeof attribute is 'string'
-    timezone ?= 'Etc/UTC'
-    throw new Error('only UTC is supported for now') unless timezone is 'Etc/UTC'
+    throw new Error('only UTC is supported by driver (for now)') unless timezone is 'Etc/UTC'
     switch period
       when 'PT1S'
         return (d) ->
@@ -119,14 +111,18 @@ splitFns = {
           de.setUTCHours(24)
           return [ds, de]
 
+      else
+        throw new Error("period '#{period}' not supported by driver")
+
   tuple: ({splits}) ->
     tupleSplits = splits.map(makeSplitFn)
     return (d) -> tupleSplits.map((sf) -> sf(d))
 }
 
 makeSplitFn = (split) ->
+  throw new TypeError("split must be a FacetSplit") unless split instanceof FacetSplit
   splitFn = splitFns[split.bucket]
-  throw new Error("No such bucket `#{split.bucket}` in split") unless splitFn
+  throw new Error("split bucket '#{split.bucket}' not supported by driver") unless splitFn
   return splitFn(split)
 
 
@@ -169,8 +165,10 @@ aggregateFns = {
     return count
 
   quantile: ({attribute, quantile}) -> (ds) ->
-    throw new Error("not implemented yet (ToDo)")
-    return
+    return null unless ds.length
+    points = ds.map((d) -> Number(d[attribute]))
+    points.sort((a, b) -> a - b)
+    return points[Math.floor(points.length * quantile)]
 }
 
 arithmeticFns = {
@@ -178,16 +176,13 @@ arithmeticFns = {
     [lhs, rhs] = operands.map(makeApplyFn)
     return (ds) -> lhs(ds) + rhs(ds)
 
-
   subtract: ({operands}) ->
     [lhs, rhs] = operands.map(makeApplyFn)
     return (ds) -> lhs(ds) - rhs(ds)
 
-
   multiply: ({operands}) ->
     [lhs, rhs] = operands.map(makeApplyFn)
     return (ds) -> lhs(ds) * rhs(ds)
-
 
   divide: ({operands}) ->
     [lhs, rhs] = operands.map(makeApplyFn)
@@ -195,9 +190,10 @@ arithmeticFns = {
 }
 
 makeApplyFn = (apply) ->
+  throw new TypeError("apply must be a FacetApply") unless apply instanceof FacetApply
   if apply.aggregate
     aggregateFn = aggregateFns[apply.aggregate]
-    throw new Error("unsupported aggregate '#{apply.aggregate}' in apply") unless aggregateFn
+    throw new Error("aggregate '#{apply.aggregate}' unsupported by driver") unless aggregateFn
     rawApplyFn = aggregateFn(apply)
     if apply.filter
       filterFn = makeFilterFn(apply.filter)
@@ -206,7 +202,7 @@ makeApplyFn = (apply) ->
       return rawApplyFn
   else if apply.arithmetic
     arithmeticFn = arithmeticFns[apply.arithmetic]
-    throw new Error("unsupported arithmetic '#{apply.arithmetic}' in apply") unless arithmeticFn
+    throw new Error("arithmetic '#{apply.arithmetic}' unsupported by driver") unless arithmeticFn
     return arithmeticFn(apply)
   else
     throw new Error("apply must have an aggregate or an arithmetic")
@@ -224,18 +220,18 @@ directionFns = {
 compareFns = {
   natural: ({prop, direction}) ->
     directionFn = directionFns[direction]
-    throw new Error("direction has to be 'ascending' or 'descending'") unless directionFn
+    throw new Error("arithmetic '#{direction}' unsupported by driver") unless directionFn
     return (a, b) -> directionFn(a.prop[prop], b.prop[prop])
 
   caseInsensetive: ({prop, direction}) ->
     directionFn = directionFns[direction]
-    throw new Error("direction has to be 'ascending' or 'descending'") unless directionFn
+    throw new Error("arithmetic '#{direction}' unsupported by driver") unless directionFn
     return (a, b) -> directionFn(String(a.prop[prop]).toLowerCase(), String(b.prop[prop]).toLowerCase())
 }
 
 makeCompareFn = (sortCompare) ->
   compareFn = compareFns[sortCompare.compare]
-  throw new Error("No such compare `#{sortCompare.compare}` in combine.sort") unless compareFn
+  throw new Error("compare '#{sortCompare.compare}' unsupported by driver") unless compareFn
   return compareFn(sortCompare)
 
 
@@ -254,20 +250,18 @@ combineFns = {
       return
 
   matrix: () ->
-    throw new Error("not implemented yet")
+    throw new Error("matrix combine not implemented yet")
 }
 
 makeCombineFn = (combine) ->
-  throw new Error("combine not defined in combine") unless combine.hasOwnProperty('combine')
-  combineFn = combineFns[combine.combine]
-  throw new Error("unsupported combine '#{combine.combine}' in combine") unless combineFn
+  throw new TypeError("combine must be a FacetCombine") unless combine instanceof FacetCombine
+  combineFn = combineFns[combine.method]
+  throw new Error("method '#{combine.method}' unsupported by driver") unless combineFn
   return combineFn(combine)
 
 
-
 computeQuery = (data, query) ->
-  throw new Error("query not supplied") unless query
-  throw new Error("invalid query") unless Array.isArray(query)
+  throw new TypeError("query must be a FacetQuery") unless query instanceof FacetQuery
 
   rootSegment = {
     prop: {}
@@ -276,75 +270,60 @@ computeQuery = (data, query) ->
   }
   originalSegmentGroups = segmentGroups = [[rootSegment]]
 
-  lastSplit = null
-  for cmd in query
-    switch cmd.operation
-      when 'filter'
-        filterFn = makeFilterFn(cmd)
-        for segmentGroup in segmentGroups
-          driverUtil.inPlaceFilter(segmentGroup, (segment) ->
-            segment._raw = segment._raw.filter(filterFn)
-            return segment._raw.length > 0
-          )
+  filter = query.getFilter()
+  if filter.type isnt 'true'
+    filterFn = makeFilterFn(filter)
+    for segmentGroup in segmentGroups
+      driverUtil.inPlaceFilter(segmentGroup, (segment) ->
+        segment._raw = segment._raw.filter(filterFn)
+        return segment._raw.length > 0
+      )
 
-      when 'split'
-        lastSplit = cmd
-        propName = cmd.name
-        throw new Error("name not defined in split") unless propName
-        throw new TypeError("invalid name in split") unless typeof propName is 'string'
-        splitFn = makeSplitFn(cmd)
-        bucketFilterFn = if cmd.bucketFilter then driverUtil.makeBucketFilterFn(cmd.bucketFilter) else null
-        segmentGroups = driverUtil.filterMap driverUtil.flatten(segmentGroups), (segment) ->
-          return if bucketFilterFn and not bucketFilterFn(segment)
-          keys = []
-          buckets = {}
-          bucketValue = {}
-          for d in segment._raw
-            key = splitFn(d)
-            throw new Error("bucket returned undefined") unless key? # ToDo: handle nulls
-            keyString = String(key)
+  groups = query.getGroups()
+  for {split, applies, combine} in groups
+    if split
+      propName = split.name
+      splitFn = makeSplitFn(split)
+      segmentFilterFn = if split.segmentFilter then driverUtil.makeBucketFilterFn(split.segmentFilter) else null
+      segmentGroups = driverUtil.filterMap driverUtil.flatten(segmentGroups), (segment) ->
+        return if segmentFilterFn and not segmentFilterFn(segment)
+        keys = []
+        buckets = {}
+        bucketValue = {}
+        for d in segment._raw
+          key = splitFn(d)
+          throw new Error("bucket returned undefined") unless key? # ToDo: handle nulls
+          keyString = String(key)
 
-            if not buckets[keyString]
-              keys.push(keyString)
-              buckets[keyString] = []
-              bucketValue[keyString] = key
-            buckets[keyString].push(d)
+          if not buckets[keyString]
+            keys.push(keyString)
+            buckets[keyString] = []
+            bucketValue[keyString] = key
+          buckets[keyString].push(d)
 
-          segment.splits = keys.map((keyString) ->
-            prop = {}
-            prop[propName] = bucketValue[keyString]
+        segment.splits = keys.map((keyString) ->
+          prop = {}
+          prop[propName] = bucketValue[keyString]
 
-            return {
-              _raw: buckets[keyString]
-              prop
-              parent: segment
-            }
-          )
-          return segment.splits
+          return {
+            _raw: buckets[keyString]
+            prop
+            parent: segment
+          }
+        )
+        return segment.splits
 
-      when 'apply'
-        propName = cmd.name
-        throw new Error("name not defined in apply") unless propName
-        throw new TypeError("invalid name in apply") unless typeof propName is 'string'
+    for apply in applies
+      propName = apply.name
+      applyFn = makeApplyFn(apply)
+      for segmentGroup in segmentGroups
+        for segment in segmentGroup
+          segment.prop[propName] = applyFn(segment._raw)
 
-        applyFn = makeApplyFn(cmd)
-        for segmentGroup in segmentGroups
-          for segment in segmentGroup
-            segment.prop[propName] = applyFn(segment._raw)
-
-      when 'combine'
-        throw new Error("combine called without split") unless lastSplit
-        lastSplit = null
-
-        combineFn = makeCombineFn(cmd)
-        for segmentGroup in segmentGroups
-          combineFn(segmentGroup) # In place
-
-      else
-        throw new Error("unrecognizable command") unless typeof cmd is 'object'
-        throw new Error("operation not defined") unless cmd.hasOwnProperty('operation')
-        throw new Error("invalid operation") unless typeof cmd.operation is 'string'
-        throw new Error("unknown operation '#{cmd.operation}'")
+    if combine
+      combineFn = makeCombineFn(combine)
+      for segmentGroup in segmentGroups
+        combineFn(segmentGroup) # In place
 
   return driverUtil.cleanSegments(originalSegmentGroups[0][0] or {})
 

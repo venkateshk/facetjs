@@ -18,6 +18,24 @@ describe "filter", ->
       expect(-> FacetFilter.fromSpec(filterSpec)).to.throw(Error, "unsupported filter type 'poo'")
 
 
+  describe "preserves", ->
+    it "is", ->
+      filterSpec = {
+        type: 'is'
+        attribute: 'color'
+        value: 'Red'
+      }
+      expect(FacetFilter.fromSpec(filterSpec).valueOf()).to.deep.equal(filterSpec)
+
+    it "contains", ->
+      filterSpec = {
+        type: 'contains'
+        attribute: 'color'
+        value: 'Red'
+      }
+      expect(FacetFilter.fromSpec(filterSpec).valueOf()).to.deep.equal(filterSpec)
+
+
   describe 'toString', ->
     it 'properly describes empty filter', ->
       filterSpec = { type: 'true' }
@@ -32,16 +50,16 @@ describe "filter", ->
     it 'properly describes is filter', ->
       filterSpec = {
         type: 'is'
-        attribute: 'Color'
+        attribute: 'color'
         value: 'Red'
       }
       expect(FacetFilter.fromSpec(filterSpec).toString())
-        .to.equal('Color is Red')
+        .to.equal('color is Red')
 
     it 'properly describes in filter', ->
       filterSpec = {
         type: 'in'
-        attribute: 'Color'
+        attribute: 'color'
         values: []
       }
       expect(FacetFilter.fromSpec(filterSpec).toString())
@@ -49,45 +67,45 @@ describe "filter", ->
 
       filterSpec = {
         type: 'in'
-        attribute: 'Color'
+        attribute: 'color'
         values: ['Red']
       }
       expect(FacetFilter.fromSpec(filterSpec).toString())
-        .to.equal('Color is Red')
+        .to.equal('color is Red')
 
       filterSpec = {
         type: 'in'
-        attribute: 'Color'
+        attribute: 'color'
         values: ['Red', 'Blue']
       }
       expect(FacetFilter.fromSpec(filterSpec).toString())
-        .to.equal('Color is either Red or Blue')
+        .to.equal('color is either Red or Blue')
 
       filterSpec = {
         type: 'in'
-        attribute: 'Color'
+        attribute: 'color'
         values: ['Red', 'Blue', 'Green']
       }
       expect(FacetFilter.fromSpec(filterSpec).toString())
-        .to.equal('Color is one of: Red, Blue, or Green')
+        .to.equal('color is one of: Red, Blue, or Green')
 
-    it 'properly describes fragements filter', ->
+    it 'properly describes contains filter', ->
       filterSpec = {
-        type: 'fragments'
-        attribute: 'Color'
-        fragments: ['Red', 'Blue']
+        type: 'contains'
+        attribute: 'color'
+        value: 'Red'
       }
       expect(FacetFilter.fromSpec(filterSpec).toString())
-        .to.equal("Color contains 'Red', and 'Blue'")
+        .to.equal("color contains 'Red'")
 
     it 'properly describes match filter', ->
       filterSpec = {
         type: 'match'
-        attribute: 'Color'
+        attribute: 'color'
         match: "^R"
       }
       expect(FacetFilter.fromSpec(filterSpec).toString())
-        .to.equal('Color matches /^R/')
+        .to.equal('color matches /^R/')
 
     it 'properly describes within filter', ->
       filterSpec = {
@@ -111,12 +129,12 @@ describe "filter", ->
         type: 'not'
         filter: {
           type: 'is'
-          attribute: 'Color'
+          attribute: 'color'
           value: 'Red'
         }
       }
       expect(FacetFilter.fromSpec(filterSpec).toString())
-        .to.equal('not (Color is Red)')
+        .to.equal('not (color is Red)')
 
     it 'properly describes and filter', ->
       filterSpec = {
@@ -124,31 +142,31 @@ describe "filter", ->
         filters: [
           {
             type: 'is'
-            attribute: 'Color'
+            attribute: 'color'
             value: 'Red'
           }
         ]
       }
       expect(FacetFilter.fromSpec(filterSpec).toString())
-        .to.equal("Color is Red")
+        .to.equal("color is Red")
 
       filterSpec = {
         type: 'and'
         filters: [
           {
             type: 'is'
-            attribute: 'Color'
+            attribute: 'color'
             value: 'Red'
           }
           {
             type: 'in'
-            attribute: 'Color'
+            attribute: 'color'
             values: ['Red', 'Blue']
           }
         ]
       }
       expect(FacetFilter.fromSpec(filterSpec).toString())
-        .to.equal("(Color is Red) and (Color is either Red or Blue)")
+        .to.equal("(color is Red) and (color is either Red or Blue)")
 
     it 'properly describes or filter', ->
       filterSpec = {
@@ -156,31 +174,31 @@ describe "filter", ->
         filters: [
           {
             type: 'is'
-            attribute: 'Color'
+            attribute: 'color'
             value: 'Red'
           }
         ]
       }
       expect(FacetFilter.fromSpec(filterSpec).toString())
-        .to.equal("Color is Red")
+        .to.equal("color is Red")
 
       filterSpec = {
         type: 'or'
         filters: [
           {
             type: 'is'
-            attribute: 'Color'
+            attribute: 'color'
             value: 'Red'
           }
           {
             type: 'in'
-            attribute: 'Color'
+            attribute: 'color'
             values: ['Red', 'Blue']
           }
         ]
       }
       expect(FacetFilter.fromSpec(filterSpec).toString())
-        .to.equal("(Color is Red) or (Color is either Red or Blue)")
+        .to.equal("(color is Red) or (color is either Red or Blue)")
 
     it 'properly describes nested filter 1', ->
       filterSpec = {
@@ -190,19 +208,19 @@ describe "filter", ->
           filters: [
             {
               type: 'is'
-              attribute: 'Color'
+              attribute: 'color'
               value: 'Red'
             }
             {
               type: 'in'
-              attribute: 'Color'
+              attribute: 'color'
               values: ['Red', 'Blue']
             }
           ]
         }
       }
       expect(FacetFilter.fromSpec(filterSpec).toString())
-        .to.equal("not ((Color is Red) or (Color is either Red or Blue))")
+        .to.equal("not ((color is Red) or (color is either Red or Blue))")
 
     it 'properly describes nested filter 2', ->
       filterSpec = {
@@ -210,26 +228,26 @@ describe "filter", ->
         filters: [
           {
             type: 'is'
-            attribute: 'Color'
+            attribute: 'color'
             value: 'Red'
           }
           {
             type: 'in'
-            attribute: 'Color'
+            attribute: 'color'
             values: ['Red', 'Blue']
           }
           {
             type: 'not'
             filter: {
               type: 'is'
-              attribute: 'Color'
+              attribute: 'color'
               value: 'Red'
             }
           }
         ]
       }
       expect(FacetFilter.fromSpec(filterSpec).toString())
-        .to.equal("(Color is Red) and (Color is either Red or Blue) and (not (Color is Red))")
+        .to.equal("(color is Red) and (color is either Red or Blue) and (not (color is Red))")
 
 
   describe "simplify", ->

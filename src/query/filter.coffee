@@ -5,7 +5,7 @@ filterTypePresedence = {
   'within': 3
   'is': 4
   'in': 5
-  'fragments': 6
+  'contains': 6
   'match': 7
   'not': 8
   'and': 9
@@ -127,17 +127,17 @@ class InFilter extends FacetFilter
 
 
 
-class FragmentsFilter extends FacetFilter
-  constructor: ({@type, @attribute, @fragments}) ->
-    @_ensureType('fragments')
+class ContainsFilter extends FacetFilter
+  constructor: ({@type, @attribute, @value}) ->
+    @_ensureType('contains')
     @_validateAttribute()
-    throw new TypeError('fragments must be an array') unless Array.isArray(@fragments)
+    throw new TypeError('contains must be a string') unless typeof @value is 'string'
 
   toString: ->
-    return "#{@attribute} contains #{specialJoin(@fragments.map((fragment) -> '\'' + fragment + '\''), ', ', ', and ')}"
+    return "#{@attribute} contains '#{@value}'"
 
   valueOf: ->
-    return { type: @type, attribute: @attribute, fragments: @fragments }
+    return { type: @type, attribute: @attribute, value: @value }
 
 
 
@@ -198,7 +198,7 @@ class NotFilter extends FacetFilter
 
   extractFilterByAttribute: (attribute) ->
     throw new TypeError("must have an attribute") unless typeof attribute is 'string'
-    return null unless @filter.type in ['true', 'false', 'is', 'in', 'fragments', 'match', 'within']
+    return null unless @filter.type in ['true', 'false', 'is', 'in', 'contains', 'match', 'within']
     if @filter.type is ['true', 'false'] or @filter.attribute isnt attribute
       return [this]
     else
@@ -381,7 +381,7 @@ filterConstructorMap = {
   "false": FalseFilter
   "is": IsFilter
   "in": InFilter
-  "fragments": FragmentsFilter
+  "contains": ContainsFilter
   "match": MatchFilter
   "within": WithinFilter
   "not": NotFilter
@@ -404,7 +404,7 @@ exports.TrueFilter = TrueFilter
 exports.FalseFilter = FalseFilter
 exports.IsFilter = IsFilter
 exports.InFilter = InFilter
-exports.FragmentsFilter = FragmentsFilter
+exports.ContainsFilter = ContainsFilter
 exports.MatchFilter = MatchFilter
 exports.WithinFilter = WithinFilter
 exports.NotFilter = NotFilter

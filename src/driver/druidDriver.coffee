@@ -65,6 +65,11 @@ class DruidQueryBuilder
         varName = @addToContext(context, filter.attribute)
         filter.values.map((value) -> "#{varName}==='#{value}'").join('||')
 
+      when 'contains'
+        throw new Error("can not filter on specific time") if filter.attribute is @timeAttribute
+        varName = @addToContext(context, filter.attribute)
+        "#{varName}.indexOf('#{filter.value}') !== -1"
+
       when 'not'
         "!(#{@filterToJSHelper(filter.filter, context)})"
 
@@ -113,13 +118,13 @@ class DruidQueryBuilder
           ), this)
         }
 
-      when 'fragments'
+      when 'contains'
         {
           type: "search"
           dimension: filter.attribute
           query: {
             type: "fragment"
-            values: filter.fragments
+            values: [filter.value]
           }
         }
 

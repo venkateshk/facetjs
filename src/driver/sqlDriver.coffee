@@ -50,10 +50,10 @@ class SQLQueryBuilder
         "#{@escapeAttribute(filter.attribute)} = #{@escapeValue(filter.value)}"
 
       when 'in'
-        "#{@escapeAttribute(filter.attribute)} in (#{filter.values.map(@escapeValue, this).join(',')})"
+        "#{@escapeAttribute(filter.attribute)} IN (#{filter.values.map(@escapeValue, this).join(',')})"
 
-      when 'fragments'
-        throw new Error("todo")
+      when 'contains'
+        "#{@escapeAttribute(filter.attribute)} LIKE \"%#{filter.value}%\"" # ToDo: escape to prevent SQL injection
 
       when 'match'
         "#{@escapeAttribute(filter.attribute)} REGEXP '#{filter.expression}'"

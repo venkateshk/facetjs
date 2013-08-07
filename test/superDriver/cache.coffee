@@ -2,10 +2,10 @@ chai = require("chai")
 expect = chai.expect
 utils = require('../utils')
 
-sqlRequester = require('../../target/mySqlRequester')
-sqlDriver = require('../../target/sqlDriver')
-simpleDriver = require('../../target/simpleDriver')
-driverCache = require('../../target/driverCache')
+sqlRequester = require('../../build/mySqlRequester')
+sqlDriver = require('../../build/sqlDriver')
+simpleDriver = require('../../build/simpleDriver')
+driverCache = require('../../build/driverCache')
 
 # Set up drivers
 driverFns = {}

@@ -2,8 +2,8 @@ chai = require("chai")
 expect = chai.expect
 utils = require('../utils')
 
-sqlRequester = require('../../target/mySqlRequester')
-sqlDriver = require('../../target/sqlDriver')
+sqlRequester = require('../../build/mySqlRequester')
+sqlDriver = require('../../build/sqlDriver')
 
 verbose = false
 

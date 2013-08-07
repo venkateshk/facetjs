@@ -20,7 +20,7 @@ app.use(express.json())
 
 app.use(express.directory(__dirname + '/../static'))
 app.use(express.static(__dirname + '/../static'))
-app.use(express.static(__dirname + '/../target'))
+app.use(express.static(__dirname + '/../build'))
 
 app.get '/', (req, res) ->
   res.send('Welcome to facet')

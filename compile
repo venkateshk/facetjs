@@ -1,12 +1,12 @@
 #!/bin/bash
-compass compile --sass-dir src/style/ --css-dir target/
-coffee --compile --bare --output target src/server.coffee src/requester/*
-coffee --compile --bare --output target src/driver/*
-coffee --compile --bare --output target src/converter/*.coffee
+compass compile --sass-dir src/style/ --css-dir build/
+coffee --compile --bare --output build src/server.coffee src/requester/*
+coffee --compile --bare --output build src/driver/*
+coffee --compile --bare --output build src/converter/*.coffee
 
-node_modules/pegjs/bin/pegjs --export-var "applyParser" src/converter/applyParser.pegjs target/applyParser.js
+node_modules/pegjs/bin/pegjs --export-var "applyParser" src/converter/applyParser.pegjs build/applyParser.js
 
-coffee --compile --bare --output target --join target/facet.js \
+coffee --compile --bare --output build --join build/facet.js \
   src/facet/_start.coffee \
   src/facet/init.coffee \
   src/facet/utils.coffee \
@@ -26,10 +26,12 @@ coffee --compile --bare --output target --join target/facet.js \
   src/facet/proxy.coffee \
   src/facet/_end.coffee
 
-coffee --compile --bare --output target --join target/query.js \
+coffee --compile --bare --output build --join build/query.js \
   src/query/_start.coffee \
   src/query/common.coffee \
+  src/query/options.coffee \
   src/query/filter.coffee \
+  src/query/segmentFilter.coffee \
   src/query/split.coffee \
   src/query/apply.coffee \
   src/query/combine.coffee \

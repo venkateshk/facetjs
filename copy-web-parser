@@ -2,5 +2,5 @@
 
 # Web parser
 cp static/lib/jquery-1.9.1.js web-parser/
-cp target/applyParser.js web-parser/
-cp target/applyStringer.js web-parser/
+cp build/applyParser.js web-parser/
+cp build/applyStringer.js web-parser/

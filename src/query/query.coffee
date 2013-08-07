@@ -13,6 +13,15 @@ class FacetQuery
       else
         @filter = new TrueFilter()
 
+      # Group the queries steps in to the logical queries that will need to be done
+      # @groups = [
+      #   {
+      #     split: FacetSplit
+      #     applies: [FacetApply, FacetApply]
+      #     combine: FacetCombine
+      #   }
+      #   ...
+      # ]
       for command in commands
         switch command.operation
           when 'filter' then throw new Error("filter not allowed here")
@@ -67,6 +76,10 @@ class FacetQuery
         arr.push combineVal
 
     return arr
+
+  getFilter: (query) ->
+    return @filter
+
 
 # Export!
 exports.FacetQuery = FacetQuery

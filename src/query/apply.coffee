@@ -50,6 +50,7 @@ class ConstantApply extends FacetApply
     apply = super.valueOf()
     apply.aggregate = @aggregate
     apply.value = @value
+    apply.filter = @filter.valueOf() if @filter
     return apply
 
   isAdditive: ->
@@ -58,8 +59,9 @@ class ConstantApply extends FacetApply
 
 
 class CountApply extends FacetApply
-  constructor: ({name, @aggregate, options}) ->
+  constructor: ({name, @aggregate, filter, options}) ->
     @name = name if name
+    @filter = FacetFilter.fromSpec(filter) if filter
     @options = new FacetOptions(options) if options
     @_ensureAggregate('count')
 
@@ -69,6 +71,7 @@ class CountApply extends FacetApply
   valueOf: ->
     apply = super.valueOf()
     apply.aggregate = @aggregate
+    apply.filter = @filter.valueOf() if @filter
     return apply
 
   isAdditive: ->
@@ -77,8 +80,9 @@ class CountApply extends FacetApply
 
 
 class SumApply extends FacetApply
-  constructor: ({name, @aggregate, @attribute, options}) ->
+  constructor: ({name, @aggregate, @attribute, filter, options}) ->
     @name = name if name
+    @filter = FacetFilter.fromSpec(filter) if filter
     @options = new FacetOptions(options) if options
     @_ensureAggregate('sum')
 
@@ -89,6 +93,7 @@ class SumApply extends FacetApply
     apply = super.valueOf()
     apply.aggregate = @aggregate
     apply.attribute = @attribute
+    apply.filter = @filter.valueOf() if @filter
     return apply
 
   isAdditive: ->
@@ -97,8 +102,9 @@ class SumApply extends FacetApply
 
 
 class AverageApply extends FacetApply
-  constructor: ({name, @aggregate, @attribute, options}) ->
+  constructor: ({name, @aggregate, @attribute, filter, options}) ->
     @name = name if name
+    @filter = FacetFilter.fromSpec(filter) if filter
     @options = new FacetOptions(options) if options
     @_ensureAggregate('average')
 
@@ -109,13 +115,15 @@ class AverageApply extends FacetApply
     apply = super.valueOf()
     apply.aggregate = @aggregate
     apply.attribute = @attribute
+    apply.filter = @filter.valueOf() if @filter
     return apply
 
 
 
 class MinApply extends FacetApply
-  constructor: ({name, @aggregate, @attribute, options}) ->
+  constructor: ({name, @aggregate, @attribute, filter, options}) ->
     @name = name if name
+    @filter = FacetFilter.fromSpec(filter) if filter
     @options = new FacetOptions(options) if options
     @_ensureAggregate('min')
 
@@ -126,13 +134,15 @@ class MinApply extends FacetApply
     apply = super.valueOf()
     apply.aggregate = @aggregate
     apply.attribute = @attribute
+    apply.filter = @filter.valueOf() if @filter
     return apply
 
 
 
 class MaxApply extends FacetApply
-  constructor: ({name, @aggregate, @attribute, options}) ->
+  constructor: ({name, @aggregate, @attribute, filter, options}) ->
     @name = name if name
+    @filter = FacetFilter.fromSpec(filter) if filter
     @options = new FacetOptions(options) if options
     @_ensureAggregate('max')
 
@@ -143,13 +153,15 @@ class MaxApply extends FacetApply
     apply = super.valueOf()
     apply.aggregate = @aggregate
     apply.attribute = @attribute
+    apply.filter = @filter.valueOf() if @filter
     return apply
 
 
 
 class UniqueCountApply extends FacetApply
-  constructor: ({name, @aggregate, @attribute, options}) ->
+  constructor: ({name, @aggregate, @attribute, filter, options}) ->
     @name = name if name
+    @filter = FacetFilter.fromSpec(filter) if filter
     @options = new FacetOptions(options) if options
     @_ensureAggregate('uniqueCount')
 
@@ -160,6 +172,7 @@ class UniqueCountApply extends FacetApply
     apply = super.valueOf()
     apply.aggregate = @aggregate
     apply.attribute = @attribute
+    apply.filter = @filter.valueOf() if @filter
     return apply
 
 

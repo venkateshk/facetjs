@@ -51,6 +51,8 @@ class FacetQuery
             throw new Error("operation not defined") unless command.hasOwnProperty('operation')
             throw new Error("invalid operation") unless typeof command.operation is 'string'
             throw new Error("unknown operation '#{command.operation}'")
+    else
+      throw new TypeError("query spec must be an array")
 
   toString: ->
     return "FacetQuery"

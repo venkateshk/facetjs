@@ -5,7 +5,9 @@ utils = require('../utils')
 sqlRequester = require('../../build/mySqlRequester')
 sqlDriver = require('../../build/sqlDriver')
 simpleDriver = require('../../build/simpleDriver')
-driverCache = require('../../build/driverCache')
+generalCache = require('../../build/generalCache')
+
+{FacetQuery} = require('../../build/query')
 
 # Set up drivers
 driverFns = {}
@@ -20,41 +22,41 @@ driverFns.diamonds = diamonds = simpleDriver(diamondsData)
 driverFns.wikipedia = wikipedia = simpleDriver(wikipediaData)
 
 # Cached Versions
-driverFns.diamondsCached = driverCache({
-  driver: (query, callback) ->
+driverFns.diamondsCached = generalCache({
+  driver: (request, callback) ->
     if checkEquality
-      expect(query.query).to.deep.equal(expectedQuery)
+      expect(request.query.valueOf()).to.deep.equal(expectedQuery)
 
     if not allowQuery
       console.log '\n---------------'
-      console.log JSON.stringify(query, null, 2)
+      console.log JSON.stringify(request.query.valueOf(), null, 2)
       console.log '---------------'
       throw new Error("query not allowed")
 
-    diamonds(query, callback)
+    diamonds(request, callback)
     return
   timeAttribute: 'time'
 })
 
-driverFns.wikipediaCached = driverCache({
-  driver: (query, callback) ->
+driverFns.wikipediaCached = generalCache({
+  driver: (request, callback) ->
     if checkEquality
-      expect(query.query).to.deep.equal(expectedQuery)
+      expect(request.query.valueOf()).to.deep.equal(expectedQuery)
 
     if not allowQuery
       console.log '\n---------------'
-      console.log JSON.stringify(query, null, 2)
+      console.log JSON.stringify(request.query.valueOf(), null, 2)
       console.log '---------------'
       throw new Error("query not allowed")
 
-    wikipedia(query, callback)
+    wikipedia(request, callback)
     return
   timeAttribute: 'time'
 })
 
 testEquality = utils.makeEqualityTest(driverFns)
 
-describe "Cache", ->
+describe "General cache", ->
   @timeout(40 * 1000)
 
   describe "emptyness checker", ->
@@ -62,13 +64,13 @@ describe "Cache", ->
       callback(null, {})
       return
 
-    emptyDriverCached = driverCache({
+    emptyDriverCached = generalCache({
       driver: emptyDriver
     })
 
     it "should handle {}", (done) ->
       emptyDriverCached {
-        query: [
+        query: new FacetQuery [
           { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
           { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
           { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
@@ -83,13 +85,13 @@ describe "Cache", ->
       callback(null, { prop: { Count: 0 } })
       return
 
-    zeroDriverCached = driverCache({
+    zeroDriverCached = generalCache({
       driver: zeroDriver
     })
 
     it "should handle zeroes", (done) ->
       zeroDriverCached {
-        query: [
+        query: new FacetQuery [
           { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
           { operation: 'apply', name: 'Count', aggregate: 'constant', value: '0' }
         ]
@@ -175,13 +177,13 @@ describe "Cache", ->
       callback(null, dateLightSavingData)
       return
 
-    dateLightSavingDriverCached = driverCache({
+    dateLightSavingDriverCached = generalCache({
       driver: dateLightSavingDriver
     })
 
     it "should handle preset data", (done) ->
       dateLightSavingDriverCached {
-        query: [
+        query: new FacetQuery [
           {
             "type": "within",
             "attribute": "timestamp",
@@ -268,7 +270,7 @@ describe "Cache", ->
       ]
 
     before (done) ->
-      driverFns.diamondsCached({ query: setUpQuery}, (err, result) ->
+      driverFns.diamondsCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
         throw err if err?
         allowQuery = false
         done()
@@ -347,7 +349,7 @@ describe "Cache", ->
         ]
 
       before (done) ->
-        driverFns.wikipediaCached({query: setUpQuery}, (err, result) ->
+        driverFns.wikipediaCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
           throw err if err?
           allowQuery = false
           done()
@@ -410,7 +412,7 @@ describe "Cache", ->
         ]
 
       before (done) ->
-        driverFns.wikipediaCached({query: setUpQuery}, (err, result) ->
+        driverFns.wikipediaCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
           throw err if err?
           allowQuery = false
           done()
@@ -462,7 +464,7 @@ describe "Cache", ->
         ]
 
       before (done) ->
-        driverFns.wikipediaCached({query: setUpQuery}, (err, result) ->
+        driverFns.wikipediaCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
           throw err if err?
           allowQuery = false
           done()
@@ -540,7 +542,7 @@ describe "Cache", ->
     ]
 
     before (done) ->
-      driverFns.wikipediaCached({query: setUpQuery}, (err, result) ->
+      driverFns.wikipediaCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
         throw err if err?
         allowQuery = false
         done()
@@ -571,7 +573,7 @@ describe "Cache", ->
     ]
 
     before (done) ->
-      driverFns.wikipediaCached({query: setUpQuery}, (err, result) ->
+      driverFns.wikipediaCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
         throw err if err?
         checkEquality = true
         done()
@@ -616,7 +618,7 @@ describe "Cache", ->
     ]
 
     before (done) ->
-      driverFns.diamondsCached({query: setUpQuery}, (err, result) ->
+      driverFns.diamondsCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
         throw err if err?
         allowQuery = false
         done()
@@ -653,7 +655,7 @@ describe "Cache", ->
     ]
 
     before (done) ->
-      driverFns.diamondsCached({query: setUpQuery}, (err, result) ->
+      driverFns.diamondsCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
         throw err if err?
         done()
         return

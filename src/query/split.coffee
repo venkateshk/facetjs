@@ -122,7 +122,7 @@ class TimePeriodSplit extends FacetSplit
     @_verifyName()
 
   toString: ->
-    return @_addName("#{@bucket}(#{@attribute}, #{@duration}, #{@offset})")
+    return @_addName("#{@bucket}(#{@attribute}, #{@period}, #{@timezone})")
 
   valueOf: ->
     split = super.valueOf()

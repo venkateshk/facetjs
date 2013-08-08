@@ -2,7 +2,7 @@
 
 # -----------------------------------------------------
 driverUtil = require('./driverUtil')
-{ FacetQuery } = require('./query')
+{ FacetQuery, AndFilter, TrueFilter, FacetFilter, FacetSplit, FacetCombine } = require('./query')
 
 moveTimestamp = (timestamp, period, timezone) ->
   newTimestamp = new Date(timestamp)
@@ -43,7 +43,7 @@ filterToHash = (filter) ->
 splitToHash = (split) ->
   hash = []
   for own k, v of split
-    continue if k in ['name', 'bucketFilter']
+    continue if k in ['name', 'segmentFilter']
     hash.push(k + ":" + v)
 
   return hash.sort().join('|')
@@ -59,22 +59,8 @@ generateHash = (filter, splitOp, combineOp) ->
   # Get Filter and Split
   return filterToHash(filter) + '&' + splitToHash(splitOp) + '&' + combineToHash(combineOp)
 
-addToFilter = (givenFilter, timeAttribute, newFilterPieces...) ->
-  if givenFilter?
-    newTimeFilterPiece = newFilterPieces.filter(({attribute}) -> return attribute is timeAttribute)[0]
-    if newTimeFilterPiece?
-      separatedFilters = driverUtil.extractFilterByAttribute(givenFilter, timeAttribute)
-      givenFilter = separatedFilters[0]
-      timeFilter = separatedFilters[1]
-    newFilterPieces.push givenFilter
-
-  if newFilterPieces.length > 1
-    return {
-      type: 'and'
-      filters: newFilterPieces
-    }
-
-  return newFilterPieces[0]
+andFilters = (filter1, filter2) ->
+  return new AndFilter([filter1, filter2]).simplify()
 
 class FilterCache
   # { key: filter,
@@ -84,10 +70,10 @@ class FilterCache
     @hashmap = {}
 
   get: (filter) ->
-    #   {
-    #     <attribute>: <value>
-    #     <attribute>: <value>
-    #   }
+    # {
+    #   <attribute>: <value>
+    #   <attribute>: <value>
+    # }
     return @hashmap[filterToHash(filter)]
 
   put: (filter, condensedQuery, root) -> # Recursively deconstruct root and add to cache
@@ -105,7 +91,7 @@ class FilterCache
     if node.splits?
       splitOp = condensedQuery[level + 1].split
       for split in node.splits
-        newFilter = addToFilter(filter, @timeAttribute, splitOp.getFilterFrom(split.prop[splitOp.name]))
+        newFilter = andFilters(filter, splitOp.getFilterFor(split.prop[splitOp.name]))
         @_filterPutHelper(condensedQuery, split, newFilter, level + 1)
     return
 
@@ -130,11 +116,11 @@ class SplitCache
       hash = generateHash(filter, splitOp, combineOp)
       return @hashmap[hash]
 
-  put: (condensedQuery, root) -> # Recursively deconstruct root and add to cache
-    @_splitPutHelper(condensedQuery, root, condensedQuery[0].filter, 0)
+  put: (filter, condensedQuery, root) -> # Recursively deconstruct root and add to cache
+    @_splitPutHelper(filter, condensedQuery, root, 0)
     return
 
-  _splitPutHelper: (condensedQuery, node, filter, level) ->
+  _splitPutHelper: (filter, condensedQuery, node, level) ->
     return unless node.splits?
 
     splitOp = condensedQuery[level + 1].split
@@ -146,12 +132,12 @@ class SplitCache
 
     if condensedQuery[level + 2]?
       for split in node.splits
-        newFilter = addToFilter(filter, @timeAttribute, splitOp.getFilterFrom(split.prop[splitOpName]))
-        @_splitPutHelper(condensedQuery, split, newFilter, level + 1)
+        newFilter = andFilters(filter, splitOp.getFilterFor(split.prop[splitOpName]))
+        @_splitPutHelper(newFilter, condensedQuery, split, level + 1)
     return
 
   _timeCalculate: (filter, splitOp) ->
-    separatedFilters = driverUtil.extractFilterByAttribute(filter, @timeAttribute)
+    separatedFilters = filter.extractFilterByAttribute(@timeAttribute)
     timeFilter = separatedFilters[1]
     timezone = splitOp.timezone or 'Etc/UTC'
     timestamps = []
@@ -208,46 +194,51 @@ module.exports = ({driver, timeAttribute}) ->
 
     return bucketFilter.values
 
-  getUnknownQuery = (query, root, condensedQuery) ->
+  getUnknownQuery = (filter, query, root, condensedQuery) ->
     return query unless root?
     unknownQuery = []
     added = false
 
-    for condensedCommand, i in condensedQuery
-      if condensedCommand.filter?
-        condensedCommand.filter.operation = 'filter'
-        unknownQuery.push condensedCommand.filter
+    if filter not instanceof TrueFilter
+      filterSpec = filter.valueOf()
+      filterSpec.operation = 'filter'
+      unknownQuery.push filterSpec
 
-      if condensedCommand.split?
-        newSplit = JSON.parse(JSON.stringify(condensedCommand.split))
-        if condensedCommand.split.bucketFilter?
-          newValues = bucketFilterValueCheck(root, 0, i - 2, condensedCommand.split.bucketFilter)
-          newSplit.bucketFilter.values = newValues
+    for condensedCommand, i in condensedQuery
+      if condensedCommand.split
+        newSplit = condensedCommand.split.valueOf()
+        newSplit.operation = 'split'
+        if condensedCommand.split.segmentFilter?
+          newValues = bucketFilterValueCheck(root, 0, i - 2, condensedCommand.split.segmentFilter)
+          newSplit.segmentFilter.values = newValues
           if newValues.length > 0
             added = true
         unknownQuery.push newSplit
 
-      if condensedCommand.combine?
+      if condensedCommand.combine
         mustApply = condensedCommand.combine.sort.prop
 
-      if condensedCommand.applies?
-        for apply in condensedCommand.applies
-          exists = checkDeep(root, 0, i, apply.name, condensedCommand.split?.bucketFilter)
-          if not exists
-            added = true
+      for apply in condensedCommand.applies
+        exists = checkDeep(root, 0, i, apply.name, condensedCommand.split?.segmentFilter)
+        if not exists
+          added = true
 
-          if (apply.name is mustApply) or (not exists)
-            unknownQuery.push apply
+        if apply.name is mustApply or not exists
+          applySpec = apply.valueOf()
+          applySpec.operation = 'apply'
+          unknownQuery.push applySpec
 
-      if condensedCommand.combine?
-        unknownQuery.push condensedCommand.combine
+      if condensedCommand.combine
+        combineSpec = condensedCommand.combine.valueOf()
+        combineSpec.operation = 'combine'
+        unknownQuery.push combineSpec
 
     if added
-      return unknownQuery
+      return new FacetQuery(unknownQuery)
 
     return null
 
-  getKnownTreeHelper = (condensedQuery, filter, level, upperSplitValue) ->
+  getKnownTreeHelper = (filter, condensedQuery, level, upperSplitValue) ->
     applies = condensedQuery[level].applies
     splitOp = condensedQuery[level + 1]?.split
     combineOp = condensedQuery[level + 1]?.combine
@@ -280,8 +271,8 @@ module.exports = ({driver, timeAttribute}) ->
     splits = []
 
     for value in cachedValues
-      newFilter = addToFilter(filter, timeAttribute, driverUtil.filterFromSplit(splitOp, value))
-      ret = getKnownTreeHelper(condensedQuery, newFilter, level + 1, value)
+      newFilter = andFilters(filter, splitOp.getFilterFor(value))
+      ret = getKnownTreeHelper(newFilter, condensedQuery, level + 1, value)
       ret.prop[splitOp.name] = value
       splits.push ret
 
@@ -306,8 +297,9 @@ module.exports = ({driver, timeAttribute}) ->
       splits
     }
 
-  getKnownTree = (condensedQuery) ->
-    return getKnownTreeHelper(condensedQuery, condensedQuery[0].filter, 0)
+  getKnownTree = (filter, condensedQuery) ->
+    throw new Error("must have filter") unless filter
+    return getKnownTreeHelper(filter, condensedQuery, 0)
 
   convertEmptyTreeToEmptyObject = (tree) ->
     propKeys = (key for key, value of tree.prop)
@@ -330,9 +322,9 @@ module.exports = ({driver, timeAttribute}) ->
     if condensedQuery[1]?.split?.bucket in ['continuous', 'tuple']
       return driver({query}, callback)
 
-    root = getKnownTree(condensedQuery)
-    unknownQuery = getUnknownQuery(query, root, condensedQuery)
-    if not unknownQuery?
+    root = getKnownTree(filter, condensedQuery)
+    unknownQuery = getUnknownQuery(filter, query, root, condensedQuery)
+    if not unknownQuery
       callback(null, root)
       return
 
@@ -341,9 +333,9 @@ module.exports = ({driver, timeAttribute}) ->
         callback(err, null)
         return
 
-      splitCache.put(condensedQuery, root)
+      splitCache.put(filter, condensedQuery, root)
       filterCache.put(filter, condensedQuery, root)
-      knownTree = convertEmptyTreeToEmptyObject(getKnownTree(condensedQuery))
+      knownTree = convertEmptyTreeToEmptyObject(getKnownTree(filter, condensedQuery))
       callback(null, knownTree)
     return
 

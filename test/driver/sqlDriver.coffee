@@ -2,6 +2,8 @@ chai = require("chai")
 expect = chai.expect
 utils = require('../utils')
 
+{FacetQuery, FacetFilter} = require('../../build/query')
+
 sqlRequester = require('../../build/mySqlRequester')
 sqlDriver = require('../../build/sqlDriver')
 
@@ -22,9 +24,9 @@ describe "SQL driver", ->
     })
 
     describe "should return null correctly on an all query", ->
-      query = [
+      query = new FacetQuery([
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-      ]
+      ])
 
       it "should work with [] return", (done) ->
         emptyDriver {query}, (err, result) ->
@@ -34,11 +36,11 @@ describe "SQL driver", ->
           return
 
     describe "should return null correctly on a topN query", ->
-      query = [
+      query = new FacetQuery([
         { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
         { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'ascending' } }
-      ]
+      ])
 
       it "should work with [] return", (done) ->
         emptyDriver {query}, (err, result) ->

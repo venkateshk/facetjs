@@ -61,3 +61,5 @@ class FacetSegementFilter
   getFilterFn: ->
     return makeSegmentFilterFn(@spec)
 
+
+exports.FacetSegementFilter = FacetSegementFilter

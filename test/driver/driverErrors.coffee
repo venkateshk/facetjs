@@ -2,6 +2,8 @@ chai = require("chai")
 expect = chai.expect
 utils = require('../utils')
 
+{FacetFilter} = require('../../build/query')
+
 druidRequester = require('../../build/druidRequester')
 sqlRequester = require('../../build/mySqlRequester')
 
@@ -41,14 +43,14 @@ driverFns.druid = druidDriver({
   dataSource: 'wikipedia_editstream'
   timeAttribute: 'time'
   approximate: true
-  filter: {
+  filter: FacetFilter.fromSpec({
     type: 'within'
     attribute: 'time'
     range: [
       new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0))
       new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))
     ]
-  }
+  })
 })
 
 testError = utils.makeErrorTest(driverFns)
@@ -69,7 +71,7 @@ describe "Error compat test", ->
 
     it "invalid query 1", testError {
       drivers: ['simple', 'mySql', 'druid']
-      error: "invalid query"
+      error: "query must be a FacetQuery"
       request: {
         query: {}
       }
@@ -77,7 +79,7 @@ describe "Error compat test", ->
 
     it "invalid query 2", testError {
       drivers: ['simple', 'mySql', 'druid']
-      error: "invalid query"
+      error: "query must be a FacetQuery"
       request: {
         query: "poo"
       }

@@ -23,6 +23,9 @@ class FacetApply
     return unless @name
     throw new TypeError("apply name must be a string") unless typeof @name is 'string'
 
+  _verifyAttribute: ->
+    throw new TypeError("attribute must be a string") unless typeof @attribute is 'string'
+
   _addName: (str) ->
     return str unless @name
     return "#{@name} <- #{str}"
@@ -92,6 +95,7 @@ class SumApply extends FacetApply
     @options = new FacetOptions(options) if options
     @_ensureAggregate('sum')
     @_verifyName()
+    @_verifyAttribute()
 
   toString: ->
     return @_addName("#{@aggregate}(#{@attribute})")
@@ -115,6 +119,7 @@ class AverageApply extends FacetApply
     @options = new FacetOptions(options) if options
     @_ensureAggregate('average')
     @_verifyName()
+    @_verifyAttribute()
 
   toString: ->
     return @_addName("#{@aggregate}(#{@attribute})")
@@ -135,6 +140,7 @@ class MinApply extends FacetApply
     @options = new FacetOptions(options) if options
     @_ensureAggregate('min')
     @_verifyName()
+    @_verifyAttribute()
 
   toString: ->
     return @_addName("#{@aggregate}(#{@attribute})")
@@ -155,6 +161,7 @@ class MaxApply extends FacetApply
     @options = new FacetOptions(options) if options
     @_ensureAggregate('max')
     @_verifyName()
+    @_verifyAttribute()
 
   toString: ->
     return @_addName("#{@aggregate}(#{@attribute})")
@@ -175,6 +182,7 @@ class UniqueCountApply extends FacetApply
     @options = new FacetOptions(options) if options
     @_ensureAggregate('uniqueCount')
     @_verifyName()
+    @_verifyAttribute()
 
   toString: ->
     return @_addName("#{@aggregate}(#{@attribute})")
@@ -196,6 +204,7 @@ class QuantileApply extends FacetApply
     throw new Error("quantile must be between 0 and 1 (is: #{@quantile})") unless 0 <= @quantile <= 1
     @_ensureAggregate('quantile')
     @_verifyName()
+    @_verifyAttribute()
 
   toString: ->
     return @_addName("quantile(#{@attribute}, #{@quantile})")

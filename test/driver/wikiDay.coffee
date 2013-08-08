@@ -254,6 +254,29 @@ describe "Wikipedia dataset", ->
       ]
     }
 
+  describe "split language; apply count; sort count descending > split page (+filter); apply count; sort count descending", ->
+    it "should have the same results for different drivers", testEquality {
+      drivers: ['mySql', 'druid']
+      query: [
+        { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
+        { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+        { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 10 }
+
+        {
+          operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page'
+          segementFilter: {
+            type: 'in'
+            prop: 'Language'
+            values: ['en', 'sv', 'poo']
+          }
+        }
+        { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+        { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 3 }
+      ]
+    }
+
   describe "split language; apply count; sort count descending > split page; apply count; sort count descending (filter bucket)", ->
     it "should have the same results for different drivers", testEquality {
       drivers: ['mySql', 'druid']

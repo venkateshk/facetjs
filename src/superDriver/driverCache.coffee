@@ -2,10 +2,10 @@
 
 # -----------------------------------------------------
 driverUtil = require('./driverUtil')
+{ FacetQuery } = require('./query')
 
 moveTimestamp = (timestamp, period, timezone) ->
   newTimestamp = new Date(timestamp)
-
   switch period
     when 'PT1S'
       newTimestamp.setSeconds(newTimestamp.getSeconds() + 1)
@@ -18,7 +18,7 @@ moveTimestamp = (timestamp, period, timezone) ->
       newTimestamp.setDate(newTimestamp.getDate() + 1)
       newTimestamp = driverUtil.adjust.day.ceil(newTimestamp, timezone)
     else
-      throw new Error("unknown time period")
+      throw new Error("time period not supported by driver")
 
   return newTimestamp
 
@@ -35,12 +35,10 @@ filterToHashHelper = (filter) ->
     when 'not'      then "N(#{filterToHashHelper(filter.filter)})"
     when 'and'      then "A(#{filter.filters.map(filterToHashHelper).join(')(')})"
     when 'or'       then "O(#{filter.filters.map(filterToHashHelper).join(')(')})"
-    else throw new Error("unsupported filter type")
+    else throw new Error("filter type unsupported by driver")
 
 filterToHash = (filter) ->
-  return '' unless filter?
-  hash = []
-  return filterToHashHelper(driverUtil.simplifyFilter(filter))
+  return filterToHashHelper(filter.simplify())
 
 splitToHash = (split) ->
   hash = []
@@ -92,8 +90,8 @@ class FilterCache
     #   }
     return @hashmap[filterToHash(filter)]
 
-  put: (condensedQuery, root) -> # Recursively deconstruct root and add to cache
-    @_filterPutHelper(condensedQuery, root, condensedQuery[0].filter, 0)
+  put: (filter, condensedQuery, root) -> # Recursively deconstruct root and add to cache
+    @_filterPutHelper(condensedQuery, root, filter, 0)
     return
 
   _filterPutHelper: (condensedQuery, node, filter, level) ->
@@ -107,7 +105,7 @@ class FilterCache
     if node.splits?
       splitOp = condensedQuery[level + 1].split
       for split in node.splits
-        newFilter = addToFilter(filter, @timeAttribute, driverUtil.filterFromSplit(splitOp, split.prop[splitOp.name]))
+        newFilter = addToFilter(filter, @timeAttribute, splitOp.getFilterFrom(split.prop[splitOp.name]))
         @_filterPutHelper(condensedQuery, split, newFilter, level + 1)
     return
 
@@ -148,7 +146,7 @@ class SplitCache
 
     if condensedQuery[level + 2]?
       for split in node.splits
-        newFilter = addToFilter(filter, @timeAttribute, driverUtil.filterFromSplit(splitOp, split.prop[splitOpName]))
+        newFilter = addToFilter(filter, @timeAttribute, splitOp.getFilterFrom(split.prop[splitOpName]))
         @_splitPutHelper(condensedQuery, split, newFilter, level + 1)
     return
 
@@ -320,13 +318,13 @@ module.exports = ({driver, timeAttribute}) ->
   return (request, callback) ->
     throw new Error("request not supplied") unless request
     {context, query} = request
-    async = query
 
-    try
-      condensedQuery = driverUtil.condenseQuery(query)
-    catch e
-      callback(e)
+    if query not instanceof FacetQuery
+      callback(new Error("query must be a FacetQuery"))
       return
+
+    filter = query.getFilter()
+    condensedQuery = query.getGroups()
 
     # If there is a split for continuous dimension, don't use cache. Doable. but not now
     if condensedQuery[1]?.split?.bucket in ['continuous', 'tuple']
@@ -344,7 +342,7 @@ module.exports = ({driver, timeAttribute}) ->
         return
 
       splitCache.put(condensedQuery, root)
-      filterCache.put(condensedQuery, root)
+      filterCache.put(filter, condensedQuery, root)
       knownTree = convertEmptyTreeToEmptyObject(getKnownTree(condensedQuery))
       callback(null, knownTree)
     return

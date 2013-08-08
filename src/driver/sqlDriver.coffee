@@ -382,7 +382,7 @@ module.exports = ({requester, table, filter}) ->
       QUERY_LIMIT = 10
 
       if condensedCommand.split?.segmentFilter
-        segmentFilterFn = driverUtil.makeBucketFilterFn(condensedCommand.split.segmentFilter)
+        segmentFilterFn = condensedCommand.split.segmentFilter.getFilterFn()
         driverUtil.inPlaceFilter(segments, segmentFilterFn)
 
       queryFns = async.mapLimit(

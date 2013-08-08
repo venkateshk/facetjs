@@ -2,6 +2,7 @@
 compass compile --sass-dir src/style/ --css-dir build/
 coffee --compile --bare --output build src/server.coffee src/requester/*
 coffee --compile --bare --output build src/driver/*
+coffee --compile --bare --output build src/superDriver/*
 coffee --compile --bare --output build src/converter/*.coffee
 
 node_modules/pegjs/bin/pegjs --export-var "applyParser" src/converter/applyParser.pegjs build/applyParser.js
@@ -34,6 +35,7 @@ coffee --compile --bare --output build --join build/query.js \
   src/query/segmentFilter.coffee \
   src/query/split.coffee \
   src/query/apply.coffee \
+  src/query/sort.coffee \
   src/query/combine.coffee \
   src/query/query.coffee \
   src/query/_end.coffee

@@ -284,7 +284,7 @@ computeQuery = (data, query) ->
     if split
       propName = split.name
       splitFn = makeSplitFn(split)
-      segmentFilterFn = if split.segmentFilter then driverUtil.makeBucketFilterFn(split.segmentFilter) else null
+      segmentFilterFn = if split.segmentFilter then split.segmentFilter.getFilterFn() else null
       segmentGroups = driverUtil.filterMap driverUtil.flatten(segmentGroups), (segment) ->
         return if segmentFilterFn and not segmentFilterFn(segment)
         keys = []

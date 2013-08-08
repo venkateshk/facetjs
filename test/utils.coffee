@@ -46,6 +46,8 @@ exports.wrapVerbose = (requester, name) ->
       callback(err, result)
       return
 
+race = false
+
 exports.makeEqualityTest = (driverFns) ->
   return ({drivers, query, verbose}) ->
     throw new Error("must have at least two drivers") if drivers.length < 2
@@ -54,6 +56,14 @@ exports.makeEqualityTest = (driverFns) ->
       driverFn = driverFns[driverName]
       throw new Error("no such driver #{driverName}") unless driverFn
       return (callback) ->
+        if race
+          oldCallback = callback
+          startTime = Date.now()
+          callback = (err, results) ->
+            console.log "#{driverName} driver took #{Date.now() - startTime}ms"
+            oldCallback(err, results)
+            return
+
         driverFn({
           query: new FacetQuery(query)
           context: {
@@ -63,7 +73,9 @@ exports.makeEqualityTest = (driverFns) ->
         return
 
     return (done) ->
+      console.log '' if race
       async.parallel driversToTest, (err, results) ->
+        console.log '--------------' if race
         if err
           console.log "got error from driver"
           console.log err

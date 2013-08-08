@@ -1,8 +1,8 @@
 `(typeof window === 'undefined' ? {} : window)['driverUtil'] = (function(module, require){"use strict"; var exports = module.exports`
 
 # -----------------------------------------------------
-timezoneJS = require('timezone-js') or require('./timezoneJS')
-tz_info = require('../utils/timezone') or require('mmx_tz_info')
+timezoneJS = require('timezone-js', 'timezoneJS')
+tz_info = require('../utils/timezone', 'mmx_tz_info')
 
 tz = timezoneJS.timezone
 tz.loadingScheme = tz.loadingSchemes.MANUAL_LOAD

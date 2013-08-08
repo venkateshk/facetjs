@@ -1,5 +1,7 @@
 express = require('express')
 
+{FacetQuery} = require('./query')
+
 druidRequester = require('./druidRequester')
 sqlRequester = require('./mySqlRequester')
 
@@ -35,8 +37,14 @@ respondWithResult = (res) -> (err, result) ->
 
 # Simple
 app.post '/driver/simple', (req, res) ->
-  { context, query } = req.body
-  simpleDriver(data[context.data])(query, respondWithResult(res))
+  {context, query} = req.body
+  try
+    query = new FacetQuery(query)
+  catch e
+    res.send(501, "Bad query: #{e.message}")
+    return
+
+  simpleDriver(data[context.data])({context, query}, respondWithResult(res))
   return
 
 # SQL
@@ -52,12 +60,17 @@ app.post '/pass/sql', (req, res) ->
   return
 
 app.post '/driver/sql', (req, res) ->
-  { context, query } = req.body
+  {context, query} = req.body
+  try
+    query = new FacetQuery(query)
+  catch e
+    res.send(501, "Bad query: #{e.message}")
+    return
+
   sqlDriver({
     requester: sqlPass
     table: context.table
-    filters: null
-  })(query, respondWithResult(res))
+  })({context, query}, respondWithResult(res))
   return
 
 # Druid
@@ -75,6 +88,11 @@ app.post '/pass/druid', (req, res) ->
 
 app.post '/driver/druid', (req, res) ->
   { context, query } = req.body
+  try
+    query = new FacetQuery(query)
+  catch e
+    res.send(501, "Bad query: #{e.message}")
+    return
 
   { host, port } = context or {}
   druidPass = druidRequester({
@@ -86,7 +104,7 @@ app.post '/driver/druid', (req, res) ->
     requester: druidPass
     dataSource: context.dataSource
     filters: null
-  })(query, respondWithResult(res))
+  })({context, query}, respondWithResult(res))
   return
 
 # Druid notes:

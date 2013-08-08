@@ -2,6 +2,8 @@ chai = require("chai")
 expect = chai.expect
 utils = require('../utils')
 
+{FacetQuery, FacetFilter} = require('../../build/query')
+
 druidRequester = require('../../build/druidRequester')
 druidDriver = require('../../build/druidDriver')
 
@@ -32,9 +34,9 @@ describe "Druid driver", ->
     })
 
     describe "should return null correctly on an all query", ->
-      query = [
+      query = new FacetQuery([
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-      ]
+      ])
 
       it "should work with [] return", (done) ->
         nullDriver {query}, (err, result) ->
@@ -51,11 +53,11 @@ describe "Druid driver", ->
           return
 
     describe "should return null correctly on a topN query", ->
-      query = [
+      query = new FacetQuery([
         { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'ascending' } }
-      ]
+        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'ascending' } }
+      ])
 
       it "should work with [] return", (done) ->
         nullDriver {query}, (err, result) ->
@@ -115,16 +117,16 @@ describe "Druid driver", ->
 
       it "should get back the same result", (done) ->
         noFilter {
-          query: [
+          query: new FacetQuery([
             filterSpec
             { operation: 'apply', name: 'Count', aggregate: 'count' }
-          ]
+          ])
         }, (err, noFilterRes) ->
           expect(noFilterRes).to.be.an('object')
           withFilter {
-            query: [
+            query: new FacetQuery([
               { operation: 'apply', name: 'Count', aggregate: 'count' }
-            ]
+            ])
           }, (err, withFilterRes) ->
             expect(withFilterRes).to.be.an('object')
             expect(noFilterRes).to.deep.equal(withFilterRes)
@@ -146,29 +148,28 @@ describe "Druid driver", ->
       })
 
       it "should get back a result and not crash", (done) ->
-        driver {
-          query: [
-            {
-              operation: 'filter'
-              type: 'and'
-              filters: [
-                {
-                  type: 'within'
-                  attribute: 'time'
-                  range: [
-                    new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0))
-                    new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))
-                  ]
-                },
-                {
-                  type: 'is'
-                  attribute: 'page'
-                  value: null
-                }
-              ]
-            }
-            { operation: 'apply', name: 'Count', aggregate: 'count' }
-          ]
-        }, (err, res) ->
+        query = new FacetQuery([
+          {
+            operation: 'filter'
+            type: 'and'
+            filters: [
+              {
+                type: 'within'
+                attribute: 'time'
+                range: [
+                  new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0))
+                  new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))
+                ]
+              },
+              {
+                type: 'is'
+                attribute: 'page'
+                value: null
+              }
+            ]
+          }
+          { operation: 'apply', name: 'Count', aggregate: 'count' }
+        ])
+        driver {query}, (err, res) ->
           expect(res).to.be.an('object') # to.deep.equal({})
           done()

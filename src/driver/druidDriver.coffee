@@ -2,7 +2,7 @@
 
 async = require('async')
 driverUtil = require('./driverUtil')
-{FacetFilter, TrueFilter, FacetSplit, FacetApply, FacetCombine, FacetQuery, AndFilter} = require('./query')
+{FacetFilter, TrueFilter, FacetSplit, FacetApply, FacetCombine, FacetQuery, AndFilter, SliceCombine} = require('./query')
 
 # -----------------------------------------------------
 
@@ -180,6 +180,7 @@ class DruidQueryBuilder
 
 
   addSplit: (split) ->
+    throw new TypeError() unless split instanceof FacetSplit
     switch split.bucket
       when 'identity'
         @queryType = 'groupBy'
@@ -504,6 +505,7 @@ class DruidQueryBuilder
         throw new Error("must have an aggregate or an arithmetic")
 
   addApply: (apply) ->
+    throw new TypeError() unless apply instanceof FacetApply
     @addApplyHelper(apply, false)
     return this
 
@@ -512,6 +514,7 @@ class DruidQueryBuilder
     return this
 
   addCombine: (combine) ->
+    throw new TypeError() unless combine instanceof FacetCombine
     switch combine.method
       when 'slice'
         { sort, limit } = combine
@@ -538,7 +541,6 @@ class DruidQueryBuilder
 
           else if limit?
             throw new Error("handle this better")
-
 
       when 'matrix'
         sort = combine.sort
@@ -797,15 +799,14 @@ druidQueryFns = {
       else
         druidQuery.addDummyApply()
 
-      druidQuery.addCombine({
-        combine: 'slice'
+      druidQuery.addCombine(new SliceCombine({
         sort: {
           compare: 'natural'
           prop: condensedCommand.split.name
           direction: condensedCommand.combine.sort.direction
         }
         limit: allDataChunks
-      })
+      }))
 
       queryObj = druidQuery.getQuery()
     catch e

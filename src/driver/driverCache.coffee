@@ -122,9 +122,9 @@ class SplitCache
   get: (filter, splitOp, combineOp) ->
     # Return format:
     # [
-    # <value>
-    # <value>
-    # <value>
+    #   <value>
+    #   <value>
+    #   <value>
     # ]
     if splitOp.bucket in ['timePeriod', 'timeDuration']
       return @_timeCalculate(filter, splitOp)

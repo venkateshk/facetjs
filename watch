@@ -2,6 +2,7 @@
 compass watch --sass-dir src/style/ --css-dir build/ &
 coffee --compile --watch --bare --output build src/server.coffee src/requester/* &
 coffee --compile --watch --bare --output build src/driver/* &
+coffee --compile --watch --bare --output build src/superDriver/* &
 coffee --compile --watch --bare --output build --join build/facet.js \
   src/facet/_start.coffee \
   src/facet/init.coffee \
@@ -30,6 +31,7 @@ coffee --compile --watch --bare --output build --join build/query.js \
   src/query/segmentFilter.coffee \
   src/query/split.coffee \
   src/query/apply.coffee \
+  src/query/sort.coffee \
   src/query/combine.coffee \
   src/query/query.coffee \
   src/query/_end.coffee &

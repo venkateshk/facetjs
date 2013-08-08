@@ -1156,7 +1156,7 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
         return
 
       if condensedCommand.split?.segmentFilter
-        segmentFilterFn = driverUtil.makeBucketFilterFn(condensedCommand.split.segmentFilter)
+        segmentFilterFn = condensedCommand.split.segmentFilter.getFilterFn()
         driverUtil.inPlaceFilter(segments, segmentFilterFn)
 
       # do the query in parallel

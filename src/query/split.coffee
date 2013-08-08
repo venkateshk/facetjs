@@ -33,7 +33,7 @@ class FacetSplit
 class IdentitySplit extends FacetSplit
   constructor: ({name, @bucket, @attribute, segmentFilter, options}) ->
     @name = name if name
-    @segmentFilter = segmentFilter if segmentFilter
+    @segmentFilter = new FacetSegmentFilter(segmentFilter) if segmentFilter
     @options = new FacetOptions(options) if options
     @_ensureBucket('identity')
     @_verifyName()
@@ -56,7 +56,7 @@ class IdentitySplit extends FacetSplit
 class ContinuousSplit extends FacetSplit
   constructor: ({name, @bucket, @attribute, @size, @offset, segmentFilter, options}) ->
     @name = name if name
-    @segmentFilter = segmentFilter if segmentFilter
+    @segmentFilter = new FacetSegmentFilter(segmentFilter) if segmentFilter
     @options = new FacetOptions(options) if options
     @offset ?= 0
     throw new TypeError("size must be a number") unless typeof @size is 'number'
@@ -85,7 +85,7 @@ class ContinuousSplit extends FacetSplit
 class TimeDurationSplit extends FacetSplit
   constructor: ({name, @bucket, @attribute, @duration, @offset, segmentFilter, options}) ->
     @name = name if name
-    @segmentFilter = segmentFilter if segmentFilter
+    @segmentFilter = new FacetSegmentFilter(segmentFilter) if segmentFilter
     @options = new FacetOptions(options) if options
     @offset ?= 0
     throw new TypeError("duration must be a number") unless typeof @duration is 'number'
@@ -113,7 +113,7 @@ class TimeDurationSplit extends FacetSplit
 class TimePeriodSplit extends FacetSplit
   constructor: ({name, @bucket, @attribute, @period, @timezone, segmentFilter, options}) ->
     @name = name if name
-    @segmentFilter = segmentFilter if segmentFilter
+    @segmentFilter = new FacetSegmentFilter(segmentFilter) if segmentFilter
     @options = new FacetOptions(options) if options
     @timezone ?= 'Etc/UTC'
     throw new TypeError("period must be in ['PT1S', 'PT1M', 'PT1H', 'P1D']") unless @period in ['PT1S', 'PT1M', 'PT1H', 'P1D']
@@ -141,6 +141,7 @@ class TimePeriodSplit extends FacetSplit
 class TupleSplit extends FacetSplit
   constructor: ({name, @splits}) ->
     @name = name if name
+    @segmentFilter = new FacetSegmentFilter(segmentFilter) if segmentFilter
     throw new TypeError("splits must be a non-empty array") unless Array.isArray(@splits) and @splits.length
     @splits = @splits.map((splitSpec) ->
       throw new Error("tuple splits can not be nested") if splitSpec.bucket is 'tuple'

@@ -110,11 +110,10 @@ class FacetJob
     })
     return this
 
-  combine: ({ combine, sort, limit } = {}) ->
-    # ToDo: implement filter
+  combine: ({method, sort, limit}) ->
     combineCmd = {
       operation: 'combine'
-      combine
+      method
     }
     if sort
       if not @knownProps[sort.prop]
@@ -169,7 +168,8 @@ class FacetJob
     return this
 
   getQuery: ->
-    return @ops.filter(({operation}) -> operation in ['filter', 'split', 'apply', 'combine'])
+    querySpec = @ops.filter(({operation}) -> operation in ['filter', 'split', 'apply', 'combine'])
+    return new FacetQuery(querySpec)
 
   render: (done) ->
     parent = d3.select(@selector)
@@ -189,7 +189,8 @@ class FacetJob
       svg.classed('loading', false)
       if err
         svg.classed('error', true)
-        alert("An error has occurred: " + if typeof err is 'string' then err else err.message)
+        errorMerrage = "An error has occurred: " + if typeof err is 'string' then err else err.message
+        if typeof alert is 'function' then alert(errorMerrage) else console.log(errorMerrage)
         return
 
       segmentGroups = [[rootSegment = new Segment({

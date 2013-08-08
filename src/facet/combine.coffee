@@ -2,7 +2,7 @@
 
 facet.combine = {
   slice: (sort, limit) -> {
-    mathod: 'slice'
+    method: 'slice'
     sort
     limit
   }

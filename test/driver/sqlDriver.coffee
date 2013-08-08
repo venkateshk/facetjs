@@ -18,7 +18,7 @@ describe "SQL driver", ->
       return
 
     emptyDriver = sqlDriver({
-      requester: nullRequester
+      requester: emptyRequester
       table: 'blah'
       filters: null
     })
@@ -65,21 +65,25 @@ describe "SQL driver", ->
     withFilter = sqlDriver({
       requester: sqlPass
       table: 'diamonds'
-      filter: { type: 'is', attribute: 'color', value: 'E' }
+      filter: FacetFilter.fromSpec({
+        type: 'is'
+        attribute: 'color'
+        value: 'E'
+      })
     })
 
     it "should get back the same result", (done) ->
       noFilter {
-        query: [
+        query: new FacetQuery([
           { operation: 'filter', type: 'is', attribute: 'color', value: 'E' }
           { operation: 'apply', name: 'Count', aggregate: 'count' }
-        ]
+        ])
       }, (err, noFilterRes) ->
         expect(noFilterRes).to.be.an('object')
         withFilter {
-          query: [
+          query: new FacetQuery([
             { operation: 'apply', name: 'Count', aggregate: 'count' }
-          ]
+          ])
         }, (err, withFilterRes) ->
           expect(withFilterRes).to.be.an('object')
           expect(noFilterRes).to.deep.equal(withFilterRes)

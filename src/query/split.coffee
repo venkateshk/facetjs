@@ -15,6 +15,9 @@ class FacetSplit
     return unless @name
     throw new TypeError("split name must be a string") unless typeof @name is 'string'
 
+  _verifyAttribute: ->
+    throw new TypeError("attribute must be a string") unless typeof @attribute is 'string'
+
   _addName: (str) ->
     return str unless @name
     return "#{str} -> #{@name}"
@@ -64,6 +67,7 @@ class ContinuousSplit extends FacetSplit
     throw new TypeError("offset must be a number") unless typeof @offset is 'number'
     @_ensureBucket('continuous')
     @_verifyName()
+    @_verifyAttribute()
 
   toString: ->
     return @_addName("#{@bucket}(#{@attribute}, #{@size}, #{@offset})")
@@ -92,6 +96,7 @@ class TimeDurationSplit extends FacetSplit
     throw new TypeError("offset must be a number") unless typeof @offset is 'number'
     @_ensureBucket('timeDuration')
     @_verifyName()
+    @_verifyAttribute()
 
   toString: ->
     return @_addName("#{@bucket}(#{@attribute}, #{@duration}, #{@offset})")
@@ -120,6 +125,7 @@ class TimePeriodSplit extends FacetSplit
     throw new TypeError("timezone must be a string") unless typeof @timezone is 'string'
     @_ensureBucket('timePeriod')
     @_verifyName()
+    @_verifyAttribute()
 
   toString: ->
     return @_addName("#{@bucket}(#{@attribute}, #{@period}, #{@timezone})")

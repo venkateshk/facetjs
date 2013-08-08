@@ -33,6 +33,10 @@ describe "apply", ->
       applySpec = { aggregate: 'count', name: ["wtf?"] }
       expect(-> FacetApply.fromSpec(applySpec)).to.throw(Error, "apply name must be a string")
 
+    it "bad attribute", ->
+      applySpec = { aggregate: 'sum', attribute: ["wtf?"] }
+      expect(-> FacetApply.fromSpec(applySpec)).to.throw(Error, "attribute must be a string")
+
 
   describe "preserves", ->
     it "quantile", ->

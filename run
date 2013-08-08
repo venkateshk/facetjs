@@ -1,2 +1,2 @@
 #!/bin/bash
-node target/server.js
+node build/server.js

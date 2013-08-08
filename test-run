@@ -1,2 +1,2 @@
 #!/bin/bash
-mocha --compilers coffee:coffee-script --reporter spec test/tests/*
+mocha --compilers coffee:coffee-script --reporter spec test/*/*

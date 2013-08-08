@@ -363,6 +363,7 @@ module.exports = ({requester, table, filter}) ->
     try
       throw new Error("request not supplied") unless request
       {context, query} = request
+      throw new Error("query not supplied") unless query
       throw new TypeError("query must be a FacetQuery") unless query instanceof FacetQuery
     catch e
       callback(e)

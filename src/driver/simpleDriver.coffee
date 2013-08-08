@@ -261,8 +261,6 @@ makeCombineFn = (combine) ->
 
 
 computeQuery = (data, query) ->
-  throw new TypeError("query must be a FacetQuery") unless query instanceof FacetQuery
-
   rootSegment = {
     prop: {}
     parent: null
@@ -332,6 +330,8 @@ module.exports = (data) -> (request, callback) ->
   try
     throw new Error("request not supplied") unless request
     {context, query} = request
+    throw new Error("query not supplied") unless query
+    throw new TypeError("query must be a FacetQuery") unless query instanceof FacetQuery
     result = computeQuery(data, query)
   catch e
     callback({ message: e.message, stack: e.stack }); return

@@ -1058,8 +1058,9 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
     try
       throw new Error("request not supplied") unless request
       {context, query} = request
-      context or= {}
+      throw new Error("query not supplied") unless query
       throw new TypeError("query must be a FacetQuery") unless query instanceof FacetQuery
+      context or= {}
     catch e
       callback(e)
       return

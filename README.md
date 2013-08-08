@@ -113,22 +113,21 @@ SQL WHERE:
 `country` IN ("Mexico", "Peru")
 ```
 
-<!--
-#### fragments
+#### contains
 Facet:
 
 ```javascript
 {
-  type: 'fragments'
+  type: 'contains'
   attribute: 'country'
-  fragments: ["Democratic"]
+  value: 'Democratic'
 }
 ```
 
 SQL WHERE:
 
 ```sql
-
+country LIKE "%Democratic%"
 ```
 
 #### match

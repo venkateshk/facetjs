@@ -93,6 +93,16 @@ describe "Wikipedia dataset", ->
       ]
     }
 
+  describe "filter match; apply count", ->
+    it "should have the same results for different drivers", testEquality {
+      drivers: ['mySql', 'druid']
+      query: [
+        { operation: 'filter', attribute: 'language', type: 'match', expression: 'e' }
+        { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+        { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+      ]
+    }
+
   describe "apply arithmetic", ->
     it "should have the same results for different drivers", testEquality {
       drivers: ['mySql', 'druid']

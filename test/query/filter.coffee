@@ -35,6 +35,14 @@ describe "filter", ->
       }
       expect(FacetFilter.fromSpec(filterSpec).valueOf()).to.deep.equal(filterSpec)
 
+    it "match", ->
+      filterSpec = {
+        type: 'match'
+        attribute: 'country'
+        expression: 'U[SK]'
+      }
+      expect(FacetFilter.fromSpec(filterSpec).valueOf()).to.deep.equal(filterSpec)
+
 
   describe 'toString', ->
     it 'properly describes empty filter', ->
@@ -102,7 +110,7 @@ describe "filter", ->
       filterSpec = {
         type: 'match'
         attribute: 'color'
-        match: "^R"
+        expression: "^R"
       }
       expect(FacetFilter.fromSpec(filterSpec).toString())
         .to.equal('color matches /^R/')

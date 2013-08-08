@@ -142,15 +142,20 @@ class ContainsFilter extends FacetFilter
 
 
 class MatchFilter extends FacetFilter
-  constructor: ({@type, @attribute, @match}) ->
+  constructor: ({@type, @attribute, @expression}) ->
     @_ensureType('match')
     @_validateAttribute()
+    throw new Error('must have an expression') unless @expression
+    try
+      new RegExp(@expression)
+    catch e
+      throw new Error('expression must be a valid regular expression')
 
   toString: ->
-    return "#{@attribute} matches /#{@match}/"
+    return "#{@attribute} matches /#{@expression}/"
 
   valueOf: ->
-    return { type: @type, attribute: @attribute, match: @match }
+    return { type: @type, attribute: @attribute, expression: @expression }
 
 
 

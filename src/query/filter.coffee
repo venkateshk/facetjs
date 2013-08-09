@@ -171,7 +171,10 @@ class WithinFilter extends FacetFilter
     throw new Error('invalid range') if isNaN(@range[0]) or isNaN(@range[1])
 
   toString: ->
-    return "#{@attribute} is within #{@range[0]} and #{@range[1]}"
+    [r0, r1] = @range
+    r0 = r0.toISOString() if r0 instanceof Date
+    r1 = r1.toISOString() if r1 instanceof Date
+    return "#{@attribute} is within #{r0} and #{r1}"
 
   valueOf: ->
     return { type: @type, attribute: @attribute, range: @range }

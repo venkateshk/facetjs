@@ -637,7 +637,7 @@ druidQueryFns = {
       callback(e)
       return
 
-    requester queryObj, (err, ds) ->
+    requester {query: queryObj}, (err, ds) ->
       if err
         callback({
           message: err
@@ -679,7 +679,7 @@ druidQueryFns = {
       callback(e)
       return
 
-    requester queryObj, (err, ds) ->
+    requester {query: queryObj}, (err, ds) ->
       if err
         callback(err)
         return
@@ -761,7 +761,7 @@ druidQueryFns = {
       callback(e)
       return
 
-    requester queryObj, (err, ds) ->
+    requester {query: queryObj}, (err, ds) ->
       if err
         callback({
           message: err
@@ -819,7 +819,7 @@ druidQueryFns = {
     async.whilst(
       -> not done
       (callback) ->
-        requester queryObj, (err, ds) ->
+        requester {query: queryObj}, (err, ds) ->
           if err
             callback(err)
             return
@@ -878,7 +878,7 @@ druidQueryFns = {
     # console.log '------------------------------'
     # console.log queryObj
 
-    requester queryObj, (err, ds) ->
+    requester {query: queryObj}, (err, ds) ->
       if err
         callback({
           message: err
@@ -911,7 +911,7 @@ druidQueryFns = {
       callback(e)
       return
 
-    requester queryObj, (err, ds) ->
+    requester {query: queryObj}, (err, ds) ->
       if err
         callback({
           message: err
@@ -988,7 +988,7 @@ druidQueryFns = {
       callback(e)
       return
 
-    requester queryObj, (err, ds) ->
+    requester {query: queryObj}, (err, ds) ->
       if err
         callback({
           message: err

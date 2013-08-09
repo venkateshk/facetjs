@@ -23,7 +23,7 @@
       <textarea id="input">[
   {
     "type": "within",
-    "attribute": "time",
+    "attribute": "timestamp",
     "range": [
       "2013-04-21T00:00:00.000Z",
       "2013-04-23T00:00:00.000Z"
@@ -81,9 +81,9 @@
           <option selected>Druid</option>
           <option>SQL</option>
         </select>
-        <label for="host">host:</label><input id="host" type="text" value="10.108.62.62"></input> <!-- 10.60.134.138 -->
+        <label for="host">host:</label><input id="host" type="text" value="10.60.134.138"></input> <!-- 10.108.62.62 -->
         <label for="port">port:</label><input id="port" type="text" value="8080"></input>
-        <label for="data-source">data source:</label><input id="data-source" type="text" value="openx"></input> <!-- wikipedia_editstream -->
+        <label for="data-source">data source:</label><input id="data-source" type="text" value="wikipedia_editstream"></input> <!-- openx -->
       </div>
       <pre id="output"></pre>
       <button id="send">Send</button>
@@ -213,8 +213,9 @@
           if (input == '') return;
 
           try {
-            input = JSON.parse(input);
+            input = new query.FacetQuery(JSON.parse(input));
           } catch (e) {
+            console.log(e)
             d3.select("#output")
               .text("Could not parse JSON");
             return;
@@ -225,7 +226,7 @@
             if (err) {
               d3.select("#output").text("An error occurred:\n" + err.message);
               d3.select('.time-show').text("Query had an error");
-              throw err;
+              console.log(err);
               return;
             }
 

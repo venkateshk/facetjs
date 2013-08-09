@@ -52,7 +52,7 @@ makeSegmentFilterFn = (filter) ->
 
 
 # ToDo: improve this
-class FacetSegementFilter
+class FacetSegmentFilter
   constructor: (@spec) ->
 
   valueOf: ->
@@ -62,4 +62,4 @@ class FacetSegementFilter
     return makeSegmentFilterFn(@spec)
 
 
-exports.FacetSegementFilter = FacetSegementFilter
+exports.FacetSegmentFilter = FacetSegmentFilter

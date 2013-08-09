@@ -21,6 +21,7 @@ describe "simple driver", ->
           Count: 53940
         }
       })
+      done()
 
   it "does a split", (done) ->
     querySpec = [
@@ -46,4 +47,5 @@ describe "simple driver", ->
           }
         ]
       })
+      done()
 

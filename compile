@@ -3,7 +3,6 @@ compass compile --sass-dir src/style/ --css-dir build/
 coffee --compile --bare --output build src/server.coffee src/requester/*
 coffee --compile --bare --output build src/driver/*
 coffee --compile --bare --output build src/superDriver/*
-coffee --compile --bare --output build src/converter/*.coffee
 
 node_modules/pegjs/bin/pegjs --export-var "applyParser" src/converter/applyParser.pegjs build/applyParser.js
 

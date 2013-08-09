@@ -145,7 +145,7 @@ class TimePeriodSplit extends FacetSplit
 
 
 class TupleSplit extends FacetSplit
-  constructor: ({name, @splits}) ->
+  constructor: ({name, @splits, segmentFilter}) ->
     @name = name if name
     @segmentFilter = new FacetSegmentFilter(segmentFilter) if segmentFilter
     throw new TypeError("splits must be a non-empty array") unless Array.isArray(@splits) and @splits.length

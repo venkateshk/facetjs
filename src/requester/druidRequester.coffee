@@ -1,21 +1,23 @@
 http = require('http')
 
 module.exports = ({host, port}) ->
-  return (druidQuery, callback) ->
+  return ({context, query}, callback) ->
     path = '/druid/v2/'
-    if druidQuery.queryType is 'heatmap'
+    if query.queryType is 'heatmap'
       # Druid is f-ed
       path += 'heatmap'
 
-    druidQueryBuffer = new Buffer(JSON.stringify(druidQuery), 'utf-8')
+    path += '?pretty' if context?.pretty
+
+    queryBuffer = new Buffer(JSON.stringify(query), 'utf-8')
     opts = {
       host
       port
       path
       method: 'POST'
       headers: {
-        'content-type': 'application/json'
-        'content-length': druidQueryBuffer.length
+        'Content-Type': 'application/json'
+        'Content-Length': queryBuffer.length
       }
     }
     req = http.request(opts, (response) ->
@@ -64,7 +66,7 @@ module.exports = ({host, port}) ->
       callback(e)
       return
 
-    req.write(druidQueryBuffer.toString('utf-8'))
+    req.write(queryBuffer.toString('utf-8'))
     req.end()
     return
 

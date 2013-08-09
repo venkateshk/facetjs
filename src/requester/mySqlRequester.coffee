@@ -9,6 +9,6 @@ module.exports = ({host, user, password, database}) ->
   })
 
   connection.connect()
-  return (sqlQuery, callback) ->
-    connection.query(sqlQuery, callback)
+  return ({context, query}, callback) ->
+    connection.query(query, callback)
     return

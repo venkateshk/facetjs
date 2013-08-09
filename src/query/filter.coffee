@@ -166,10 +166,9 @@ class WithinFilter extends FacetFilter
     throw new TypeError('range must be an array of length 2') unless Array.isArray(@range) and @range.length is 2
     [r0, r1] = @range
     if typeof r0 is 'string' and typeof r1 is 'string'
-      r0 = new Date(r0)
-      r1 = new Date(r1)
+      @range = [new Date(r0), new Date(r1)]
 
-    throw new Error('invalid range') if isNaN(r0) or isNaN(r1)
+    throw new Error('invalid range') if isNaN(@range[0]) or isNaN(@range[1])
 
   toString: ->
     return "#{@attribute} is within #{@range[0]} and #{@range[1]}"

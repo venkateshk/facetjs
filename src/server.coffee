@@ -56,7 +56,7 @@ sqlPass = sqlRequester({
 })
 app.post '/pass/sql', (req, res) ->
   { context, query } = req.body
-  sqlPass(query, respondWithResult(res))
+  sqlPass({context, query}, respondWithResult(res))
   return
 
 app.post '/driver/sql', (req, res) ->
@@ -75,15 +75,15 @@ app.post '/driver/sql', (req, res) ->
 
 # Druid
 app.post '/pass/druid', (req, res) ->
-  { context, query } = req.body
+  {context, query} = req.body
 
-  { host, port } = context or {}
+  {host, port} = context or {}
   druidPass = druidRequester({
     host: host or '10.60.134.138'
     port: port or 8080
   })
 
-  druidPass(query, respondWithResult(res))
+  druidPass({context, query}, respondWithResult(res))
   return
 
 app.post '/driver/druid', (req, res) ->

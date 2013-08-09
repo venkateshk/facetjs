@@ -309,7 +309,7 @@ condensedQueryToSQL = ({requester, table, filter, condensedQuery}, callback) ->
     callback(null, [{ prop: {}, _filter: filter }])
     return
 
-  requester queryToRun, (err, ds) ->
+  requester {query: queryToRun}, (err, ds) ->
     if err
       callback(err)
       return

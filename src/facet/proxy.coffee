@@ -1,8 +1,9 @@
 facet.ajaxPoster = ({url, context, prety}) -> (request, callback) ->
-  if request.query not instanceof FacetQuery
-    callback(new TypeError("query must be a FacetQuery"))
-    return
-
+  posterContext = context
+  {context, query} = request
+  context or= {}
+  for own k, v of posterContext
+    context[k] = v
   return $.ajax({
     url
     type: 'POST'
@@ -10,7 +11,7 @@ facet.ajaxPoster = ({url, context, prety}) -> (request, callback) ->
     contentType: 'application/json'
     data: JSON.stringify({
       context
-      query: request.query.valueOf()
+      query: query.valueOf()
     }, null, if prety then 2 else null)
     success: (res) ->
       callback(null, res)

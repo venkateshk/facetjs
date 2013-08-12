@@ -39,11 +39,6 @@ exports.filterMap = (array, fn) ->
     ret.push(v)
   return ret
 
-
-getPropFromSegment = (segment, prop) ->
-  return null unless segment and segment.prop
-  return segment.prop[prop] or getPropFromSegment(segment.parent, prop)
-
 # Clean segment - remove everything in the segment that starts with and underscore
 exports.cleanProp = (prop) ->
   for key of prop

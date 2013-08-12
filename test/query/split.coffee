@@ -73,14 +73,15 @@ describe "split", ->
 
     it "tuple", ->
       splitSpec = {
-        name: "heatmap"
         bucket: 'tuple'
         splits: [
           {
+            name: "Attr1"
             bucket: "identity"
             attribute: "attr1"
           }
           {
+            name: "Attr2"
             bucket: "identity"
             attribute: "attr2"
           }

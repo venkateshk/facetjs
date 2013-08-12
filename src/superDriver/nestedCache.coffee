@@ -1,17 +1,9 @@
 exports.pivotSuperDriver = do ->
-  # Remove the 'operation' property from a command
-  deoperation = (command) ->
-    if command.operation
-      command = _.clone(command)
-      delete command.operation
-    return command
-
   # Get the split and combines grouped together
   getSplitCombines = (query) ->
-    splits = query.filter(({operation}) -> operation is 'split')
-    combines = query.filter(({operation}) -> operation is 'combine')
-    throw new Error("unequal number of splits and combines") unless splits.length is combines.length
-    return splits.map (split, i) -> { split, combine: combines[i] }
+    splitCombines = query.getGroups().map(({split, combine}) -> { split, combine })
+    splitCombines.shift()
+    return splitCombines
 
   # Compares that the split combines are the same ignoring the bucket filters
   isSameSplitCombine = (splitCombine1, splitCombine2) ->
@@ -23,22 +15,18 @@ exports.pivotSuperDriver = do ->
 
   # Get a single set of applies, this assumes that the same applies are executer on each split
   getApplies = (query) ->
-    applies = []
-    for command in query
-      break if command.operation is 'split'
-      applies.push(command) if command.operation is 'apply'
-    return applies
+    return query.getGroups()[0].applies
 
   # Computes the diff between sup & sub assumes that sup and sub are either atomic or an AND of atomic filters
   filterDiff = (sup, sub) ->
-    sup = (if not sup then [] else if sup.type is 'and' then sup.filters else [sup]).map(deoperation)
-    sub = (if not sub then [] else if sub.type is 'and' then sub.filters else [sub]).map(deoperation)
+    sup = (if not sup then [] else if sup.type is 'and' then sup.filters else [sup])
+    sub = (if not sub then [] else if sub.type is 'and' then sub.filters else [sub])
     throw new Error('sup can not be or have OR types') if sup.some(({type}) -> type is 'or')
     throw new Error('sub can not be or have OR types') if sub.some(({type}) -> type is 'or')
 
     filterInSub = (filter) ->
       for subFilter in sub
-        return true if _.isEqual(filter, subFilter)
+        return true if filter.isEqual(subFilter)
       return false
 
     diff = []
@@ -63,7 +51,7 @@ exports.pivotSuperDriver = do ->
 
   getCanonicalSplitTreePaths = (query) ->
     splits = query.filter(({operation}) -> operation is 'split')
-    splitNames = _.pluck(splits, 'name')
+    splitNames = splits.map((d) -> d.name)
     paths = []
 
     for split in splits
@@ -158,8 +146,8 @@ exports.pivotSuperDriver = do ->
         makeFullQuery(newQuery)
         return
 
-      myFilter = driverUtil.getFilter(myQuery)
-      newFilter = driverUtil.getFilter(newQuery)
+      myFilter = myQuery.getFilter()
+      newFilter = newQuery.getFilter()
       diff = filterDiff(newFilter, myFilter)
       if not diff
         driverLog 'new filters are not a superset, give up'

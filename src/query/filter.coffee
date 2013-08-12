@@ -28,7 +28,6 @@ class FacetFilter
 
   constructor: ->
     @type = 'base'
-    return
 
   _ensureType: (filterType) ->
     if not @type
@@ -46,7 +45,10 @@ class FacetFilter
     return "base filter"
 
   valueOf: ->
-    throw new Error("base filter has no value")
+    return { type: @type }
+
+  isEqual: (other) ->
+    return @type is other.type and @attribute is other.attribute
 
   # Reduces a filter into a (potentially) simpler form the input is never modified
   # Specifically this function:
@@ -105,6 +107,10 @@ class IsFilter extends FacetFilter
   valueOf: ->
     return { type: @type, attribute: @attribute, value: @value }
 
+  isEqual: (other) ->
+    return super(other) and other.value is @value
+
+
 
 class InFilter extends FacetFilter
   constructor: ({@type, @attribute, @values}) ->
@@ -125,6 +131,9 @@ class InFilter extends FacetFilter
   simplify: ->
     return if @values.length then this else new FalseFilter()
 
+  isEqual: (other) ->
+    return super(other) and other.values.join(';') is @values.join(';')
+
 
 
 class ContainsFilter extends FacetFilter
@@ -138,6 +147,9 @@ class ContainsFilter extends FacetFilter
 
   valueOf: ->
     return { type: @type, attribute: @attribute, value: @value }
+
+  isEqual: (other) ->
+    return super(other) and other.value is @value
 
 
 
@@ -156,6 +168,9 @@ class MatchFilter extends FacetFilter
 
   valueOf: ->
     return { type: @type, attribute: @attribute, expression: @expression }
+
+  isEqual: (other) ->
+    return super(other) and other.expression is @expression
 
 
 
@@ -178,6 +193,9 @@ class WithinFilter extends FacetFilter
 
   valueOf: ->
     return { type: @type, attribute: @attribute, range: @range }
+
+  isEqual: (other) ->
+    return super(other) and other.range[0] is @range[0] and other.range[1] is @range[1]
 
 
 
@@ -210,6 +228,9 @@ class NotFilter extends FacetFilter
       return [this]
     else
       return [new TrueFilter(), this]
+
+  isEqual: (other) ->
+    return super(other) and @filter.isEqual(other.filter)
 
 
 
@@ -299,6 +320,12 @@ class AndFilter extends FacetFilter
       (new AndFilter(extractedFilters)).simplify()
     ]
 
+  isEqual: (other) ->
+    otherFilters = other.filters
+    return super(other) and
+           @filters.length is otherFilters.length and
+           @filters.every((filter, i) -> filter.isEqual(otherFilters[i]))
+
 
 
 class OrFilter extends FacetFilter
@@ -379,6 +406,12 @@ class OrFilter extends FacetFilter
       return extract and extract.length is 1
 
     return if @filters.every(hasNoClaim) then [this] else null
+
+  isEqual: (other) ->
+    otherFilters = other.filters
+    return super(other) and
+           @filters.length is otherFilters.length and
+           @filters.every((filter, i) -> filter.isEqual(otherFilters[i]))
 
 
 

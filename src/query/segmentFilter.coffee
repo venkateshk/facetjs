@@ -1,4 +1,11 @@
+getPropFromSegment = (segment, prop) ->
+  return null unless segment and segment.prop
+  return segment.prop[prop] or getPropFromSegment(segment.parent, prop)
+
 segmentFilterFns = {
+  true: ->
+    return -> true
+
   false: ->
     return -> false
 
@@ -16,10 +23,6 @@ segmentFilterFns = {
 
   in: ({prop, values}) ->
     return (segment) -> getPropFromSegment(segment, prop) in values
-
-  within: ({prop, range}) ->
-    throw new TypeError("range must be an array of two things") unless Array.isArray(range) and range.length is 2
-    return (segment) -> range[0] <= getPropFromSegment(segment, prop) < range[1]
 
   not: ({filter}) ->
     throw new TypeError("filter must be a filter object") unless typeof filter is 'object'
@@ -54,6 +57,19 @@ makeSegmentFilterFn = (filter) ->
 # ToDo: improve this
 class FacetSegmentFilter
   constructor: (@spec) ->
+    @type = 'base'
+
+  _ensureType: (filterType) ->
+    if not @type
+      @type = filterType # Set the type if it is so far undefined
+      return
+    if @type isnt filterType
+      throw new TypeError("incorrect filter type '#{@type}' (needs to be: '#{filterType}')")
+    return
+
+  _validateProp: ->
+    if typeof @prop isnt 'string'
+      throw new TypeError("prop must be a string")
 
   valueOf: ->
     return @spec

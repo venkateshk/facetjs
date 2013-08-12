@@ -8,10 +8,14 @@ class FacetOptions
     parts = []
     for own k, v of this
       parts.push "#{k}:#{v}"
-    return "[#{parts.join('; ')}]"
+    return "[#{parts.sort().join('; ')}]"
 
   valueOf: ->
     value = {}
     for own k, v of this
       value[k] = v
     return value
+
+  isEqual: (other) ->
+    return @toString() is other.toString()
+

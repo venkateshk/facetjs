@@ -75,6 +75,28 @@ describe "query", ->
       ]
       expect(new FacetQuery(querySpec).valueOf()).to.deep.equal(querySpec)
 
+    it "split apply combine + segment filter", ->
+      querySpec = [
+        { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
+        { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+        { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 3 }
+
+        {
+          operation: 'split'
+          name: 'Page', bucket: 'identity', attribute: 'page'
+          segmentFilter: {
+            type: 'in'
+            prop: 'Language'
+            values: ['en', 'sv']
+          }
+        }
+        { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+        { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 3 }
+      ]
+      expect(new FacetQuery(querySpec).valueOf()).to.deep.equal(querySpec)
+
 
   describe "errors", ->
 

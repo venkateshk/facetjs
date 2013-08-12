@@ -12,7 +12,6 @@ class FacetSplit
     return
 
   _verifyName: ->
-    return unless @name
     throw new TypeError("split name must be a string") unless typeof @name is 'string'
 
   _verifyAttribute: ->
@@ -31,6 +30,18 @@ class FacetSplit
     split.segmentFilter = @segmentFilter.valueOf() if @segmentFilter
     split.options = @options.valueOf() if @options
     return split
+
+  isEqual: (other, compareSegmentFilter) ->
+    return @bucket is other.bucket and
+           @attribute is other.attribute and
+           Boolean(@options) is Boolean(other.options) and
+           (not @options or @options.isEqual(other.options)) and
+           (not compareSegmentFilter or (
+                Boolean(@segmentFilter) is Boolean(other.segmentFilter and
+                @segmentFilter.isEqual(other.segmentFilter))
+              )
+           )
+
 
 
 class IdentitySplit extends FacetSplit
@@ -85,6 +96,10 @@ class ContinuousSplit extends FacetSplit
       range: propValue
     })
 
+  isEqual: (other, compareSegmentFilter) ->
+    return super() and @size is other.size and @offset is other.offset
+
+
 
 class TimeDurationSplit extends FacetSplit
   constructor: ({name, @bucket, @attribute, @duration, @offset, segmentFilter, options}) ->
@@ -113,6 +128,10 @@ class TimeDurationSplit extends FacetSplit
       attribute: @attribute
       range: propValue
     })
+
+  isEqual: (other, compareSegmentFilter) ->
+    return super() and @duration is other.duration and @offset is other.offset
+
 
 
 class TimePeriodSplit extends FacetSplit
@@ -143,18 +162,23 @@ class TimePeriodSplit extends FacetSplit
       range: propValue
     })
 
+  isEqual: (other, compareSegmentFilter) ->
+    return super() and @period is other.period and @timezone is other.timezone
+
+
 
 class TupleSplit extends FacetSplit
-  constructor: ({name, @splits, segmentFilter}) ->
-    @name = name if name
+  constructor: ({name, @bucket, @splits, segmentFilter}) ->
+    throw new Error("tuple split does not use a name") if name
     @segmentFilter = new FacetSegmentFilter(segmentFilter) if segmentFilter
     throw new TypeError("splits must be a non-empty array") unless Array.isArray(@splits) and @splits.length
     @splits = @splits.map((splitSpec) ->
       throw new Error("tuple splits can not be nested") if splitSpec.bucket is 'tuple'
+      throw new Error("a split within a tuple must have a name") unless splitSpec.hasOwnProperty('name')
+      throw new Error("a split within a tuple should not have a segmentFilter") if splitSpec.hasOwnProperty('segmentFilter')
       return FacetSplit.fromSpec(splitSpec)
     )
     @_ensureBucket('tuple')
-    @_verifyName()
 
   toString: ->
     return @_addName("(#{@splits.join(' x ')})")
@@ -167,6 +191,11 @@ class TupleSplit extends FacetSplit
   getFilterFor: (propValues...) ->
     throw new Error("bad number of values") if propValues.length isnt @splits.length
     return new AndFilter(@splits.map(split, i) -> split.getFilterFor(propValues[i]))
+
+  isEqual: (other, compareSegmentFilter) ->
+    otherSplits = other.splits
+    return super() and @splits.length is otherSplits.length and @splits.every((split, i) -> split.isEqual(otherSplits[i], true))
+
 
 
 # Make lookup

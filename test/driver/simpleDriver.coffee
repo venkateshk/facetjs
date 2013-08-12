@@ -16,6 +16,7 @@ describe "simple driver", ->
       { operation: 'apply', name: 'Count', aggregate: 'count' }
     ]
     diamondsDriver { query: new FacetQuery(querySpec) }, (err, result) ->
+      expect(err).to.equal(null)
       expect(result).to.deep.equal({
         prop: {
           Count: 53940
@@ -30,6 +31,7 @@ describe "simple driver", ->
       { operation: 'combine', method: 'slice', sort: { prop: 'Count', compare: 'natural', direction: 'descending' }, limit: 2 }
     ]
     diamondsDriver { query: new FacetQuery(querySpec) }, (err, result) ->
+      expect(err).to.equal(null)
       expect(result).to.deep.equal({
         "prop": {},
         "splits": [
@@ -48,4 +50,58 @@ describe "simple driver", ->
         ]
       })
       done()
+
+  it "does two splits with segment filter", (done) ->
+    querySpec = [
+      { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
+      { operation: 'apply', name: 'Count', aggregate: 'count' }
+      { operation: 'combine', method: 'slice', sort: { prop: 'Count', compare: 'natural', direction: 'descending' }, limit: 2 }
+
+      {
+        operation: 'split'
+        name: 'Clarity', bucket: 'identity', attribute: 'clarity'
+        segmentFilter: {
+          type: 'in'
+          prop: 'Cut'
+          values: ['Ideal', 'Strange']
+        }
+      }
+      { operation: 'apply', name: 'Count', aggregate: 'count' }
+      { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 2 }
+    ]
+    diamondsDriver { query: new FacetQuery(querySpec) }, (err, result) ->
+      expect(err).to.equal(null)
+      expect(result).to.deep.equal({
+        "prop": {},
+        "splits": [
+          {
+            "prop": {
+              "Cut": "Ideal",
+              "Count": 21551
+            },
+            "splits": [
+              {
+                "prop": {
+                  "Clarity": "VS2",
+                  "Count": 5071
+                }
+              },
+              {
+                "prop": {
+                  "Clarity": "SI1",
+                  "Count": 4282
+                }
+              }
+            ]
+          },
+          {
+            "prop": {
+              "Cut": "Premium",
+              "Count": 13791
+            }
+          }
+        ]
+      })
+      done()
+
 

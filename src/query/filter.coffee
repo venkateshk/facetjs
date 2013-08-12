@@ -79,9 +79,6 @@ class TrueFilter extends FacetFilter
   toString: ->
     return "Everything"
 
-  valueOf: ->
-    return { type: @type }
-
 
 
 class FalseFilter extends FacetFilter
@@ -90,9 +87,6 @@ class FalseFilter extends FacetFilter
 
   toString: ->
     return "Nothing"
-
-  valueOf: ->
-    return { type: @type }
 
 
 
@@ -254,6 +248,12 @@ class AndFilter extends FacetFilter
   valueOf: ->
     return { type: @type, filters: @filters.map(getValueOf) }
 
+  isEqual: (other) ->
+    otherFilters = other.filters
+    return super(other) and
+           @filters.length is otherFilters.length and
+           @filters.every((filter, i) -> filter.isEqual(otherFilters[i]))
+
   _mergeFilters: (filter1, filter2) ->
     return new FalseFilter() if filter1.type is 'false' or filter2.type is 'false'
     return filter2 if filter1.type is 'true'
@@ -320,12 +320,6 @@ class AndFilter extends FacetFilter
       (new AndFilter(extractedFilters)).simplify()
     ]
 
-  isEqual: (other) ->
-    otherFilters = other.filters
-    return super(other) and
-           @filters.length is otherFilters.length and
-           @filters.every((filter, i) -> filter.isEqual(otherFilters[i]))
-
 
 
 class OrFilter extends FacetFilter
@@ -347,6 +341,12 @@ class OrFilter extends FacetFilter
 
   valueOf: ->
     return { type: @type, filters: @filters.map(getValueOf) }
+
+  isEqual: (other) ->
+    otherFilters = other.filters
+    return super(other) and
+           @filters.length is otherFilters.length and
+           @filters.every((filter, i) -> filter.isEqual(otherFilters[i]))
 
   _mergeFilters: (filter1, filter2) ->
     return new TrueFilter() if filter1.type is 'true' or filter2.type is 'true'
@@ -406,12 +406,6 @@ class OrFilter extends FacetFilter
       return extract and extract.length is 1
 
     return if @filters.every(hasNoClaim) then [this] else null
-
-  isEqual: (other) ->
-    otherFilters = other.filters
-    return super(other) and
-           @filters.length is otherFilters.length and
-           @filters.every((filter, i) -> filter.isEqual(otherFilters[i]))
 
 
 

@@ -15,13 +15,18 @@ class FacetCombine
     return @_addName("base combine")
 
   valueOf: ->
-    combine = { method: @method }
+    combine = { method: @method, sort: @sort.valueOf() }
     return combine
+
+  isEqual: ->
+    return @method is other.method and
+           @sort.isEqual(other.sort)
 
 
 
 class SliceCombine extends FacetCombine
   constructor: ({@method, @sort, limit}) ->
+    @sort = FacetSort.fromSpec(@sort)
     @_ensureMethod('slice')
     @limit = limit if limit?
 
@@ -29,15 +34,13 @@ class SliceCombine extends FacetCombine
     return "SliceCombine"
 
   valueOf: ->
-    combine = super.valueOf()
-    combine.sort = @sort
-    combine.limit = @limit if @limit
-    return combine
+    return @super() and @limit is other.limit
 
 
 
 class MatrixCombine extends FacetCombine
   constructor: ({@method, @sort, @limits}) ->
+    @sort = FacetSort.fromSpec(@sort)
     @_ensureMethod('matrix')
     throw new TypeError("limits must be an array") unless Array.isArray(@limits)
 
@@ -45,10 +48,7 @@ class MatrixCombine extends FacetCombine
     return "MatrixCombine"
 
   valueOf: ->
-    combine = super.valueOf()
-    combine.sort = @sort
-    combine.limits = @limits
-    return combine
+    return @super() and @limits.join(';') is other.limits.join(';')
 
 
 

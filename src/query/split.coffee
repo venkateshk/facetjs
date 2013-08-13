@@ -51,6 +51,7 @@ class IdentitySplit extends FacetSplit
     @options = new FacetOptions(options) if options
     @_ensureBucket('identity')
     @_verifyName()
+    @_verifyAttribute()
 
   toString: ->
     return @_addName("#{@bucket}(#{@attribute})")

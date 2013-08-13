@@ -89,6 +89,11 @@ class FacetQuery
   getGroups: ->
     return @groups
 
+  getSplits: ->
+    splits = @groups.map(({split}) -> split)
+    splits.shift()
+    return splits
+
 # Export!
 exports.FacetQuery = FacetQuery
 

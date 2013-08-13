@@ -55,7 +55,7 @@ class ConstantApply extends FacetApply
     return @_addName(String(@value))
 
   valueOf: ->
-    apply = super.valueOf()
+    apply = super
     apply.aggregate = @aggregate
     apply.value = @value
     apply.filter = @filter.valueOf() if @filter
@@ -78,7 +78,7 @@ class CountApply extends FacetApply
     return @_addName("count()")
 
   valueOf: ->
-    apply = super.valueOf()
+    apply = super
     apply.aggregate = @aggregate
     apply.filter = @filter.valueOf() if @filter
     return apply
@@ -101,7 +101,7 @@ class SumApply extends FacetApply
     return @_addName("#{@aggregate}(#{@attribute})")
 
   valueOf: ->
-    apply = super.valueOf()
+    apply = super
     apply.aggregate = @aggregate
     apply.attribute = @attribute
     apply.filter = @filter.valueOf() if @filter
@@ -125,7 +125,7 @@ class AverageApply extends FacetApply
     return @_addName("#{@aggregate}(#{@attribute})")
 
   valueOf: ->
-    apply = super.valueOf()
+    apply = super
     apply.aggregate = @aggregate
     apply.attribute = @attribute
     apply.filter = @filter.valueOf() if @filter
@@ -146,7 +146,7 @@ class MinApply extends FacetApply
     return @_addName("#{@aggregate}(#{@attribute})")
 
   valueOf: ->
-    apply = super.valueOf()
+    apply = super
     apply.aggregate = @aggregate
     apply.attribute = @attribute
     apply.filter = @filter.valueOf() if @filter
@@ -167,7 +167,7 @@ class MaxApply extends FacetApply
     return @_addName("#{@aggregate}(#{@attribute})")
 
   valueOf: ->
-    apply = super.valueOf()
+    apply = super
     apply.aggregate = @aggregate
     apply.attribute = @attribute
     apply.filter = @filter.valueOf() if @filter
@@ -188,7 +188,7 @@ class UniqueCountApply extends FacetApply
     return @_addName("#{@aggregate}(#{@attribute})")
 
   valueOf: ->
-    apply = super.valueOf()
+    apply = super
     apply.aggregate = @aggregate
     apply.attribute = @attribute
     apply.filter = @filter.valueOf() if @filter
@@ -210,7 +210,7 @@ class QuantileApply extends FacetApply
     return @_addName("quantile(#{@attribute}, #{@quantile})")
 
   valueOf: ->
-    apply = super.valueOf()
+    apply = super
     apply.aggregate = @aggregate
     apply.attribute = @attribute
     apply.quantile = @quantile
@@ -234,7 +234,7 @@ class AddApply extends FacetApply
     return @_addName(expr)
 
   valueOf: ->
-    apply = super.valueOf()
+    apply = super
     apply.arithmetic = @arithmetic
     apply.operands = @operands.map(getValueOf)
     return apply
@@ -257,7 +257,7 @@ class SubtractApply extends FacetApply
     return @_addName(expr)
 
   valueOf: ->
-    apply = super.valueOf()
+    apply = super
     apply.arithmetic = @arithmetic
     apply.operands = @operands.map(getValueOf)
     return apply
@@ -280,7 +280,7 @@ class MultiplyApply extends FacetApply
     return @_addName(expr)
 
   valueOf: ->
-    apply = super.valueOf()
+    apply = super
     apply.arithmetic = @arithmetic
     apply.operands = @operands.map(getValueOf)
     return apply
@@ -306,7 +306,7 @@ class DivideApply extends FacetApply
     return @_addName(expr)
 
   valueOf: ->
-    apply = super.valueOf()
+    apply = super
     apply.arithmetic = @arithmetic
     apply.operands = @operands.map(getValueOf)
     return apply

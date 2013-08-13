@@ -57,7 +57,7 @@ class IdentitySplit extends FacetSplit
     return @_addName("#{@bucket}(#{@attribute})")
 
   valueOf: ->
-    split = super.valueOf()
+    split = super
     split.attribute = @attribute
     return split
 
@@ -85,7 +85,7 @@ class ContinuousSplit extends FacetSplit
     return @_addName("#{@bucket}(#{@attribute}, #{@size}, #{@offset})")
 
   valueOf: ->
-    split = super.valueOf()
+    split = super
     split.attribute = @attribute
     split.size = @size
     split.offset = @offset
@@ -118,7 +118,7 @@ class TimeDurationSplit extends FacetSplit
     return @_addName("#{@bucket}(#{@attribute}, #{@duration}, #{@offset})")
 
   valueOf: ->
-    split = super.valueOf()
+    split = super
     split.attribute = @attribute
     split.duration = @duration
     split.offset = @offset
@@ -151,7 +151,7 @@ class TimePeriodSplit extends FacetSplit
     return @_addName("#{@bucket}(#{@attribute}, #{@period}, #{@timezone})")
 
   valueOf: ->
-    split = super.valueOf()
+    split = super
     split.attribute = @attribute
     split.period = @period
     split.timezone = @timezone
@@ -185,7 +185,7 @@ class TupleSplit extends FacetSplit
     return @_addName("(#{@splits.join(' x ')})")
 
   valueOf: ->
-    split = super.valueOf()
+    split = super
     split.splits = @splits.map(getValueOf)
     return split
 

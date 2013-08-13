@@ -1,4 +1,4 @@
-`(typeof window === 'undefined' ? {} : window)['driverCache'] = (function(module, require){"use strict"; var exports = module.exports`
+`(typeof window === 'undefined' ? {} : window)['generalCache'] = (function(module, require){"use strict"; var exports = module.exports`
 
 # -----------------------------------------------------
 driverUtil = require('./driverUtil')

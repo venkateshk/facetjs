@@ -33,6 +33,11 @@ class SliceCombine extends FacetCombine
   toString: ->
     return "SliceCombine"
 
+  valueOf: ->
+    combine = super
+    combine.limit = @limit if @limit?
+    return combine
+
   isEqual: ->
     return super and @limit is other.limit
 
@@ -46,6 +51,11 @@ class MatrixCombine extends FacetCombine
 
   toString: ->
     return "MatrixCombine"
+
+  valueOf: ->
+    combine = super
+    combine.limits = @limits
+    return combine
 
   isEqual: ->
     return super and @limits.join(';') is other.limits.join(';')

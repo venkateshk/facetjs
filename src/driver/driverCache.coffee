@@ -130,8 +130,8 @@ class SplitCache
     # <value>
     # <value>
     # ]
-    if splitOp.bucket in ['timePeriod', 'timeDuration']
-      return @_timeCalculate(filter, splitOp)
+    if splitOp.bucket in ['timePeriod', 'timeDuration'] and splitOp.name is combineOp.sort?.prop
+      return @_timeCalculate(filter, splitOp, combineOp)
     else
       hash = generateHash(filter, splitOp, combineOp)
       return @hashmap[hash]
@@ -156,7 +156,7 @@ class SplitCache
         @_splitPutHelper(condensedQuery, split, newFilter, level + 1)
     return
 
-  _timeCalculate: (filter, splitOp) ->
+  _timeCalculate: (filter, splitOp, combineOp) ->
     separatedFilters = driverUtil.extractFilterByAttribute(filter, @timeAttribute)
     timeFilter = separatedFilters[1]
     timezone = splitOp.timezone or 'Etc/UTC'
@@ -295,15 +295,20 @@ module.exports = ({driver, timeAttribute}) ->
     if combineOp?.sort?
       sortProp = combineOp.sort.prop
       if combineOp.sort.direction is 'descending'
-        splits.sort((a, b) ->
-          if a.prop[sortProp][0]?
-            return b.prop[sortProp][0] - a.prop[sortProp][0]
-          return b.prop[sortProp] - a.prop[sortProp])
+        if splits.every((split) -> split.prop[sortProp]?[0]?)
+          sortFn = (a, b) -> return b.prop[sortProp][0] - a.prop[sortProp][0]
+        else
+          sortFn = (a, b) -> return b.prop[sortProp] - a.prop[sortProp]
       else if combineOp.sort.direction is 'ascending'
-        splits.sort((a, b) ->
-          if a.prop[sortProp][0]?
-            return a.prop[sortProp][0] - b.prop[sortProp][0]
-          return a.prop[sortProp] - b.prop[sortProp])
+        if splits.every((split) -> split.prop[sortProp]?[0]?)
+          sortFn = (a, b) -> return a.prop[sortProp][0] - b.prop[sortProp][0]
+        else
+          sortFn = (a, b) -> return a.prop[sortProp] - b.prop[sortProp]
+
+      notPartSplits = splits.filter((split) -> not split.prop[sortProp]?)
+      splits = splits.filter((split) -> split.prop[sortProp]?)
+      splits.sort(sortFn)
+      splits = splits.concat(notPartSplits)
 
       if combineOp.limit?
         splits.splice(combineOp.limit)
@@ -320,7 +325,6 @@ module.exports = ({driver, timeAttribute}) ->
     propKeys = (key for key, value of tree.prop)
     return {} if (propKeys.length is 0 and not tree.splits?)
     return tree
-
 
   return (request, callback) ->
     throw new Error("request not supplied") unless request

@@ -459,6 +459,7 @@ exports.simplifyFilter = simplifyFilter = (filter) ->
     when 'and', 'or'
       newFilters = []
       for f in filter.filters
+        continue unless f?
         f = simplifyFilter(f)
         if f.type is type
           Array::push.apply(newFilters, f.filters)

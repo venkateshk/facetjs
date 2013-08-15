@@ -26,9 +26,6 @@ driverFns.diamondsCached = driverCache({
       expect(query.query).to.deep.equal(expectedQuery)
 
     if not allowQuery
-      console.log '\n---------------'
-      console.log JSON.stringify(query, null, 2)
-      console.log '---------------'
       throw new Error("query not allowed")
 
     diamonds(query, callback)
@@ -42,9 +39,6 @@ driverFns.wikipediaCached = driverCache({
       expect(query.query).to.deep.equal(expectedQuery)
 
     if not allowQuery
-      console.log '\n---------------'
-      console.log JSON.stringify(query, null, 2)
-      console.log '---------------'
       throw new Error("query not allowed")
 
     wikipedia(query, callback)
@@ -259,6 +253,35 @@ describe "Cache", ->
       ]
     }
 
+  describe 'exclude filter Cache', ->
+    setUpQuery = [
+        { operation: "filter", type: "not", filter: { type: "in", attribute: "table", values: [ "61" ] } }
+        { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+        { operation: 'apply', name: 'Cheapest', aggregate: 'min', attribute: 'price' }
+        { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+      ]
+
+    before (done) ->
+      driverFns.diamondsCached({ query: setUpQuery}, (err, result) ->
+        throw err if err?
+        done()
+        return
+      )
+
+    after -> allowQuery = true
+
+    it "split Color; apply Revenue; combine descending", testEquality {
+        drivers: ['diamondsCached', 'diamonds']
+        query: [
+          { operation: "filter", type: "not", filter: { type: "in", attribute: "table", values: [ "61", "65" ] } }
+          { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+          { operation: 'apply', name: 'Cheapest', aggregate: 'min', attribute: 'price' }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+        ]
+      }
+
   describe 'topN Cache', ->
     setUpQuery = [
         { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
@@ -363,16 +386,6 @@ describe "Cache", ->
             { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
             { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
             { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
-          ]
-        }
-
-      it "split time; apply count; combine not by time", testEquality {
-          drivers: ['wikipediaCached', 'wikipedia']
-          query: [
-            { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
-            { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
-            { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-            { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'ascending' } }
           ]
         }
 
@@ -501,6 +514,60 @@ describe "Cache", ->
           ]
         }
 
+    describe 'splits on time; combine on a metric', ->
+      it "split time; apply count; combine count, descending (positive metrics)", testEquality {
+          drivers: ['wikipediaCached', 'wikipedia']
+          query: [
+            { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+            { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
+            { name: "count", aggregate: "sum", attribute: "count", operation: "apply" }
+            { operation: "combine", combine: "slice", sort: { compare: "natural", prop: "count", direction: "descending" }, "limit": 5 }
+          ]
+        }
+
+      it "split time; apply count; combine count, ascending (positive metrics)", testEquality {
+          drivers: ['wikipediaCached', 'wikipedia']
+          query: [
+            { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+            { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
+            { name: "count", aggregate: "sum", attribute: "count", operation: "apply" }
+            { operation: "combine", combine: "slice", sort: { compare: "natural", prop: "count", direction: "ascending" }, "limit": 5 }
+          ]
+        }
+
+      it "split time; apply deleted; combine deleted, descending (negative metrics)", testEquality {
+          drivers: ['wikipediaCached', 'wikipedia']
+          query: [
+            { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+            { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
+            { name: "deleted", aggregate: "sum", attribute: "deleted", operation: "apply" }
+            { operation: "combine", combine: "slice", sort: { compare: "natural", prop: "deleted", direction: "descending" }, "limit": 5 }
+          ]
+        }
+
+      it "split time; apply deleted; combine deleted, ascending (negative metrics)", testEquality {
+          drivers: ['wikipediaCached', 'wikipedia']
+          query: [
+            { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+            { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
+            { name: "deleted", aggregate: "sum", attribute: "deleted", operation: "apply" }
+            { operation: "combine", combine: "slice", sort: { compare: "natural", prop: "deleted", direction: "ascending" }, "limit": 5 }
+          ]
+        }
+
+      it "split time; apply count; combine count, descending, split page; apply count; combine count, descending", testEquality {
+          drivers: ['wikipediaCached', 'wikipedia']
+          query: [
+            { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))] }
+            { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
+            { name: "count", aggregate: "sum", attribute: "count", operation: "apply" }
+            { operation: "combine", combine: "slice", sort: { compare: "natural", prop: "count", direction: "descending" }, "limit": 5 }
+            { name: "page",attribute: "page",bucket: "identity",operation: "split" }
+            { name: "count","aggregate": "sum",attribute: "count",operation: "apply" }
+            { name: "deleted","aggregate": "sum",attribute: "deleted",operation: "apply" }
+            { operation: "combine", combine: "slice", sort: { compare:"natural", prop: "count", direction: "descending" }, "limit": 5 }
+          ]
+        }
 
   describe "fillTree test", ->
     it "filter; split time; apply count; apply added", testEquality {

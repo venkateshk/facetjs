@@ -148,6 +148,7 @@ exports.createColumns = createColumns = (query) ->
     apply.push applyName
   return split.concat(apply)
 
+
 # Flattens the split tree into an array
 #
 # @param {SplitTree} root - the root of the split tree

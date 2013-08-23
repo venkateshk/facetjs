@@ -3,20 +3,20 @@ class FacetApply
   constructor: ->
     return
 
-  _ensureAggregate: (applyAggregate) ->
+  _ensureAggregate: (aggregate) ->
     if not @aggregate
-      @aggregate = applyAggregate # Set the aggregate if it is so far undefined
+      @aggregate = aggregate # Set the aggregate if it is so far undefined
       return
-    if @aggregate isnt applyAggregate
-      throw new TypeError("incorrect apply aggregate '#{@aggregate}' (needs to be: '#{applyAggregate}')")
+    if @aggregate isnt aggregate
+      throw new TypeError("incorrect apply aggregate '#{@aggregate}' (needs to be: '#{aggregate}')")
     return
 
-  _ensureArithmetic: (applyArithmetic) ->
+  _ensureArithmetic: (arithmetic) ->
     if not @arithmetic
-      @arithmetic = applyArithmetic # Set the arithmetic if it is so far undefined
+      @arithmetic = arithmetic # Set the arithmetic if it is so far undefined
       return
-    if @arithmetic isnt applyArithmetic
-      throw new TypeError("incorrect apply arithmetic '#{@arithmetic}' (needs to be: '#{applyArithmetic}')")
+    if @arithmetic isnt arithmetic
+      throw new TypeError("incorrect apply arithmetic '#{@arithmetic}' (needs to be: '#{arithmetic}')")
     return
 
   _verifyName: ->
@@ -36,8 +36,18 @@ class FacetApply
   valueOf: ->
     apply = {}
     apply.name = @name if @name
+    apply.filter = @filter.valueOf() if @filter
     apply.options = @options.valueOf() if @options
     return apply
+
+  isEqual: (other) ->
+    return @aggregate is other.aggregate and
+           @arithmetic is other.arithmetic and
+           @attribute is other.attribute and
+           Boolean(@filter) is Boolean(other.filter) and
+           (not @filter or @filter.isEqual(other.filter))
+           Boolean(@options) is Boolean(other.options) and
+           (not @options or @options.isEqual(other.options))
 
   isAdditive: ->
     return false
@@ -58,8 +68,10 @@ class ConstantApply extends FacetApply
     apply = super
     apply.aggregate = @aggregate
     apply.value = @value
-    apply.filter = @filter.valueOf() if @filter
     return apply
+
+  isEqual: (other, compareSegmentFilter) ->
+    return super and @value is other.value
 
   isAdditive: ->
     return true
@@ -80,7 +92,6 @@ class CountApply extends FacetApply
   valueOf: ->
     apply = super
     apply.aggregate = @aggregate
-    apply.filter = @filter.valueOf() if @filter
     return apply
 
   isAdditive: ->
@@ -104,7 +115,6 @@ class SumApply extends FacetApply
     apply = super
     apply.aggregate = @aggregate
     apply.attribute = @attribute
-    apply.filter = @filter.valueOf() if @filter
     return apply
 
   isAdditive: ->
@@ -128,7 +138,6 @@ class AverageApply extends FacetApply
     apply = super
     apply.aggregate = @aggregate
     apply.attribute = @attribute
-    apply.filter = @filter.valueOf() if @filter
     return apply
 
 
@@ -149,7 +158,6 @@ class MinApply extends FacetApply
     apply = super
     apply.aggregate = @aggregate
     apply.attribute = @attribute
-    apply.filter = @filter.valueOf() if @filter
     return apply
 
 
@@ -170,7 +178,6 @@ class MaxApply extends FacetApply
     apply = super
     apply.aggregate = @aggregate
     apply.attribute = @attribute
-    apply.filter = @filter.valueOf() if @filter
     return apply
 
 
@@ -191,7 +198,6 @@ class UniqueCountApply extends FacetApply
     apply = super
     apply.aggregate = @aggregate
     apply.attribute = @attribute
-    apply.filter = @filter.valueOf() if @filter
     return apply
 
 
@@ -215,6 +221,9 @@ class QuantileApply extends FacetApply
     apply.attribute = @attribute
     apply.quantile = @quantile
     return apply
+
+  isEqual: (other, compareSegmentFilter) ->
+    return super and @quantile is other.quantile
 
   isAdditive: ->
     return true

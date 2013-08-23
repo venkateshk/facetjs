@@ -1,7 +1,8 @@
 `(typeof window === 'undefined' ? {} : window)['nestedCache'] = (function(module, require){"use strict"; var exports = module.exports`
 
 # -----------------------------------------------------
-{ FacetQuery, FacetFilter, FacetSplit, FacetCombine } = require('./query')
+driverUtil = require('./driverUtil')
+{ FacetQuery, FacetFilter, AndFilter, FacetSplit, FacetCombine } = require('./query')
 
 find = (list, fn) ->
   for d in list
@@ -271,13 +272,9 @@ module.exports = ({transport, onData}) ->
         newQueryTail = newQuery.valueOf().slice(newQuery.indexOf(newSplitCombines[addedPath.length].split))
         delete newQueryTail[0].segmentFilter
         addQuery = [
-          {
-            operation: 'filter'
-            type: 'and'
-            filters: [newFilter].concat(
-              addedPath.map((addedPart, i) -> driverUtil.filterFromSplit(newSplitCombines[i].split, addedPart))
-            )
-          }
+          new AndFilter([newFilter].concat(
+            addedPath.map((addedPart, i) -> newSplitCombines[i].split.filterFor(addedPart))
+          )).valueOf()
         ].concat(newQueryTail)
 
         attachSplit.loading = true

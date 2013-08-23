@@ -376,3 +376,25 @@ describe "Diamonds dataset", ->
         { operation: 'combine', method: 'slice', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
       ]
     }
+
+  describe "segment filter", ->
+    it "should have the same results for different drivers", testEquality {
+      drivers: ['simple', 'mySql']
+      query: [
+        { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
+        { operation: 'apply', name: 'Count', aggregate: 'count' }
+        { operation: 'combine', method: 'slice', sort: { prop: 'Count', compare: 'natural', direction: 'descending' }, limit: 2 }
+
+        {
+          operation: 'split'
+          name: 'Clarity', bucket: 'identity', attribute: 'clarity'
+          segmentFilter: {
+            type: 'in'
+            prop: 'Cut'
+            values: ['Ideal', 'Strange']
+          }
+        }
+        { operation: 'apply', name: 'Count', aggregate: 'count' }
+        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 2 }
+      ]
+    }

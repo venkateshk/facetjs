@@ -18,7 +18,7 @@ class FacetCombine
     combine = { method: @method, sort: @sort.valueOf() }
     return combine
 
-  isEqual: ->
+  isEqual: (other) ->
     return @method is other.method and
            @sort.isEqual(other.sort)
 
@@ -38,7 +38,7 @@ class SliceCombine extends FacetCombine
     combine.limit = @limit if @limit?
     return combine
 
-  isEqual: ->
+  isEqual: (other) ->
     return super and @limit is other.limit
 
 
@@ -57,7 +57,7 @@ class MatrixCombine extends FacetCombine
     combine.limits = @limits
     return combine
 
-  isEqual: ->
+  isEqual: (other) ->
     return super and @limits.join(';') is other.limits.join(';')
 
 

@@ -75,7 +75,7 @@ andFilterToPath = (splitNames, andFilter) ->
     .map(({value}) -> value)
 
 getCanonicalSplitTreePaths = (query) ->
-  splits = query.filter(({operation}) -> operation is 'split')
+  splits = query.getSplits()
   splitNames = splits.map((d) -> d.name)
   paths = []
 

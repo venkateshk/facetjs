@@ -48,7 +48,6 @@ class FacetJob
   constructor: (@selector, @width, @height, @driver) ->
     @ops = []
     @knownProps = {}
-    @hasSplit = false
     @hasTransformed = false
 
   filter: (filter) ->
@@ -62,19 +61,8 @@ class FacetJob
     split.operation = 'split'
     split.name = name
     @ops.push(split)
-    @hasSplit = true
     @hasTransformed = false
     @knownProps[name] = true
-    return this
-
-  layout: (layout) ->
-    throw new Error("Must split before calling layout") unless @hasSplit
-    throw new Error("Can not layout after a transform") if @hasTransformed
-    throw new TypeError("layout must be a function") unless typeof layout is 'function'
-    @ops.push({
-      operation: 'layout'
-      layout
-    })
     return this
 
   apply: (name, apply) ->
@@ -83,6 +71,33 @@ class FacetJob
     apply.name = name
     @ops.push(apply)
     @knownProps[name] = true
+    return this
+
+  combine: ({method, sort, limit}) ->
+    combineCmd = {
+      operation: 'combine'
+      method
+    }
+    if sort
+      if not @knownProps[sort.prop]
+        throw new Error("can not sort on unknown prop '#{sort.prop}'")
+      combineCmd.sort = sort
+      combineCmd.sort.compare ?= 'natural'
+
+    if limit?
+      combineCmd.limit = limit
+
+    @ops.push(combineCmd)
+    return this
+
+  layout: (layout) ->
+    if not @ops[@ops.length - 1]?.operation is 'combine'
+      throw new Error("`layout` must follow `combine` before calling layout")
+    throw new TypeError("layout must be a function") unless typeof layout is 'function'
+    @ops.push({
+      operation: 'layout'
+      layout
+    })
     return this
 
   scale: (name, scale) ->
@@ -108,23 +123,6 @@ class FacetJob
       name
       range
     })
-    return this
-
-  combine: ({method, sort, limit}) ->
-    combineCmd = {
-      operation: 'combine'
-      method
-    }
-    if sort
-      if not @knownProps[sort.prop]
-        throw new Error("can not sort on unknown prop '#{sort.prop}'")
-      combineCmd.sort = sort
-      combineCmd.sort.compare ?= 'natural'
-
-    if limit?
-      combineCmd.limit = limit
-
-    @ops.push(combineCmd)
     return this
 
   transform: (transform) ->

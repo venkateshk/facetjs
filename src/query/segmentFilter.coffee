@@ -110,7 +110,7 @@ class NotSegmentFilter extends FacetSegmentFilter
   constructor: (arg) ->
     if arg not instanceof FacetFilter
       {@type, @filter} = arg
-      @filter = FacetFilter.fromSpec(@filter)
+      @filter = FacetSegmentFilter.fromSpec(@filter)
     else
       @filter = arg
     @_ensureType('not')
@@ -135,7 +135,7 @@ class AndSegmentFilter extends FacetSegmentFilter
     if not Array.isArray(arg)
       {@type, @filters} = arg
       throw new TypeError('filters must be an array') unless Array.isArray(@filters)
-      @filters = @filters.map(FacetFilter.fromSpec)
+      @filters = @filters.map(FacetSegmentFilter.fromSpec)
     else
       @filters = arg
 
@@ -170,7 +170,7 @@ class OrSegmentFilter extends FacetSegmentFilter
     if not Array.isArray(arg)
       {@type, @filters} = arg
       throw new TypeError('filters must be an array') unless Array.isArray(@filters)
-      @filters = @filters.map(FacetFilter.fromSpec)
+      @filters = @filters.map(FacetSegmentFilter.fromSpec)
     else
       @filters = arg
 
@@ -195,7 +195,7 @@ class OrSegmentFilter extends FacetSegmentFilter
     filterFns = @filters.map((filter) -> filter.getFilterFn())
     return (segment) ->
       for filterFn in filterFns
-        return true unless filterFn(segment)
+        return true if filterFn(segment)
       return false
 
 
@@ -215,9 +215,9 @@ FacetSegmentFilter.fromSpec = (segmentFilterSpec) ->
   throw new Error("unrecognizable segment filter") unless typeof segmentFilterSpec is 'object'
   throw new Error("type must be defined") unless segmentFilterSpec.hasOwnProperty('type')
   throw new Error("type must be a string") unless typeof segmentFilterSpec.type is 'string'
-  FilterConstructor = segmentFilterConstructorMap[segmentFilterSpec.type]
-  throw new Error("unsupported segment filter type '#{segmentFilterSpec.type}'") unless FilterConstructor
-  return new FilterConstructor(segmentFilterSpec)
+  SegmentFilterConstructor = segmentFilterConstructorMap[segmentFilterSpec.type]
+  throw new Error("unsupported segment filter type '#{segmentFilterSpec.type}'") unless SegmentFilterConstructor
+  return new SegmentFilterConstructor(segmentFilterSpec)
 
 
 # Export!

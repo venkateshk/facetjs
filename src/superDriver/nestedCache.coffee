@@ -29,7 +29,7 @@ getApplies = (query) ->
 isPropEqual = (prop1, prop2) ->
   type = typeof prop1
   return false if type isnt typeof prop2
-  if t1 is 'string'
+  if type is 'string'
     return prop1 is prop2
   else
     return prop1[0] is prop2[0] and prop1[1] is prop2[1]
@@ -270,12 +270,18 @@ module.exports = ({transport, onData}) ->
         attachSplit = findInData(myData, addedPath, newSplitCombines)
         throw new Error("Something went wrong") unless attachSplit
 
-        newQueryTail = newQuery.valueOf().slice(newQuery.indexOf(newSplitCombines[addedPath.length].split))
+        newQueryValue = newQuery.valueOf()
+        splitName = newSplitCombines[addedPath.length].split.name
+        splitSpec = find(newQueryValue, ({name}) -> name is splitName)
+        newQueryTail = newQueryValue.slice(newQueryValue.indexOf(splitSpec))
         delete newQueryTail[0].segmentFilter
+
+        newFilterSpec = new AndFilter([newFilter].concat(
+          addedPath.map((addedPart, i) -> newSplitCombines[i].split.getFilterFor(addedPart))
+        )).valueOf()
+        newFilterSpec.operation = 'filter'
         addQuery = [
-          new AndFilter([newFilter].concat(
-            addedPath.map((addedPart, i) -> newSplitCombines[i].split.filterFor(addedPart))
-          )).valueOf()
+          newFilterSpec
         ].concat(newQueryTail)
 
         attachSplit.loading = true

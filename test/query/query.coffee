@@ -97,6 +97,97 @@ describe "query", ->
       ]
       expect(new FacetQuery(querySpec).valueOf()).to.deep.equal(querySpec)
 
+    it "actual complex query with segment filter", ->
+      querySpec = [
+        {
+          "type": "and",
+          "filters": [
+            {
+              "type": "within",
+              "attribute": "timestamp",
+              "range": [
+                new Date("2013-08-17T00:00:00.000Z"),
+                new Date("2013-08-24T00:00:00.000Z")
+              ]
+            },
+            {
+              "type": "in",
+              "attribute": "language",
+              "values": [
+                "it"
+              ]
+            }
+          ],
+          "operation": "filter"
+        },
+        {
+          "name": "count",
+          "aggregate": "sum",
+          "attribute": "count",
+          "operation": "apply"
+        },
+        {
+          "name": "page",
+          "attribute": "page",
+          "bucket": "identity",
+          "operation": "split"
+        },
+        {
+          "name": "count",
+          "aggregate": "sum",
+          "attribute": "count",
+          "operation": "apply"
+        },
+        {
+          "operation": "combine",
+          "method": "slice",
+          "sort": {
+            "compare": "natural",
+            "prop": "count",
+            "direction": "descending"
+          },
+          "limit": "10"
+        },
+        {
+          "name": "robot",
+          "attribute": "robot",
+          "bucket": "identity",
+          "operation": "split",
+          "segmentFilter": {
+            "type": "or",
+            "filters": [
+              {
+                "type": "is",
+                "prop": "page",
+                "value": "Storia_di_Livorno"
+              },
+              {
+                "type": "is",
+                "prop": "page",
+                "value": "Utente:Martellodifiume/Sandbox2"
+              }
+            ]
+          }
+        },
+        {
+          "name": "count",
+          "aggregate": "sum",
+          "attribute": "count",
+          "operation": "apply"
+        },
+        {
+          "operation": "combine",
+          "method": "slice",
+          "sort": {
+            "compare": "natural",
+            "prop": "count",
+            "direction": "descending"
+          },
+          "limit": "10"
+        }
+      ]
+      expect(new FacetQuery(querySpec).valueOf()).to.deep.equal(querySpec)
+
 
   describe "errors", ->
 

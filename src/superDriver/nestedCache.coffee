@@ -36,7 +36,8 @@ isPropEqual = (prop1, prop2) ->
 
 # Compares that the split combines are the same ignoring the bucket filters
 isSplitCombineEqual = (splitCombine1, splitCombine2, compareSegmentFilter = false) ->
-  return split1.isEqual(split2, compareSegmentFilter) and splitCombine1.combine.isEqual(splitCombine2.combine)
+  return splitCombine1.split.isEqual(splitCombine2.split, compareSegmentFilter) and
+         splitCombine1.combine.isEqual(splitCombine2.combine)
 
 equalApplyLists = (applyList1, applyList2) ->
   return applyList1.length is applyList2.length and applyList1.every((apply1, i) -> apply1.isEqual(applyList2[i]))

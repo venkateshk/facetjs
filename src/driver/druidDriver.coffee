@@ -348,7 +348,7 @@ class DruidQueryBuilder
               }
               options = apply.options or {}
               aggregation.lowerLimit = options.druidLowerLimit if options.druidLowerLimit?
-              aggregation.lowerUpper = options.druidUpperLimit if options.druidUpperLimit?
+              aggregation.upperLimit = options.druidUpperLimit if options.druidUpperLimit?
               aggregation.resolution = options.druidResolution if options.druidResolution
               histogramAggregationName = @addAggregation(aggregation)
               postAggregation = {
@@ -459,7 +459,7 @@ class DruidQueryBuilder
             }
             options = apply.options or {}
             aggregation.lowerLimit = options.druidLowerLimit if options.druidLowerLimit?
-            aggregation.lowerUpper = options.druidUpperLimit if options.druidUpperLimit?
+            aggregation.upperLimit = options.druidUpperLimit if options.druidUpperLimit?
             aggregation.resolution = options.druidResolution if options.druidResolution
             histogramAggregationName = @addAggregation(aggregation)
             postAggregation = {

@@ -3,4 +3,5 @@ node_modules/
 scratch/
 data/wiki/
 build/
+coverage/
 copy

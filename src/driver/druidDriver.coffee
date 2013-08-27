@@ -348,7 +348,7 @@ class DruidQueryBuilder
               }
               options = apply.options or {}
               aggregation.lowerLimit = options.druidLowerLimit if options.druidLowerLimit?
-              aggregation.lowerUpper = options.druidLowerUpper if options.druidLowerUpper?
+              aggregation.lowerUpper = options.druidUpperLimit if options.druidUpperLimit?
               aggregation.resolution = options.druidResolution if options.druidResolution
               histogramAggregationName = @addAggregation(aggregation)
               postAggregation = {
@@ -459,7 +459,7 @@ class DruidQueryBuilder
             }
             options = apply.options or {}
             aggregation.lowerLimit = options.druidLowerLimit if options.druidLowerLimit?
-            aggregation.lowerUpper = options.druidLowerUpper if options.druidLowerUpper?
+            aggregation.lowerUpper = options.druidUpperLimit if options.druidUpperLimit?
             aggregation.resolution = options.druidResolution if options.druidResolution
             histogramAggregationName = @addAggregation(aggregation)
             postAggregation = {
@@ -614,6 +614,10 @@ emptySingletonDruidResult = (result) ->
   return result.length is 0 or result[0].result.length is 0
 
 druidQueryFns = {
+  timeBoundry: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate, priority}, callback) ->
+    callback(new Error("timeBoundry is not implemented (yet)"))
+    return
+
   all: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate, priority}, callback) ->
     if condensedCommand.applies.length is 0
       callback(null, [{}])
@@ -1081,24 +1085,29 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
           when 'identity'
             if approximate
               if condensedCommand.combine.limit?
-                queryFn = druidQueryFns.topN
+                queryFnName = 'topN'
               else
-                queryFn = druidQueryFns.allData
+                queryFnName = 'allData'
             else
-              queryFn = druidQueryFns.groupBy
+              queryFnName = 'groupBy'
           when 'timeDuration', 'timePeriod'
-            queryFn = druidQueryFns.timeseries
+            queryFnName = 'timeseries'
           when 'continuous'
-            queryFn = druidQueryFns.histogram
+            queryFnName = 'histogram'
           when 'tuple'
             if approximate and condensedCommand.split.splits.length is 2
-              queryFn = druidQueryFns.heatmap
+              queryFnName = 'heatmap'
             else
-              queryFn = druidQueryFns.groupBy
+              queryFnName = 'groupBy'
           else
-            callback({ message: 'unsupported query' }); return
+            callback({ message: 'unsupported split bucket' }); return
       else
-        queryFn = druidQueryFns.all
+        if condensedCommand.applies.some((apply) -> apply.attribute is timeAttribute and apply.aggregate in ['min', 'max'])
+          queryFnName = 'timeBoundry'
+        else
+          queryFnName = 'all'
+
+      queryFn = druidQueryFns[queryFnName]
 
       queryForSegment = (parentSegment, callback) ->
         queriesMade++

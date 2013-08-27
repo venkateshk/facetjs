@@ -39,6 +39,13 @@ describe "apply", ->
 
 
   describe "preserves", ->
+    it "count", ->
+      applySpec = {
+        name: "Count"
+        aggregate: 'count'
+      }
+      expect(FacetApply.fromSpec(applySpec).valueOf()).to.deep.equal(applySpec)
+
     it "quantile", ->
       applySpec = {
         name: "p99"

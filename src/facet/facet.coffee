@@ -50,13 +50,33 @@ class FacetJob
     @knownProps = {}
     @hasTransformed = false
 
+  _ensureCommandOrder: (self, follow, allow = []) ->
+    i = @ops.length - 1
+    while i >= 0
+      op = @ops[i]
+      return if op.operation in follow
+      if op.operation not in allow
+        throw new Error("#{self} can not follow #{op.operation} (has to follow #{follow.join(', ')})")
+      i--
+    if null not in follow
+      throw new Error("#{self} can not be an initial command (has to follow #{follow.join(', ')})")
+    return
+
   filter: (filter) ->
+    @_ensureCommandOrder('filter'
+      [null]
+      ['transform']
+    )
     filter = _.clone(filter)
     filter.operation = 'filter'
     @ops.push(filter)
     return this
 
   split: (name, split) ->
+    @_ensureCommandOrder('split'
+      [null, 'filter', 'split', 'apply', 'combine']
+      ['layout', 'scale', 'domain', 'range', 'transform', 'untransform', 'plot', 'connector', 'connect']
+    )
     split = _.clone(split)
     split.operation = 'split'
     split.name = name
@@ -66,6 +86,9 @@ class FacetJob
     return this
 
   apply: (name, apply) ->
+    @_ensureCommandOrder('apply'
+      [null, 'split', 'apply']
+    )
     apply = _.clone(apply)
     apply.operation = 'apply'
     apply.name = name
@@ -74,6 +97,9 @@ class FacetJob
     return this
 
   combine: ({method, sort, limit}) ->
+    @_ensureCommandOrder('combine'
+      ['split', 'apply']
+    )
     combineCmd = {
       operation: 'combine'
       method
@@ -91,8 +117,10 @@ class FacetJob
     return this
 
   layout: (layout) ->
-    if not @ops[@ops.length - 1]?.operation is 'combine'
-      throw new Error("`layout` must follow `combine` before calling layout")
+    @_ensureCommandOrder('layout'
+      ['split', 'apply', 'combine']
+      ['domain']
+    )
     throw new TypeError("layout must be a function") unless typeof layout is 'function'
     @ops.push({
       operation: 'layout'
@@ -139,7 +167,6 @@ class FacetJob
       operation: 'untransform'
     })
     return this
-
 
   plot: (plot) ->
     throw new TypeError("plot must be a function") unless typeof plot is 'function'

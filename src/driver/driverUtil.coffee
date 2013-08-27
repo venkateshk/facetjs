@@ -82,7 +82,8 @@ exports.createTabular = createTabular = (node, rangeFn) ->
   return createTabularHelper(node, rangeFn, {})
 
 class exports.Table
-  constructor: ({root, @query}) ->
+  constructor: ({root, query}) ->
+    @query = query.valueOf()
     @columns = createColumns(@query)
     # console.log root
     # console.log createTabular(root)

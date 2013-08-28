@@ -277,7 +277,12 @@ module.exports = ({transport, onData}) ->
         delete newQueryTail[0].segmentFilter
 
         newFilterSpec = new AndFilter([newFilter].concat(
-          addedPath.map((addedPart, i) -> newSplitCombines[i].split.getFilterFor(addedPart))
+          addedPath.map((addedPart, i) ->
+            splitOp = newSplitCombines[i].split
+            fakeProp = {}
+            fakeProp[splitOp.name] = addedPart
+            return splitOp.getFilterFor(fakeProp)
+          )
         )).valueOf()
         newFilterSpec.operation = 'filter'
         addQuery = [

@@ -188,6 +188,52 @@ describe "query", ->
       ]
       expect(new FacetQuery(querySpec).valueOf()).to.deep.equal(querySpec)
 
+    it "heatmap query", ->
+      querySpec = [
+        {
+          "type": "within",
+          "attribute": "timestamp",
+          "range": [
+            new Date("2013-08-22T00:00:00.000Z"),
+            new Date("2013-08-29T00:00:00.000Z")
+          ],
+          "operation": "filter"
+        },
+        {
+          "bucket": "tuple",
+          "splits": [
+            {
+              "bucket": "identity",
+              "name": "user",
+              "attribute": "user"
+            },
+            {
+              "bucket": "identity",
+              "name": "language",
+              "attribute": "language"
+            }
+          ],
+          "operation": "split"
+        },
+        {
+          "name": "count",
+          "aggregate": "sum",
+          "attribute": "count",
+          "operation": "apply"
+        },
+        {
+          "method": "matrix",
+          "sort": {
+            "compare": "natural",
+            "prop": "count",
+            "direction": "descending"
+          },
+          "limits": [20, 20],
+          "operation": "combine"
+        }
+      ]
+      expect(new FacetQuery(querySpec).valueOf()).to.deep.equal(querySpec)
+
 
   describe "errors", ->
 

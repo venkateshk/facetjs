@@ -28,7 +28,6 @@ class FacetQuery
 
           when 'split'
             facetSplit = FacetSplit.fromSpec(command)
-            throw new Error("base split must have a name") unless facetSplit.name
             @groups.push {
               split: facetSplit
               applies: []

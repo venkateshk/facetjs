@@ -61,19 +61,21 @@ class IdentitySplit extends FacetSplit
     split.attribute = @attribute
     return split
 
-  getFilterFor: (propValue) ->
+  getFilterFor: (prop) ->
     return new IsFilter({
       attribute: @attribute
-      value: propValue
+      value: prop[@name]
     })
 
 
 class ContinuousSplit extends FacetSplit
-  constructor: ({name, @bucket, @attribute, @size, @offset, segmentFilter, options}) ->
+  constructor: ({name, @bucket, @attribute, @size, @offset, lowerLimit, upperLimit, segmentFilter, options}) ->
     @name = name if name
     @segmentFilter = FacetSegmentFilter.fromSpec(segmentFilter) if segmentFilter
     @options = new FacetOptions(options) if options
     @offset ?= 0
+    @lowerLimit = lowerLimit if lowerLimit?
+    @upperLimit = upperLimit if upperLimit?
     throw new TypeError("size must be a number") unless typeof @size is 'number'
     throw new Error("size must be positive (is: #{@size})") unless @size > 0
     throw new TypeError("offset must be a number") unless typeof @offset is 'number'
@@ -89,12 +91,14 @@ class ContinuousSplit extends FacetSplit
     split.attribute = @attribute
     split.size = @size
     split.offset = @offset
+    split.lowerLimit = @lowerLimit if @lowerLimit?
+    split.upperLimit = @upperLimit if @upperLimit?
     return split
 
-  getFilterFor: (propValue) ->
+  getFilterFor: (prop) ->
     return new WithinFilter({
       attribute: @attribute
-      range: propValue
+      range: prop[@name]
     })
 
   isEqual: (other, compareSegmentFilter) ->
@@ -124,10 +128,10 @@ class TimeDurationSplit extends FacetSplit
     split.offset = @offset
     return split
 
-  getFilterFor: (propValue) ->
+  getFilterFor: (prop) ->
     return new WithinFilter({
       attribute: @attribute
-      range: propValue
+      range: prop[@name]
     })
 
   isEqual: (other, compareSegmentFilter) ->
@@ -157,10 +161,10 @@ class TimePeriodSplit extends FacetSplit
     split.timezone = @timezone
     return split
 
-  getFilterFor: (propValue) ->
+  getFilterFor: (prop) ->
     return new WithinFilter({
       attribute: @attribute
-      range: propValue
+      range: prop[@name]
     })
 
   isEqual: (other, compareSegmentFilter) ->
@@ -189,9 +193,8 @@ class TupleSplit extends FacetSplit
     split.splits = @splits.map(getValueOf)
     return split
 
-  getFilterFor: (propValues...) ->
-    throw new Error("bad number of values") if propValues.length isnt @splits.length
-    return new AndFilter(@splits.map(split, i) -> split.getFilterFor(propValues[i]))
+  getFilterFor: (prop) ->
+    return new AndFilter(@splits.map((split) -> split.getFilterFor(prop)))
 
   isEqual: (other, compareSegmentFilter) ->
     otherSplits = other.splits

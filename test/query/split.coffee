@@ -55,6 +55,8 @@ describe "split", ->
         attribute: 'bid_hist'
         size: 5
         offset: 1
+        lowerLimit: 0
+        upperLimit: 100
         options: {
           druidResolution: 200
         }
@@ -93,10 +95,10 @@ describe "split", ->
   describe "getFilterFor", ->
     it "identity", ->
       expect(FacetSplit.fromSpec({
-        name: "something"
+        name: "Something"
         bucket: "identity"
         attribute: "country"
-      }).getFilterFor("UK").valueOf()).to.deep.equal({
+      }).getFilterFor({ "Something": "UK" }).valueOf()).to.deep.equal({
         type: "is"
         attribute: "country"
         value: "UK"

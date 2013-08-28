@@ -152,7 +152,7 @@ class SQLQueryBuilder
       when 'tuple'
         parts = split.splits.map(@splitToSQL, this)
         return {
-          selectPart: "#{parts.map((part) -> part.selectPart).join(', ')} AS \"#{split.name}\""
+          selectPart:  parts.map((part) -> part.selectPart).join(', ')
           groupByPart: parts.map((part) -> part.groupByPart).join(', ')
         }
 
@@ -231,31 +231,40 @@ class SQLQueryBuilder
     descending: 'DESC'
   }
 
+  addSort: (sort) ->
+    return unless sort
+    sqlDirection = @directionMap[sort.direction]
+    switch sort.compare
+      when 'natural'
+        @orderByPart = "ORDER BY #{@escapeAttribute(sort.prop)}"
+
+        # if @split?.bucket is 'identity'
+        #   @orderByPart += " COLLATE utf8_bin"
+
+        @orderByPart += " #{sqlDirection}"
+
+      when 'caseInsensetive'
+        throw new Error("not implemented yet (ToDo)")
+
+      else
+        throw new Error("compare '#{sort.compare}' unsupported by driver")
+
   addCombine: (combine) ->
     throw new TypeError("combine must be a FacetCombine") unless combine instanceof FacetCombine
     switch combine.method
       when 'slice'
         sort = combine.sort
-        if sort
-          sqlDirection = @directionMap[sort.direction]
-          switch sort.compare
-            when 'natural'
-              @orderByPart = "ORDER BY #{@escapeAttribute(sort.prop)}"
-
-              # if @split?.bucket is 'identity'
-              #   @orderByPart += " COLLATE utf8_bin"
-
-              @orderByPart += " #{sqlDirection}"
-
-            when 'caseInsensetive'
-              throw new Error("not implemented yet (ToDo)")
-
-            else
-              throw new Error("compare '#{sort.compare}' unsupported by driver")
+        @addSort(sort) if sort
 
         limit = combine.limit
         if limit?
           @limitPart = "LIMIT #{limit}"
+
+      when 'matrix'
+        sort = combine.sort
+        @addSort(sort) if sort
+
+        # ToDo: address limits
 
       else
         throw new Error("method '#{combine.method}' unsupported by driver")
@@ -340,7 +349,7 @@ condensedQueryToSQL = ({requester, table, filter, condensedQuery}, callback) ->
 
       splits = ds.map (prop) -> {
         prop
-        _filter: andFilters(filter, condensedQuery.split.getFilterFor(prop[splitProp]))
+        _filter: andFilters(filter, condensedQuery.split.getFilterFor(prop))
       }
     else
       splits = ds.map (prop) -> {

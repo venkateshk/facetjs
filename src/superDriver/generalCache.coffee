@@ -91,7 +91,7 @@ class FilterCache
     if node.splits?
       splitOp = condensedQuery[level + 1].split
       for split in node.splits
-        newFilter = andFilters(filter, splitOp.getFilterFor(split.prop[splitOp.name]))
+        newFilter = andFilters(filter, splitOp.getFilterFor(split.prop))
         @_filterPutHelper(condensedQuery, split, newFilter, level + 1)
     return
 
@@ -132,7 +132,7 @@ class SplitCache
 
     if condensedQuery[level + 2]?
       for split in node.splits
-        newFilter = andFilters(filter, splitOp.getFilterFor(split.prop[splitOpName]))
+        newFilter = andFilters(filter, splitOp.getFilterFor(split.prop))
         @_splitPutHelper(newFilter, condensedQuery, split, level + 1)
     return
 
@@ -272,7 +272,9 @@ module.exports = ({driver, timeAttribute}) ->
     splits = []
 
     for value in cachedValues
-      newFilter = andFilters(filter, splitOp.getFilterFor(value))
+      fakeProp = {}
+      fakeProp[splitOp.name] = value
+      newFilter = andFilters(filter, splitOp.getFilterFor(fakeProp))
       ret = getKnownTreeHelper(newFilter, condensedQuery, level + 1, value)
       ret.prop[splitOp.name] = value
       splits.push ret

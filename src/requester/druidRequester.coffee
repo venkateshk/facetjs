@@ -1,6 +1,6 @@
 http = require('http')
 
-module.exports = ({host, port}) ->
+module.exports = ({host, port, timeout}) ->
   return ({context, query}, callback) ->
     path = '/druid/v2/'
     if query.queryType is 'heatmap'
@@ -61,6 +61,11 @@ module.exports = ({host, port}) ->
         return
       return
     )
+
+    if timeout
+      req.on 'socket', (socket) ->
+        socket.setTimeout(timeout)
+        socket.on 'timeout', -> req.abort()
 
     req.on 'error', (e) ->
       callback(e)

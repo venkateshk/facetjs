@@ -457,3 +457,42 @@ describe "Wikipedia dataset", ->
         }
       ]
     }
+
+  describe "split anonymous x robot; apply sum(count)", ->
+    it "should have the same results for different drivers", testEquality {
+      drivers: ['mySql', 'druid']
+      query: [
+        {
+          "bucket": "tuple",
+          "splits": [
+            {
+              "bucket": "identity",
+              "name": "anonymous",
+              "attribute": "anonymous"
+            },
+            {
+              "bucket": "identity",
+              "name": "robot",
+              "attribute": "robot"
+            }
+          ],
+          "operation": "split"
+        },
+        {
+          "name": "count",
+          "aggregate": "sum",
+          "attribute": "count",
+          "operation": "apply"
+        },
+        {
+          "method": "matrix",
+          "sort": {
+            "compare": "natural",
+            "prop": "count",
+            "direction": "descending"
+          },
+          "limits": [20, 20],
+          "operation": "combine"
+        }
+      ]
+    }

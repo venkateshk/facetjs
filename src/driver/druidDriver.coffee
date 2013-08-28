@@ -1148,7 +1148,7 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
                 return {
                   parent: parentSegment
                   prop
-                  _filter: andFilters(parentSegment._filter, condensedCommand.split.getFilterFor(prop[condensedCommand.split.name]))
+                  _filter: andFilters(parentSegment._filter, condensedCommand.split.getFilterFor(prop))
                 }
 
             parentSegment.splits = splits = props.map(propToSplit)

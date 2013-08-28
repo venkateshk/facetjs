@@ -1,0 +1,5 @@
+#!/bin/bash
+istanbul cover \
+  -x **/data/** \
+  -x **/utils/** \
+  _mocha -- --compilers coffee:coffee-script --reporter progress test/*/*

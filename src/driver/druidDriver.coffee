@@ -698,43 +698,35 @@ druidQueryFns = {
 
       timePropName = condensedCommand.split.name
 
+      period = periodMap[condensedCommand.split.period]
+      periodAndThenSome = period * 1.5
+      props = ds.map (d, i) ->
+        rangeStart = new Date(d.timestamp)
+        next = ds[i + 1]
+        next = new Date(next.timestamp) if next
+
+        if next and rangeStart < next and next - rangeStart < periodAndThenSome
+          rangeEnd = next
+        else
+          rangeEnd = new Date(rangeStart.valueOf() + period)
+
+        prop = d.result
+        prop[timePropName] = [rangeStart, rangeEnd]
+        return prop
+
       if condensedCommand.combine
         if condensedCommand.combine.sort
           if condensedCommand.combine.sort.prop is timePropName
             if condensedCommand.combine.sort.direction is 'descending'
-              ds.reverse()
+              props.reverse()
           else
             comapreFn = compareFns[condensedCommand.combine.sort.direction]
             sortProp = condensedCommand.combine.sort.prop
-            ds.sort((a, b) -> comapreFn(a.result[sortProp], b.result[sortProp]))
+            props.sort((a, b) -> comapreFn(a[sortProp], b[sortProp]))
 
         if condensedCommand.combine.limit?
           limit = condensedCommand.combine.limit
-          driverUtil.inPlaceTrim(ds, limit)
-
-      period = periodMap[condensedCommand.split.period]
-      props = ds.map (d) ->
-        rangeStart = new Date(d.timestamp)
-        range = [rangeStart, new Date(rangeStart.valueOf() + period)]
-        prop = d.result
-        prop[timePropName] = range
-        return prop
-
-      # Total Hack!
-      # Trim down the 0s from the end in an ascending timeseries
-      # Remove this when druid pushes the new code live.
-      interestingApplies = condensedCommand.applies.filter ({aggregate}) -> aggregate not in ['min', 'max']
-      if condensedCommand.combine.sort.direction is 'ascending' and interestingApplies.length
-        while props.length
-          lastProp = props[props.length - 1]
-          allZero = true
-          for apply in interestingApplies
-            allZero = allZero and lastProp[apply.name] is 0
-          if allZero
-            props.pop()
-          else
-            break
-      #/ Hack
+          driverUtil.inPlaceTrim(props, limit)
 
       callback(null, if props.length then props else null)
       return

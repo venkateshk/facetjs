@@ -44,8 +44,8 @@ equalApplyLists = (applyList1, applyList2) ->
 
 # Computes the diff between sup & sub assumes that sup and sub are either atomic or an AND of atomic filters
 filterDiff = (sup, sub) ->
-  sup = (if not sup then [] else if sup.type is 'and' then sup.filters else [sup])
-  sub = (if not sub then [] else if sub.type is 'and' then sub.filters else [sub])
+  sup = (if sup.type is 'true' then [] else if sup.type is 'and' then sup.filters else [sup])
+  sub = (if sub.type is 'true' then [] else if sub.type is 'and' then sub.filters else [sub])
   throw new Error('sup can not be or have OR types') if sup.some(({type}) -> type is 'or')
   throw new Error('sub can not be or have OR types') if sub.some(({type}) -> type is 'or')
 
@@ -196,10 +196,12 @@ module.exports = ({transport, onData}) ->
         makeFullQuery(newQuery)
         return
 
+      propsToRemove = []
       splitIdx = 0
       myDataRef = myData
       while splitIdx < splitCombineOffset
         mySplit = mySplitCombines[splitIdx].split
+        propsToRemove.push(mySplit.name)
         splitFilter = find(diff, (d) -> d.type is 'is' and d.attribute is mySplit.attribute)
         if not splitFilter
           driverLog 'filter change does not make sense, give up'
@@ -218,6 +220,8 @@ module.exports = ({transport, onData}) ->
       myQuery = newQuery
       myData = myDataRef
       myData.parent = null
+      for p in propsToRemove
+        delete myData.prop[p]
       driverLog 'win, subtree filter :-)'
       myOnData(myData, 'final')
 
@@ -245,7 +249,31 @@ module.exports = ({transport, onData}) ->
       driverLog 'win, added empty split :-)'
       myOnData(myData, 'final')
 
-    else if mySplitCombines.length is newSplitCombines.length and diff.length is 0
+    else if diff.length is 0 and mySplitCombines.length > newSplitCombines.length
+      # Check that the split-combines align up
+      i = 0
+      while i < newSplitCombines.length
+        mySplitCombine = mySplitCombines[i]
+        newSplitCombine = newSplitCombines[i]
+        if not isSplitCombineEqual(mySplitCombine, newSplitCombine, true)
+          driverLog 'initial splits are different, give up'
+          makeFullQuery(newQuery)
+          return
+        i++
+
+      while i < mySplitCombines.length
+        splitBucketFilter = mySplitCombines[i].split.segmentFilter
+        if splitBucketFilter?.type isnt 'false'
+          driverLog 'final split(s) not empty, give up (but keep the current data)'
+          makeFullQuery(newQuery, true)
+          return
+        i++
+
+      myQuery = newQuery
+      driverLog 'win, removed empty split :-)'
+      myOnData(myData, 'final')
+
+    else if diff.length is 0 and mySplitCombines.length is newSplitCombines.length
       # Check that the split-combines align up
       if not mySplitCombines.every((mySplitCombine, i) -> isSplitCombineEqual(mySplitCombine, newSplitCombines[i]))
         myOnData(null, 'intermediate')
@@ -263,13 +291,10 @@ module.exports = ({transport, onData}) ->
 
       myQuery = newQuery
 
-      if added.length
-        throw new Error("must be 1 for now") if added.length isnt 1
+      throw new Error("must add one at a time for now") if added.length > 1
+
+      if added.length and attachSplit = findInData(myData, added[0], newSplitCombines)
         addedPath = added[0]
-
-        attachSplit = findInData(myData, addedPath, newSplitCombines)
-        throw new Error("Something went wrong") unless attachSplit
-
         newQueryValue = newQuery.valueOf()
         splitName = newSplitCombines[addedPath.length].split.name
         splitSpec = find(newQueryValue, ({name}) -> name is splitName)
@@ -283,7 +308,7 @@ module.exports = ({transport, onData}) ->
             fakeProp[splitOp.name] = addedPart
             return splitOp.getFilterFor(fakeProp)
           )
-        )).valueOf()
+        )).simplify().valueOf()
         newFilterSpec.operation = 'filter'
         addQuery = [
           newFilterSpec

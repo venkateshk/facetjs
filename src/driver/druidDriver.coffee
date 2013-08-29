@@ -615,7 +615,38 @@ emptySingletonDruidResult = (result) ->
 
 druidQueryFns = {
   timeBoundry: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate, priority}, callback) ->
-    callback(new Error("timeBoundry is not implemented (yet)"))
+    if not condensedCommand.applies.every((apply) -> apply.attribute is timeAttribute and apply.aggregate in ['min', 'max'])
+      callback(new Error("can not mix and match min / max time with other aggregates (for now)"))
+      return
+
+    queryObj = {
+      queryType: "timeBoundary"
+      dataSource
+    }
+
+    requester {query: queryObj}, (err, ds) ->
+      if err
+        callback({
+          message: err
+          query: queryObj
+        })
+        return
+
+      if not correctSingletonDruidResult(ds)
+        callback({
+          message: "unexpected result from Druid (timeBoundry)"
+          query: queryObj
+          result: ds
+        })
+        return
+
+      prop = {}
+      for {name, aggregate} in condensedCommand.applies
+        prop[name] = new Date(ds[0].result[aggregate + 'Time'])
+
+      callback(null, [prop])
+      return
+
     return
 
   all: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate, priority}, callback) ->

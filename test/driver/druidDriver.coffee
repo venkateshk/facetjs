@@ -186,3 +186,13 @@ describe "Druid driver", ->
         expect(res.prop.Max).to.be.an.instanceof(Date)
         done()
 
+    it "should complain if min/max time is mixed with other applies", (done) ->
+      query = new FacetQuery([
+        { operation: 'apply', name: 'Min', aggregate: 'min', attribute: 'time' }
+        { operation: 'apply', name: 'Max', aggregate: 'max', attribute: 'time' }
+        { operation: 'apply', name: 'Count', aggregate: 'count' }
+      ])
+      driver {query}, (err, res) ->
+        expect(err).to.not.equal(null)
+        expect(err.message).to.equal("can not mix and match min / max time with other aggregates (for now)")
+        done()

@@ -66,7 +66,7 @@ describe "Wikipedia dataset", ->
 
   describe "apply count", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['mySql', 'druid']
+      drivers: ['druid', 'mySql']
       query: [
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
         { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
@@ -75,7 +75,7 @@ describe "Wikipedia dataset", ->
 
   describe "filter is; apply count", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['mySql', 'druid']
+      drivers: ['druid', 'mySql']
       query: [
         { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
@@ -85,7 +85,7 @@ describe "Wikipedia dataset", ->
 
   describe "filter contains; apply count", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['mySql', 'druid']
+      drivers: ['druid', 'mySql']
       query: [
         { operation: 'filter', attribute: 'language', type: 'contains', value: 'e' }
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
@@ -95,7 +95,7 @@ describe "Wikipedia dataset", ->
 
   describe "filter match; apply count", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['mySql', 'druid']
+      drivers: ['druid', 'mySql']
       query: [
         { operation: 'filter', attribute: 'language', type: 'match', expression: 'e' }
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
@@ -105,7 +105,7 @@ describe "Wikipedia dataset", ->
 
   describe "apply arithmetic", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['mySql', 'druid']
+      drivers: ['druid', 'mySql']
       query: [
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
         {
@@ -132,7 +132,7 @@ describe "Wikipedia dataset", ->
 
   describe "split time; combine time", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['mySql', 'druid']
+      drivers: ['druid', 'mySql']
       query: [
         { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
         { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
@@ -141,16 +141,16 @@ describe "Wikipedia dataset", ->
 
   describe.skip "split page; combine page", ->  # The sorting here still does not match - ask FJ
     it "should have the same results for different drivers", testEquality {
-      drivers: ['mySql', 'druid']
+      drivers: ['druid', 'mySql']
       query: [
         { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
         { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Page', direction: 'ascending' }, limit: 20 }
       ]
     }
 
-  describe "split time; apply count", ->
+  describe "split time; apply count; combine ascending", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['mySql', 'druid']
+      drivers: ['druid', 'mySql']
       query: [
         { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
@@ -159,23 +159,34 @@ describe "Wikipedia dataset", ->
       ]
     }
 
-  describe "split time; apply count; sort Count descending", ->
+  describe "split time; apply count; combine descending", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['mySql', 'druid']
+      drivers: ['druid', 'mySql']
       query: [
         { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 3 }
+        { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'descending' } }
+      ]
+    }
+
+  describe "split time; apply count; sort Count descending", ->
+    it "should have the same results for different drivers", testEquality {
+      drivers: ['druid', 'mySql']
+      query: [
+        { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
+        { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 4 }
       ]
     }
 
   describe "split time; apply count; sort Count ascending", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['mySql', 'druid']
+      drivers: ['druid', 'mySql']
       query: [
         { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'ascending' }, limit: 3 }
+        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'ascending' }, limit: 4 }
       ]
     }
 
@@ -183,7 +194,7 @@ describe "Wikipedia dataset", ->
 
   describe "split page; apply count; sort count descending", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['mySql', 'druid']
+      drivers: ['druid', 'mySql']
       query: [
         { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
@@ -219,7 +230,7 @@ describe "Wikipedia dataset", ->
 
   describe.skip "split page; apply count; sort count ascending", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['mySql', 'druid']
+      drivers: ['druid', 'mySql']
       #verbose: true
       query: [
         {
@@ -240,7 +251,7 @@ describe "Wikipedia dataset", ->
 
   describe "split language; apply count; sort count descending > split page; apply count; sort count descending", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['mySql', 'druid']
+      drivers: ['druid', 'mySql']
       query: [
         { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
@@ -256,7 +267,7 @@ describe "Wikipedia dataset", ->
 
   describe "split language; apply count; sort count descending > split page (+filter); apply count; sort count descending", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['mySql', 'druid']
+      drivers: ['druid', 'mySql']
       query: [
         { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
@@ -279,7 +290,7 @@ describe "Wikipedia dataset", ->
 
   describe "split language; apply count; sort count descending > split page; apply count; sort count descending (filter bucket)", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['mySql', 'druid']
+      drivers: ['druid', 'mySql']
       query: [
         { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
@@ -301,7 +312,7 @@ describe "Wikipedia dataset", ->
 
   describe "split page; apply count; sort count ascending", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['mySql', 'druid']
+      drivers: ['druid', 'mySql']
       query: [
         { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
@@ -312,7 +323,7 @@ describe "Wikipedia dataset", ->
 
   describe.skip "filter a && ~a; apply count", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['mySql', 'druid']
+      drivers: ['druid', 'mySql']
       query: [
         {
           operation: 'filter'
@@ -328,7 +339,7 @@ describe "Wikipedia dataset", ->
 
   describe.skip "filter a && ~a; split page; apply count; sort count", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['mySql', 'druid']
+      drivers: ['druid', 'mySql']
       query: [
         {
           operation: 'filter'
@@ -346,7 +357,7 @@ describe "Wikipedia dataset", ->
 
   describe "filter language=en; split page; apply count; sort deleted ascending", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['mySql', 'druid']
+      drivers: ['druid', 'mySql']
       query: [
         { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
         { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
@@ -358,7 +369,7 @@ describe "Wikipedia dataset", ->
 
   describe "filter with nested ANDs", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['mySql', 'druid']
+      drivers: ['druid', 'mySql']
       query: [
         {
           operation: "filter",
@@ -389,7 +400,7 @@ describe "Wikipedia dataset", ->
   # Should work once druid with advanced JS aggregate is deployed
   describe "apply sum(count, robot=0), sum(added, robot=1)", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['mySql', 'druid']
+      drivers: ['druid', 'mySql']
       query: [
         {
           operation: "apply"
@@ -432,7 +443,7 @@ describe "Wikipedia dataset", ->
 
   describe "split page; apply sum(count, robot=0), sum(added, robot=1)", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['mySql', 'druid']
+      drivers: ['druid', 'mySql']
       query: [
         {
           operation: "split"
@@ -460,7 +471,7 @@ describe "Wikipedia dataset", ->
 
   describe "split anonymous x robot; apply sum(count)", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['mySql', 'druid']
+      drivers: ['druid', 'mySql']
       query: [
         {
           "bucket": "tuple",

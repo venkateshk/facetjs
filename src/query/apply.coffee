@@ -238,7 +238,7 @@ class AddApply extends FacetApply
     @_ensureArithmetic('add')
     @_verifyName()
 
-  toString: ->
+  toString: (from = 'add') ->
     expr = "#{@operands[0].toString(@arithmetic)} + #{@operands[1].toString(@arithmetic)}"
     expr = "(#{expr})" if from in ['divide', 'multiply']
     return @_addName(expr)
@@ -261,7 +261,7 @@ class SubtractApply extends FacetApply
     @_ensureArithmetic('subtract')
     @_verifyName()
 
-  toString: ->
+  toString: (from = 'add') ->
     expr = "#{@operands[0].toString(@arithmetic)} - #{@operands[1].toString(@arithmetic)}"
     expr = "(#{expr})" if from in ['divide', 'multiply']
     return @_addName(expr)
@@ -284,7 +284,7 @@ class MultiplyApply extends FacetApply
     @_ensureArithmetic('multiply')
     @_verifyName()
 
-  toString: ->
+  toString: (from = 'add') ->
     expr = "#{@operands[0].toString(@arithmetic)} * #{@operands[1].toString(@arithmetic)}"
     expr = "(#{expr})" if from is 'divide'
     return @_addName(expr)

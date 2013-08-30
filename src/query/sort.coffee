@@ -24,7 +24,8 @@ class FacetSort
     return { compare: @compare, prop: @prop, direction: @direction }
 
   isEqual: (other) ->
-    return @compare is other.compare and
+    return other and
+           @compare is other.compare and
            @prop is other.prop and
            @direction is other.direction
 

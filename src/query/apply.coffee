@@ -41,7 +41,8 @@ class FacetApply
     return apply
 
   isEqual: (other) ->
-    return @aggregate is other.aggregate and
+    return other and
+           @aggregate is other.aggregate and
            @arithmetic is other.arithmetic and
            @attribute is other.attribute and
            Boolean(@filter) is Boolean(other.filter) and

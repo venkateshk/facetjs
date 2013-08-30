@@ -32,7 +32,8 @@ class FacetSplit
     return split
 
   isEqual: (other, compareSegmentFilter) ->
-    return @bucket is other.bucket and
+    return other and
+           @bucket is other.bucket and
            @attribute is other.attribute and
            Boolean(@options) is Boolean(other.options) and
            (not @options or @options.isEqual(other.options)) and
@@ -102,7 +103,7 @@ class ContinuousSplit extends FacetSplit
     })
 
   isEqual: (other, compareSegmentFilter) ->
-    return super() and @size is other.size and @offset is other.offset
+    return super and @size is other.size and @offset is other.offset
 
 
 
@@ -135,7 +136,7 @@ class TimeDurationSplit extends FacetSplit
     })
 
   isEqual: (other, compareSegmentFilter) ->
-    return super() and @duration is other.duration and @offset is other.offset
+    return super and @duration is other.duration and @offset is other.offset
 
 
 
@@ -168,7 +169,7 @@ class TimePeriodSplit extends FacetSplit
     })
 
   isEqual: (other, compareSegmentFilter) ->
-    return super() and @period is other.period and @timezone is other.timezone
+    return super and @period is other.period and @timezone is other.timezone
 
 
 
@@ -198,7 +199,7 @@ class TupleSplit extends FacetSplit
 
   isEqual: (other, compareSegmentFilter) ->
     otherSplits = other.splits
-    return super() and @splits.length is otherSplits.length and @splits.every((split, i) -> split.isEqual(otherSplits[i], true))
+    return super and @splits.length is otherSplits.length and @splits.every((split, i) -> split.isEqual(otherSplits[i], true))
 
 
 

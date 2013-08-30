@@ -73,6 +73,19 @@ describe "split", ->
       }
       expect(FacetSplit.fromSpec(splitSpec).valueOf()).to.deep.equal(splitSpec)
 
+    it "timePeriod with segmentFilter", ->
+      splitSpec = {
+        attribute: "timestamp"
+        bucket: "timePeriod"
+        name: "time_hour"
+        period: "PT1H"
+        timezone: "Etc/UTC"
+        segmentFilter: {
+          type: 'false'
+        }
+      }
+      expect(FacetSplit.fromSpec(splitSpec).valueOf()).to.deep.equal(splitSpec)
+
     it "tuple", ->
       splitSpec = {
         bucket: 'tuple'

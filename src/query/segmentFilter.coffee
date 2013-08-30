@@ -20,7 +20,7 @@ class FacetSegmentFilter
       throw new TypeError("prop must be a string")
 
   valueOf: ->
-    return @spec
+    return { type: @type }
 
   isEqual: (other) ->
     return other and @type is other.type and @prop is other.prop

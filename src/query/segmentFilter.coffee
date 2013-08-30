@@ -23,7 +23,7 @@ class FacetSegmentFilter
     return @spec
 
   isEqual: (other) ->
-    return @type is other.type and @prop is other.prop
+    return other and @type is other.type and @prop is other.prop
 
 
 

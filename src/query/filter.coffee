@@ -48,7 +48,7 @@ class FacetFilter
     return { type: @type }
 
   isEqual: (other) ->
-    return @type is other.type and @attribute is other.attribute
+    return other and @type is other.type and @attribute is other.attribute
 
   # Reduces a filter into a (potentially) simpler form the input is never modified
   # Specifically this function:

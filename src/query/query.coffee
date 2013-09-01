@@ -7,12 +7,6 @@ class FacetQuery
       combine: null
     }]
     if Array.isArray(commands)
-      commands = commands.slice()
-      if commands[0].operation is 'filter'
-        @filter = FacetFilter.fromSpec(commands.shift())
-      else
-        @filter = new TrueFilter()
-
       # Group the queries steps in to the logical queries that will need to be done
       # @groups = [
       #   {
@@ -22,7 +16,11 @@ class FacetQuery
       #   }
       #   ...
       # ]
-      for command in commands
+      for command, i in commands
+        if i is 0 and command.operation is 'filter'
+          @filter = FacetFilter.fromSpec(command)
+          continue
+
         switch command.operation
           when 'filter' then throw new Error("filter not allowed here")
 
@@ -50,6 +48,8 @@ class FacetQuery
             throw new Error("operation not defined") unless command.hasOwnProperty('operation')
             throw new Error("invalid operation") unless typeof command.operation is 'string'
             throw new Error("unknown operation '#{command.operation}'")
+
+      @filter = new TrueFilter() unless @filter
     else
       throw new TypeError("query spec must be an array")
 

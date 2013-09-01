@@ -5,6 +5,10 @@ expect = chai.expect
 
 describe "query", ->
   describe "preserves", ->
+    it "empty", ->
+      querySpec = []
+      expect(new FacetQuery(querySpec).valueOf()).to.deep.equal(querySpec)
+
     it "simple", ->
       querySpec = [
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }

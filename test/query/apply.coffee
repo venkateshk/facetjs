@@ -147,6 +147,91 @@ describe "apply", ->
       }
       expect(FacetApply.fromSpec(applySpec).toString()).to.equal("lag <- sum(value) * sum(count) * 3600")
 
+  describe "isEqual", ->
+    it "returns false for other types", ->
+      expect(FacetApply.fromSpec({aggregate: 'count'}).isEqual(null)).to.be.false
+
+    it "each pair is only equal to itself", ->
+      applySpecs = [
+        {
+          aggregate: "count"
+        }
+        {
+          aggregate: "sum"
+          attribute: "count"
+        }
+        {
+          arithmetic: "multiply"
+          operands: [
+            {
+              aggregate: "max"
+              attribute: "value"
+            }
+            {
+              aggregate: "min"
+              attribute: "count"
+            }
+          ]
+        }
+        {
+          arithmetic: "divide"
+          operands: [
+            {
+              aggregate: "max"
+              attribute: "value"
+            }
+            {
+              aggregate: "min"
+              attribute: "count"
+            }
+          ]
+        }
+        {
+          arithmetic: "divide"
+          operands: [
+            {
+              aggregate: "sum"
+              attribute: "value"
+            }
+            {
+              aggregate: "sum"
+              attribute: "count"
+            }
+          ]
+        }
+        {
+          arithmetic: "divide"
+          operands: [
+            {
+              arithmetic: "divide"
+              operands: [
+                {
+                  aggregate: "sum"
+                  attribute: "value"
+                }
+                {
+                  aggregate: "sum"
+                  attribute: "count"
+                }
+              ]
+            }
+            {
+              aggregate: "constant"
+              value: 3600
+            }
+          ]
+        }
+      ]
+      for applySpec1, i in applySpecs
+        for applySpec2, j in applySpecs
+          try
+            expect(FacetApply.fromSpec(applySpec1).isEqual(FacetApply.fromSpec(applySpec2))).to.equal(i is j)
+          catch e
+            console.log 'applySpec1', applySpec1
+            console.log 'applySpec2', applySpec2
+            console.log 'res', FacetApply.fromSpec(applySpec1).isEqual(FacetApply.fromSpec(applySpec2))
+            throw new Error("expected apply to be #{if i is j then 'equal' else 'unequal'}")
+
 
 
 

@@ -32,7 +32,7 @@ class FacetSplit
     return split
 
   isEqual: (other, compareSegmentFilter) ->
-    return other and
+    return Boolean(other) and
            @bucket is other.bucket and
            @attribute is other.attribute and
            Boolean(@options) is Boolean(other.options) and

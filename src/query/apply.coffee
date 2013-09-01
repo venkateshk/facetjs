@@ -41,7 +41,7 @@ class FacetApply
     return apply
 
   isEqual: (other) ->
-    return other and
+    return Boolean(other) and
            @aggregate is other.aggregate and
            @arithmetic is other.arithmetic and
            @attribute is other.attribute and
@@ -249,6 +249,9 @@ class AddApply extends FacetApply
     apply.operands = @operands.map(getValueOf)
     return apply
 
+  isEqual: (other) ->
+    return super and @operands.every((op, i) -> op.isEqual(other.operands[i]))
+
   isAdditive: ->
     return @operands[0].isAdditive() and @operands[1].isAdditive()
 
@@ -272,6 +275,9 @@ class SubtractApply extends FacetApply
     apply.operands = @operands.map(getValueOf)
     return apply
 
+  isEqual: (other) ->
+    return super and @operands.every((op, i) -> op.isEqual(other.operands[i]))
+
   isAdditive: ->
     return @operands[0].isAdditive() and @operands[1].isAdditive()
 
@@ -294,6 +300,9 @@ class MultiplyApply extends FacetApply
     apply.arithmetic = @arithmetic
     apply.operands = @operands.map(getValueOf)
     return apply
+
+  isEqual: (other) ->
+    return super and @operands.every((op, i) -> op.isEqual(other.operands[i]))
 
   isAdditive: ->
     return (
@@ -320,6 +329,9 @@ class DivideApply extends FacetApply
     apply.arithmetic = @arithmetic
     apply.operands = @operands.map(getValueOf)
     return apply
+
+  isEqual: (other) ->
+    return super and @operands.every((op, i) -> op.isEqual(other.operands[i]))
 
   isAdditive: ->
     return @operands[0].isAdditive() and @operands[1] instanceof ConstantApply

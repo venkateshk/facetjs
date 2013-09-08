@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" type="text/css" href="facet.css">
+    <script src="lib/underscore.js"></script>
+    <script src="lib/async.js"></script>
+    <script src="lib/d3.v3.js"></script>
+    <script src="lib/jquery-1.9.1.js"></script>
+    <script src="lib/date.js"></script>
+    <script src="lib/timezoneinfo.js"></script>
+    <script src="query.js"></script>
+    <script src="facet.js"></script>
+    <script src="driverUtil.js"></script>
+    <script src="simpleDriver.js"></script>
+    <script src="sqlDriver.js"></script>
+    <script src="druidDriver.js"></script>
+
+    <title>Facet Examples (0.2.1)</title>
+
+    <script>
+      // The basics
+      var filter = facet.filter;
+      var split = facet.split;
+      var apply = facet.apply;
+      var layout = facet.layout;
+      var scale = facet.scale;
+      var plot = facet.plot;
+      var use = facet.use;
+      var combine = facet.combine;
+      var sort = facet.sort;
+      var transform = facet.transform;
+    </script>
+  </head>
+
+  <body>
+
+    <div class="cont">
+      <h1>Diamonds By Clarity By Cut By Color</h1>
+      <h2>Simple Driver (JS) in Node / diamonds</h2>
+      <div class="example"></div>
+    </div>
+    <script>
+    (function() {
+      // {
+      //   "carat": "0.23",
+      //   "cut": "Ideal",
+      //   "color": "E",
+      //   "clarity": "SI2",
+      //   "depth": "61.5",
+      //   "table": "55",
+      //   "price": "326",
+      //   "x": "3.95",
+      //   "y": "3.98",
+      //   "z": "2.43"
+      // },
+
+      var simpleDriverNode = facet.ajaxPoster({
+        url: '/driver/simple',
+        context: { data: 'diamonds' },
+        prety: true
+      });
+
+      facet.define('.example', 800, 600, simpleDriverNode)
+        .transform(transform.rectangle.rectangle({ bottom: 20 })) // make a margin below
+        .scale('count', scale.linear()) // make a linear scale called count
+        .scale('color', scale.color()) // make a color scale called color
+          .split('Clarity', split.identity('clarity')) // split the data based on clarity
+          .apply('Count', apply.count()) // calculate the counts of each splits
+          .combine(combine.slice(sort.natural('Count'))) // sort the splits based on counts
+          .layout(layout.horizontal()) // facet the splits horizontally
+          .transform(transform.rectangle.point({ bottom: 0 })) // transform each facets to a point
+            .plot(plot.label({ // create a label (text) for the facets
+              text: use.fn(
+                use.prop('Clarity'),
+                function(clarity) { return clarity; }
+              ),
+              anchor: 'middle',
+              baseline: 'top'
+            }))
+          .untransform() // get out of a transformation
+            .split('Cut', split.identity('cut')) // split data further based on cut
+            .apply('Count', apply.count()) // calculate the counts of the 2-d splits
+            .combine(combine.slice(sort.natural('Count', 'descending'))) // sort the 2-d splits based on 2-d count
+            .domain('color', use.prop('Cut')) // set cut the domain of the scale 'count'
+            .layout(layout.vertical()) // facet the 2-d splits vertically
+              .split('Color', split.identity('color')) // split data further based on color
+              .apply('Count', apply.count()) // calculate count of the 3-d splits
+              .apply('AvgPrice', apply.average('price')) // calculate avp prices of the 3-d splits
+              .combine(combine.slice(sort.natural('Count', 'descending'))) // sort the 3-d splits based on count
+              .layout(layout.vertical()) // facet the 3-d splits vertically
+              .domain('count', use.prop('Count')) // set 3-d count the domain of the scale count
+              .range('count', use.stage('width')) // set 3-d facet's width the range of the scale count
+              .transform(transform.rectangle.rectangle({ // transform each facets to a rectangle
+                left: 0,
+                width: use.scale('count')
+              }))
+              .plot(plot.box({ // create a box insde the transformation
+                fill: '#f0f0f0',
+                stroke: use.scale('color')
+              }))
+              .untransform() // get out of a transformation
+              .transform(transform.rectangle.point()) // transform each facets to a point
+                .plot(plot.label({ // create a label inside the transformation
+                  text: use.fn(
+                    use.prop('Color'), use.prop('Count'),
+                    function(color, count) { return color + ' (count: ' + count + ")"; }
+                  ),
+                  color: use.scale('color'),
+                  anchor: 'middle',
+                  baseline: 'center'
+                }))
+              .untransform() // get out of a transformation
+        .render()
+    })();
+    </script>
+
+  </body>
+</html>

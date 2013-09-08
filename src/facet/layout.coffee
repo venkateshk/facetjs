@@ -48,7 +48,11 @@ facet.layout = {
 
   vertical: stripeTile('height', 'width')
 
-  horizontalScale: ({ scale, use, flip }) ->
+  horizontalScale: (parameters) ->
+    throw new Error("Must have parameters") unless parameters
+    { scale, use, flip } = parameters
+    throw new Error("Must have a scale") unless scale
+
     return (parentSegment, segmentGroup) ->
       parentStage = parentSegment.getStage()
       if parentStage.type isnt 'rectangle'

@@ -69,46 +69,47 @@
         return int.start.toFixed(1) + ' - ' + int.end.toFixed(1)
       }
 
-      facet.define('.example', 800, 600, sqlDriverClient)
+      var vis = facet.define('.example', 800, 600, sqlDriverClient)
         .transform(transform.rectangle.rectangle({left: 10, right: 10, top: 10, bottom: 10}))
         .scale('horiz', scale.linear())
         .range('horiz', use.stage('width'))
         .scale('vert', scale.linear())
-          .split('Carat', split.continuous('carat', 0.1))
-          .apply('Count', apply.count())
-          .apply('AvgPrice', apply.average('price'))
-          .combine(combine.slice(sort.natural('Carat', 'ascending')))
-          .domain('horiz', use.prop('Carat'))
-          .domain('vert', use.interval(0, use.prop('AvgPrice')))
-          .layout(layout.horizontalScale({ scale: 'horiz' }))
-          .range('vert', use.stage('height'))
-          .transform(transform.rectangle.rectangle({
-            bottom: 0,
-            height: use.scale('vert')
-          }))
-            .plot(plot.box({
-              fill: '#f0f0f0',
-              stroke: 'black'
-            }))
-            .transform(transform.rectangle.point({ bottom: 6 }))
-              .plot(plot.label({
-                text: use.fn(use.prop('Carat'), intervalToString),
-                baseline: 'center',
-                angle: 90
-              }))
-            .untransform()
-            .transform(transform.rectangle.point({ top: 0 }))
-              .plot(plot.circle({
-                color: 'red',
-                radius: 3
-              }))
-              .plot(plot.label({
-                baseline: 'bottom',
-                anchor: 'middle',
-                size: 10,
-                text: use.prop('Count')
-              }))
-              .render()
+        //   .split('Carat', split.continuous('carat', 0.1))
+        //   .apply('Count', apply.count())
+        //   .apply('AvgPrice', apply.average('price'))
+        //   .combine(combine.slice(sort.natural('Carat', 'ascending')))
+        //   .domain('horiz', use.prop('Carat'))
+        //   .domain('vert', use.interval(0, use.prop('AvgPrice')))
+        //   .layout(layout.horizontalScale({ scale: 'horiz' }))
+        //   .range('vert', use.stage('height'))
+        //   .transform(transform.rectangle.rectangle({
+        //     bottom: 0,
+        //     height: use.scale('vert')
+        //   }))
+        //     .plot(plot.box({
+        //       fill: '#f0f0f0',
+        //       stroke: 'black'
+        //     }))
+        //     .transform(transform.rectangle.point({ bottom: 6 }))
+        //       .plot(plot.label({
+        //         text: use.fn(use.prop('Carat'), intervalToString),
+        //         baseline: 'center',
+        //         angle: 90
+        //       }))
+        //     .untransform()
+        //     .transform(transform.rectangle.point({ top: 0 }))
+              // .plot(plot.circle({
+              //   color: 'red',
+              //   radius: 3
+              // }))
+            //   .plot(plot.label({
+            //     baseline: 'bottom',
+            //     anchor: 'middle',
+            //     size: 10,
+            //     text: use.prop('Count')
+            //   }))
+
+      vis.render(true);
     })();
     </script>
   </body>

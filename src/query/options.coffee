@@ -17,5 +17,5 @@ class FacetOptions
     return value
 
   isEqual: (other) ->
-    return other and @toString() is other.toString()
+    return Boolean(other) and @toString() is other.toString()
 

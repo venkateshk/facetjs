@@ -23,7 +23,7 @@ class FacetSegmentFilter
     return { type: @type }
 
   isEqual: (other) ->
-    return other and @type is other.type and @prop is other.prop
+    return Boolean(other) and @type is other.type and @prop is other.prop
 
 
 

@@ -921,6 +921,10 @@ druidQueryFns = {
     return
 
   histogram: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate, priority}, callback) ->
+    if not condensedCommand.applies.every(({aggregate}) -> aggregate is 'count')
+      callback(new Error("only count aggregated applies are supported"))
+      return
+
     druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval, approximate, priority)
 
     try

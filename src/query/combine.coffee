@@ -19,7 +19,7 @@ class FacetCombine
     return combine
 
   isEqual: (other) ->
-    return other and
+    return Boolean(other) and
            @method is other.method and
            @sort.isEqual(other.sort)
 

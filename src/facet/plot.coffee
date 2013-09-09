@@ -1,4 +1,4 @@
-createNode = (segment, nodeType, { title, link, visible, opacity }) ->
+createNode = (segment, nodeType, { title, link, visible, opacity, dash }) ->
   title = wrapLiteral(title)
   link = wrapLiteral(link)
   visible = wrapLiteral(visible)
@@ -17,6 +17,9 @@ createNode = (segment, nodeType, { title, link, visible, opacity }) ->
 
   if visible
     node.style('display', if visible(segment) then null else 'none')
+
+  if dash
+    node.style('stroke-dasharray', dash)
 
   return node
 
@@ -83,9 +86,9 @@ facet.plot = {
         throw new Error('Over-constrained by radius and area')
       else
         radius = (segment) -> Math.qurt(area(segment) / Math.PI)
-
-    if not radius
-      radius = -> 5
+    else
+      if not radius
+        radius = -> 5
 
     stroke = wrapLiteral(stroke)
     fill = wrapLiteral(fill or color)

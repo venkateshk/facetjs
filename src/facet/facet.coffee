@@ -196,7 +196,11 @@ class FacetJob
     querySpec = @ops.filter(({operation}) -> operation in ['filter', 'split', 'apply', 'combine'])
     return new FacetQuery(querySpec)
 
-  render: (done) ->
+  render: (debug, done) ->
+    if arguments.length is 1 and typeof debug is 'function'
+      done = debug
+      debug = false
+
     parent = d3.select(@selector)
     width = @width
     height = @height
@@ -335,6 +339,11 @@ class FacetJob
       if typeof done is 'function'
         done.call(rootSegment, rootSegment)
 
+      if debug
+        for segmentGroup in segmentGroups
+          for segment in segmentGroup
+            segment.exposeStage()
+
       return
 
     return this
@@ -449,59 +458,4 @@ facet.table = ({parent, query, data, pre, onClick, onHover}) ->
     .text(({prop, segment}) -> segment.prop[prop])
 
   return
-
-
-
-
-
-
-
-# facet.table = ({parent, query, data}) ->
-#   condensedQuery = driverUtil.condenseQuery(query)
-
-#   # Expects a table element with correctly bound data
-#   makePropTbody = (tableParent, condensedCommand) ->
-#     propTbodySelection = tableParent.selectAll('tbody.prop')
-#       .data((d) -> if d.prop then [d.prop] else [])
-
-#     propTbodySelection.enter().append('tbody')
-#       .attr('class', 'prop')
-#       .append('tr')
-
-#     propTbodySelection.exit().remove()
-
-#     propTdSel = propTbodySelection.select('tr')
-#       .selectAll('td')
-#       .data((d) -> condensedCommand.applies.map(({name}) -> name + '=' + d[name]))
-
-#     propTdSel.enter().append('td')
-#     propTdSel.exit().remove()
-#     propTdSel.text(String)
-#     return
-
-#   # Expects a table element with correctly bound data
-#   tableHelper = (tableParent, condensedQuery) ->
-#     condensedQueryTail = condensedQuery.slice()
-#     condensedCommand = condensedQueryTail.shift()
-
-#     makePropTbody(tableParent, condensedCommand)
-
-#     splitsTbodySelection = tableParent.selectAll('tbody.splits')
-#       .data((d) -> if d.splits then [d.splits] else [])
-
-#     splitsTbodySelection.enter().append('tbody')
-#       .attr('class', 'prop')
-
-#     splits.exit().remove()
-
-
-#     return
-
-#   tableParent = parent.append('table').datum(data)
-#   window.tableParent = tableParent
-#   tableHelper(tableParent, condensedQuery)
-#   return
-
-
-
 

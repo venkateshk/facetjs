@@ -10,7 +10,7 @@ createNode = (segment, nodeType, { title, link, visible, opacity }) ->
     node = node.append('a')
       .datum(segment)
       .attr('xlink:title', title)
-      .attr('xlink:link', link)
+      .attr('xlink:href', link)
 
   node = node.append(nodeType).datum(segment)
     .style('opacity', opacity)

@@ -58,13 +58,13 @@ class FacetJob
       if op.operation not in allow
         throw new Error("#{self} can not follow #{op.operation} (has to follow #{follow.join(', ')})")
       i--
-    if null not in follow
+    if '$start' not in follow
       throw new Error("#{self} can not be an initial command (has to follow #{follow.join(', ')})")
     return
 
   filter: (filter) ->
     @_ensureCommandOrder('filter'
-      [null]
+      ['$start']
       ['transform']
     )
     filter = _.clone(filter)
@@ -74,7 +74,7 @@ class FacetJob
 
   split: (name, split) ->
     @_ensureCommandOrder('split'
-      [null, 'filter', 'split', 'apply', 'combine']
+      ['$start', 'filter', 'split', 'apply', 'combine']
       ['layout', 'scale', 'domain', 'range', 'transform', 'untransform', 'plot', 'connector', 'connect']
     )
     split = _.clone(split)
@@ -87,7 +87,8 @@ class FacetJob
 
   apply: (name, apply) ->
     @_ensureCommandOrder('apply'
-      [null, 'split', 'apply']
+      ['$start', 'split', 'apply']
+      ['scale', 'domain', 'range', 'transform', 'untransform', 'plot']
     )
     apply = _.clone(apply)
     apply.operation = 'apply'
@@ -155,7 +156,7 @@ class FacetJob
 
   branch: (data) ->
     @_ensureCommandOrder('branch'
-      [null]
+      ['$start']
       ['domain']
     )
     # create a branch split segment

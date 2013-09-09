@@ -61,6 +61,30 @@ describe "Facet layout", ->
           expect(box.style('stroke')).to.equal('')
           done()
 
+    it "should create a box with general properties", (done) ->
+      facet.define('body', 800, 600, diamondsSimpleDriver)
+        .plot(plot.box({
+          title: 'test'
+          link: '/test'
+          visible: false
+          opacity: 0.15
+        }))
+        .render ->
+          anchor = d3.select('svg').selectAll('a')
+          expect(anchor.attr('title')).to.equal('test')
+          expect(anchor.attr('href')).to.equal('/test')
+
+          box = anchor.selectAll('rect')
+          expect(box.attr('x')).to.equal('0')
+          expect(box.attr('y')).to.equal('0')
+          expect(box.attr('width')).to.equal('800')
+          expect(box.attr('height')).to.equal('600')
+          expect(box.style('fill')).to.equal('')
+          expect(box.style('stroke')).to.equal('')
+          expect(box.style('opacity')).to.equal('0.15')
+          expect(box.style('display')).to.equal('none')
+          done()
+
     it "should throw Error with a wrong stage type", (done) ->
       expect(->
         facet.define('body', 800, 600, diamondsSimpleDriver)
@@ -99,6 +123,27 @@ describe "Facet layout", ->
         .render ->
           label = d3.select('svg').selectAll('text')
           expect(label.text()).to.equal('Label')
+          done()
+
+
+    it "should create a label with general properties", (done) ->
+      facet.define('body', 800, 600, diamondsSimpleDriver)
+        .transform(transform.rectangle.point({ bottom: 6 }))
+        .plot(plot.label({
+          title: 'test'
+          link: '/test'
+          visible: false
+          opacity: 0.15
+        }))
+        .render ->
+          anchor = d3.select('svg').selectAll('a')
+          expect(anchor.attr('title')).to.equal('test')
+          expect(anchor.attr('href')).to.equal('/test')
+
+          label = anchor.selectAll('text')
+          expect(label.text()).to.equal('Label')
+          expect(label.style('opacity')).to.equal('0.15')
+          expect(label.style('display')).to.equal('none')
           done()
 
     it "should throw Error with a wrong stage type", (done) ->
@@ -149,6 +194,26 @@ describe "Facet layout", ->
           expect(circle.attr('r')).to.equal('5')
           done()
 
+    it "should create a circle with general properties", (done) ->
+      facet.define('body', 800, 600, diamondsSimpleDriver)
+        .transform(transform.rectangle.point({ bottom: 6 }))
+        .plot(plot.circle({
+          title: 'test'
+          link: '/test'
+          visible: false
+          opacity: 0.15
+        }))
+        .render ->
+          anchor = d3.select('svg').selectAll('a')
+          expect(anchor.attr('title')).to.equal('test')
+          expect(anchor.attr('href')).to.equal('/test')
+
+          circle = anchor.selectAll('circle')
+          expect(circle.attr('r')).to.equal('5')
+          expect(circle.style('opacity')).to.equal('0.15')
+          expect(circle.style('display')).to.equal('none')
+          done()
+
     it "should throw Error when overconstrained by area and radius", (done) ->
       expect(->
         facet.define('body', 800, 600, diamondsSimpleDriver)
@@ -190,6 +255,27 @@ describe "Facet layout", ->
           line = d3.select('svg').selectAll('line')
           expect(line.attr('x1')).to.equal('-300')
           expect(line.attr('x2')).to.equal('300')
+          done()
+
+    it "should create a line with general properties", (done) ->
+      facet.define('body', 800, 600, diamondsSimpleDriver)
+        .transform(transform.rectangle.line({ direction: 'vertical' }))
+        .plot(plot.line({
+          title: 'test'
+          link: '/test'
+          visible: false
+          opacity: 0.15
+        }))
+        .render ->
+          anchor = d3.select('svg').selectAll('a')
+          expect(anchor.attr('title')).to.equal('test')
+          expect(anchor.attr('href')).to.equal('/test')
+
+          line = anchor.selectAll('line')
+          expect(line.attr('x1')).to.equal('-300')
+          expect(line.attr('x2')).to.equal('300')
+          expect(line.style('opacity')).to.equal('0.15')
+          expect(line.style('display')).to.equal('none')
           done()
 
     it "should throw Error with a wrong stage type", (done) ->

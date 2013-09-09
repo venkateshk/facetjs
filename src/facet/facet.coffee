@@ -153,6 +153,20 @@ class FacetJob
     })
     return this
 
+  branch: (data) ->
+    @_ensureCommandOrder('branch'
+      [null]
+      ['domain']
+    )
+    # create a branch split segment
+
+  unbranch: ->
+    @_ensureCommandOrder('unbranch'
+      ['branch']
+      ['domain']
+    )
+    # go back to the main segment
+
   transform: (transform) ->
     throw new TypeError("transform must be a function") unless typeof transform is 'function'
     @ops.push({

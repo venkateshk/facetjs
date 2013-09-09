@@ -85,7 +85,7 @@ facet.plot = {
       if radius
         throw new Error('Over-constrained by radius and area')
       else
-        radius = (segment) -> Math.qurt(area(segment) / Math.PI)
+        radius = (segment) -> Math.sqrt(area(segment) / Math.PI)
     else
       if not radius
         radius = -> 5

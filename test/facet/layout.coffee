@@ -144,14 +144,14 @@ describe "Facet layout", ->
           done()
 
   describe "horizontalScale layout", ->
-    it "should throw error when no parameters is supplied", (done) ->
+    it "should throw error when no args is supplied", (done) ->
       expect( ->
         facet.define('body', 800, 600, diamondsSimpleDriver)
           .split('Cut', split.identity('cut'))
           .apply('Count', apply.count())
           .combine(combine.slice(sort.natural('Count'), 5))
           .layout(layout.horizontalScale())
-      ).to.throw(Error, /Must have parameters/)
+      ).to.throw(Error, /Must have args/)
       done()
 
     it "should throw error when no scale is supplied", (done) ->

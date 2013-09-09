@@ -25,7 +25,7 @@ createNode = (segment, nodeType, { title, link, visible, opacity }) ->
 # Arguments* -> Segment -> void
 
 facet.plot = {
-  box: (args) ->
+  box: (args = {}) ->
     {color, stroke, fill} = args
     stroke = wrapLiteral(stroke)
     fill = wrapLiteral(fill or color)
@@ -43,7 +43,7 @@ facet.plot = {
         .style('stroke', stroke)
       return
 
-  label: (args) ->
+  label: (args = {}) ->
     {color, text, size, anchor, baseline, angle} = args
     color = wrapLiteral(color)
     text = wrapLiteral(text ? 'Label')
@@ -74,7 +74,7 @@ facet.plot = {
         .text(text)
       return
 
-  circle: (args) ->
+  circle: (args = {}) ->
     {radius, area, color, stroke, fill} = args
     radius = wrapLiteral(radius)
     area = wrapLiteral(area)
@@ -82,7 +82,7 @@ facet.plot = {
       if radius
         throw new Error('Over-constrained by radius and area')
       else
-        radius = (segment) -> Math.qurt(area(segment) / Math.PI)
+        radius = (segment) -> Math.sqrt(area(segment) / Math.PI)
 
     if not radius
       radius = -> 5
@@ -101,14 +101,14 @@ facet.plot = {
 
       return
 
-  line: (args) ->
-    {color} = args
+  line: (args = {}) ->
+    {stroke} = args
     return (segment) ->
       stage = segment.getStage()
-      throw new Error("Circle must have a line stage (is #{stage.type})") unless stage.type is 'line'
+      throw new Error("Line must have a line stage (is #{stage.type})") unless stage.type is 'line'
 
       createNode(segment, 'line', args)
-        .style('stroke', color)
+        .style('stroke', stroke)
         .attr('x1', -stage.length / 2)
         .attr('x2',  stage.length / 2)
 

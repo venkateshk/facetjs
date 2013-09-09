@@ -196,10 +196,10 @@ class FacetJob
     querySpec = @ops.filter(({operation}) -> operation in ['filter', 'split', 'apply', 'combine'])
     return new FacetQuery(querySpec)
 
-  render: (debug, done) ->
-    if arguments.length is 1 and typeof debug is 'function'
-      done = debug
-      debug = false
+  render: (expose, done) ->
+    if arguments.length is 1 and typeof expose is 'function'
+      done = expose
+      expose = false
 
     parent = d3.select(@selector)
     width = @width
@@ -339,7 +339,7 @@ class FacetJob
       if typeof done is 'function'
         done.call(rootSegment, rootSegment)
 
-      if debug
+      if expose
         for segmentGroup in segmentGroups
           for segment in segmentGroup
             segment.exposeStage()

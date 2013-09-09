@@ -29,7 +29,7 @@ class Segment
   _getDescription: ->
     description = ['prop values:']
     for propName, propValue of @prop
-      description.push("  #{propName}: #{propValue}")
+      description.push("  #{propName}: #{String(propValue)}")
 
     description.push('', 'defined scales:')
     for scaleName, s of @scale

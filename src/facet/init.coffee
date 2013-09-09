@@ -4,5 +4,5 @@ _ = require('underscore', '_')
 {FacetQuery} = require('./query')
 
 module.exports = facet = {
-  version: '0.3.0'
+  version: '0.4.2'
 }

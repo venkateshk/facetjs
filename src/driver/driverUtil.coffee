@@ -4,7 +4,7 @@
 timezoneJS = require('timezone-js', 'timezoneJS')
 tz_info = require('../utils/timezone', 'mmx_tz_info')
 
-if timezoneJS.timezone
+if timezoneJS?.timezone
   tz = timezoneJS.timezone
   tz.loadingScheme = tz.loadingSchemes.MANUAL_LOAD
   tz.loadZoneDataFromObject(tz_info)

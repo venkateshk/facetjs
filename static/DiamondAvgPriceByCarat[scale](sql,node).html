@@ -74,6 +74,7 @@
         .scale('horiz', scale.linear())
         .range('horiz', use.stage('width'))
         .scale('vert', scale.linear())
+        .range('vert', use.stage('height'))
           .split('Carat', split.continuous('carat', 0.1))
           .apply('Count', apply.count())
           .apply('AvgPrice', apply.average('price'))
@@ -81,7 +82,6 @@
           .domain('horiz', use.prop('Carat'))
           .domain('vert', use.interval(0, use.prop('AvgPrice')))
           .layout(layout.horizontalScale({ scale: 'horiz' }))
-          .range('vert', use.stage('height'))
           .transform(transform.rectangle.rectangle({
             bottom: 0,
             height: use.scale('vert')

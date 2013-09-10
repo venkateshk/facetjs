@@ -4,9 +4,11 @@
 timezoneJS = require('timezone-js', 'timezoneJS')
 tz_info = require('../utils/timezone', 'mmx_tz_info')
 
-tz = timezoneJS.timezone
-tz.loadingScheme = tz.loadingSchemes.MANUAL_LOAD
-tz.loadZoneDataFromObject(tz_info)
+if timezoneJS.timezone
+  tz = timezoneJS.timezone
+  tz.loadingScheme = tz.loadingSchemes.MANUAL_LOAD
+  tz.loadZoneDataFromObject(tz_info)
+
 
 # Flatten an array of array in to a single array
 # flatten([[1,3], [3,6,7]]) => [1,3,3,6,7]

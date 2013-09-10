@@ -44,11 +44,14 @@ getConnectorAndSegemnts = (segment, connectorName) ->
   }
 
 
-class FacetJob
-  constructor: (@selector, @width, @height, @driver) ->
+class FacetVis
+  constructor: ->
+    if arguments.length is 4
+      [@selector, @width, @height, @driver] = arguments
+    else
+      [@parent, @from] = arguments
     @ops = []
     @knownProps = {}
-    @hasTransformed = false
 
   _ensureCommandOrder: (self, follow, allow = []) ->
     i = @ops.length - 1
@@ -81,7 +84,6 @@ class FacetJob
     split.operation = 'split'
     split.name = name
     @ops.push(split)
-    @hasTransformed = false
     @knownProps[name] = true
     return this
 
@@ -120,7 +122,7 @@ class FacetJob
   layout: (layout) ->
     @_ensureCommandOrder('layout'
       ['split', 'apply', 'combine']
-      ['domain']
+      ['scale', 'domain']
     )
     throw new TypeError("layout must be a function") unless typeof layout is 'function'
     @ops.push({
@@ -174,7 +176,6 @@ class FacetJob
       operation: 'transform'
       transform
     })
-    @hasTransformed = true
     return this
 
   untransform: ->
@@ -366,7 +367,7 @@ class FacetJob
 
 facet.define = (selector, width, height, driver) ->
   throw new Error("bad size: #{width} x #{height}") unless width and height
-  return new FacetJob(selector, width, height, driver)
+  return new FacetVis(selector, width, height, driver)
 
 
 # Country     City             Football Team   Rev

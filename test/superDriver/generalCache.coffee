@@ -95,87 +95,57 @@ describe "General cache", ->
         done()
 
   describe "dateLightSaving checker", ->
-    dateLightSavingData = {
-      prop: {},
-      splits: [
-        {
-          prop: {
-            bid_depth_adj: 1.2466818548667042,
-            avg_latency: 0.013069229864317534,
-            uniques: 0,
-            timerange: [
-              "2012-11-02T07:00:00.000Z",
-              "2012-11-03T07:00:00.000Z"
-            ]
+    it 'should work well when exiting daylightsaving time with P1D granularity', (done) ->
+      dateLightSavingData = {
+        prop: {},
+        splits: [
+          {
+            prop: {
+              bid_depth_adj: 0.013069229864317534,
+              timerange: [ "2012-11-02T07:00:00.000Z", "2012-11-03T07:00:00.000Z" ]
+            }
+          },
+          {
+            prop: {
+              bid_depth_adj: 1.212463873557697,
+              timerange: [ "2012-11-03T07:00:00.000Z", "2012-11-04T07:00:00.000Z" ]
+            }
+          },
+          {
+            prop: {
+              bid_depth_adj: 1.1883019697926953,
+              timerange: [ "2012-11-04T07:00:00.000Z", "2012-11-05T08:00:00.000Z" ]
+            }
+          },
+          {
+            prop: {
+              bid_depth_adj: 1.0214784473305347,
+              timerange: [ "2012-11-05T08:00:00.000Z", "2012-11-06T08:00:00.000Z" ]
+            }
+          },
+          {
+            prop: {
+              bid_depth_adj: 0.9800624388099162,
+              timerange: [ "2012-11-06T08:00:00.000Z", "2012-11-07T08:00:00.000Z" ]
+            }
+          },
+          {
+            prop: {
+              bid_depth_adj: 0.9009174579839136,
+              timerange: [ "2012-11-07T08:00:00.000Z", "2012-11-08T08:00:00.000Z" ]
+            }
           }
-        },
-        {
-          prop: {
-            avg_latency: 0.013148476570233917,
-            bid_depth_adj: 1.212463873557697,
-            uniques: 0,
-            timerange: [
-              "2012-11-03T07:00:00.000Z",
-              "2012-11-04T07:00:00.000Z"
-            ]
-          }
-        },
-        {
-          prop: {
-            avg_latency: 0.01260590998216896,
-            bid_depth_adj: 1.1883019697926953,
-            uniques: 0,
-            timerange: [
-              "2012-11-04T07:00:00.000Z",
-              "2012-11-05T08:00:00.000Z"
-            ]
-          }
-        },
-        {
-          prop: {
-            avg_latency: 0.018073973399774193,
-            bid_depth_adj: 1.0214784473305347,
-            uniques: 0,
-            timerange: [
-              "2012-11-05T08:00:00.000Z",
-              "2012-11-06T08:00:00.000Z"
-            ]
-          }
-        },
-        {
-          prop: {
-            avg_latency: 0.017976455114079474,
-            bid_depth_adj: 0.9800624388099162,
-            uniques: 0,
-            timerange: [
-              "2012-11-06T08:00:00.000Z",
-              "2012-11-07T08:00:00.000Z"
-            ]
-          }
-        },
-        {
-          prop: {
-            avg_latency: 0.016441307868576543,
-            bid_depth_adj: 0.9009174579839136,
-            uniques: 0,
-            timerange: [
-              "2012-11-07T08:00:00.000Z",
-              "2012-11-08T08:00:00.000Z"
-            ]
-          }
-        }
-      ]
-    }
+        ]
+      }
 
-    dateLightSavingDriver = (request, callback) ->
-      callback(null, dateLightSavingData)
-      return
+      dateLightSavingDriver = (request, callback) ->
+        callback(null, dateLightSavingData)
+        return
 
-    dateLightSavingDriverCached = generalCache({
-      driver: dateLightSavingDriver
-    })
+      dateLightSavingDriverCached = generalCache({
+        driver: dateLightSavingDriver
+      })
 
-    it "should handle preset data", (done) ->
       dateLightSavingDriverCached {
         query: new FacetQuery [
           {
@@ -211,27 +181,6 @@ describe "General cache", ->
             "operation": "apply"
           },
           {
-            "name": "avg_latency",
-            "arithmetic": "divide",
-            "operands": [
-              {
-                "attribute": "latency",
-                "aggregate": "sum"
-              },
-              {
-                "attribute": "impressions",
-                "aggregate": "sum"
-              }
-            ],
-            "operation": "apply"
-          },
-          {
-            "name": "uniques",
-            "aggregate": "uniqueCount",
-            "attribute": "unique_dpid",
-            "operation": "apply"
-          },
-          {
             "operation": "combine",
             "combine": "slice",
             "sort": {
@@ -246,58 +195,45 @@ describe "General cache", ->
         expect(JSON.parse(JSON.stringify(result))).to.deep.equal(dateLightSavingData)
         done()
 
-  describe "dateLightSaving checker 2", ->
-    dateLightSavingData = {
-      "prop": {},
-      "splits": [
-        {
-          "prop": {
-            "clicks": 2198708,
-            "timerange": [
-              "2013-03-08T08:00:00.000Z",
-              "2013-03-09T08:00:00.000Z"
-            ]
+    it 'should work well when entering daylightsaving time with P1D granularity', (done) ->
+      dateLightSavingData = {
+        "prop": {},
+        "splits": [
+          {
+            "prop": {
+              "clicks": 2198708,
+              "timerange": [ "2013-03-08T08:00:00.000Z", "2013-03-09T08:00:00.000Z" ]
+            }
+          },
+          {
+            "prop": {
+              "clicks": 2326918,
+              "timerange": [ "2013-03-09T08:00:00.000Z", "2013-03-10T08:00:00.000Z" ]
+            }
+          },
+          {
+            "prop": {
+              "clicks": 2160294,
+              "timerange": [ "2013-03-10T08:00:00.000Z", "2013-03-11T07:00:00.000Z" ]
+            }
+          },
+          {
+            "prop": {
+              "clicks": 2005976,
+              "timerange": [ "2013-03-11T07:00:00.000Z", "2013-03-12T07:00:00.000Z" ]
+            }
           }
-        },
-        {
-          "prop": {
-            "clicks": 2326918,
-            "timerange": [
-              "2013-03-09T08:00:00.000Z",
-              "2013-03-10T08:00:00.000Z"
-            ]
-          }
-        },
-        {
-          "prop": {
-            "clicks": 2160294,
-            "timerange": [
-              "2013-03-10T08:00:00.000Z",
-              "2013-03-11T07:00:00.000Z"
-            ]
-          }
-        },
-        {
-          "prop": {
-            "clicks": 2005976,
-            "timerange": [
-              "2013-03-11T07:00:00.000Z",
-              "2013-03-12T07:00:00.000Z"
-            ]
-          }
-        }
-      ]
-    }
+        ]
+      }
 
-    dateLightSavingDriver = (request, callback) ->
-      callback(null, dateLightSavingData)
-      return
+      dateLightSavingDriver = (request, callback) ->
+        callback(null, dateLightSavingData)
+        return
 
-    dateLightSavingDriverCached = generalCache({
-      driver: dateLightSavingDriver
-    })
+      dateLightSavingDriverCached = generalCache({
+        driver: dateLightSavingDriver
+      })
 
-    it "should handle preset data", (done) ->
       dateLightSavingDriverCached {
         query: new FacetQuery [
           {
@@ -314,6 +250,88 @@ describe "General cache", ->
             "name": "timerange",
             "attribute": "timestamp",
             "period": "P1D",
+            "timezone": "America/Los_Angeles",
+            "operation": "split"
+          },
+          {
+            "name": "clicks",
+            "aggregate": "sum",
+            "attribute": "clicks",
+            "operation": "apply"
+          },
+          {
+            "method": "slice",
+            "sort": {
+              "compare": "natural",
+              "prop": "timerange",
+              "direction": "ascending"
+            },
+            "operation": "combine"
+          }
+        ]
+      }, (err, result) ->
+        expect(err).to.be.null
+        expect(JSON.parse(JSON.stringify(result))).to.deep.equal(dateLightSavingData)
+        done()
+
+    it 'should work well when entering daylightsaving time with PT1H granularity', (done) ->
+      dateLightSavingData = {
+        "prop": {},
+        "splits": [
+          { "prop": { "clicks": 75330, "timerange": [ "2013-03-09T07:00:00.000Z", "2013-03-09T08:00:00.000Z" ] } },
+          { "prop": { "clicks": 72038, "timerange": [ "2013-03-09T08:00:00.000Z", "2013-03-09T09:00:00.000Z" ] } },
+          { "prop": { "clicks": 69238, "timerange": [ "2013-03-09T09:00:00.000Z", "2013-03-09T10:00:00.000Z" ] } },
+          { "prop": { "clicks": 66724, "timerange": [ "2013-03-09T10:00:00.000Z", "2013-03-09T11:00:00.000Z" ] } },
+          { "prop": { "clicks": 70775, "timerange": [ "2013-03-09T11:00:00.000Z", "2013-03-09T12:00:00.000Z" ] } },
+          { "prop": { "clicks": 83818, "timerange": [ "2013-03-09T12:00:00.000Z", "2013-03-09T13:00:00.000Z" ] } },
+          { "prop": { "clicks": 101810, "timerange": [ "2013-03-09T13:00:00.000Z", "2013-03-09T14:00:00.000Z" ] } },
+          { "prop": { "clicks": 107123, "timerange": [ "2013-03-09T14:00:00.000Z", "2013-03-09T15:00:00.000Z" ] } },
+          { "prop": { "clicks": 114175, "timerange": [ "2013-03-09T15:00:00.000Z", "2013-03-09T16:00:00.000Z" ] } },
+          { "prop": { "clicks": 114009, "timerange": [ "2013-03-09T16:00:00.000Z", "2013-03-09T17:00:00.000Z" ] } },
+          { "prop": { "clicks": 113163, "timerange": [ "2013-03-09T17:00:00.000Z", "2013-03-09T18:00:00.000Z" ] } },
+          { "prop": { "clicks": 117580, "timerange": [ "2013-03-09T18:00:00.000Z", "2013-03-09T19:00:00.000Z" ] } },
+          { "prop": { "clicks": 113522, "timerange": [ "2013-03-09T19:00:00.000Z", "2013-03-09T20:00:00.000Z" ] } },
+          { "prop": { "clicks": 107942, "timerange": [ "2013-03-09T20:00:00.000Z", "2013-03-09T21:00:00.000Z" ] } },
+          { "prop": { "clicks": 107287, "timerange": [ "2013-03-09T21:00:00.000Z", "2013-03-09T22:00:00.000Z" ] } },
+          { "prop": { "clicks": 105391, "timerange": [ "2013-03-09T22:00:00.000Z", "2013-03-09T23:00:00.000Z" ] } },
+          { "prop": { "clicks": 111849, "timerange": [ "2013-03-09T23:00:00.000Z", "2013-03-10T00:00:00.000Z" ] } },
+          { "prop": { "clicks": 117295, "timerange": [ "2013-03-10T00:00:00.000Z", "2013-03-10T01:00:00.000Z" ] } },
+          { "prop": { "clicks": 113243, "timerange": [ "2013-03-10T01:00:00.000Z", "2013-03-10T02:00:00.000Z" ] } },
+          { "prop": { "clicks": 108034, "timerange": [ "2013-03-10T02:00:00.000Z", "2013-03-10T03:00:00.000Z" ] } },
+          { "prop": { "clicks": 99871, "timerange": [ "2013-03-10T03:00:00.000Z", "2013-03-10T04:00:00.000Z" ] } },
+          { "prop": { "clicks": 88640, "timerange": [ "2013-03-10T04:00:00.000Z", "2013-03-10T05:00:00.000Z" ] } },
+          { "prop": { "clicks": 84693, "timerange": [ "2013-03-10T05:00:00.000Z", "2013-03-10T06:00:00.000Z" ] } },
+          { "prop": { "clicks": 69748, "timerange": [ "2013-03-10T06:00:00.000Z", "2013-03-10T07:00:00.000Z" ] } },
+          { "prop": { "clicks": 68950, "timerange": [ "2013-03-10T07:00:00.000Z", "2013-03-10T08:00:00.000Z" ] } },
+          { "prop": { "clicks": 70896, "timerange": [ "2013-03-10T08:00:00.000Z", "2013-03-10T09:00:00.000Z" ] } },
+          { "prop": { "clicks": 69159, "timerange": [ "2013-03-10T09:00:00.000Z", "2013-03-10T10:00:00.000Z" ] } }
+        ]
+      }
+
+      dateLightSavingDriver = (request, callback) ->
+        callback(null, dateLightSavingData)
+        return
+
+      dateLightSavingDriverCached = generalCache({
+        driver: dateLightSavingDriver
+      })
+
+      dateLightSavingDriverCached {
+        query: new FacetQuery [
+          {
+            "type": "within",
+            "attribute": "timestamp",
+            "range": [
+              "2013-03-09T07:00:00.000Z",
+              "2013-03-10T10:00:00.000Z"
+            ],
+            "operation": "filter"
+          },
+          {
+            "bucket": "timePeriod",
+            "name": "timerange",
+            "attribute": "timestamp",
+            "period": "PT1H",
             "timezone": "America/Los_Angeles",
             "operation": "split"
           },

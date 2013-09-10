@@ -12,9 +12,23 @@ moveTimestamp = (timestamp, period, timezone) ->
     when 'PT1M'
       newTimestamp.setMinutes(newTimestamp.getMinutes() + 1)
     when 'PT1H'
+      prevValue = newTimestamp.valueOf()
       newTimestamp.setHours(newTimestamp.getHours() + 1)
+      nowValue = newTimestamp.valueOf()
+      if (nowValue - prevValue) > 3600000
+        newTimestamp = driverUtil.adjust.hour.ceil(newTimestamp, timezone)
+      else if (nowValue - prevValue) < 3600000
+        newTimestamp = driverUtil.adjust.hour.floor(newTimestamp, timezone)
+
     when 'P1D'
+      prevValue = newTimestamp.valueOf()
       newTimestamp.setDate(newTimestamp.getDate() + 1)
+      nowValue = newTimestamp.valueOf()
+      if (nowValue - prevValue) > 86400000
+        newTimestamp = driverUtil.adjust.day.ceil(newTimestamp, timezone)
+      else if (nowValue - prevValue) < 86400000
+        newTimestamp = driverUtil.adjust.day.floor(newTimestamp, timezone)
+
     else
       throw new Error("time period not supported by driver")
 

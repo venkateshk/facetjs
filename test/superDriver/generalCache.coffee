@@ -246,6 +246,98 @@ describe "General cache", ->
         expect(JSON.parse(JSON.stringify(result))).to.deep.equal(dateLightSavingData)
         done()
 
+  describe "dateLightSaving checker 2", ->
+    dateLightSavingData = {
+      "prop": {},
+      "splits": [
+        {
+          "prop": {
+            "clicks": 2198708,
+            "timerange": [
+              "2013-03-08T08:00:00.000Z",
+              "2013-03-09T08:00:00.000Z"
+            ]
+          }
+        },
+        {
+          "prop": {
+            "clicks": 2326918,
+            "timerange": [
+              "2013-03-09T08:00:00.000Z",
+              "2013-03-10T08:00:00.000Z"
+            ]
+          }
+        },
+        {
+          "prop": {
+            "clicks": 2160294,
+            "timerange": [
+              "2013-03-10T08:00:00.000Z",
+              "2013-03-11T07:00:00.000Z"
+            ]
+          }
+        },
+        {
+          "prop": {
+            "clicks": 2005976,
+            "timerange": [
+              "2013-03-11T07:00:00.000Z",
+              "2013-03-12T07:00:00.000Z"
+            ]
+          }
+        }
+      ]
+    }
+
+    dateLightSavingDriver = (request, callback) ->
+      callback(null, dateLightSavingData)
+      return
+
+    dateLightSavingDriverCached = generalCache({
+      driver: dateLightSavingDriver
+    })
+
+    it "should handle preset data", (done) ->
+      dateLightSavingDriverCached {
+        query: new FacetQuery [
+          {
+            "type": "within",
+            "attribute": "timestamp",
+            "range": [
+              "2013-03-08T08:00:00.000Z",
+              "2013-03-12T07:00:00.000Z"
+            ],
+            "operation": "filter"
+          },
+          {
+            "bucket": "timePeriod",
+            "name": "timerange",
+            "attribute": "timestamp",
+            "period": "P1D",
+            "timezone": "America/Los_Angeles",
+            "operation": "split"
+          },
+          {
+            "name": "clicks",
+            "aggregate": "sum",
+            "attribute": "clicks",
+            "operation": "apply"
+          },
+          {
+            "method": "slice",
+            "sort": {
+              "compare": "natural",
+              "prop": "timerange",
+              "direction": "ascending"
+            },
+            "operation": "combine"
+          }
+        ]
+      }, (err, result) ->
+        expect(err).to.be.null
+        expect(JSON.parse(JSON.stringify(result))).to.deep.equal(dateLightSavingData)
+        done()
+
   describe "(sanity check) apply count", ->
     it "should have the same results for different drivers", testEquality {
       drivers: ['diamondsCached', 'diamonds']

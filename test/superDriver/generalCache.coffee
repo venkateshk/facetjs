@@ -356,6 +356,73 @@ describe "General cache", ->
         expect(JSON.parse(JSON.stringify(result))).to.deep.equal(dateLightSavingData)
         done()
 
+    it 'should work well when exiting daylightsaving time with PT1H granularity', (done) ->
+      dateLightSavingData = {
+        "prop": {},
+        "splits": [
+          { "prop": { "clicks": 117295, "timerange": [ "2013-11-03T00:00:00.000Z", "2013-11-03T01:00:00.000Z" ] } },
+          { "prop": { "clicks": 113243, "timerange": [ "2013-11-03T01:00:00.000Z", "2013-11-03T02:00:00.000Z" ] } },
+          { "prop": { "clicks": 108034, "timerange": [ "2013-11-03T02:00:00.000Z", "2013-11-03T03:00:00.000Z" ] } },
+          { "prop": { "clicks": 99871, "timerange": [ "2013-11-03T03:00:00.000Z", "2013-11-03T04:00:00.000Z" ] } },
+          { "prop": { "clicks": 88640, "timerange": [ "2013-11-03T04:00:00.000Z", "2013-11-03T05:00:00.000Z" ] } },
+          { "prop": { "clicks": 84693, "timerange": [ "2013-11-03T05:00:00.000Z", "2013-11-03T06:00:00.000Z" ] } },
+          { "prop": { "clicks": 69748, "timerange": [ "2013-11-03T06:00:00.000Z", "2013-11-03T07:00:00.000Z" ] } },
+          { "prop": { "clicks": 75330, "timerange": [ "2013-11-03T07:00:00.000Z", "2013-11-03T08:00:00.000Z" ] } },
+          { "prop": { "clicks": 72038, "timerange": [ "2013-11-03T08:00:00.000Z", "2013-11-03T09:00:00.000Z" ] } },
+          { "prop": { "clicks": 69238, "timerange": [ "2013-11-03T09:00:00.000Z", "2013-11-03T10:00:00.000Z" ] } },
+          { "prop": { "clicks": 66724, "timerange": [ "2013-11-03T10:00:00.000Z", "2013-11-03T11:00:00.000Z" ] } },
+          { "prop": { "clicks": 70775, "timerange": [ "2013-11-03T11:00:00.000Z", "2013-11-03T12:00:00.000Z" ] } }
+        ]
+      }
+
+      dateLightSavingDriver = (request, callback) ->
+        callback(null, dateLightSavingData)
+        return
+
+      dateLightSavingDriverCached = generalCache({
+        driver: dateLightSavingDriver
+      })
+
+      dateLightSavingDriverCached {
+        query: new FacetQuery [
+          {
+            "type": "within",
+            "attribute": "timestamp",
+            "range": [
+              "2013-11-03T00:00:00.000Z",
+              "2013-11-03T12:00:00.000Z"
+            ],
+            "operation": "filter"
+          },
+          {
+            "bucket": "timePeriod",
+            "name": "timerange",
+            "attribute": "timestamp",
+            "period": "PT1H",
+            "timezone": "America/Los_Angeles",
+            "operation": "split"
+          },
+          {
+            "name": "clicks",
+            "aggregate": "sum",
+            "attribute": "clicks",
+            "operation": "apply"
+          },
+          {
+            "method": "slice",
+            "sort": {
+              "compare": "natural",
+              "prop": "timerange",
+              "direction": "ascending"
+            },
+            "operation": "combine"
+          }
+        ]
+      }, (err, result) ->
+        expect(err).to.be.null
+        expect(JSON.parse(JSON.stringify(result))).to.deep.equal(dateLightSavingData)
+        done()
+
   describe "(sanity check) apply count", ->
     it "should have the same results for different drivers", testEquality {
       drivers: ['diamondsCached', 'diamonds']

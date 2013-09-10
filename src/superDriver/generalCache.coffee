@@ -13,10 +13,8 @@ moveTimestamp = (timestamp, period, timezone) ->
       newTimestamp.setMinutes(newTimestamp.getMinutes() + 1)
     when 'PT1H'
       newTimestamp.setHours(newTimestamp.getHours() + 1)
-      newTimestamp = driverUtil.adjust.hour.ceil(newTimestamp, timezone)
     when 'P1D'
       newTimestamp.setDate(newTimestamp.getDate() + 1)
-      newTimestamp = driverUtil.adjust.day.ceil(newTimestamp, timezone)
     else
       throw new Error("time period not supported by driver")
 

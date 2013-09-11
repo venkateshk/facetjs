@@ -71,7 +71,7 @@
         return str;
       }
 
-      facet.define('.example', 800, 600, druidDriverNode)
+      var vis = facet.define('.example', 800, 600, druidDriverNode)
         .split('Language', split.identity('language'))
         .apply('Edits', apply.sum('count'))
         .combine(combine.slice(sort.natural('Edits', 'descending'), 4))
@@ -118,7 +118,7 @@
                 baseline: 'center',
                 size: '9px'
               }))
-              .render()
+       vis.render(true);
     })();
     </script>
   </body>

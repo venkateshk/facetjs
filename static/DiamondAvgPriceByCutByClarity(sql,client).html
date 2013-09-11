@@ -64,7 +64,7 @@
         filter: null
       });
 
-      facet.define('.example', 800, 600,  sqlDriverClient)
+      var vis = facet.define('.example', 800, 600,  sqlDriverClient)
         .scale('vert', scale.linear({ nice: true }))
         .scale('color', scale.color())
           .split('Clarity', split.identity('clarity'))
@@ -104,7 +104,7 @@
                   baseline: 'center',
                   angle: 90
                 }))
-                .render()
+         vis.render(true);
     })();
     </script>
   </body>

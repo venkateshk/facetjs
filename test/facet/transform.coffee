@@ -53,7 +53,7 @@ describe "Facet transform", ->
             .apply('Count', apply.count())
             .combine(combine.slice(sort.natural('Count'), 5))
             .layout(layout.vertical())
-            .range('count', use.stage('width'))
+            .range('count', use.space('width'))
             .domain('count', use.interval(0, use.prop('Count')))
             .transform(transform.rectangle.rectangle({
               left: 0,

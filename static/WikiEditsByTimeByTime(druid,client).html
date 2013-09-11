@@ -18,6 +18,8 @@
     <title>Facet Examples (0.4.3)</title>
 
     <script>
+      var FacetFilter = query.FacetFilter;
+
       // The basics
       var filter = facet.filter;
       var split = facet.split;
@@ -54,7 +56,7 @@
       var druidDriverClient = druidDriver({
         requester: druidRequester,
         dataSource: "wikipedia_editstream",
-        filter: {
+        filter: FacetFilter.fromSpec({
           type: 'and',
           filters: [
             {
@@ -74,14 +76,14 @@
               ],
             }
           ]
-        }
+        })
       });
 
       function formatTime(dates) {
         return dates.start.toISOString().replace('T00:00:00.000Z', '');
       }
 
-      facet.define('.example', 800, 600, facet.verboseDriver(druidDriverClient))
+      var vis = facet.define('.example', 800, 600, facet.verboseDriver(druidDriverClient))
         .transform(transform.rectangle.rectangle({left: 30, right: 10, top: 10, bottom: 10}))
         .scale('horiz', scale.linear())
         .scale('vert', scale.linear())
@@ -142,7 +144,7 @@
                     baseline: 'center',
                     size: '9px'
                   }))
-                  .render()
+           vis.render(true);
 
 
 

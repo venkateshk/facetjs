@@ -21,20 +21,22 @@ describe "Facet split", ->
         .split('Cut', split.identity('cut'))
         .apply('Count', apply.count())
         .combine(combine.slice(sort.natural('Count')))
-        .render ->
-          groups = d3.select('svg').selectAll('g')
-          expect(groups.size()).to.equal(5)
-          done()
+        .layout(layout.overlap())
+          .render ->
+            groups = d3.select('svg').selectAll('g')
+            expect(groups.size()).to.equal(5)
+            done()
 
     it "should make the right number of groups with combine limits", (done) ->
       facet.define('body', 800, 600, diamondsSimpleDriver)
         .split('Cut', split.identity('cut'))
         .apply('Count', apply.count())
         .combine(combine.slice(sort.natural('Count'), 3))
-        .render ->
-          groups = d3.select('svg').selectAll('g')
-          expect(groups.size()).to.equal(3)
-          done()
+        .layout(layout.overlap())
+          .render ->
+            groups = d3.select('svg').selectAll('g')
+            expect(groups.size()).to.equal(3)
+            done()
 
   describe "with two splits", ->
     it "should make the right number of groups", (done) ->
@@ -42,10 +44,12 @@ describe "Facet split", ->
         .split('Cut', split.identity('cut'))
         .apply('Count', apply.count())
         .combine(combine.slice(sort.natural('Count'), 5))
+        .layout(layout.overlap())
           .split('Clarity', split.identity('clarity'))
           .apply('Count', apply.count())
           .combine(combine.slice(sort.natural('Count'), 5))
-          .render ->
-            groups = d3.select('svg').selectAll('g').selectAll('g')
-            expect(groups.size()).to.equal(25)
-            done()
+          .layout(layout.overlap())
+            .render ->
+              groups = d3.select('svg').selectAll('g').selectAll('g')
+              expect(groups.size()).to.equal(25)
+              done()

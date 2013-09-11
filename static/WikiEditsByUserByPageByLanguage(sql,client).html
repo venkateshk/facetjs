@@ -66,7 +66,7 @@
         return str;
       }
 
-      facet.define('.example', 800, 600, sqlDriverClient)
+      var vis = facet.define('.example', 800, 600, sqlDriverClient)
         .split('Language', split.identity('language'))
         .apply('Edits', apply.count())
         .combine(combine.slice(sort.natural('Edits', 'descending'), 4))
@@ -113,7 +113,8 @@
                 baseline: 'center',
                 size: '9px'
               }))
-              .render()
+
+      vis.render(true);
     })();
     </script>
   </body>

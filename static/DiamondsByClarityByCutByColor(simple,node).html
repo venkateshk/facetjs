@@ -60,7 +60,7 @@
         prety: true
       });
 
-      facet.define('.example', 800, 600, simpleDriverNode)
+      var vis = facet.define('.example', 800, 600, simpleDriverNode)
         .transform(transform.rectangle.rectangle({ bottom: 20 })) // make a margin below
         .scale('count', scale.linear()) // make a linear scale called count
         .scale('color', scale.color()) // make a color scale called color
@@ -110,7 +110,7 @@
                   baseline: 'center'
                 }))
               .untransform() // get out of a transformation
-        .render()
+ vis.render(true);
     })();
     </script>
 

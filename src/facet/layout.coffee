@@ -40,7 +40,16 @@ stripeTile = (dim1, dim2) -> ({ gap, size } = {}) ->
     )
 
 facet.layout = {
-  overlap: () -> {}
+  overlap: ->
+    return (segments, space) ->
+      return segments.map((segment) ->
+        return {
+          type: space.type
+          x: 0
+          y: 0
+          attr: space.attr
+        }
+      )
 
   horizontal: stripeTile('width', 'height')
 

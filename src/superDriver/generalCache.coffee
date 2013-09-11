@@ -6,17 +6,17 @@ driverUtil = require('./driverUtil')
 
 moveTimestamp = (timestamp, period, timezone) ->
   newTimestamp = new Date(timestamp)
+  prevValue = newTimestamp.valueOf()
+
   switch period
     when 'PT1S'
-      newTimestamp.setSeconds(newTimestamp.getSeconds() + 1)
+      newTimestamp.setUTCSeconds(newTimestamp.getUTCSeconds() + 1)
     when 'PT1M'
-      newTimestamp.setMinutes(newTimestamp.getMinutes() + 1)
+      newTimestamp.setUTCMinutes(newTimestamp.getUTCMinutes() + 1)
     when 'PT1H'
-      newTimestamp.setHours(newTimestamp.getHours() + 1)
-      newTimestamp = driverUtil.adjust.hour.ceil(newTimestamp, timezone)
+      newTimestamp.setUTCHours(newTimestamp.getUTCHours() + 1)
     when 'P1D'
       newTimestamp.setDate(newTimestamp.getDate() + 1)
-      newTimestamp = driverUtil.adjust.day.ceil(newTimestamp, timezone)
     else
       throw new Error("time period not supported by driver")
 

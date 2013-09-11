@@ -15,7 +15,7 @@
     <script src="sqlDriver.js"></script>
     <script src="druidDriver.js"></script>
 
-    <title>Facet Examples (0.2.1)</title>
+    <title>Facet Examples (0.4.3)</title>
 
     <script>
       // The basics
@@ -29,6 +29,7 @@
       var combine = facet.combine;
       var sort = facet.sort;
       var transform = facet.transform;
+      var connector = facet.connector;
     </script>
   </head>
 
@@ -72,9 +73,10 @@
       var vis = facet.define('.example', 800, 600, sqlDriverClient)
         .transform(transform.rectangle.rectangle({left: 10, right: 10, top: 10, bottom: 10}))
         .scale('horiz', scale.linear())
-        .range('horiz', use.stage('width'))
+        .range('horiz', use.space('width'))
         .scale('vert', scale.linear())
-        .range('vert', use.stage('height'))
+        .range('vert', use.space('height'))
+        .connector('line', connector.line({color: 'steelblue'}))
           .split('Carat', split.continuous('carat', 0.1))
           .apply('Count', apply.count())
           .apply('AvgPrice', apply.average('price'))
@@ -108,6 +110,7 @@
                 size: 10,
                 text: use.prop('Count')
               }))
+              .connect('line')
 
       vis.render(true);
     })();

@@ -15,7 +15,7 @@
     <script src="sqlDriver.js"></script>
     <script src="druidDriver.js"></script>
 
-    <title>Facet Examples (0.2.1)</title>
+    <title>Facet Examples (0.4.3)</title>
 
     <script>
       // The basics
@@ -77,7 +77,7 @@
           .combine(combine.slice(sort.natural('Carat', 'ascending')))
           .layout(layout.horizontal({ gap: 3 }))
           .domain('vert', use.interval(0, use.prop('AvgPrice')))
-          .range('vert', use.stage('height'))
+          .range('vert', use.space('height'))
           .transform(transform.rectangle.rectangle({
             bottom: 0,
             height: use.scale('vert')

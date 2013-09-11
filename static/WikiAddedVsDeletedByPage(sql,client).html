@@ -15,7 +15,7 @@
     <script src="sqlDriver.js"></script>
     <script src="druidDriver.js"></script>
 
-    <title>Facet Examples (0.2.1)</title>
+    <title>Facet Examples (0.4.3)</title>
 
     <script>
       // The basics
@@ -80,8 +80,8 @@
           }))
           .domain('horiz', use.prop('Added'))
           .domain('vert', use.prop('Deleted'))
-          .range('horiz', use.stage('width'))
-          .range('vert', use.stage('height'))
+          .range('horiz', use.space('width'))
+          .range('vert', use.space('height'))
           .transform(transform.rectangle.point({ top: use.scale('horiz'), left: use.scale('vert') }))
             .plot(plot.circle({
               radius: 5,

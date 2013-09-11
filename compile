@@ -18,6 +18,7 @@ coffee --compile --bare --output build --join build/facet.js \
   src/facet/combine.coffee \
   src/facet/use.coffee \
   src/facet/scale.coffee \
+  src/facet/space.coffee \
   src/facet/layout.coffee \
   src/facet/transform.coffee \
   src/facet/plot.coffee \

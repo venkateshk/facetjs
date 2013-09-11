@@ -1,5 +1,5 @@
-# A function that transforms the stage from one form to another.
-# Arguments* -> Segment -> PsudoStage
+# A function that transforms the space from one form to another.
+# Arguments* -> Segment -> PsudoSpace
 
 pointOnPoint = (args, leftName, rightName) ->
   left = wrapLiteral(args[leftName])
@@ -25,12 +25,12 @@ pointOnLine = (args, leftName, rightName) ->
     if right
       throw new Error("Over-constrained by #{leftName} and #{rightName}")
     else
-      return (segment, stageWidth) -> left(segment)
+      return (segment, spaceWidth) -> left(segment)
   else
     if right
-      return (segment, stageWidth) -> stageWidth - right(segment)
+      return (segment, spaceWidth) -> spaceWidth - right(segment)
     else
-      return (segment, stageWidth) -> stageWidth / 2
+      return (segment, spaceWidth) -> spaceWidth / 2
 
 
 lineOnLine = (args, leftName, widthName, rightName) ->
@@ -40,12 +40,12 @@ lineOnLine = (args, leftName, widthName, rightName) ->
 
   if left and right
     throw new Error("Over-constrained by #{widthName}") if width
-    return (segment, stageWidth) ->
+    return (segment, spaceWidth) ->
       leftValue = left(segment)
       rightValue = right(segment)
       if leftValue instanceof Interval or rightValue instanceof Interval
         throw new Error("Over-constrained by interval")
-      return [leftValue, stageWidth - leftValue - rightValue]
+      return [leftValue, spaceWidth - leftValue - rightValue]
 
   flip = false
   if right and not left
@@ -56,7 +56,7 @@ lineOnLine = (args, leftName, widthName, rightName) ->
 
   fn = if width
     if left
-      (segment, stageWidth) ->
+      (segment, spaceWidth) ->
         leftValue = left(segment)
         if leftValue instanceof Interval
           throw new Error("Over-constrained by #{widthName}")
@@ -64,24 +64,24 @@ lineOnLine = (args, leftName, widthName, rightName) ->
           widthValue = width(segment).valueOf()
           return [leftValue, widthValue]
     else
-      (segment, stageWidth) ->
+      (segment, spaceWidth) ->
         widthValue = width(segment).valueOf()
-        return [(stageWidth - widthValue) / 2, widthValue]
+        return [(spaceWidth - widthValue) / 2, widthValue]
   else
     if left
-      (segment, stageWidth) ->
+      (segment, spaceWidth) ->
         leftValue = left(segment)
         if leftValue instanceof Interval
           return [leftValue.start, leftValue.end - leftValue.start]
         else
-          return [leftValue, stageWidth - leftValue]
+          return [leftValue, spaceWidth - leftValue]
     else
-      (segment, stageWidth) -> [0, stageWidth]
+      (segment, spaceWidth) -> [0, spaceWidth]
 
   if flip
-    return (segment, stageWidth) ->
-      pos = fn(segment, stageWidth)
-      pos[0] = stageWidth - pos[0] - pos[1]
+    return (segment, spaceWidth) ->
+      pos = fn(segment, spaceWidth)
+      pos[0] = spaceWidth - pos[0] - pos[1]
       return pos
   else
     return fn
@@ -94,7 +94,7 @@ lineOnPoint = (args, leftName, widthName, rightName) ->
 
   if left and right
     throw new Error("Over-constrained by #{widthName}") if width
-    return (segment, stageWidth) ->
+    return (segment, spaceWidth) ->
       leftValue = left(segment)
       rightValue = right(segment)
       if leftValue instanceof Interval or rightValue instanceof Interval
@@ -142,9 +142,9 @@ lineOnPoint = (args, leftName, widthName, rightName) ->
 
 
 
-checkStage = (stage, requiredType) ->
-  if stage.type isnt requiredType
-    throw new Error("Must have a #{requiredType} stage (is #{stage.type})")
+checkSpace = (space, requiredType) ->
+  if space.type isnt requiredType
+    throw new Error("Must have a #{requiredType} space (is #{space.type})")
   return
 
 
@@ -154,32 +154,29 @@ facet.transform = {
       fx = pointOnPoint(args, 'left', 'right')
       fy = pointOnPoint(args, 'top', 'bottom')
 
-      return (segment) ->
-        stage = segment.getStage()
-        checkStage(stage, 'point')
+      return (segment, space) ->
+        checkSpace(space, 'point')
 
         return {
-          x: fx(segment, stage.width)
-          y: fy(segment, stage.height)
-          stage: {
-            type: 'point'
-          }
+          type: 'point'
+          x: fx(segment, space.attr.width)
+          y: fy(segment, space.attr.height)
+          attr: {}
         }
 
     line: (args = {}) ->
       fx = lineOnPoint(args, 'left', 'width', 'right')
 
-      return (segment) ->
-        stage = segment.getStage()
-        checkStage(stage, 'point')
+      return (segment, space) ->
+        checkSpace(space, 'point')
 
-        [x, w] = fx(segment, stage.width)
+        [x, w] = fx(segment, space.attr.width)
 
         return {
+          type: 'line'
           x
           y: 0
-          stage: {
-            type: 'line'
+          attr: {
             length: w
           }
         }
@@ -188,18 +185,17 @@ facet.transform = {
       fx = lineOnPoint(args, 'left', 'width', 'right')
       fy = lineOnPoint(args, 'top', 'height', 'bottom')
 
-      return (segment) ->
-        stage = segment.getStage()
-        checkStage(stage, 'point')
+      return (segment, space) ->
+        checkSpace(space, 'point')
 
-        [x, w] = fx(segment, stage.width)
-        [y, h] = fy(segment, stage.height)
+        [x, w] = fx(segment, space.attr.width)
+        [y, h] = fy(segment, space.attr.height)
 
         return {
+          type: 'rectangle'
           x
           y
-          stage: {
-            type: 'rectangle'
+          attr: {
             width: w
             height: h
           }
@@ -222,16 +218,14 @@ facet.transform = {
       fx = pointOnLine(args, 'left', 'right')
       fy = pointOnLine(args, 'top', 'bottom')
 
-      return (segment) ->
-        stage = segment.getStage()
-        checkStage(stage, 'rectangle')
+      return (segment, space) ->
+        checkSpace(space, 'rectangle')
 
         return {
-          x: fx(segment, stage.width)
-          y: fy(segment, stage.height)
-          stage: {
-            type: 'point'
-          }
+          type: 'point'
+          x: fx(segment, space.attr.width)
+          y: fy(segment, space.attr.height)
+          attr: {}
         }
 
     line: (args = {}) ->
@@ -244,26 +238,25 @@ facet.transform = {
         fx = lineOnLine(args, 'left', 'width', 'right')
         fy = pointOnLine(args, 'top', 'bottom')
 
-      return (segment) ->
-        stage = segment.getStage()
-        checkStage(stage, 'rectangle')
+      return (segment, space) ->
+        checkSpace(space, 'rectangle')
 
         if direction is 'vertical'
-          x = fx(segment, stage.width)
-          [y, l] = fy(segment, stage.height)
+          x = fx(segment, space.attr.width)
+          [y, l] = fy(segment, space.attr.height)
           y += l/2 # hack
           a = 90
         else
-          [x, l] = fx(segment, stage.width)
+          [x, l] = fx(segment, space.attr.width)
           x += l/2 # hack
-          y = fy(segment, stage.height)
+          y = fy(segment, space.attr.height)
 
         return {
+          type: 'line'
           x
           y
           a
-          stage: {
-            type: 'line'
+          attr: {
             length: l
           }
         }
@@ -273,18 +266,17 @@ facet.transform = {
       fx = lineOnLine(args, 'left', 'width', 'right')
       fy = lineOnLine(args, 'top', 'height', 'bottom')
 
-      return (segment) ->
-        stage = segment.getStage()
-        checkStage(stage, 'rectangle')
+      return (segment, space) ->
+        checkSpace(space, 'rectangle')
 
-        [x, w] = fx(segment, stage.width)
-        [y, h] = fy(segment, stage.height)
+        [x, w] = fx(segment, space.attr.width)
+        [y, h] = fy(segment, space.attr.height)
 
         return {
+          type: 'rectangle'
           x
           y
-          stage: {
-            type: 'rectangle'
+          attr: {
             width: w
             height: h
           }

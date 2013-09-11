@@ -15,7 +15,7 @@
     <script src="sqlDriver.js"></script>
     <script src="druidDriver.js"></script>
 
-    <title>Facet Examples (0.2.1)</title>
+    <title>Facet Examples (0.4.3)</title>
 
     <script>
       // The basics
@@ -85,16 +85,16 @@
         .transform(transform.rectangle.rectangle({left: 30, right: 10, top: 10, bottom: 10}))
         .scale('horiz', scale.linear())
         .scale('vert', scale.linear())
-        .range('horiz', use.stage('width'))
+        .range('horiz', use.space('width'))
           .split('Time', split.timePeriod('time', 'P1D'))
           .apply('Edits', apply.sum('count'))
           .combine(combine.slice(sort.natural('Time', 'ascending')))
           .domain('horiz', use.prop('Time'))
           .domain('vert', use.interval(0, use.prop('Edits')))
           .layout(layout.horizontalScale({ scale: 'horiz' }))
-          .range('vert', use.stage('height'))
+          .range('vert', use.space('height'))
           .scale('horiz2', scale.linear())
-          .range('horiz2', use.stage('width'))
+          .range('horiz2', use.space('width'))
           .transform(transform.rectangle.rectangle({
             bottom: 0,
             height: use.scale('vert')

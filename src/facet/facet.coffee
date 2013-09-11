@@ -188,7 +188,7 @@ class FacetVis
   render: (expose, done) ->
     return @parent.render(expose, done) if @parent
 
-    if arguments.length is 1 and typeof expose is 'function'
+    if typeof expose is 'function'
       done = expose
       expose = false
 

@@ -85,13 +85,13 @@ describe "Facet layout", ->
           expect(box.style('display')).to.equal('none')
           done()
 
-    it "should throw Error with a wrong stage type", (done) ->
+    it "should throw Error with a wrong space type", (done) ->
       expect(->
         facet.define('body', 800, 600, diamondsSimpleDriver)
           .transform(transform.rectangle.point({ bottom: 6 }))
           .plot(plot.box())
           .render()
-      ).to.throw(Error, /Box must have a rectangle stage/)
+      ).to.throw(Error, /Box must have a rectangle space/)
       done()
 
   describe "label", ->
@@ -146,12 +146,12 @@ describe "Facet layout", ->
           expect(label.style('display')).to.equal('none')
           done()
 
-    it "should throw Error with a wrong stage type", (done) ->
+    it "should throw Error with a wrong space type", (done) ->
       expect(->
         facet.define('body', 800, 600, diamondsSimpleDriver)
           .plot(plot.label())
           .render()
-      ).to.throw(Error, /Label must have a point stage/)
+      ).to.throw(Error, /Label must have a point space/)
       done()
 
   describe "circle", ->
@@ -225,12 +225,12 @@ describe "Facet layout", ->
       ).to.throw(Error, /Over-constrained by radius and area/)
       done()
 
-    it "should throw Error with a wrong stage type", (done) ->
+    it "should throw Error with a wrong space type", (done) ->
       expect(->
         facet.define('body', 800, 600, diamondsSimpleDriver)
           .plot(plot.circle())
           .render()
-      ).to.throw(Error, /Circle must have a point stage/)
+      ).to.throw(Error, /Circle must have a point space/)
       done()
 
   describe "line", ->
@@ -278,10 +278,10 @@ describe "Facet layout", ->
           expect(line.style('display')).to.equal('none')
           done()
 
-    it "should throw Error with a wrong stage type", (done) ->
+    it "should throw Error with a wrong space type", (done) ->
       expect(->
         facet.define('body', 800, 600, diamondsSimpleDriver)
           .plot(plot.line())
           .render()
-      ).to.throw(Error, /Line must have a line stage/)
+      ).to.throw(Error, /Line must have a line space/)
       done()

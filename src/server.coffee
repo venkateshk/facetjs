@@ -103,7 +103,6 @@ app.post '/driver/druid', (req, res) ->
   druidDriver({
     requester: druidPass
     dataSource: context.dataSource
-    filters: null
   })({context, query}, respondWithResult(res))
   return
 

@@ -65,14 +65,14 @@
         filter: null
       });
 
-      facet.define('.example', 800, 600, sqlDriverClient)
+      var vis = facet.define('.example', 800, 600, sqlDriverClient)
         .scale('vert', scale.linear())
         .scale('color', scale.color())
           .split('Cut', split.identity('cut'))
           .apply('AvgPrice', apply.average('price'))
           .combine(combine.slice(sort.natural('AvgPrice', 'descending')))
           .layout(layout.horizontal({ gap: 3 }))
-          .domain('vert', use.interval(0, use.prop('AvgPrice'))
+          .domain('vert', use.interval(0, use.prop('AvgPrice')))
           .range('vert', use.space('height'))
           .domain('color', use.prop('Cut'))
           .transform(transform.rectangle.rectangle({
@@ -90,7 +90,8 @@
                 anchor: 'middle',
                 baseline: 'bottom'
               }))
-              .render()
+
+      vis.render(true);
     })();
     </script>
   </body>

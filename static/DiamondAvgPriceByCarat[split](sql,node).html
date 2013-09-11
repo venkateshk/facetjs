@@ -69,7 +69,7 @@
         return int.start.toFixed(1) + ' - ' + int.end.toFixed(1)
       }
 
-      facet.define('.example', 800, 600, sqlDriverClient)
+      var vis = facet.define('.example', 800, 600, sqlDriverClient)
         .transform(transform.rectangle.rectangle({left: 10, right: 10, top: 10, bottom: 10}))
         .scale('vert', scale.linear())
           .split('Carat', split.continuous('carat', 0.1))
@@ -92,7 +92,8 @@
                 baseline: 'center',
                 angle: 90
               }))
-              .render()
+
+      vis.render(true);
     })();
     </script>
   </body>

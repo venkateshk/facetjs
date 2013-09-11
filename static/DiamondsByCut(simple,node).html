@@ -60,7 +60,7 @@
         prety: true
       });
 
-      facet.define('.example', 800, 600, simpleDriverNode)
+      var vis = facet.define('.example', 800, 600, simpleDriverNode)
         .scale('color', scale.color())
           .split('Cut', split.identity('cut'))
           .apply('Count', apply.count())
@@ -83,7 +83,7 @@
               baseline: 'center'
             }))
           .untransform()
-          .render()
+   vis.render(true);
     })();
     </script>
 

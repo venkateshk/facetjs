@@ -45,7 +45,7 @@ describe "Integrated Facet", ->
             .combine(combine.slice(sort.natural('Count', 'descending')))
             .layout(layout.vertical())
             .domain('count', use.prop('Count'))
-            .range('count', use.stage('width'))
+            .range('count', use.space('width'))
             .transform(transform.rectangle.rectangle({
               left: 0,
               width: use.scale('count')

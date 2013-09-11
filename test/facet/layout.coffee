@@ -167,7 +167,7 @@ describe "Facet layout", ->
     it "should make groups with the right sizes", (done) ->
       facet.define('body', 800, 600, diamondsSimpleDriver)
         .scale('horiz', scale.linear())
-        .range('horiz', use.stage('width'))
+        .range('horiz', use.space('width'))
         .split('Carat', split.continuous('carat', 0.1))
         .apply('Count', apply.count())
         .combine(combine.slice(sort.natural('Count'), 5))

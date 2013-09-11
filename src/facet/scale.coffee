@@ -1,5 +1,8 @@
 # A function that makes a scale and adds it to the segment.
-# Arguments* -> Segment -> { fn, use }
+# Arguments* ->
+#  domain: [Segment], use
+#  range: [Space], use
+#    -> { fn, use }
 
 scaleOverInterval = (baseScale) -> (x) ->
   if x instanceof Interval
@@ -42,14 +45,14 @@ facet.scale = {
         self.fn = scaleOverInterval(baseScale)
         return
 
-      range: (segments, range) ->
+      range: (spaces, range) ->
         range = wrapLiteral(range)
 
         rangeFrom = -Infinity
         rangeTo = Infinity
 
-        for segment in segments
-          rangeValue = range(segment)
+        for space in spaces
+          rangeValue = range(space)
           if rangeValue instanceof Interval
             rangeFrom = rangeValue.start # really?
             rangeTo = min(rangeTo, rangeValue.end)

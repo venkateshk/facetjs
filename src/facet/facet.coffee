@@ -1,57 +1,16 @@
-getScaleAndSegmentsForTraining = (training, segment, scaleName) ->
-  sourceSegment = segment
-  hops = 0
-  while true
-    scale = sourceSegment.scale[scaleName]
-    break if scale
-    sourceSegment = sourceSegment.parent
-    hops++
-    throw new Error("can not find scale '#{scaleName}'") unless sourceSegment
-
-  return null unless scale.hasOwnProperty(training)
-
-  # Get all of sources children on my level (my cousins)
-  unifiedSegments = [sourceSegment]
-  while hops > 0
-    unifiedSegments = flatten(unifiedSegments.map((s) -> s.splits))
-    hops--
-
-  return {
-    scale
-    unifiedSegments
-  }
-
-
-getConnectorAndSegemnts = (segment, connectorName) ->
-  sourceSegment = segment
-  hops = 0
-  while true
-    connector = sourceSegment.connector[connectorName]
-    break if connector
-    sourceSegment = sourceSegment.parent
-    hops++
-    throw new Error("can not find connector '#{connectorName}'") unless sourceSegment
-
-  # Get all of sources children on my level (my cousins)
-  unifiedSegments = [sourceSegment]
-  while hops > 0
-    unifiedSegments = flatten(unifiedSegments.map((s) -> s.splits))
-    hops--
-
-  return {
-    connector
-    unifiedSegments
-  }
-
+pseudoSpaceToTransform = ({x, y, a}) ->
+  transformStr = "translate(#{x},#{y})"
+  transformStr += " rotate(#{a})" if a
+  return transformStr
 
 class FacetVis
   constructor: ->
     if arguments.length is 4
       [@selector, @width, @height, @driver] = arguments
+      @knownProps = {}
     else
-      [@parent, @from] = arguments
+      [@parent, @from, @knownProps] = arguments
     @ops = []
-    @knownProps = {}
 
   _ensureCommandOrder: (self, follow, allow = []) ->
     i = @ops.length - 1
@@ -125,11 +84,18 @@ class FacetVis
       ['scale', 'domain']
     )
     throw new TypeError("layout must be a function") unless typeof layout is 'function'
+    subVis = new FacetVis(this, 'layout', @knownProps)
     @ops.push({
       operation: 'layout'
       layout
+      vis: subVis
     })
-    return this
+    return subVis
+
+  unlayout: ->
+    throw new Error("can not unlayout on the base") unless @parent
+    throw new Error("unmatched nesting (nested with #{@from})") unless @from is 'unlayout'
+    return @parent
 
   scale: (name, scale) ->
     throw new TypeError("not a valid scale") unless typeof scale is 'function'
@@ -172,17 +138,18 @@ class FacetVis
 
   transform: (transform) ->
     throw new TypeError("transform must be a function") unless typeof transform is 'function'
+    subVis = new FacetVis(this, 'transform', @knownProps)
     @ops.push({
       operation: 'transform'
       transform
+      vis: subVis
     })
-    return this
+    return subVis
 
   untransform: ->
-    @ops.push({
-      operation: 'untransform'
-    })
-    return this
+    throw new Error("can not untransform on the base") unless @parent
+    throw new Error("unmatched nesting (nested with #{@from})") unless @from is 'transform'
+    return @parent
 
   plot: (plot) ->
     throw new TypeError("plot must be a function") unless typeof plot is 'function'
@@ -208,11 +175,19 @@ class FacetVis
     })
     return this
 
-  getQuery: ->
-    querySpec = @ops.filter(({operation}) -> operation in ['filter', 'split', 'apply', 'combine'])
-    return new FacetQuery(querySpec)
+  getFlatOperations: ->
+    operations = []
+    for op in @ops
+      operations.push(op)
+      if op.operation in ['layout', 'transform']
+        Array::push.apply(operations, op.vis.getFlatOperations())
+        operations.push({ operation: 'un' + op.operation })
+
+    return operations
 
   render: (expose, done) ->
+    return @parent.render(expose, done) if @parent
+
     if arguments.length is 1 and typeof expose is 'function'
       done = expose
       expose = false
@@ -228,9 +203,12 @@ class FacetVis
       height
     }
 
-    operations = @ops
+    operations = @getFlatOperations()
 
-    @driver { query: @getQuery() }, (err, res) ->
+    querySpec = operations.filter ({operation}) ->
+      return operation in ['filter', 'split', 'apply', 'combine']
+
+    @driver { query: new FacetQuery(querySpec) }, (err, res) ->
       svg.classed('loading', false)
       if err
         svg.classed('error', true)
@@ -238,127 +216,167 @@ class FacetVis
         if typeof alert is 'function' then alert(errorMerrage) else console.log(errorMerrage)
         return
 
-      segmentGroups = [[rootSegment = new Segment({
-        parent: null
-        stage: {
-          node: svg
-          type: 'rectangle'
-          width
-          height
-        }
-        prop: res.prop
-        splits: res.splits
-      })]]
+      stateStack = [{
+        spaces: [new Space(null, svg, 'rectangle', { width, height })]
+        segments: [new Segment(null, res.prop, res.splits)]
+      }]
+      allStates = stateStack.slice()
 
       for cmd in operations
+        curState = stateStack[stateStack.length - 1]
+
+        if curState.segments.length isnt curState.spaces.length
+          console.log cmd
+          throw "sanity check"
+
         switch cmd.operation
           when 'split'
-            segmentGroups = flatten(segmentGroups).map((segment) ->
+            throw new Error("Can not split (again) in pregnant state") if curState.pregnant
+            segmentGroups = curState.segments.map (segment) ->
               return segment.splits = segment.splits.map ({ prop, splits }) ->
-                stage = _.clone(segment.getStage())
-                stage.node = stage.node.append('g')
-                for key, value of prop
-                  if Array.isArray(value)
-                    prop[key] = Interval.fromArray(value)
-                return new Segment({
-                  parent: segment
-                  stage: stage
-                  prop
-                  splits
-                })
-            )
+                return new Segment(segment, prop, splits)
+
+            curState.pregnant = true
+            curState.segmentGroups = segmentGroups
+            curState.nextSegments = flatten(segmentGroups)
 
           when 'filter', 'apply', 'combine'
             null # Do nothing, there is nothing to do on the renderer for those :-)
 
           when 'scale'
+            throw new Error("Can not declare scales in pregnant state") if curState.pregnant
             { name, scale } = cmd
-            for segmentGroup in segmentGroups
-              for segment in segmentGroup
-                myScale = scale()
-                throw new TypeError("not a valid scale") unless typeof myScale.domain is 'function'
-                segment.scale[name] = myScale
+            for segment, i in curState.segments
+              space = curState.spaces[i]
+              myScale = scale()
+              throw new TypeError("not a valid scale") unless typeof myScale.domain is 'function'
+              # Since scales connect the data space to the physical space both need to know about them
+              segment.scale[name] = myScale
+              space.scale[name] = myScale
 
           when 'domain'
             { name, domain } = cmd
-            for segmentGroup in segmentGroups
-              for segment in segmentGroup
-                ret = getScaleAndSegmentsForTraining('domain', segment, name)
-                continue unless ret
-                { scale, unifiedSegments } = ret
-                throw new Error("Scale '#{name}' domain can't be trained") unless scale.domain
-                scale.domain(unifiedSegments, domain)
+
+            curScale = null
+            for segment in (curState.nextSegments or curState.segments)
+              c = segment.getScale(name)
+              if c is curScale
+                curBatch.push(segment)
+              else
+                if curScale
+                  curScale.domain(curBatch, domain)
+                curScale = c
+                curBatch = [segment]
+
+            if curScale
+              curScale.domain(curBatch, domain)
 
           when 'range'
+            throw new Error("Can not train range in pregnant state") if curState.pregnant
             { name, range } = cmd
-            for segmentGroup in segmentGroups
-              for segment in segmentGroup
-                ret = getScaleAndSegmentsForTraining('range', segment, name)
-                continue unless ret
-                { scale, unifiedSegments } = ret
-                throw new Error("Scale '#{name}' range can't be trained") unless scale.range
-                scale.range(unifiedSegments, range)
+
+            curScale = null
+            for space in curState.spaces
+              c = space.getScale(name)
+              if c is curScale
+                curBatch.push(space)
+              else
+                if curScale
+                  throw new Error("Scale '#{name}' range can not be trained") unless curScale.range
+                  curScale.range(curBatch, range)
+                curScale = c
+                curBatch = [space]
+
+            if curScale
+              throw new Error("Scale '#{name}' range can not be trained") unless curScale.range
+              curScale.range(curBatch, range)
 
           when 'layout'
+            throw new Error("Must be in pregnant state to layout") unless curState.pregnant
             { layout } = cmd
-            for segmentGroup in segmentGroups
-              parentSegment = segmentGroup[0].parent
-              throw new Error("must split before calling layout") unless parentSegment
-              pseudoStages = layout(parentSegment, segmentGroup)
-              for segment, i in segmentGroup
-                pseudoStage = pseudoStages[i]
-                pseudoStage.stage.node = segment.getStage().node
-                  .attr('transform', "translate(#{pseudoStage.x},#{pseudoStage.y})")
-                segment.setStage(pseudoStage.stage)
+            newSpaces = []
+            for segmentGroup, i in curState.segmentGroups
+              space = curState.spaces[i]
+              pseudoSpaces = layout(segmentGroup, space)
+              for pseudoSpace in pseudoSpaces
+                newSpaces.push(new Space(
+                  space
+                  space.node.append('g').attr('transform', pseudoSpaceToTransform(pseudoSpace))
+                  pseudoSpace.type
+                  pseudoSpace.attr
+                ))
+
+            nextState = {
+              spaces: newSpaces
+              segments: curState.nextSegments
+            }
+            stateStack.push(nextState)
+            allStates.push(nextState)
+
+          when 'unlayout'
+            stateStack.pop()
 
           when 'transform'
             { transform } = cmd
-            for segmentGroup in segmentGroups
-              for segment in segmentGroup
-                pseudoStage = transform(segment)
-                transformStr = "translate(#{pseudoStage.x},#{pseudoStage.y})"
-                transformStr += " rotate(#{pseudoStage.a})" if pseudoStage.a
-                pseudoStage.stage.node = segment.getStage().node.append('g').attr('transform', transformStr)
-                segment.pushStage(pseudoStage.stage)
+            nextState = {}
+            nextState[k] = v for k, v of curState
 
+            nextState.spaces = curState.spaces.map (space, i) ->
+              segment = curState.segments[i]
+              pseudoSpace = transform(segment, space)
+              return new Space(
+                space
+                space.node.append('g').attr('transform', pseudoSpaceToTransform(pseudoSpace))
+                pseudoSpace.type
+                pseudoSpace.attr
+              )
+
+            stateStack.push(nextState)
+            allStates.push(nextState)
 
           when 'untransform'
-            for segmentGroup in segmentGroups
-              for segment in segmentGroup
-                segment.popStage()
+            stateStack.pop()
 
           when 'plot'
             { plot } = cmd
-            for segmentGroup in segmentGroups
-              for segment in segmentGroup
-                plot(segment)
+            for segment, i in curState.segments
+              space = curState.spaces[i]
+              plot(segment, space)
 
           when 'connector'
             { name, connector } = cmd
-            for segmentGroup in segmentGroups
-              for segment in segmentGroup
-                segment.connector[name] = connector(segment)
+            for segment, i in curState.segments
+              space = curState.spaces[i]
+              space.connector[name] = connector(segment, space)
 
           when 'connect'
             { name } = cmd
-            for segmentGroup in segmentGroups
-              for segment in segmentGroup
-                ret = getConnectorAndSegemnts(segment, name)
-                continue unless ret
-                { connector, unifiedSegments } = ret
-                throw new Error("Connector '#{name}' can't be connected") unless connector
-                connector(unifiedSegments)
+
+            curConnector = null
+            for space in curState.spaces
+              c = space.getConnector(name)
+              if c is curConnector
+                curBatch.push(space)
+              else
+                if curConnector
+                  curConnector(curBatch)
+                curConnector = c
+                curBatch = [space]
+
+            if curConnector
+              curConnector(curBatch)
 
           else
             throw new Error("Unknown operation '#{cmd.operation}'")
 
       if typeof done is 'function'
+        rootSegment = stateStack[0].segments[0]
         done.call(rootSegment, rootSegment)
 
       if expose
-        for segmentGroup in segmentGroups
-          for segment in segmentGroup
-            segment.exposeStage()
+        for curState in allStates
+          for segment, i in curState.segments
+            curState.spaces[i].expose(segment)
 
       return
 
@@ -369,109 +387,4 @@ facet.define = (selector, width, height, driver) ->
   throw new Error("bad size: #{width} x #{height}") unless width and height
   return new FacetVis(selector, width, height, driver)
 
-
-# Country     City             Football Team   Rev
-#                                              10000
-# - UK                                          3000
-#             - London                           300
-#                              + Arsenal          30
-#                              + Chelsea          20
-#             + Manchester                       200
-# - Russia                                      2000
-#             + Moscow                           300
-#             + St. Petersburg                   250
-# + Israel                                      1200
-# + US and A                                    1000
-
-facet.table = ({parent, query, data, pre, onClick, onHover}) ->
-  pre or= true
-
-  flattenHelper = (root, result, parentSegment) ->
-    root.parent = parentSegment
-    if pre
-      result.push(root)
-
-    splits = root.splits or []
-    for split in splits
-      flattenHelper(split, result, root)
-
-    if not pre
-      result.push(root)
-
-    return
-
-  res = []
-  flattenHelper(data, res, null)
-
-  # ----------------
-  h = res.filter(({splits}) -> splits)
-  heightlight = h[Math.floor(Math.random() * h.length)]
-  isHeighlighted = (segment) ->
-    while segment
-      return true if segment is heightlight
-      segment = segment.parent
-    return false
-  # ----------------
-
-  splits = []
-  applies = []
-  seen = {}
-  for cmd in query
-    if cmd.operation is 'split'
-      if not seen[cmd.name]
-        splits.push({ prop: cmd.name, type: 'split' })
-        seen[cmd.name] = 1
-
-    if cmd.operation is 'apply'
-      if not seen[cmd.name]
-        applies.push({ prop: cmd.name, type: 'apply' })
-        seen[cmd.name] = 1
-
-  props = splits.concat(applies)
-
-  table = parent.append('table')
-    .attr('class', 'facet')
-
-  headColumnsSelection = table.append('thead')
-    .append('tr')
-    .selectAll('th')
-    .data(props)
-
-  headColumnsSelection.enter().append('th')
-  headColumnsSelection.exit().remove()
-
-  headColumnsSelection
-    .attr('class', ({type, prop}) -> type)
-    .text(({prop}) -> prop)
-
-
-  bodyRowsSelection = table.append('tbody')
-    .selectAll('tr')
-    .data(res)
-
-  bodyRowsSelection.enter().append('tr')
-  bodyRowsSelection.exit().remove()
-
-  bodyRowsSelection
-    .attr('class', (segment) ->
-      classes = [if segment.splits then 'split' else 'leaf']
-      classes.push('no-parent') if not segment.parent
-      classes.push('heightlight') if isHeighlighted(segment)
-      return classes.join(' ')
-    )
-
-  bodyColumnsSelection = bodyRowsSelection
-    .selectAll('td')
-    .data((segment) -> props.map(({prop, type}) -> { type, prop, segment }))
-
-  bodyColumnsSelection.enter().append('td')
-  bodyColumnsSelection.exit().remove()
-
-  bodyColumnsSelection
-    .attr('class', ({type, prop, segment}) ->
-      return type + ' ' + if segment.prop.hasOwnProperty(prop) then 'full' else 'blank'
-    )
-    .text(({prop, segment}) -> segment.prop[prop])
-
-  return
 

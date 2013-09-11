@@ -1,10 +1,10 @@
-createNode = (segment, nodeType, { title, link, visible, opacity, dash }) ->
+createNode = (segment, space, nodeType, { title, link, visible, opacity, dash }) ->
   title = wrapLiteral(title)
   link = wrapLiteral(link)
   visible = wrapLiteral(visible)
   opacity = wrapLiteral(opacity)
 
-  node = segment.getStage().node
+  node = space.node
 
   if title or link
     node = node.append('a')
@@ -25,7 +25,7 @@ createNode = (segment, nodeType, { title, link, visible, opacity, dash }) ->
 
 
 # A function that takes a facet and
-# Arguments* -> Segment -> void
+# Arguments* -> (Segment, Space) -> void
 
 facet.plot = {
   box: (args = {}) ->
@@ -33,15 +33,14 @@ facet.plot = {
     stroke = wrapLiteral(stroke)
     fill = wrapLiteral(fill or color)
 
-    return (segment) ->
-      stage = segment.getStage()
-      throw new Error("Box must have a rectangle stage (is #{stage.type})") unless stage.type is 'rectangle'
+    return (segment, space) ->
+      throw new Error("Box must have a rectangle space (is #{space.type})") unless space.type is 'rectangle'
 
-      createNode(segment, 'rect', args)
-        .attr('x', Math.min(0, stage.width))
-        .attr('y', Math.min(0, stage.height))
-        .attr('width', Math.abs(stage.width))
-        .attr('height', Math.abs(stage.height))
+      createNode(segment, space, 'rect', args)
+        .attr('x', Math.min(0, space.attr.width))
+        .attr('y', Math.min(0, space.attr.height))
+        .attr('width', Math.abs(space.attr.width))
+        .attr('height', Math.abs(space.attr.height))
         .style('fill', fill)
         .style('stroke', stroke)
       return
@@ -55,11 +54,10 @@ facet.plot = {
     baseline = wrapLiteral(baseline)
     angle = wrapLiteral(angle)
 
-    return (segment) ->
-      stage = segment.getStage()
-      throw new Error("Label must have a point stage (is #{stage.type})") unless stage.type is 'point'
+    return (segment, space) ->
+      throw new Error("Label must have a point space (is #{space.type})") unless space.type is 'point'
 
-      myNode = createNode(segment, 'text', args)
+      myNode = createNode(segment, space, 'text', args)
 
       if angle
         myNode.attr('transform', "rotate(#{-angle(segment)})")
@@ -93,11 +91,10 @@ facet.plot = {
     stroke = wrapLiteral(stroke)
     fill = wrapLiteral(fill or color)
 
-    return (segment) ->
-      stage = segment.getStage()
-      throw new Error("Circle must have a point stage (is #{stage.type})") unless stage.type is 'point'
+    return (segment, space) ->
+      throw new Error("Circle must have a point space (is #{space.type})") unless space.type is 'point'
 
-      createNode(segment, 'circle', args)
+      createNode(segment, space, 'circle', args)
         .attr('r', radius)
         .style('fill', fill)
         .style('stroke', stroke)
@@ -106,14 +103,13 @@ facet.plot = {
 
   line: (args = {}) ->
     {stroke} = args
-    return (segment) ->
-      stage = segment.getStage()
-      throw new Error("Line must have a line stage (is #{stage.type})") unless stage.type is 'line'
+    return (segment, space) ->
+      throw new Error("Line must have a line space (is #{space.type})") unless space.type is 'line'
 
-      createNode(segment, 'line', args)
+      createNode(segment, space, 'line', args)
         .style('stroke', stroke)
-        .attr('x1', -stage.length / 2)
-        .attr('x2',  stage.length / 2)
+        .attr('x1', -space.attr.length / 2)
+        .attr('x2',  space.attr.length / 2)
 
       return
 }

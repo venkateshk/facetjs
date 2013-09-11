@@ -10,35 +10,33 @@ stripeTile = (dim1, dim2) -> ({ gap, size } = {}) ->
   gap or= 0
   size = wrapLiteral(size ? 1)
 
-  return (parentSegment, segmentGroup) ->
-    n = segmentGroup.length
-    parentStage = parentSegment.getStage()
-    if parentStage.type isnt 'rectangle'
-      throw new Error("Must have a rectangular stage (is #{parentStage.type})")
-    parentDim1 = parentStage[dim1]
-    parentDim2 = parentStage[dim2]
+  return (segments, space) ->
+    n = segments.length
+    if space.type isnt 'rectangle'
+      throw new Error("Must have a rectangular space (is #{space.type})")
+    parentDim1 = space.attr[dim1]
+    parentDim2 = space.attr[dim2]
     maxGap = Math.max(0, (parentDim1 - n * 2) / (n - 1)) # Each segment takes up at least 2px
     gap = Math.min(gap, maxGap)
     availableDim1 = parentDim1 - gap * (n - 1)
-    dim1s = divideLength(availableDim1, segmentGroup.map(size))
+    dim1s = divideLength(availableDim1, segments.map(size))
 
     dimSoFar = 0
-    return segmentGroup.map((segment, i) ->
+    return segments.map((segment, i) ->
       curDim1 = dim1s[i]
 
-      pseudoStage = {
+      pseudoSpace = {
+        type: 'rectangle'
         x: 0
         y: 0
-        stage: {
-          type: 'rectangle'
-        }
+        attr: {}
       }
-      pseudoStage[if dim1 is 'width' then 'x' else 'y'] = dimSoFar
-      pseudoStage.stage[dim1] = curDim1
-      pseudoStage.stage[dim2] = parentDim2
+      pseudoSpace[if dim1 is 'width' then 'x' else 'y'] = dimSoFar
+      pseudoSpace.attr[dim1] = curDim1
+      pseudoSpace.attr[dim2] = parentDim2
 
       dimSoFar += curDim1 + gap
-      return pseudoStage
+      return pseudoSpace
     )
 
 facet.layout = {
@@ -53,31 +51,30 @@ facet.layout = {
     { scale, use, flip } = args
     throw new Error("Must have a scale") unless scale
 
-    return (parentSegment, segmentGroup) ->
-      parentStage = parentSegment.getStage()
-      if parentStage.type isnt 'rectangle'
-        throw new Error("Must have a rectangular stage (is #{parentStage.type})")
-      parentWidth = parentStage.width
-      parentHeight = parentStage.height
+    return (segments, space) ->
+      throw new Error("Must have a rectangular space (is #{space.type})") if space.type isnt 'rectangle'
 
-      scaleObj = getScale(segmentGroup[0], scale)
+      spaceWidth = space.attr.width
+      spaceHeight = space.attr.height
+
+      scaleObj = segments[0].getScale(scale)
       use or= scaleObj.use
 
-      return segmentGroup.map((segment, i) ->
+      return segments.map((segment, i) ->
         int = scaleObj.fn(use(segment))
 
         x = int.start
         width = int.end - int.start
         if flip
-          x = parentWidth - x - width
+          x = spaceWidth - x - width
 
         return {
+          type: 'rectangle'
           x
           y: 0
-          stage: {
-            type: 'rectangle'
+          attr: {
             width
-            height: parentHeight
+            height: spaceHeight
           }
         }
       )

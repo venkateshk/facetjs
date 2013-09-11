@@ -15,7 +15,7 @@
     <script src="sqlDriver.js"></script>
     <script src="druidDriver.js"></script>
 
-    <title>Facet Examples (0.2.1)</title>
+    <title>Facet Examples (0.4.3)</title>
 
     <script>
       // The basics
@@ -89,7 +89,7 @@
               .combine(combine.slice(sort.natural('Count', 'descending'))) // sort the 3-d splits based on count
               .layout(layout.vertical()) // facet the 3-d splits vertically
               .domain('count', use.prop('Count')) // set 3-d count the domain of the scale count
-              .range('count', use.stage('width')) // set 3-d facet's width the range of the scale count
+              .range('count', use.space('width')) // set 3-d facet's width the range of the scale count
               .transform(transform.rectangle.rectangle({ // transform each facets to a rectangle
                 left: 0,
                 width: use.scale('count')

@@ -15,7 +15,7 @@
     <script src="sqlDriver.js"></script>
     <script src="druidDriver.js"></script>
 
-    <title>Facet Examples (0.2.1)</title>
+    <title>Facet Examples (0.4.3)</title>
 
     <script>
       // The basics
@@ -114,7 +114,7 @@
             .layout(layout.vertical({ gap: 3 }))
             .transform(transform.rectangle.rectangle({ left: 200 }))
               .domain('horiz', use.interval(0, use.prop('Edits')))
-              .range('horiz', use.stage('width'))
+              .range('horiz', use.space('width'))
               .transform(transform.rectangle.rectangle({
                 left: 0,
                 width: use.scale('horiz')

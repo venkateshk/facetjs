@@ -147,7 +147,7 @@ aggregateFns = {
   min: ({attribute}) -> (ds) ->
     min = +Infinity
     min = Math.min(min, Number(d[attribute])) for d in ds
-    if isNaN(max)
+    if isNaN(min)
       min = +Infinity
       min = Math.min(min, (new Date(d[attribute])).valueOf()) for d in ds
     return min

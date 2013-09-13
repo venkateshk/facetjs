@@ -16,6 +16,8 @@ class FacetOptions
       value[k] = v
     return value
 
+  toJSON: @::valueOf
+
   isEqual: (other) ->
     return Boolean(other) and @toString() is other.toString()
 

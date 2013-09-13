@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" type="text/css" href="facet.css">
+    <script src="lib/underscore.js"></script>
+    <script src="lib/async.js"></script>
+    <script src="lib/d3.v3.js"></script>
+    <script src="lib/jquery-1.9.1.js"></script>
+    <script src="lib/date.js"></script>
+    <script src="lib/timezoneinfo.js"></script>
+    <script src="query.js"></script>
+    <script src="facet.js"></script>
+    <script src="driverUtil.js"></script>
+    <script src="simpleDriver.js"></script>
+    <script src="sqlDriver.js"></script>
+    <script src="druidDriver.js"></script>
+
+    <title>Facet Examples (0.4.3)</title>
+
+    <script>
+      // The basics
+      var filter = facet.filter;
+      var split = facet.split;
+      var apply = facet.apply;
+      var layout = facet.layout;
+      var scale = facet.scale;
+      var plot = facet.plot;
+      var use = facet.use;
+      var combine = facet.combine;
+      var sort = facet.sort;
+      var transform = facet.transform;
+      var connector = facet.connector;
+    </script>
+  </head>
+
+  <body>
+
+    <div class="cont">
+      <h1>Diamond Avg Price by Cut</h1>
+      <h2>SQL Driver in Client / diamonds</h2>
+      <div class="example"></div>
+    </div>
+    <script>
+    (function() {
+      // {
+      //   "carat": "0.23",
+      //   "cut": "Ideal",
+      //   "color": "E",
+      //   "clarity": "SI2",
+      //   "depth": "61.5",
+      //   "table": "55",
+      //   "price": "326",
+      //   "x": "3.95",
+      //   "y": "3.98",
+      //   "z": "2.43"
+      // },
+
+      var sqlRequester = facet.ajaxPoster({
+        url: '/pass/sql',
+        prety: true
+      });
+
+      var sqlDriverClient = sqlDriver({
+        requester: sqlRequester,
+        table: "diamonds",
+        filter: null
+      });
+
+      function intervalToString(int) {
+        return int.start.toFixed(1) + ' - ' + int.end.toFixed(1)
+      }
+
+      var vis = facet.define('.example', 800, 600, sqlDriverClient)
+        .transform(transform.rectangle.rectangle({left: 10, right: 10, top: 10, bottom: 10}))
+          .plot(plot.box({fill: 'none', stroke: 'green'}))
+          .split('Clarity', split.identity('clarity'))
+          .apply('AvgPrice', apply.average('price'))
+          .apply('AvgTable', apply.average('table'))
+          .apply('MaxPrice', apply.max('price'))
+          .apply('AvgCarat', apply.average('carat'))
+          .connector('line', connector.line({color: 'steelblue'}))
+          .transform(transform.rectangle.rectangle({left: 10, top: 10, bottom: 10, width: 360}))
+            .plot(plot.box({fill: 'none', stroke: 'green'}))
+            .scale('horiz1', scale.linear()).domain('horiz1', use.prop('AvgPrice')).range('horiz1', use.space('width'))
+            .scale('vert1', scale.linear()).domain('vert1', use.prop('AvgTable')).range('vert1', use.space('height'))
+            .layout(layout.overlap())
+              .transform(transform.rectangle.point({ left: use.scale('horiz1'), bottom: use.scale('vert1') }))
+                .plot(plot.circle({
+                  color: 'red',
+                  radius: 4
+                }))
+                .plot(plot.label({
+                  text: use.prop('Clarity')
+                }))
+                .connect('line')
+              .untransform()
+            .unlayout()
+          .untransform()
+          .transform(transform.rectangle.rectangle({right: 10, top: 10, bottom: 10, width: 360}))
+            .plot(plot.box({fill: 'none', stroke: 'green'}))
+            .scale('horiz2', scale.linear()).domain('horiz2', use.prop('MaxPrice')).range('horiz2', use.space('width'))
+            .scale('vert2', scale.linear()).domain('vert2', use.prop('AvgCarat')).range('vert2', use.space('height'))
+            .layout(layout.overlap())
+              .transform(transform.rectangle.point({ left: use.scale('horiz2'), bottom: use.scale('vert2') }))
+                .plot(plot.circle({
+                  color: 'red',
+                  radius: 4
+                }))
+                .plot(plot.label({
+                  text: use.prop('Clarity')
+                }))
+                .connect('line')
+              .untransform()
+            .unlayout()
+          .untransform()
+
+          str = ' hello   "how are you"|red|"cat" world -Lady - Gaga Starkey | Hutch "jesus lives" what"is"this? - '
+          attribute = 'dom'
+
+          f = str
+            .replace(/\|/g, ' | ') // add spaces around |
+            .replace(/ "[^\"]*" /g, function(str) { // mask spaces in quoted strings
+              return ' ' + str.substring(2, str.length-2).replace(/ /g, '#_#_#_#') + ' ';
+            })
+            .replace(/\s+\|\s+/g, '|') // remove spaces around |
+            .replace(/-\s+/g, '-') // remove spaces after -
+            .split(' ') // split up by space
+            .map(function(part) { // convert to filters
+              var negate = false;
+              if (part[0] === '-') {
+                negate = true;
+                part = part.substring(1);
+              }
+              if (part.length === 0) {
+                return null;
+              }
+              var filters = part.split('|').map(function(p) {
+                return {
+                  type: 'contains',
+                  attribute: attribute,
+                  value: p.replace(/#_#_#_#/g, ' ')
+                }
+              });
+              var filter = filters.length > 1 ? { type: 'or', filters: filters } : filters[0];
+              return negate ? { type: 'not', filter: filter } : filter;
+            })
+            .filter(Boolean) // remove nulls
+
+          JSON.stringify(f, null, 2)
+
+
+
+
+
+
+        // .connector('line', connector.line({color: 'steelblue'}))
+        //   .split('Carat', split.continuous('carat', 0.1))
+        //   .apply('Count', apply.count())
+        //   .apply('AvgPrice', apply.average('price'))
+        //   .combine(combine.slice(sort.natural('Carat', 'ascending')))
+        //   .domain('horiz', use.prop('Carat'))
+        //   .domain('vert', use.interval(0, use.prop('AvgPrice')))
+        //   .layout(layout.horizontalScale({ scale: 'horiz' }))
+        //   .transform(transform.rectangle.rectangle({
+        //     bottom: 0,
+        //     height: use.scale('vert')
+        //   }))
+        //     .plot(plot.box({
+        //       fill: '#f0f0f0',
+        //       stroke: 'black'
+        //     }))
+        //     .transform(transform.rectangle.point({ bottom: 6 }))
+        //       .plot(plot.label({
+        //         text: use.fn(use.prop('Carat'), intervalToString),
+        //         baseline: 'center',
+        //         angle: 90
+        //       }))
+        //     .untransform()
+        //     .transform(transform.rectangle.point({ top: 0 }))
+        //       .plot(plot.circle({
+        //         color: 'red',
+        //         radius: 3
+        //       }))
+        //       .plot(plot.label({
+        //         baseline: 'bottom',
+        //         anchor: 'middle',
+        //         size: 10,
+        //         text: use.prop('Count')
+        //       }))
+        //       .connect('line')
+
+      vis.render(true);
+    })();
+    </script>
+  </body>
+</html>

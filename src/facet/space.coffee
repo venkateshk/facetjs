@@ -44,6 +44,11 @@ class Space
           dash: 1
         }
 
+      when 'line'
+        facet.plot.line {
+          stroke: 'black'
+        }
+
       else
         throw new Error("expose for #{@type} needs to be implemented")
 

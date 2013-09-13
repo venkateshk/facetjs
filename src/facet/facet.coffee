@@ -12,33 +12,14 @@ class FacetVis
       [@parent, @from, @knownProps] = arguments
     @ops = []
 
-  _ensureCommandOrder: (self, follow, allow = []) ->
-    i = @ops.length - 1
-    while i >= 0
-      op = @ops[i]
-      return if op.operation in follow
-      if op.operation not in allow
-        throw new Error("#{self} can not follow #{op.operation} (has to follow #{follow.join(', ')})")
-      i--
-    if '$start' not in follow
-      throw new Error("#{self} can not be an initial command (has to follow #{follow.join(', ')})")
-    return
-
   filter: (filter) ->
-    @_ensureCommandOrder('filter'
-      ['$start']
-      ['transform']
-    )
+    throw new Error("can only filter on the base instance") if @parent
     filter = _.clone(filter)
     filter.operation = 'filter'
     @ops.push(filter)
     return this
 
   split: (name, split) ->
-    @_ensureCommandOrder('split'
-      ['$start', 'filter', 'split', 'apply', 'combine']
-      ['layout', 'scale', 'domain', 'range', 'transform', 'untransform', 'plot', 'connector', 'connect']
-    )
     split = _.clone(split)
     split.operation = 'split'
     split.name = name
@@ -47,10 +28,6 @@ class FacetVis
     return this
 
   apply: (name, apply) ->
-    @_ensureCommandOrder('apply'
-      ['$start', 'split', 'apply']
-      ['scale', 'domain', 'range', 'transform', 'untransform', 'plot']
-    )
     apply = _.clone(apply)
     apply.operation = 'apply'
     apply.name = name
@@ -59,9 +36,6 @@ class FacetVis
     return this
 
   combine: ({method, sort, limit}) ->
-    @_ensureCommandOrder('combine'
-      ['split', 'apply']
-    )
     combineCmd = {
       operation: 'combine'
       method
@@ -79,10 +53,6 @@ class FacetVis
     return this
 
   layout: (layout) ->
-    @_ensureCommandOrder('layout'
-      ['split', 'apply', 'combine']
-      ['scale', 'domain']
-    )
     throw new TypeError("layout must be a function") unless typeof layout is 'function'
     subVis = new FacetVis(this, 'layout', @knownProps)
     @ops.push({
@@ -94,7 +64,7 @@ class FacetVis
 
   unlayout: ->
     throw new Error("can not unlayout on the base") unless @parent
-    throw new Error("unmatched nesting (nested with #{@from})") unless @from is 'unlayout'
+    throw new Error("unmatched nesting (nested with #{@from})") unless @from is 'layout'
     return @parent
 
   scale: (name, scale) ->
@@ -123,17 +93,9 @@ class FacetVis
     return this
 
   branch: (data) ->
-    @_ensureCommandOrder('branch'
-      ['$start']
-      ['domain']
-    )
     # create a branch split segment
 
   unbranch: ->
-    @_ensureCommandOrder('unbranch'
-      ['branch']
-      ['domain']
-    )
     # go back to the main segment
 
   transform: (transform) ->
@@ -244,7 +206,6 @@ class FacetVis
             null # Do nothing, there is nothing to do on the renderer for those :-)
 
           when 'scale'
-            throw new Error("Can not declare scales in pregnant state") if curState.pregnant
             { name, scale } = cmd
             for segment, i in curState.segments
               space = curState.spaces[i]
@@ -272,7 +233,6 @@ class FacetVis
               curScale.domain(curBatch, domain)
 
           when 'range'
-            throw new Error("Can not train range in pregnant state") if curState.pregnant
             { name, range } = cmd
 
             curScale = null
@@ -292,7 +252,7 @@ class FacetVis
               curScale.range(curBatch, range)
 
           when 'layout'
-            throw new Error("Must be in pregnant state to layout") unless curState.pregnant
+            throw new Error("Must be in pregnant state to layout (split first)") unless curState.pregnant
             { layout } = cmd
             newSpaces = []
             for segmentGroup, i in curState.segmentGroups

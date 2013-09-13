@@ -23,6 +23,8 @@ class FacetSort
   valueOf: ->
     return { compare: @compare, prop: @prop, direction: @direction }
 
+  toJSON: @::valueOf
+
   isEqual: (other) ->
     return Boolean(other) and
            @compare is other.compare and

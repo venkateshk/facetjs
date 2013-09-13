@@ -47,6 +47,8 @@ class FacetFilter
   valueOf: ->
     return { type: @type }
 
+  toJSON: @::valueOf
+
   isEqual: (other) ->
     return Boolean(other) and @type is other.type and @attribute is other.attribute
 

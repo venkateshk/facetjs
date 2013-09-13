@@ -40,6 +40,8 @@ class FacetApply
     apply.options = @options.valueOf() if @options
     return apply
 
+  toJSON: @::valueOf
+
   isEqual: (other) ->
     return Boolean(other) and
            @aggregate is other.aggregate and

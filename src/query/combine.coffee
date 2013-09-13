@@ -18,6 +18,8 @@ class FacetCombine
     combine = { method: @method, sort: @sort.valueOf() }
     return combine
 
+  toJSON: @::valueOf
+
   isEqual: (other) ->
     return Boolean(other) and
            @method is other.method and

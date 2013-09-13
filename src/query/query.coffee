@@ -82,6 +82,8 @@ class FacetQuery
 
     return arr
 
+  toJSON: @::valueOf
+
   getFilter: ->
     return @filter
 

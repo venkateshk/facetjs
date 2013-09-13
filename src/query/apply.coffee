@@ -55,6 +55,8 @@ class FacetApply
   isAdditive: ->
     return false
 
+  getDatasets: ->
+    return ['main']
 
 
 class ConstantApply extends FacetApply

@@ -33,6 +33,9 @@ class FacetSplit
 
   toJSON: @::valueOf
 
+  getDataset: ->
+    return 'main'
+
   isEqual: (other, compareSegmentFilter) ->
     return Boolean(other) and
            @bucket is other.bucket and
@@ -44,6 +47,8 @@ class FacetSplit
                 @segmentFilter.isEqual(other.segmentFilter))
               )
            )
+
+
 
 
 

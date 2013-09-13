@@ -267,26 +267,33 @@ makeCombineFn = (combine) ->
 
 
 computeQuery = (data, query) ->
+  rootRaw = {}
+  for datasetName in query.getDatasets()
+    rootRaw[datasetName] = data
+
   rootSegment = {
     prop: {}
     parent: null
-    _raw: data
+    _raw: rootRaw
   }
   originalSegmentGroups = segmentGroups = [[rootSegment]]
 
   filter = query.getFilter()
   if filter.type isnt 'true'
+    datasetName = filter.getDataset()
     filterFn = makeFilterFn(filter)
     for segmentGroup in segmentGroups
       driverUtil.inPlaceFilter(segmentGroup, (segment) ->
-        segment._raw = segment._raw.filter(filterFn)
-        return segment._raw.length > 0
+        segment._raw[datasetName] = segment._raw[datasetName].filter(filterFn)
+        # ToDo: check that all datasets are empty
+        return segment._raw[datasetName].length > 0
       )
 
   groups = query.getGroups()
   for {split, applies, combine} in groups
     if split
       propName = split.name
+      datasetName = split.gerDataset()
       splitFn = makeSplitFn(split)
       segmentFilterFn = if split.segmentFilter then split.segmentFilter.getFilterFn() else null
       segmentGroups = driverUtil.filterMap driverUtil.flatten(segmentGroups), (segment) ->

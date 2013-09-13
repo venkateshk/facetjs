@@ -26,6 +26,9 @@ class Segment
     for propName, propValue of @prop
       description.push("  #{propName}: #{String(propValue)}")
 
+    if @splits
+      description.push('', "(has #{@splits.length} splits)")
+
     description.push('', 'defined scales:')
     for scaleName, s of @scale
       description.push("  #{scaleName}")

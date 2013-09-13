@@ -31,6 +31,8 @@ class FacetSplit
     split.options = @options.valueOf() if @options
     return split
 
+  toJSON: @::valueOf
+
   isEqual: (other, compareSegmentFilter) ->
     return Boolean(other) and
            @bucket is other.bucket and

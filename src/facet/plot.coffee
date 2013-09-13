@@ -102,7 +102,10 @@ facet.plot = {
       return
 
   line: (args = {}) ->
-    {stroke} = args
+    {color, stroke} = args
+
+    stroke = wrapLiteral(stroke or color)
+
     return (segment, space) ->
       throw new Error("Line must have a line space (is #{space.type})") unless space.type is 'line'
 

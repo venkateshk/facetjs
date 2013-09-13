@@ -147,11 +147,17 @@ aggregateFns = {
   min: ({attribute}) -> (ds) ->
     min = +Infinity
     min = Math.min(min, Number(d[attribute])) for d in ds
+    if isNaN(min)
+      min = +Infinity
+      min = Math.min(min, (new Date(d[attribute])).valueOf()) for d in ds
     return min
 
   max: ({attribute}) -> (ds) ->
     max = -Infinity
     max = Math.max(max, Number(d[attribute])) for d in ds
+    if isNaN(max)
+      max = -Infinity
+      max = Math.max(max, (new Date(d[attribute])).valueOf()) for d in ds
     return max
 
   uniqueCount: ({attribute}) -> (ds) ->

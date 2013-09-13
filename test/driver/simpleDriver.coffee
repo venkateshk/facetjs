@@ -8,6 +8,10 @@ simpleDriver = require('../../build/simpleDriver')
 diamondsData = require('../../data/diamonds.js')
 diamondsDriver = simpleDriver(diamondsData)
 
+wikiData = require('../../data/wikipedia.js')
+wikiDriver = simpleDriver(wikiData)
+
+
 verbose = false
 
 describe "simple driver", ->
@@ -104,4 +108,23 @@ describe "simple driver", ->
       })
       done()
 
+  it "does a maxTime query", (done) ->
+    querySpec = [
+      { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(2000, 0, 1), new Date(3000, 0, 1)] }
+      { operation: 'apply', name: 'Max', aggregate: 'max', attribute: 'time' }
+    ]
+    wikiDriver { query: new FacetQuery(querySpec) }, (err, result) ->
+      expect(err).to.equal(null)
+      expect(result).to.deep.equal({ prop: { Max: 1361919600000 } })
+      done()
+
+  it "does a minTime query", (done) ->
+    querySpec = [
+      { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(2000, 0, 1), new Date(3000, 0, 1)] }
+      { operation: 'apply', name: 'Min', aggregate: 'min', attribute: 'time' }
+    ]
+    wikiDriver { query: new FacetQuery(querySpec) }, (err, result) ->
+      expect(err).to.equal(null)
+      expect(result).to.deep.equal({ prop: { Min: 1361836800000 } })
+      done()
 

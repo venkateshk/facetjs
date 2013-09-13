@@ -266,9 +266,13 @@ describe "query", ->
         ]
         expect(-> new FacetQuery(querySpec)).to.throw(Error, "unknown operation 'poo'")
 
-      it "unknown operation in command", ->
+      it "splitless combine", ->
         querySpec = [
-          { operation: 'combine' }
+          {
+            operation: 'combine'
+            method: 'slice'
+            sort: { compare: 'natural', prop: 'Count', direction: 'descending'  }
+          }
         ]
         expect(-> new FacetQuery(querySpec)).to.throw(Error, "combine called without split")
 

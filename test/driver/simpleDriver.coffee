@@ -55,6 +55,71 @@ describe "simple driver", ->
       })
       done()
 
+  it.only "does a sort-by-delta after split", (done) ->
+    querySpec = [
+      {
+        operation: 'dataset'
+        datasets: ['ideal-cut', 'premium-cut']
+      }
+      {
+        operation: 'filter'
+        dataset: 'ideal-cut'
+        type: 'is'
+        attribute: 'cut'
+        value: 'Ideal'
+      }
+      {
+        operation: 'filter'
+        dataset: 'premium-cut'
+        type: 'is'
+        attribute: 'cut'
+        value: 'Premium'
+      }
+      {
+        operation: 'split'
+        dataset: 'ideal-cut'
+        name: 'Color'
+        bucket: 'identity'
+        attribute: 'color'
+      }
+      {
+        operation: 'split'
+        dataset: 'premium-cut'
+        name: 'Color'
+        bucket: 'identity'
+        attribute: 'color'
+      }
+      {
+        operation: 'apply'
+        name: 'PriceDiff'
+        arithmetic: 'subtract'
+        opperands: [
+          {
+            dataset: 'ideal-cut'
+            aggregate: 'average'
+            attribute: 'price'
+          }
+          {
+            dataset: 'premium-cut'
+            aggregate: 'average'
+            attribute: 'price'
+          }
+        ]
+      }
+      {
+        operation: 'combine'
+        method: 'slice'
+        sort: { prop: 'PriceDiff', compare: 'natural', direction: 'descending' }
+      }
+    ]
+    diamondsDriver { query: new FacetQuery(querySpec) }, (err, result) ->
+      expect(err).to.equal(null)
+      console.log JSON.stringify(result, null, 2)
+      expect(result).to.deep.equal({
+        p: '?'
+      })
+      done()
+
   it "does two splits with segment filter", (done) ->
     querySpec = [
       { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }

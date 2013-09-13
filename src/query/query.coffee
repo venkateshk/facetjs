@@ -1,91 +1,132 @@
+# Group the queries steps in to the logical queries that will need to be done
+class FacetGroup
+  constructor: ->
+    @split = null
+    @splits = []
+    @applies = []
+    @combine = null
+
+  addSplit: (split) ->
+    @splits.push(split)
+    @split = @splits[0]
+    return
+
+  addApply: (apply) ->
+    @applies.push(apply)
+
+  setCombine: (combine) ->
+    throw new Error("combine called without split") unless @splits.length
+    throw new Error("can not combine more than once") if @combine
+    @combine = combine
+    return
+
+  getSplit: ->
+    return @splits[0] or null
+
+  appendToSpec: (spec) ->
+    for split in @splits
+      splitVal = split.valueOf()
+      splitVal.operation = 'split'
+      spec.push(splitVal)
+
+    for apply in @applies
+      applyVal = apply.valueOf()
+      applyVal.operation = 'apply'
+      spec.push(applyVal)
+
+    if @combine
+      combineVal = @combine.valueOf()
+      combineVal.operation = 'combine'
+      spec.push(combineVal)
+
+    return
+
 
 class FacetQuery
   constructor: (commands) ->
-    @groups = [{
-      split: null
-      applies: []
-      combine: null
-    }]
-    if Array.isArray(commands)
-      # Group the queries steps in to the logical queries that will need to be done
-      # @groups = [
-      #   {
-      #     split: FacetSplit
-      #     applies: [FacetApply, FacetApply]
-      #     combine: FacetCombine
-      #   }
-      #   ...
-      # ]
-      for command, i in commands
-        if i is 0 and command.operation is 'filter'
-          @filter = FacetFilter.fromSpec(command)
-          continue
+    throw new TypeError("query spec must be an array") unless Array.isArray(commands)
 
-        switch command.operation
-          when 'filter' then throw new Error("filter not allowed here")
+    i = 0
+    numCommands = commands.length
 
-          when 'split'
-            facetSplit = FacetSplit.fromSpec(command)
-            @groups.push {
-              split: facetSplit
-              applies: []
-              combine: null
-            }
+    # Parse dataset operation
+    if i < numCommands
+      command = commands[i]
+      if command.operation is 'dataset'
+        @datasets = command.datasets
+        i++
 
-          when 'apply'
-            curGroup = @groups[@groups.length - 1]
-            facetApply = FacetApply.fromSpec(command)
-            throw new Error("base apply must have a name") unless facetApply.name
-            curGroup.applies.push(facetApply)
+    @datasets = ['main'] unless @datasets
 
-          when 'combine'
-            curGroup = @groups[@groups.length - 1]
-            throw new Error("combine called without split") unless curGroup.split
-            curGroup.combine = FacetCombine.fromSpec(command)
+    # Parse filters
+    @filters = []
+    while i < numCommands
+      command = commands[i]
+      break if command.operation isnt 'filter'
+      filter = FacetFilter.fromSpec(command)
+      dataset = filter.getDataset()
+      throw new Error("filter dataset '#{dataset}' is not defined") unless dataset in @datasets
+      @filters.push(filter)
+      i++
 
-          else
-            throw new Error("unrecognizable command") unless typeof command is 'object'
-            throw new Error("operation not defined") unless command.hasOwnProperty('operation')
-            throw new Error("invalid operation") unless typeof command.operation is 'string'
-            throw new Error("unknown operation '#{command.operation}'")
+    # Parse split apply combines
+    @groups = [new FacetGroup()]
+    while i < numCommands
+      command = commands[i]
+      curGroup = @groups[@groups.length - 1]
 
-      @filter = new TrueFilter() unless @filter
-    else
-      throw new TypeError("query spec must be an array")
+      switch command.operation
+        when 'dataset', 'filter'
+          throw new Error("#{command.operation} not allowed here")
+
+        when 'split'
+          split = FacetSplit.fromSpec(command)
+          dataset = split.getDataset()
+          throw new Error("split dataset '#{dataset}' is not defined") unless dataset in @datasets
+          curGroup = new FacetGroup()
+          curGroup.addSplit(split)
+          @groups.push(curGroup)
+
+        when 'apply'
+          apply = FacetApply.fromSpec(command)
+          throw new Error("base apply must have a name") unless apply.name
+          datasets = apply.getDatasets()
+          for dataset in datasets
+            throw new Error("apply dataset '#{dataset}' is not defined") unless dataset in @datasets
+          curGroup.addApply(apply)
+
+        when 'combine'
+          curGroup.setCombine(FacetCombine.fromSpec(command))
+
+        else
+          throw new Error("unrecognizable command") unless typeof command is 'object'
+          throw new Error("operation not defined") unless command.hasOwnProperty('operation')
+          throw new Error("invalid operation") unless typeof command.operation is 'string'
+          throw new Error("unknown operation '#{command.operation}'")
+
+      i++
+
 
   toString: ->
     return "FacetQuery"
 
   valueOf: ->
-    arr = []
+    spec = []
 
-    if @filter not instanceof TrueFilter
-      filterVal = @filter.valueOf()
+    for filter in @filters
+      filterVal = filter.valueOf()
       filterVal.operation = 'filter'
-      arr.push filterVal
+      spec.push(filterVal)
 
-    for {split, applies, combine} in @groups
-      if split
-        splitVal = split.valueOf()
-        splitVal.operation = 'split'
-        arr.push splitVal
+    for group in @groups
+      group.appendToSpec(spec)
 
-      for apply in applies
-        applyVal = apply.valueOf()
-        applyVal.operation = 'apply'
-        arr.push applyVal
-
-      if combine
-        combineVal = combine.valueOf()
-        combineVal.operation = 'combine'
-        arr.push combineVal
-
-    return arr
+    return spec
 
   toJSON: @::valueOf
 
   getFilter: ->
-    return @filter
+    return @filters[0] or new TrueFilter()
 
   getGroups: ->
     return @groups
@@ -94,6 +135,7 @@ class FacetQuery
     splits = @groups.map(({split}) -> split)
     splits.shift()
     return splits
+
 
 # Export!
 exports.FacetQuery = FacetQuery

@@ -73,6 +73,9 @@ class FacetFilter
     else
       return [new TrueFilter(), this]
 
+  getDataset: ->
+    return 'main'
+
 
 class TrueFilter extends FacetFilter
   constructor: ({@type} = {}) ->

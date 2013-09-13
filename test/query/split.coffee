@@ -33,7 +33,9 @@ describe "split", ->
         bucket: "identity"
         attribute: "country"
       }
-      expect(FacetSplit.fromSpec(splitSpec).valueOf()).to.deep.equal(splitSpec)
+      split = FacetSplit.fromSpec(splitSpec)
+      expect(split.getDataset()).to.equal('main')
+      expect(split.valueOf()).to.deep.equal(splitSpec)
 
     it "identity with segmentFilter", ->
       splitSpec = {
@@ -46,7 +48,9 @@ describe "split", ->
           value: 'Asia'
         }
       }
-      expect(FacetSplit.fromSpec(splitSpec).valueOf()).to.deep.equal(splitSpec)
+      split = FacetSplit.fromSpec(splitSpec)
+      expect(split.getDataset()).to.equal('main')
+      expect(split.valueOf()).to.deep.equal(splitSpec)
 
     it "continuous", ->
       splitSpec = {
@@ -61,7 +65,9 @@ describe "split", ->
           druidResolution: 200
         }
       }
-      expect(FacetSplit.fromSpec(splitSpec).valueOf()).to.deep.equal(splitSpec)
+      split = FacetSplit.fromSpec(splitSpec)
+      expect(split.getDataset()).to.equal('main')
+      expect(split.valueOf()).to.deep.equal(splitSpec)
 
     it "timePeriod", ->
       splitSpec = {
@@ -71,7 +77,9 @@ describe "split", ->
         period: 'PT1H'
         timezone: 'Etc/UTC'
       }
-      expect(FacetSplit.fromSpec(splitSpec).valueOf()).to.deep.equal(splitSpec)
+      split = FacetSplit.fromSpec(splitSpec)
+      expect(split.getDataset()).to.equal('main')
+      expect(split.valueOf()).to.deep.equal(splitSpec)
 
     it "timePeriod with segmentFilter", ->
       splitSpec = {
@@ -84,7 +92,9 @@ describe "split", ->
           type: 'false'
         }
       }
-      expect(FacetSplit.fromSpec(splitSpec).valueOf()).to.deep.equal(splitSpec)
+      split = FacetSplit.fromSpec(splitSpec)
+      expect(split.getDataset()).to.equal('main')
+      expect(split.valueOf()).to.deep.equal(splitSpec)
 
     it "tuple", ->
       splitSpec = {
@@ -102,7 +112,9 @@ describe "split", ->
           }
         ]
       }
-      expect(FacetSplit.fromSpec(splitSpec).valueOf()).to.deep.equal(splitSpec)
+      split = FacetSplit.fromSpec(splitSpec)
+      expect(split.getDataset()).to.equal('main')
+      expect(split.valueOf()).to.deep.equal(splitSpec)
 
 
   describe "getFilterFor", ->

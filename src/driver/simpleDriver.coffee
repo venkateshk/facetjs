@@ -217,9 +217,13 @@ makeApplyFn = (apply) ->
 # -------------------
 directionFns = {
   ascending: (a, b) ->
+    a = a[0] if Array.isArray(a)
+    b = b[0] if Array.isArray(b)
     return if a < b then -1 else if a > b then 1 else if a >= b then 0 else NaN
 
   descending: (a, b) ->
+    a = a[0] if Array.isArray(a)
+    b = b[0] if Array.isArray(b)
     return if b < a then -1 else if b > a then 1 else if b >= a then 0 else NaN
 }
 

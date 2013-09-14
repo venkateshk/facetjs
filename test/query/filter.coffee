@@ -953,6 +953,7 @@ describe "filter", ->
         ]
       }).extractFilterByAttribute('country'))).to.deep.equal(null)
 
+
   describe "isEqual", ->
     it "works for all filters", ->
       filterSpec = {
@@ -1010,3 +1011,55 @@ describe "filter", ->
       expect(filter1.isEqual(filter2)).to.equal(true)
       expect(filter1.isEqual(filter3)).to.equal(false)
 
+
+  describe "getComplexity", ->
+    it "works for complex filter", ->
+      filterSpec = {
+        type: 'and'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'state'
+            value: 'California'
+          }
+          {
+            type: 'in'
+            attribute: 'venue'
+            values: ['Google', 'LinkedIn']
+          }
+          {
+            type: 'contains'
+            attribute: 'page'
+            value: 'face'
+          }
+          {
+            type: 'match'
+            attribute: 'size'
+            expression: "\d+x\d+"
+          }
+          {
+            type: 'within'
+            attribute: 'age'
+            range: [10, 50]
+          }
+          {
+            type: 'not'
+            filter: {
+              type: 'or'
+              filters: [
+                {
+                  type: 'is'
+                  attribute: 'shoe_size'
+                  value: '13'
+                }
+                {
+                  type: 'in'
+                  attribute: 'train'
+                  values: ['TGV', 'BTS']
+                }
+              ]
+            }
+          }
+        ]
+      }
+      expect(FacetFilter.fromSpec(filterSpec).getComplexity()).to.equal(10)

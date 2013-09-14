@@ -518,6 +518,58 @@ describe "filter", ->
         value: 'Google'
       })
 
+    it "gets rid of repeating filters in ANDs", ->
+      expect(FacetFilter.fromSpec({
+        type: 'and'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Google'
+          }
+          {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Google'
+          }
+          {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Google'
+          }
+        ]
+      }).simplify().valueOf()).to.deep.equal({
+        type: 'is'
+        attribute: 'venue'
+        value: 'Google'
+      })
+
+    it "gets rid of repeating filters in ORs", ->
+      expect(FacetFilter.fromSpec({
+        type: 'or'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Google'
+          }
+          {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Google'
+          }
+          {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Google'
+          }
+        ]
+      }).simplify().valueOf()).to.deep.equal({
+        type: 'is'
+        attribute: 'venue'
+        value: 'Google'
+      })
+
     it "gets rid of NOT(TRUE)", ->
       expect(FacetFilter.fromSpec({
         type: 'not'

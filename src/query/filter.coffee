@@ -52,6 +52,9 @@ class FacetFilter
   isEqual: (other) ->
     return Boolean(other) and @type is other.type and @attribute is other.attribute
 
+  getComplexity: ->
+    return 1
+
   # Reduces a filter into a (potentially) simpler form the input is never modified
   # Specifically this function:
   # - flattens nested ANDs
@@ -213,6 +216,9 @@ class NotFilter extends FacetFilter
   valueOf: ->
     return { type: @type, filter: @filter.valueOf() }
 
+  getComplexity: ->
+    return 1 + @filter.getComplexity()
+
   simplify: ->
     return switch @filter.type
       when 'true' then new FalseFilter()
@@ -259,10 +265,16 @@ class AndFilter extends FacetFilter
            @filters.length is otherFilters.length and
            @filters.every((filter, i) -> filter.isEqual(otherFilters[i]))
 
+  getComplexity: ->
+    complexity = 1
+    complexity += filter.getComplexity() for filter in @filters
+    return complexity
+
   _mergeFilters: (filter1, filter2) ->
     return new FalseFilter() if filter1.type is 'false' or filter2.type is 'false'
     return filter2 if filter1.type is 'true'
     return filter1 if filter2.type is 'true'
+    return filter1 if filter1.isEqual(filter2)
     return unless filter1.type is filter2.type and filter1.attribute is filter2.attribute
     switch filter1.type
       when 'within'
@@ -353,10 +365,16 @@ class OrFilter extends FacetFilter
            @filters.length is otherFilters.length and
            @filters.every((filter, i) -> filter.isEqual(otherFilters[i]))
 
+  getComplexity: ->
+    complexity = 1
+    complexity += filter.getComplexity() for filter in @filters
+    return complexity
+
   _mergeFilters: (filter1, filter2) ->
     return new TrueFilter() if filter1.type is 'true' or filter2.type is 'true'
     return filter2 if filter1.type is 'false'
     return filter1 if filter2.type is 'false'
+    return filter1 if filter1.isEqual(filter2)
     return unless filter1.type is filter2.type and filter1.attribute is filter2.attribute
     switch filter1.type
       when 'within'

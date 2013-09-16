@@ -77,17 +77,20 @@ describe "simple driver", ->
       }
       {
         operation: 'split'
-        dataset: 'ideal-cut'
         name: 'Color'
-        bucket: 'identity'
-        attribute: 'color'
-      }
-      {
-        operation: 'split'
-        dataset: 'premium-cut'
-        name: 'Color'
-        bucket: 'identity'
-        attribute: 'color'
+        bucket: 'parallel'
+        splits: [
+          {
+            dataset: 'ideal-cut'
+            bucket: 'identity'
+            attribute: 'color'
+          }
+          {
+            dataset: 'premium-cut'
+            bucket: 'identity'
+            attribute: 'color'
+          }
+        ]
       }
       {
         operation: 'apply'

@@ -210,6 +210,34 @@ class TupleSplit extends FacetSplit
 
 
 
+class ParallelSplit extends FacetSplit
+  constructor: ({name, @bucket, @splits}) ->
+    throw new TypeError("splits must be a non-empty array") unless Array.isArray(@splits) and @splits.length
+    @splits = @splits.map((splitSpec) ->
+      throw new Error("parallel splits can not be nested") if splitSpec.bucket is 'parallel'
+      throw new Error("a split within a parallel must not have a name") if splitSpec.hasOwnProperty('name')
+      return FacetSplit.fromSpec(splitSpec)
+    )
+    @_ensureBucket('parallel')
+
+  toString: ->
+    return @_addName("#{@splits.join(' | ')}")
+
+  valueOf: ->
+    split = super
+    split.splits = @splits.map(getValueOf)
+    return split
+
+  getFilterFor: (prop) ->
+    throw '?'
+
+  isEqual: (other, compareSegmentFilter) ->
+    otherSplits = other.splits
+    return super and @splits.length is otherSplits.length and @splits.every((split, i) -> split.isEqual(otherSplits[i], compareSegmentFilter))
+
+
+
+
 # Make lookup
 splitConstructorMap = {
   "identity": IdentitySplit
@@ -217,6 +245,7 @@ splitConstructorMap = {
   "timeDuration": TimeDurationSplit
   "timePeriod": TimePeriodSplit
   "tuple": TupleSplit
+  "parallel": ParallelSplit
 }
 
 
@@ -236,4 +265,5 @@ exports.ContinuousSplit = ContinuousSplit
 exports.TimeDurationSplit = TimeDurationSplit
 exports.TimePeriodSplit = TimePeriodSplit
 exports.TupleSplit = TupleSplit
+exports.ParallelSplit = ParallelSplit
 

@@ -28,7 +28,7 @@ filterFns = {
 
   within: ({attribute, range}) ->
     if range[0] instanceof Date
-      return (d) -> new Date(range[0]) <= new Date(d[attribute]) < new Date(range[1])
+      return (d) -> range[0] <= new Date(d[attribute]) < range[1]
     else
       return (d) -> range[0] <= Number(d[attribute]) < range[1]
 

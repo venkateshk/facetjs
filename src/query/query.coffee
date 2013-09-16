@@ -2,12 +2,11 @@
 class FacetGroup
   constructor: ->
     @split = null
-    @splits = []
     @applies = []
     @combine = null
 
   setSplit: (split) ->
-    throw new Error("split already defined")
+    throw new Error("split already defined") if @split
     @split = split
     return
 
@@ -15,7 +14,7 @@ class FacetGroup
     @applies.push(apply)
 
   setCombine: (combine) ->
-    throw new Error("combine called without split") unless @splits.length
+    throw new Error("combine called without split") unless @split
     throw new Error("can not combine more than once") if @combine
     @combine = combine
     return

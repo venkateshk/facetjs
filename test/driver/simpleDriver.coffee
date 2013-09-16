@@ -175,21 +175,127 @@ describe "simple driver", ->
 
   it "does a maxTime query", (done) ->
     querySpec = [
-      { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(2000, 0, 1), new Date(3000, 0, 1)] }
       { operation: 'apply', name: 'Max', aggregate: 'max', attribute: 'time' }
     ]
     wikiDriver { query: new FacetQuery(querySpec) }, (err, result) ->
       expect(err).to.equal(null)
-      expect(result).to.deep.equal({ prop: { Max: 1361919600000 } })
+      expect(result).to.deep.equal({
+        prop: {
+          Max: new Date(1361919600000)
+        }
+      })
       done()
 
   it "does a minTime query", (done) ->
     querySpec = [
-      { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(2000, 0, 1), new Date(3000, 0, 1)] }
       { operation: 'apply', name: 'Min', aggregate: 'min', attribute: 'time' }
     ]
     wikiDriver { query: new FacetQuery(querySpec) }, (err, result) ->
       expect(err).to.equal(null)
-      expect(result).to.deep.equal({ prop: { Min: 1361836800000 } })
+      expect(result).to.deep.equal({
+        prop: {
+          Min: new Date(1361836800000)
+        }
+      })
       done()
+
+  it "splits on time correctly", (done) ->
+    timeData = [
+      "2013-09-02T00:00:00.000Z"
+      "2013-09-02T01:00:00.000Z"
+      "2013-09-02T02:00:00.000Z"
+      "2013-09-02T03:00:00.000Z"
+      "2013-09-02T04:00:00.000Z"
+      "2013-09-02T05:00:00.000Z"
+      "2013-09-02T06:00:00.000Z"
+      "2013-09-02T07:00:00.000Z"
+    ].map((d, i) -> { time: new Date(d), place: i })
+    timeDriver = simpleDriver(timeData)
+    querySpec = [
+      { operation: 'split', name: 'Time', attribute: 'time', bucket: 'timePeriod', period: 'PT1H' }
+      { operation: 'apply', name: 'Place', aggregate: 'sum', attribute: 'place' }
+      { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending'} }
+    ]
+
+    timeDriver { query: new FacetQuery(querySpec) }, (err, result) ->
+      expect(err).to.equal(null)
+      expect(result).to.deep.equal({
+        "prop": {},
+        "splits": [
+          {
+            "prop": {
+              "Time": [
+                new Date("2013-09-02T00:00:00.000Z"),
+                new Date("2013-09-02T01:00:00.000Z")
+              ],
+              "Place": 0
+            }
+          },
+          {
+            "prop": {
+              "Time": [
+                new Date("2013-09-02T01:00:00.000Z"),
+                new Date("2013-09-02T02:00:00.000Z")
+              ],
+              "Place": 1
+            }
+          },
+          {
+            "prop": {
+              "Time": [
+                new Date("2013-09-02T02:00:00.000Z"),
+                new Date("2013-09-02T03:00:00.000Z")
+              ],
+              "Place": 2
+            }
+          },
+          {
+            "prop": {
+              "Time": [
+                new Date("2013-09-02T03:00:00.000Z"),
+                new Date("2013-09-02T04:00:00.000Z")
+              ],
+              "Place": 3
+            }
+          },
+          {
+            "prop": {
+              "Time": [
+                new Date("2013-09-02T04:00:00.000Z"),
+                new Date("2013-09-02T05:00:00.000Z")
+              ],
+              "Place": 4
+            }
+          },
+          {
+            "prop": {
+              "Time": [
+                new Date("2013-09-02T05:00:00.000Z"),
+                new Date("2013-09-02T06:00:00.000Z")
+              ],
+              "Place": 5
+            }
+          },
+          {
+            "prop": {
+              "Time": [
+                new Date("2013-09-02T06:00:00.000Z"),
+                new Date("2013-09-02T07:00:00.000Z")
+              ],
+              "Place": 6
+            }
+          },
+          {
+            "prop": {
+              "Time": [
+                new Date("2013-09-02T07:00:00.000Z"),
+                new Date("2013-09-02T08:00:00.000Z")
+              ],
+              "Place": 7
+            }
+          }
+        ]
+      })
+      done()
+
 

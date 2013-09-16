@@ -6,9 +6,9 @@ class FacetGroup
     @applies = []
     @combine = null
 
-  addSplit: (split) ->
-    @splits.push(split)
-    @split = @splits[0]
+  setSplit: (split) ->
+    throw new Error("split already defined")
+    @split = split
     return
 
   addApply: (apply) ->
@@ -24,8 +24,8 @@ class FacetGroup
     return @splits[0] or null
 
   appendToSpec: (spec) ->
-    for split in @splits
-      splitVal = split.valueOf()
+    if @split
+      splitVal = @split.valueOf()
       splitVal.operation = 'split'
       spec.push(splitVal)
 
@@ -84,7 +84,7 @@ class FacetQuery
           dataset = split.getDataset()
           throw new Error("split dataset '#{dataset}' is not defined") unless dataset in @datasets
           curGroup = new FacetGroup()
-          curGroup.addSplit(split)
+          curGroup.setSplit(split)
           @groups.push(curGroup)
 
         when 'apply'

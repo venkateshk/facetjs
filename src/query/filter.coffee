@@ -225,7 +225,7 @@ class WithinFilter extends FacetFilter
   getFilterFn: ->
     attribute = @attribute
     [r0, r1] = @range
-    if range[0] instanceof Date
+    if r0 instanceof Date
       return (d) -> r0 <= new Date(d[attribute]) < r1
     else
       return (d) -> r0 <= Number(d[attribute]) < r1

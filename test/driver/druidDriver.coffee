@@ -197,7 +197,7 @@ describe "Druid driver", ->
         expect(err.message).to.equal("can not mix and match min / max time with other aggregates (for now)")
         done()
 
-    it "should work without a combine (single split)", ->
+    it "should work without a combine (single split)", (done) ->
       query = new FacetQuery([
         {
           operation: 'filter'
@@ -213,12 +213,11 @@ describe "Druid driver", ->
         { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
       ])
       driver {query}, (err, res) ->
-        console.log 'MESSAGE', err.message
         expect(err).to.equal(null)
-        expect(res).to.be.an(Object)
+        expect(res).to.be.an('object')
         done()
 
-    it "should work without a combine (double split)", ->
+    it "should work without a combine (double split)", (done) ->
       query = new FacetQuery([
         {
           operation: 'filter'
@@ -240,5 +239,5 @@ describe "Druid driver", ->
       ])
       driver {query}, (err, res) ->
         expect(err).to.equal(null)
-        expect(res).to.be.an(Object)
+        expect(res).to.be.an('object')
         done()

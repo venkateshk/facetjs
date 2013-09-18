@@ -84,6 +84,9 @@ class TrueFilter extends FacetFilter
   toString: ->
     return "Everything"
 
+  getFilterFn: ->
+    return -> true
+
 
 
 class FalseFilter extends FacetFilter
@@ -92,6 +95,9 @@ class FalseFilter extends FacetFilter
 
   toString: ->
     return "Nothing"
+
+  getFilterFn: ->
+    return -> false
 
 
 
@@ -108,6 +114,11 @@ class IsFilter extends FacetFilter
 
   isEqual: (other) ->
     return super(other) and other.value is @value
+
+  getFilterFn: ->
+    attribute = @attribute
+    value = @value
+    return (d) -> d[attribute] is value
 
 
 
@@ -133,6 +144,11 @@ class InFilter extends FacetFilter
   isEqual: (other) ->
     return super(other) and other.values.join(';') is @values.join(';')
 
+  getFilterFn: ->
+    attribute = @attribute
+    values = @values
+    return (d) -> d[attribute] in values
+
 
 
 class ContainsFilter extends FacetFilter
@@ -149,6 +165,11 @@ class ContainsFilter extends FacetFilter
 
   isEqual: (other) ->
     return super(other) and other.value is @value
+
+  getFilterFn: ->
+    attribute = @attribute
+    value = @value
+    return (d) -> d[attribute].indexOf(value) isnt -1
 
 
 
@@ -170,6 +191,11 @@ class MatchFilter extends FacetFilter
 
   isEqual: (other) ->
     return super(other) and other.expression is @expression
+
+  getFilterFn: ->
+    attribute = @attribute
+    expression = new RegExp(@expression)
+    return (d) -> expression.test(d[attribute])
 
 
 
@@ -195,6 +221,14 @@ class WithinFilter extends FacetFilter
 
   isEqual: (other) ->
     return super(other) and other.range[0] is @range[0] and other.range[1] is @range[1]
+
+  getFilterFn: ->
+    attribute = @attribute
+    [r0, r1] = @range
+    if range[0] instanceof Date
+      return (d) -> r0 <= new Date(d[attribute]) < r1
+    else
+      return (d) -> r0 <= Number(d[attribute]) < r1
 
 
 
@@ -233,6 +267,10 @@ class NotFilter extends FacetFilter
 
   isEqual: (other) ->
     return super(other) and @filter.isEqual(other.filter)
+
+  getFilterFn: ->
+    filter = @filter.getFilterFn()
+    return (d) -> not filter(d)
 
 
 
@@ -334,6 +372,13 @@ class AndFilter extends FacetFilter
       (new AndFilter(extractedFilters)).simplify()
     ]
 
+  getFilterFn: ->
+    filters = @filters.map((f) -> f.getFilterFn())
+    return (d) ->
+      for filter in filters
+        return false unless filter(d)
+      return true
+
 
 
 class OrFilter extends FacetFilter
@@ -426,6 +471,13 @@ class OrFilter extends FacetFilter
       return extract and extract.length is 1
 
     return if @filters.every(hasNoClaim) then [this] else null
+
+  getFilterFn: ->
+    filters = @filters.map((f) -> f.getFilterFn())
+    return (d) ->
+      for filter in filters
+        return true if filter(d)
+      return false
 
 
 

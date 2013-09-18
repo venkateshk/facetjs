@@ -297,31 +297,45 @@ computeQuery = (data, query) ->
   for {split, applies, combine} in groups
     if split
       propName = split.name
-      datasetName = split.gerDataset()
-      splitFn = makeSplitFn(split)
+      parallelSplits = if split.bucket is 'parallel' then split.splits else [split]
+
+      splitFns = {}
+      for parallelSplit in parallelSplits
+        splitFns[parallelSplit.getDataset()] = makeSplitFn(parallelSplit)
+
       segmentFilterFn = if split.segmentFilter then split.segmentFilter.getFilterFn() else null
       segmentGroups = driverUtil.filterMap driverUtil.flatten(segmentGroups), (segment) ->
         return if segmentFilterFn and not segmentFilterFn(segment)
         keys = []
-        buckets = {}
+        bucketsByDataset = {}
         bucketValue = {}
-        for d in segment._raw
-          key = splitFn(d)
-          throw new Error("bucket returned undefined") unless key? # ToDo: handle nulls
-          keyString = String(key)
+        for dataset, splitFn of splitFns
+          buckets = {}
+          bucketsByDataset[dataset] = buckets
+          for d in segment._raw[dataset]
+            key = splitFn(d)
+            throw new Error("bucket returned undefined") unless key? # ToDo: handle nulls
+            keyString = String(key)
 
-          if not buckets[keyString]
-            keys.push(keyString)
-            buckets[keyString] = []
-            bucketValue[keyString] = key
-          buckets[keyString].push(d)
+            if not bucketValue[keyString]
+              keys.push(keyString)
+              bucketValue[keyString] = key
+
+            if not buckets[keyString]
+              buckets[keyString] = []
+
+            buckets[keyString].push(d)
 
         segment.splits = keys.map((keyString) ->
           prop = {}
           prop[propName] = bucketValue[keyString]
 
+          raw = {}
+          for dataset, buckets of bucketsByDataset
+            raw[dataset] = buckets[keyString]
+
           return {
-            _raw: buckets[keyString]
+            _raw: raw
             prop
             parent: segment
           }
@@ -330,10 +344,11 @@ computeQuery = (data, query) ->
 
     for apply in applies
       propName = apply.name
+      dataset = apply.getDataset()
       applyFn = makeApplyFn(apply)
       for segmentGroup in segmentGroups
         for segment in segmentGroup
-          segment.prop[propName] = applyFn(segment._raw)
+          segment.prop[propName] = applyFn(segment._raw[dataset])
 
     if combine
       combineFn = makeCombineFn(combine)

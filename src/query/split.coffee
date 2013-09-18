@@ -211,11 +211,12 @@ class TupleSplit extends FacetSplit
 
 
 class ParallelSplit extends FacetSplit
-  constructor: ({name, @bucket, @splits}) ->
+  constructor: ({name, @bucket, @splits, segmentFilter}) ->
     throw new TypeError("splits must be a non-empty array") unless Array.isArray(@splits) and @splits.length
     @splits = @splits.map((splitSpec) ->
       throw new Error("parallel splits can not be nested") if splitSpec.bucket is 'parallel'
       throw new Error("a split within a parallel must not have a name") if splitSpec.hasOwnProperty('name')
+      throw new Error("a split within a parallel should not have a segmentFilter") if splitSpec.hasOwnProperty('segmentFilter')
       return FacetSplit.fromSpec(splitSpec)
     )
     @_ensureBucket('parallel')
@@ -233,7 +234,7 @@ class ParallelSplit extends FacetSplit
 
   isEqual: (other, compareSegmentFilter) ->
     otherSplits = other.splits
-    return super and @splits.length is otherSplits.length and @splits.every((split, i) -> split.isEqual(otherSplits[i], compareSegmentFilter))
+    return super and @splits.length is otherSplits.length and @splits.every((split, i) -> split.isEqual(otherSplits[i], true))
 
 
 

@@ -1,3 +1,4 @@
+filterDummy = {}
 
 filterTypePresedence = {
   'true': 1
@@ -26,8 +27,8 @@ class FacetFilter
 
     return 0
 
-  constructor: ->
-    @type = 'base'
+  constructor: ({@type, @dataset}, dummy)->
+    throw new TypeError("can not call `new FacetFilter` directly use FacetFilter.fromSpec instead") unless dummy is filterDummy
 
   _ensureType: (filterType) ->
     if not @type
@@ -41,11 +42,10 @@ class FacetFilter
     if typeof @attribute isnt 'string'
       throw new TypeError("attribute must be a string")
 
-  toString: ->
-    return "base filter"
-
   valueOf: ->
-    return { type: @type }
+    filter = { type: @type }
+    filter.dataset = @dataset if @dataset
+    return filter
 
   toJSON: @::valueOf
 
@@ -77,11 +77,12 @@ class FacetFilter
       return [new TrueFilter(), this]
 
   getDataset: ->
-    return 'main'
+    return @dataset or 'main'
 
 
 class TrueFilter extends FacetFilter
-  constructor: ({@type} = {}) ->
+  constructor: ->
+    super(arguments[0] or {}, filterDummy)
     @_ensureType('true')
 
   toString: ->
@@ -90,7 +91,8 @@ class TrueFilter extends FacetFilter
 
 
 class FalseFilter extends FacetFilter
-  constructor: ({@type} = {}) ->
+  constructor: ->
+    super(arguments[0] or {}, filterDummy)
     @_ensureType('false')
 
   toString: ->
@@ -99,7 +101,8 @@ class FalseFilter extends FacetFilter
 
 
 class IsFilter extends FacetFilter
-  constructor: ({@type, @attribute, @value}) ->
+  constructor: ({@attribute, @value}) ->
+    super(arguments[0], filterDummy)
     @_ensureType('is')
     @_validateAttribute()
 
@@ -107,7 +110,10 @@ class IsFilter extends FacetFilter
     return "#{@attribute} is #{@value}"
 
   valueOf: ->
-    return { type: @type, attribute: @attribute, value: @value }
+    filter = super
+    filter.attribute = @attribute
+    filter.value = @value
+    return filter
 
   isEqual: (other) ->
     return super(other) and other.value is @value
@@ -115,7 +121,8 @@ class IsFilter extends FacetFilter
 
 
 class InFilter extends FacetFilter
-  constructor: ({@type, @attribute, @values}) ->
+  constructor: ({@attribute, @values}) ->
+    super(arguments[0], filterDummy)
     @_ensureType('in')
     @_validateAttribute()
     throw new TypeError('values must be an array') unless Array.isArray(@values)
@@ -128,7 +135,10 @@ class InFilter extends FacetFilter
       else return "#{@attribute} is one of: #{specialJoin(@values, ', ', ', or ')}"
 
   valueOf: ->
-    return { type: @type, attribute: @attribute, values: @values }
+    filter = super
+    filter.attribute = @attribute
+    filter.values = @values
+    return filter
 
   simplify: ->
     return if @values.length then this else new FalseFilter()
@@ -139,7 +149,8 @@ class InFilter extends FacetFilter
 
 
 class ContainsFilter extends FacetFilter
-  constructor: ({@type, @attribute, @value}) ->
+  constructor: ({@attribute, @value}) ->
+    super(arguments[0], filterDummy)
     @_ensureType('contains')
     @_validateAttribute()
     throw new TypeError('contains must be a string') unless typeof @value is 'string'
@@ -148,7 +159,10 @@ class ContainsFilter extends FacetFilter
     return "#{@attribute} contains '#{@value}'"
 
   valueOf: ->
-    return { type: @type, attribute: @attribute, value: @value }
+    filter = super
+    filter.attribute = @attribute
+    filter.value = @value
+    return filter
 
   isEqual: (other) ->
     return super(other) and other.value is @value
@@ -156,7 +170,8 @@ class ContainsFilter extends FacetFilter
 
 
 class MatchFilter extends FacetFilter
-  constructor: ({@type, @attribute, @expression}) ->
+  constructor: ({@attribute, @expression}) ->
+    super(arguments[0], filterDummy)
     @_ensureType('match')
     @_validateAttribute()
     throw new Error('must have an expression') unless @expression
@@ -169,7 +184,10 @@ class MatchFilter extends FacetFilter
     return "#{@attribute} matches /#{@expression}/"
 
   valueOf: ->
-    return { type: @type, attribute: @attribute, expression: @expression }
+    filter = super
+    filter.attribute = @attribute
+    filter.expression = @expression
+    return filter
 
   isEqual: (other) ->
     return super(other) and other.expression is @expression
@@ -177,7 +195,8 @@ class MatchFilter extends FacetFilter
 
 
 class WithinFilter extends FacetFilter
-  constructor: ({@type, @attribute, @range}) ->
+  constructor: ({@attribute, @range}) ->
+    super(arguments[0], filterDummy)
     @_ensureType('within')
     @_validateAttribute()
     throw new TypeError('range must be an array of length 2') unless Array.isArray(@range) and @range.length is 2
@@ -194,7 +213,10 @@ class WithinFilter extends FacetFilter
     return "#{@attribute} is within #{r0} and #{r1}"
 
   valueOf: ->
-    return { type: @type, attribute: @attribute, range: @range }
+    filter = super
+    filter.attribute = @attribute
+    filter.range = @range
+    return filter
 
   isEqual: (other) ->
     return super(other) and other.range[0] is @range[0] and other.range[1] is @range[1]
@@ -204,8 +226,8 @@ class WithinFilter extends FacetFilter
 class NotFilter extends FacetFilter
   constructor: (arg) ->
     if arg not instanceof FacetFilter
-      {@type, @filter} = arg
-      @filter = FacetFilter.fromSpec(@filter)
+      super(arg, filterDummy)
+      @filter = FacetFilter.fromSpec(arg.filter)
     else
       @filter = arg
     @_ensureType('not')
@@ -214,7 +236,9 @@ class NotFilter extends FacetFilter
     return "not (#{@filter})"
 
   valueOf: ->
-    return { type: @type, filter: @filter.valueOf() }
+    filter = super
+    filter.filter = @filter.valueOf()
+    return filter
 
   getComplexity: ->
     return 1 + @filter.getComplexity()
@@ -242,9 +266,9 @@ class NotFilter extends FacetFilter
 class AndFilter extends FacetFilter
   constructor: (arg) ->
     if not Array.isArray(arg)
-      {@type, @filters} = arg
-      throw new TypeError('filters must be an array') unless Array.isArray(@filters)
-      @filters = @filters.map(FacetFilter.fromSpec)
+      super(arg, filterDummy)
+      throw new TypeError('filters must be an array') unless Array.isArray(arg.filters)
+      @filters = arg.filters.map(FacetFilter.fromSpec)
     else
       @filters = arg
 
@@ -257,7 +281,9 @@ class AndFilter extends FacetFilter
       return String(@filters[0])
 
   valueOf: ->
-    return { type: @type, filters: @filters.map(getValueOf) }
+    filter = super
+    filter.filters = @filters.map(getValueOf)
+    return filter
 
   isEqual: (other) ->
     otherFilters = other.filters
@@ -342,9 +368,9 @@ class AndFilter extends FacetFilter
 class OrFilter extends FacetFilter
   constructor: (arg) ->
     if not Array.isArray(arg)
-      {@type, @filters} = arg
-      throw new TypeError('filters must be an array') unless Array.isArray(@filters)
-      @filters = @filters.map(FacetFilter.fromSpec)
+      super(arg, filterDummy)
+      throw new TypeError('filters must be an array') unless Array.isArray(arg.filters)
+      @filters = arg.filters.map(FacetFilter.fromSpec)
     else
       @filters = arg
 
@@ -357,7 +383,9 @@ class OrFilter extends FacetFilter
       return String(@filters[0])
 
   valueOf: ->
-    return { type: @type, filters: @filters.map(getValueOf) }
+    filter = super
+    filter.filters = @filters.map(getValueOf)
+    return filter
 
   isEqual: (other) ->
     otherFilters = other.filters

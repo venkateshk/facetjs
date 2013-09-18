@@ -196,3 +196,49 @@ describe "Druid driver", ->
         expect(err).to.not.equal(null)
         expect(err.message).to.equal("can not mix and match min / max time with other aggregates (for now)")
         done()
+
+    it "should work without a combine (single split)", ->
+      query = new FacetQuery([
+        {
+          operation: 'filter'
+          type: 'within'
+          attribute: 'time'
+          range: [
+            new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0))
+            new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))
+          ]
+        }
+        { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
+        { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+        { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+      ])
+      driver {query}, (err, res) ->
+        console.log 'MESSAGE', err.message
+        expect(err).to.equal(null)
+        expect(res).to.be.an(Object)
+        done()
+
+    it "should work without a combine (double split)", ->
+      query = new FacetQuery([
+        {
+          operation: 'filter'
+          type: 'within'
+          attribute: 'time'
+          range: [
+            new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0))
+            new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))
+          ]
+        }
+        { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
+        { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+        { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 3 }
+
+        { operation: 'split', name: 'Robot', bucket: 'identity', attribute: 'robot' }
+        { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+        { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+      ])
+      driver {query}, (err, res) ->
+        expect(err).to.equal(null)
+        expect(res).to.be.an(Object)
+        done()

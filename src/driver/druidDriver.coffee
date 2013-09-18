@@ -135,7 +135,7 @@ class DruidQueryBuilder
             function: "function(a){return a=~~a,#{r0}<=a&&a<#{r1};}"
           }
         else
-          throw new Error("has to be a numeric range")
+          throw new Error("apply within has to have a numeric range")
 
       when 'not'
         {
@@ -830,7 +830,7 @@ druidQueryFns = {
         sort: {
           compare: 'natural'
           prop: condensedCommand.split.name
-          direction: condensedCommand.combine.sort.direction
+          direction: condensedCommand.combine?.sort.direction or 'ascending'
         }
         limit: allDataChunks
       }))
@@ -1111,7 +1111,7 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
         switch condensedCommand.split.bucket
           when 'identity'
             if approximate
-              if condensedCommand.combine.limit?
+              if condensedCommand.combine?.limit?
                 queryFnName = 'topN'
               else
                 queryFnName = 'allData'

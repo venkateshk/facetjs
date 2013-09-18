@@ -6,58 +6,6 @@ driverUtil = require('./driverUtil')
 
 # -----------------------------------------------------
 
-filterFns = {
-  true: ->
-    return -> true
-
-  false: ->
-    return -> false
-
-  is: ({attribute, value}) ->
-    return (d) -> d[attribute] is value
-
-  in: ({attribute, values}) ->
-    return (d) -> d[attribute] in values
-
-  contains: ({attribute, value}) ->
-    return (d) -> d[attribute].indexOf(value) isnt -1
-
-  match: ({attribute, expression}) ->
-    expression = new RegExp(expression)
-    return (d) -> expression.test(d[attribute])
-
-  within: ({attribute, range}) ->
-    if range[0] instanceof Date
-      return (d) -> new Date(range[0]) <= new Date(d[attribute]) < new Date(range[1])
-    else
-      return (d) -> range[0] <= Number(d[attribute]) < range[1]
-
-  not: ({filter}) ->
-    filter = makeFilterFn(filter)
-    return (d) -> not filter(d)
-
-  and: ({filters}) ->
-    filters = filters.map(makeFilterFn)
-    return (d) ->
-      for filter in filters
-        return false unless filter(d)
-      return true
-
-  or: ({filters}) ->
-    filters = filters.map(makeFilterFn)
-    return (d) ->
-      for filter in filters
-        return true if filter(d)
-      return false
-}
-
-makeFilterFn = (filter) ->
-  throw new TypeError("filter must be a FacetFilter") unless filter instanceof FacetFilter
-  filterFn = filterFns[filter.type]
-  throw new Error("filter type '#{filter.type}' not supported by driver") unless filterFn
-  return filterFn(filter)
-
-# ------------------------
 splitFns = {
   identity: ({attribute}) ->
     return (d) -> d[attribute] ? null
@@ -202,7 +150,7 @@ makeApplyFn = (apply) ->
     throw new Error("aggregate '#{apply.aggregate}' unsupported by driver") unless aggregateFn
     rawApplyFn = aggregateFn(apply)
     if apply.filter
-      filterFn = makeFilterFn(apply.filter)
+      filterFn = apply.filter.getFilterFn()
       return (ds) -> rawApplyFn(ds.filter(filterFn))
     else
       return rawApplyFn
@@ -280,7 +228,7 @@ computeQuery = (data, query) ->
 
   filter = query.getFilter()
   if filter.type isnt 'true'
-    filterFn = makeFilterFn(filter)
+    filterFn = filter.getFilterFn()
     for segmentGroup in segmentGroups
       driverUtil.inPlaceFilter(segmentGroup, (segment) ->
         segment._raw = segment._raw.filter(filterFn)

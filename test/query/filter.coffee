@@ -1063,3 +1063,16 @@ describe "filter", ->
         ]
       }
       expect(FacetFilter.fromSpec(filterSpec).getComplexity()).to.equal(10)
+
+
+  describe "getFilterFn", ->
+    it "works for IS filter", ->
+      filterSpec = {
+        type: 'is'
+        attribute: 'state'
+        value: 'California'
+      }
+      filterFn = FacetFilter.fromSpec(filterSpec).getFilterFn()
+      expect(filterFn({ state: 'California' })).to.equal(true)
+      expect(filterFn({ state: 'Nevada' })).to.equal(false)
+

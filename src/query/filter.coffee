@@ -77,6 +77,7 @@ class FacetFilter
       return [new TrueFilter(), this]
 
 
+
 class TrueFilter extends FacetFilter
   constructor: ({@type} = {}) ->
     @_ensureType('true')
@@ -478,6 +479,29 @@ class OrFilter extends FacetFilter
       for filter in filters
         return true if filter(d)
       return false
+
+
+# Class methods ------------------------
+
+# Computes the diff between sup & sub assumes that sup and sub are either atomic or an AND of atomic filters
+FacetFilter.filterDiff = (sup, sub) ->
+  supFilters = (if sup.type is 'true' then [] else if sup.type is 'and' then sup.filters else [sup])
+  subFilters = (if sub.type is 'true' then [] else if sub.type is 'and' then sub.filters else [sub])
+
+  filterInSub = (filter) ->
+    for subFilter in subFilters
+      return true if filter.isEqual(subFilter)
+    return false
+
+  diff = []
+  numFoundInSubFilters = 0
+  for supFilter in supFilters
+    if filterInSub(supFilter)
+      numFoundInSubFilters++
+    else
+      diff.push(supFilter)
+
+  return if numFoundInSubFilters is subFilters.length then diff else null
 
 
 

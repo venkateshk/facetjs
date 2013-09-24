@@ -290,30 +290,30 @@ class SQLQueryBuilder
     return query.join(' ') + ';'
 
 
-condensedQueryToSQL = ({requester, table, filter, condensedQuery}, callback) ->
-  sqlQuery = new SQLQueryBuilder(table)
+condensedQueryToSQL = ({requester, queryBuilder, parentSegment, condensedQuery}, callback) ->
+  filter = parentSegment._filter
 
   try
-    sqlQuery.addFilter(filter)
+    queryBuilder.addFilter(filter)
 
     # split
     split = condensedQuery.split
     if split
-      sqlQuery.addSplit(split)
+      queryBuilder.addSplit(split)
 
     # apply
     for apply in condensedQuery.applies
-      sqlQuery.addApply(apply)
+      queryBuilder.addApply(apply)
 
     # combine
     combine = condensedQuery.combine
     if combine
-      sqlQuery.addCombine(combine)
+      queryBuilder.addCombine(combine)
   catch e
     callback(e)
     return
 
-  queryToRun = sqlQuery.getQuery()
+  queryToRun = queryBuilder.getQuery()
   if not queryToRun
     callback(null, [{ prop: {}, _filter: filter }])
     return
@@ -401,8 +401,8 @@ module.exports = ({requester, table, filter}) ->
         (parentSegment, callback) ->
           condensedQueryToSQL({
             requester
-            table
-            filter: parentSegment._filter
+            queryBuilder: new SQLQueryBuilder(table)
+            parentSegment
             condensedQuery: condensedCommand
           }, (err, splits) ->
             if err

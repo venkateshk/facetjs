@@ -94,47 +94,17 @@ describe "General cache", ->
         expect(result).to.deep.equal({ prop: { Count: 0 } })
         done()
 
-  describe "dateLightSaving checker", ->
+  describe.only "dateLightSaving checker", ->
     it 'should work well when exiting daylightsaving time with P1D granularity', (done) ->
       dateLightSavingData = {
         prop: {},
         splits: [
-          {
-            prop: {
-              bid_depth_adj: 0.013069229864317534,
-              timerange: [ "2012-11-02T07:00:00.000Z", "2012-11-03T07:00:00.000Z" ]
-            }
-          },
-          {
-            prop: {
-              bid_depth_adj: 1.212463873557697,
-              timerange: [ "2012-11-03T07:00:00.000Z", "2012-11-04T07:00:00.000Z" ]
-            }
-          },
-          {
-            prop: {
-              bid_depth_adj: 1.1883019697926953,
-              timerange: [ "2012-11-04T07:00:00.000Z", "2012-11-05T08:00:00.000Z" ]
-            }
-          },
-          {
-            prop: {
-              bid_depth_adj: 1.0214784473305347,
-              timerange: [ "2012-11-05T08:00:00.000Z", "2012-11-06T08:00:00.000Z" ]
-            }
-          },
-          {
-            prop: {
-              bid_depth_adj: 0.9800624388099162,
-              timerange: [ "2012-11-06T08:00:00.000Z", "2012-11-07T08:00:00.000Z" ]
-            }
-          },
-          {
-            prop: {
-              bid_depth_adj: 0.9009174579839136,
-              timerange: [ "2012-11-07T08:00:00.000Z", "2012-11-08T08:00:00.000Z" ]
-            }
-          }
+          {prop: {bid_depth_adj: 0.013, timerange: ["2012-11-02T07:00:00.000Z", "2012-11-03T07:00:00.000Z"]}},
+          {prop: {bid_depth_adj: 1.212, timerange: ["2012-11-03T07:00:00.000Z", "2012-11-04T07:00:00.000Z"]}},
+          {prop: {bid_depth_adj: 1.188, timerange: ["2012-11-04T07:00:00.000Z", "2012-11-05T08:00:00.000Z"]}},
+          {prop: {bid_depth_adj: 1.021, timerange: ["2012-11-05T08:00:00.000Z", "2012-11-06T08:00:00.000Z"]}},
+          {prop: {bid_depth_adj: 0.980, timerange: ["2012-11-06T08:00:00.000Z", "2012-11-07T08:00:00.000Z"]}},
+          {prop: {bid_depth_adj: 0.900, timerange: ["2012-11-07T08:00:00.000Z", "2012-11-08T08:00:00.000Z"]}}
         ]
       }
 
@@ -152,8 +122,8 @@ describe "General cache", ->
             "type": "within",
             "attribute": "timestamp",
             "range": [
-              new Date("2012-11-02T07:00:00.000Z"),
-              new Date("2012-11-08T08:00:00.000Z")
+              "2012-11-02T07:00:00.000Z",
+              "2012-11-08T08:00:00.000Z"
             ],
             "operation": "filter"
           },
@@ -199,30 +169,10 @@ describe "General cache", ->
       dateLightSavingData = {
         "prop": {},
         "splits": [
-          {
-            "prop": {
-              "clicks": 2198708,
-              "timerange": [ "2013-03-08T08:00:00.000Z", "2013-03-09T08:00:00.000Z" ]
-            }
-          },
-          {
-            "prop": {
-              "clicks": 2326918,
-              "timerange": [ "2013-03-09T08:00:00.000Z", "2013-03-10T08:00:00.000Z" ]
-            }
-          },
-          {
-            "prop": {
-              "clicks": 2160294,
-              "timerange": [ "2013-03-10T08:00:00.000Z", "2013-03-11T07:00:00.000Z" ]
-            }
-          },
-          {
-            "prop": {
-              "clicks": 2005976,
-              "timerange": [ "2013-03-11T07:00:00.000Z", "2013-03-12T07:00:00.000Z" ]
-            }
-          }
+          {"prop": {"clicks": 2198708, "timerange": ["2013-03-08T08:00:00.000Z", "2013-03-09T08:00:00.000Z"]}},
+          {"prop": {"clicks": 2326918, "timerange": ["2013-03-09T08:00:00.000Z", "2013-03-10T08:00:00.000Z"]}},
+          {"prop": {"clicks": 2160294, "timerange": ["2013-03-10T08:00:00.000Z", "2013-03-11T07:00:00.000Z"]}},
+          {"prop": {"clicks": 2005976, "timerange": ["2013-03-11T07:00:00.000Z", "2013-03-12T07:00:00.000Z"]}}
         ]
       }
 
@@ -273,6 +223,93 @@ describe "General cache", ->
         expect(err).to.be.null
         expect(JSON.parse(JSON.stringify(result))).to.deep.equal(dateLightSavingData)
         done()
+
+
+    it 'should work well when entering daylightsaving time with P1D granularity in UTC', (done) ->
+      dateLightSavingData = {
+        "prop": {},
+        "splits": [
+          {"prop": { "robot_ratio": 42.753, "timerange": ["2013-03-06T00:00:00.000Z","2013-03-07T00:00:00.000Z"]}},
+          {"prop": { "robot_ratio": 53.123, "timerange": ["2013-03-07T00:00:00.000Z","2013-03-08T00:00:00.000Z"]}},
+          {"prop": { "robot_ratio": 70.278, "timerange": ["2013-03-08T00:00:00.000Z","2013-03-09T00:00:00.000Z"]}},
+          {"prop": { "robot_ratio": 77.486, "timerange": ["2013-03-09T00:00:00.000Z","2013-03-10T00:00:00.000Z"]}},
+          {"prop": { "robot_ratio": 70.349, "timerange": ["2013-03-10T00:00:00.000Z","2013-03-11T00:00:00.000Z"]}},
+          {"prop": { "robot_ratio": 72.075, "timerange": ["2013-03-11T00:00:00.000Z","2013-03-12T00:00:00.000Z"]}},
+          {"prop": { "robot_ratio": 78.651, "timerange": ["2013-03-12T00:00:00.000Z","2013-03-13T00:00:00.000Z"]}}
+        ]
+      }
+
+      dateLightSavingDriver = (request, callback) ->
+        callback(null, dateLightSavingData)
+        return
+
+      dateLightSavingDriverCached = generalCache({
+        driver: dateLightSavingDriver
+      })
+
+      dateLightSavingDriverCached {
+        query: new FacetQuery [
+          {
+            "type": "within",
+            "attribute": "timestamp",
+            "range": [
+              "2013-03-06T00:00:00.000Z",
+              "2013-03-13T00:00:00.000Z"
+            ],
+            "operation": "filter"
+          },
+          {
+            "bucket": "timePeriod",
+            "name": "timerange",
+            "attribute": "timestamp",
+            "period": "P1D",
+            "timezone": "Etc/UTC",
+            "operation": "split"
+          },
+          {
+            "name": "robot_ratio",
+            "arithmetic": "multiply",
+            "operands": [
+              {
+                "arithmetic": "divide",
+                "operands": [
+                  {
+                    "filter": {
+                      "type": "is",
+                      "attribute": "robot",
+                      "value": "1"
+                    },
+                    "aggregate": "sum",
+                    "attribute": "count"
+                  },
+                  {
+                    "aggregate": "sum",
+                    "attribute": "count"
+                  }
+                ]
+              },
+              {
+                "aggregate": "constant",
+                "value": 100
+              }
+            ],
+            "operation": "apply"
+          },
+          {
+            "method": "slice",
+            "sort": {
+              "compare": "natural",
+              "prop": "timerange",
+              "direction": "ascending"
+            },
+            "operation": "combine"
+          }
+        ]
+      }, (err, result) ->
+        expect(err).to.be.null
+        expect(JSON.parse(JSON.stringify(result))).to.deep.equal(dateLightSavingData)
+        done()
+
 
     it 'should work well when entering daylightsaving time with PT1H granularity', (done) ->
       dateLightSavingData = {
@@ -422,6 +459,7 @@ describe "General cache", ->
         expect(err).to.be.null
         expect(JSON.parse(JSON.stringify(result))).to.deep.equal(dateLightSavingData)
         done()
+
 
   describe "(sanity check) apply count", ->
     it "should have the same results for different drivers", testEquality {

@@ -55,7 +55,7 @@ describe "simple driver", ->
       })
       done()
 
-  it.only "does a sort-by-delta after split", (done) ->
+  it "does a sort-by-delta after split", (done) ->
     querySpec = [
       {
         operation: 'dataset'

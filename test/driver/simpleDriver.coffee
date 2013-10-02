@@ -59,7 +59,7 @@ describe "simple driver", ->
     querySpec = [
       {
         operation: 'dataset'
-        datasets: ['ideal-cut', 'premium-cut']
+        datasets: ['ideal-cut', 'good-cut']
       }
       {
         operation: 'filter'
@@ -70,25 +70,25 @@ describe "simple driver", ->
       }
       {
         operation: 'filter'
-        dataset: 'premium-cut'
+        dataset: 'good-cut'
         type: 'is'
         attribute: 'cut'
-        value: 'Premium'
+        value: 'Good'
       }
       {
         operation: 'split'
-        name: 'Color'
+        name: 'Clarity'
         bucket: 'parallel'
         splits: [
           {
             dataset: 'ideal-cut'
             bucket: 'identity'
-            attribute: 'color'
+            attribute: 'clarity'
           }
           {
-            dataset: 'premium-cut'
+            dataset: 'good-cut'
             bucket: 'identity'
-            attribute: 'color'
+            attribute: 'clarity'
           }
         ]
       }
@@ -96,14 +96,14 @@ describe "simple driver", ->
         operation: 'apply'
         name: 'PriceDiff'
         arithmetic: 'subtract'
-        opperands: [
+        operands: [
           {
             dataset: 'ideal-cut'
             aggregate: 'average'
             attribute: 'price'
           }
           {
-            dataset: 'premium-cut'
+            dataset: 'good-cut'
             aggregate: 'average'
             attribute: 'price'
           }
@@ -113,13 +113,39 @@ describe "simple driver", ->
         operation: 'combine'
         method: 'slice'
         sort: { prop: 'PriceDiff', compare: 'natural', direction: 'descending' }
+        limit: 4
       }
     ]
     diamondsDriver { query: new FacetQuery(querySpec) }, (err, result) ->
       expect(err).to.equal(null)
-      console.log JSON.stringify(result, null, 2)
       expect(result).to.deep.equal({
-        p: '?'
+        "prop": {},
+        "splits": [
+          {
+            "prop": {
+              "Clarity": "I1",
+              "PriceDiff": 739.0906107305941
+            }
+          },
+          {
+            "prop": {
+              "Clarity": "VVS1",
+              "PriceDiff": 213.35526419465123
+            }
+          },
+          {
+            "prop": {
+              "Clarity": "SI2",
+              "PriceDiff": 175.69178632392868
+            }
+          },
+          {
+            "prop": {
+              "Clarity": "VVS2",
+              "PriceDiff": 171.18170816137035
+            }
+          }
+        ]
       })
       done()
 

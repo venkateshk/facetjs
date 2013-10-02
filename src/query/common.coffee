@@ -15,3 +15,4 @@ specialJoin = (array, sep, lastSep) ->
 
 getValueOf = (d) -> d.valueOf()
 
+dummyObject = {}

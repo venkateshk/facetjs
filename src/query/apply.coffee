@@ -1,7 +1,8 @@
 
 class FacetApply
-  constructor: ->
-    return
+  constructor: ({dataset}, dummy) ->
+    throw new TypeError("can not call `new FacetApply` directly use FacetApply.fromSpec instead") unless dummy is dummyObject
+    @dataset = dataset if dataset
 
   _ensureAggregate: (aggregate) ->
     if not @aggregate
@@ -25,6 +26,9 @@ class FacetApply
 
   _verifyAttribute: ->
     throw new TypeError("attribute must be a string") unless typeof @attribute is 'string'
+
+  _verifyOperands: ->
+    throw new TypeError("operands must be an array of length 2") unless Array.isArray(@operands) and @operands.length is 2
 
   _addName: (str) ->
     return str unless @name
@@ -55,12 +59,16 @@ class FacetApply
   isAdditive: ->
     return false
 
+  getDataset: ->
+    return @dataset or 'main'
+
   getDatasets: ->
-    return ['main']
+    return if @operands then Array::concat.apply([], @operands.map((op) -> op.getDatasets())) else [@getDataset()]
 
 
 class ConstantApply extends FacetApply
   constructor: ({name, @aggregate, @value, options}) ->
+    super(arguments[0], dummyObject)
     @name = name if name
     @options = new FacetOptions(options) if options
     @_ensureAggregate('constant')
@@ -85,6 +93,7 @@ class ConstantApply extends FacetApply
 
 class CountApply extends FacetApply
   constructor: ({name, @aggregate, filter, options}) ->
+    super(arguments[0], dummyObject)
     @name = name if name
     @filter = FacetFilter.fromSpec(filter) if filter
     @options = new FacetOptions(options) if options
@@ -106,6 +115,7 @@ class CountApply extends FacetApply
 
 class SumApply extends FacetApply
   constructor: ({name, @aggregate, @attribute, filter, options}) ->
+    super(arguments[0], dummyObject)
     @name = name if name
     @filter = FacetFilter.fromSpec(filter) if filter
     @options = new FacetOptions(options) if options
@@ -129,6 +139,7 @@ class SumApply extends FacetApply
 
 class AverageApply extends FacetApply
   constructor: ({name, @aggregate, @attribute, filter, options}) ->
+    super(arguments[0], dummyObject)
     @name = name if name
     @filter = FacetFilter.fromSpec(filter) if filter
     @options = new FacetOptions(options) if options
@@ -149,6 +160,7 @@ class AverageApply extends FacetApply
 
 class MinApply extends FacetApply
   constructor: ({name, @aggregate, @attribute, filter, options}) ->
+    super(arguments[0], dummyObject)
     @name = name if name
     @filter = FacetFilter.fromSpec(filter) if filter
     @options = new FacetOptions(options) if options
@@ -169,6 +181,7 @@ class MinApply extends FacetApply
 
 class MaxApply extends FacetApply
   constructor: ({name, @aggregate, @attribute, filter, options}) ->
+    super(arguments[0], dummyObject)
     @name = name if name
     @filter = FacetFilter.fromSpec(filter) if filter
     @options = new FacetOptions(options) if options
@@ -189,6 +202,7 @@ class MaxApply extends FacetApply
 
 class UniqueCountApply extends FacetApply
   constructor: ({name, @aggregate, @attribute, filter, options}) ->
+    super(arguments[0], dummyObject)
     @name = name if name
     @filter = FacetFilter.fromSpec(filter) if filter
     @options = new FacetOptions(options) if options
@@ -209,6 +223,7 @@ class UniqueCountApply extends FacetApply
 
 class QuantileApply extends FacetApply
   constructor: ({name, @attribute, @quantile, options}) ->
+    super(arguments[0], dummyObject)
     @name = name if name
     @options = new FacetOptions(options) if options
     throw new TypeError("quantile must be a number") unless typeof @quantile is 'number'
@@ -237,10 +252,12 @@ class QuantileApply extends FacetApply
 
 class AddApply extends FacetApply
   constructor: ({name, @arithmetic, @operands}) ->
+    super(arguments[0], dummyObject)
     @name = name if name
-    @operands = @operands.map(FacetApply.fromSpec)
-    @_ensureArithmetic('add')
     @_verifyName()
+    @_ensureArithmetic('add')
+    @_verifyOperands()
+    @operands = @operands.map(FacetApply.fromSpec)
 
   toString: (from = 'add') ->
     expr = "#{@operands[0].toString(@arithmetic)} + #{@operands[1].toString(@arithmetic)}"
@@ -263,10 +280,12 @@ class AddApply extends FacetApply
 
 class SubtractApply extends FacetApply
   constructor: ({name, @arithmetic, @operands}) ->
+    super(arguments[0], dummyObject)
     @name = name if name
-    @operands = @operands.map(FacetApply.fromSpec)
-    @_ensureArithmetic('subtract')
     @_verifyName()
+    @_ensureArithmetic('subtract')
+    @_verifyOperands()
+    @operands = @operands.map(FacetApply.fromSpec)
 
   toString: (from = 'add') ->
     expr = "#{@operands[0].toString(@arithmetic)} - #{@operands[1].toString(@arithmetic)}"
@@ -289,10 +308,12 @@ class SubtractApply extends FacetApply
 
 class MultiplyApply extends FacetApply
   constructor: ({name, @arithmetic, @operands}) ->
+    super(arguments[0], dummyObject)
     @name = name if name
-    @operands = @operands.map(FacetApply.fromSpec)
-    @_ensureArithmetic('multiply')
     @_verifyName()
+    @_ensureArithmetic('multiply')
+    @_verifyOperands()
+    @operands = @operands.map(FacetApply.fromSpec)
 
   toString: (from = 'add') ->
     expr = "#{@operands[0].toString(@arithmetic)} * #{@operands[1].toString(@arithmetic)}"
@@ -318,10 +339,12 @@ class MultiplyApply extends FacetApply
 
 class DivideApply extends FacetApply
   constructor: ({name, @arithmetic, @operands}) ->
+    super(arguments[0], dummyObject)
     @name = name if name
-    @operands = @operands.map(FacetApply.fromSpec)
-    @_ensureArithmetic('divide')
     @_verifyName()
+    @_ensureArithmetic('divide')
+    @_verifyOperands()
+    @operands = @operands.map(FacetApply.fromSpec)
 
   toString: (from = 'add') ->
     expr = "#{@operands[0].toString(@arithmetic)} / #{@operands[1].toString(@arithmetic)}"

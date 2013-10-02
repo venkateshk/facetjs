@@ -1,7 +1,7 @@
 
 class FacetSplit
-  constructor: ->
-    return
+  constructor: ({@bucket, @dataset}, dummy) ->
+    throw new TypeError("can not call `new FacetSplit` directly use FacetSplit.fromSpec instead") unless dummy is dummyObject
 
   _ensureBucket: (bucket) ->
     if not @bucket
@@ -12,6 +12,7 @@ class FacetSplit
     return
 
   _verifyName: ->
+    return unless @name
     throw new TypeError("split name must be a string") unless typeof @name is 'string'
 
   _verifyAttribute: ->
@@ -27,6 +28,7 @@ class FacetSplit
   valueOf: ->
     split = { bucket: @bucket }
     split.name = @name if @name
+    split.dataset = @dataset if @dataset
     split.segmentFilter = @segmentFilter.valueOf() if @segmentFilter
     split.options = @options.valueOf() if @options
     return split
@@ -34,7 +36,10 @@ class FacetSplit
   toJSON: @::valueOf
 
   getDataset: ->
-    return 'main'
+    return @dataset or 'main'
+
+  getDatasets: ->
+    return [@dataset or 'main']
 
   isEqual: (other, compareSegmentFilter) ->
     return Boolean(other) and
@@ -53,7 +58,8 @@ class FacetSplit
 
 
 class IdentitySplit extends FacetSplit
-  constructor: ({name, @bucket, @attribute, segmentFilter, options}) ->
+  constructor: ({name, @attribute, segmentFilter, options}) ->
+    super(arguments[0], dummyObject)
     @name = name if name
     @segmentFilter = FacetSegmentFilter.fromSpec(segmentFilter) if segmentFilter
     @options = new FacetOptions(options) if options
@@ -77,7 +83,8 @@ class IdentitySplit extends FacetSplit
 
 
 class ContinuousSplit extends FacetSplit
-  constructor: ({name, @bucket, @attribute, @size, @offset, lowerLimit, upperLimit, segmentFilter, options}) ->
+  constructor: ({name, @attribute, @size, @offset, lowerLimit, upperLimit, segmentFilter, options}) ->
+    super(arguments[0], dummyObject)
     @name = name if name
     @segmentFilter = FacetSegmentFilter.fromSpec(segmentFilter) if segmentFilter
     @options = new FacetOptions(options) if options
@@ -115,7 +122,8 @@ class ContinuousSplit extends FacetSplit
 
 
 class TimeDurationSplit extends FacetSplit
-  constructor: ({name, @bucket, @attribute, @duration, @offset, segmentFilter, options}) ->
+  constructor: ({name, @attribute, @duration, @offset, segmentFilter, options}) ->
+    super(arguments[0], dummyObject)
     @name = name if name
     @segmentFilter = FacetSegmentFilter.fromSpec(segmentFilter) if segmentFilter
     @options = new FacetOptions(options) if options
@@ -148,7 +156,8 @@ class TimeDurationSplit extends FacetSplit
 
 
 class TimePeriodSplit extends FacetSplit
-  constructor: ({name, @bucket, @attribute, @period, @timezone, segmentFilter, options}) ->
+  constructor: ({name, @attribute, @period, @timezone, segmentFilter, options}) ->
+    super(arguments[0], dummyObject)
     @name = name if name
     @segmentFilter = FacetSegmentFilter.fromSpec(segmentFilter) if segmentFilter
     @options = new FacetOptions(options) if options
@@ -181,7 +190,8 @@ class TimePeriodSplit extends FacetSplit
 
 
 class TupleSplit extends FacetSplit
-  constructor: ({name, @bucket, @splits, segmentFilter}) ->
+  constructor: ({name, @splits, segmentFilter}) ->
+    super(arguments[0], dummyObject)
     throw new Error("tuple split does not use a name") if name
     @segmentFilter = FacetSegmentFilter.fromSpec(segmentFilter) if segmentFilter
     throw new TypeError("splits must be a non-empty array") unless Array.isArray(@splits) and @splits.length
@@ -211,7 +221,9 @@ class TupleSplit extends FacetSplit
 
 
 class ParallelSplit extends FacetSplit
-  constructor: ({name, @bucket, @splits, segmentFilter}) ->
+  constructor: ({name, @splits, segmentFilter}) ->
+    super(arguments[0], dummyObject)
+    @name = name if name
     throw new TypeError("splits must be a non-empty array") unless Array.isArray(@splits) and @splits.length
     @splits = @splits.map((splitSpec) ->
       throw new Error("parallel splits can not be nested") if splitSpec.bucket is 'parallel'
@@ -236,7 +248,11 @@ class ParallelSplit extends FacetSplit
     otherSplits = other.splits
     return super and @splits.length is otherSplits.length and @splits.every((split, i) -> split.isEqual(otherSplits[i], true))
 
+  getDataset: ->
+    throw new Error('getDataset not defined for ParallelSplit, use getDatasets')
 
+  getDatasets: ->
+    return @splits.map((split) -> split.getDataset())
 
 
 # Make lookup

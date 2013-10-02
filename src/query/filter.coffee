@@ -1,5 +1,3 @@
-filterDummy = {}
-
 filterTypePresedence = {
   'true': 1
   'false': 2
@@ -28,7 +26,7 @@ class FacetFilter
     return 0
 
   constructor: ({@type, @dataset}, dummy)->
-    throw new TypeError("can not call `new FacetFilter` directly use FacetFilter.fromSpec instead") unless dummy is filterDummy
+    throw new TypeError("can not call `new FacetFilter` directly use FacetFilter.fromSpec instead") unless dummy is dummyObject
 
   _ensureType: (filterType) ->
     if not @type
@@ -82,7 +80,7 @@ class FacetFilter
 
 class TrueFilter extends FacetFilter
   constructor: ->
-    super(arguments[0] or {}, filterDummy)
+    super(arguments[0] or {}, dummyObject)
     @_ensureType('true')
 
   toString: ->
@@ -92,7 +90,7 @@ class TrueFilter extends FacetFilter
 
 class FalseFilter extends FacetFilter
   constructor: ->
-    super(arguments[0] or {}, filterDummy)
+    super(arguments[0] or {}, dummyObject)
     @_ensureType('false')
 
   toString: ->
@@ -102,7 +100,7 @@ class FalseFilter extends FacetFilter
 
 class IsFilter extends FacetFilter
   constructor: ({@attribute, @value}) ->
-    super(arguments[0], filterDummy)
+    super(arguments[0], dummyObject)
     @_ensureType('is')
     @_validateAttribute()
 
@@ -122,7 +120,7 @@ class IsFilter extends FacetFilter
 
 class InFilter extends FacetFilter
   constructor: ({@attribute, @values}) ->
-    super(arguments[0], filterDummy)
+    super(arguments[0], dummyObject)
     @_ensureType('in')
     @_validateAttribute()
     throw new TypeError('values must be an array') unless Array.isArray(@values)
@@ -150,7 +148,7 @@ class InFilter extends FacetFilter
 
 class ContainsFilter extends FacetFilter
   constructor: ({@attribute, @value}) ->
-    super(arguments[0], filterDummy)
+    super(arguments[0], dummyObject)
     @_ensureType('contains')
     @_validateAttribute()
     throw new TypeError('contains must be a string') unless typeof @value is 'string'
@@ -171,7 +169,7 @@ class ContainsFilter extends FacetFilter
 
 class MatchFilter extends FacetFilter
   constructor: ({@attribute, @expression}) ->
-    super(arguments[0], filterDummy)
+    super(arguments[0], dummyObject)
     @_ensureType('match')
     @_validateAttribute()
     throw new Error('must have an expression') unless @expression
@@ -196,7 +194,7 @@ class MatchFilter extends FacetFilter
 
 class WithinFilter extends FacetFilter
   constructor: ({@attribute, @range}) ->
-    super(arguments[0], filterDummy)
+    super(arguments[0], dummyObject)
     @_ensureType('within')
     @_validateAttribute()
     throw new TypeError('range must be an array of length 2') unless Array.isArray(@range) and @range.length is 2
@@ -226,7 +224,7 @@ class WithinFilter extends FacetFilter
 class NotFilter extends FacetFilter
   constructor: (arg) ->
     if arg not instanceof FacetFilter
-      super(arg, filterDummy)
+      super(arg, dummyObject)
       @filter = FacetFilter.fromSpec(arg.filter)
     else
       @filter = arg
@@ -266,7 +264,7 @@ class NotFilter extends FacetFilter
 class AndFilter extends FacetFilter
   constructor: (arg) ->
     if not Array.isArray(arg)
-      super(arg, filterDummy)
+      super(arg, dummyObject)
       throw new TypeError('filters must be an array') unless Array.isArray(arg.filters)
       @filters = arg.filters.map(FacetFilter.fromSpec)
     else
@@ -368,7 +366,7 @@ class AndFilter extends FacetFilter
 class OrFilter extends FacetFilter
   constructor: (arg) ->
     if not Array.isArray(arg)
-      super(arg, filterDummy)
+      super(arg, dummyObject)
       throw new TypeError('filters must be an array') unless Array.isArray(arg.filters)
       @filters = arg.filters.map(FacetFilter.fromSpec)
     else

@@ -9,6 +9,13 @@ sqlDriver = require('../../build/sqlDriver')
 
 verbose = false
 
+sqlPass = sqlRequester({
+  host: 'localhost'
+  database: 'facet'
+  user: 'facet_user'
+  password: 'HadleyWickham'
+})
+
 describe "SQL driver", ->
   #@timeout(40 * 1000)
 
@@ -35,7 +42,7 @@ describe "SQL driver", ->
           done()
           return
 
-    describe "should return null correctly on a topN query", ->
+    describe "should return null correctly on an empty split", ->
       query = new FacetQuery([
         { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
@@ -49,13 +56,6 @@ describe "SQL driver", ->
           done()
 
   describe "should work with driver level filter", ->
-    sqlPass = sqlRequester({
-      host: 'localhost'
-      database: 'facet'
-      user: 'facet_user'
-      password: 'HadleyWickham'
-    })
-
     noFilter = sqlDriver({
       requester: sqlPass
       table: 'diamonds'
@@ -79,6 +79,7 @@ describe "SQL driver", ->
           { operation: 'apply', name: 'Count', aggregate: 'count' }
         ])
       }, (err, noFilterRes) ->
+        expect(err).to.be.null
         expect(noFilterRes).to.be.an('object')
         withFilter {
           query: new FacetQuery([
@@ -88,4 +89,33 @@ describe "SQL driver", ->
           expect(withFilterRes).to.be.an('object')
           expect(noFilterRes).to.deep.equal(withFilterRes)
           done()
+
+  describe "should work with asking for a non existent result", ->
+    diamondsDriver = sqlDriver({
+      requester: sqlPass
+      table: 'diamonds'
+      filter: null
+    })
+
+    it "deals well with empty results", ->
+      diamondsDriver {
+        query: new FacetQuery([
+          {
+            operation: 'filter'
+            type: 'and'
+            filters: [
+              { type: 'is', attribute: 'color', value: 'E' }
+              { type: 'not', filter: { type: 'is', attribute: 'color', value: 'E' } }
+            ]
+          }
+          { operation: 'apply', name: 'Count', aggregate: 'count' }
+        ])
+      }, (err, res) ->
+        expect(err).to.be.null
+        expect(res).to.deep.equal({
+          prop: {
+            Count: 0
+          }
+        })
+
 

@@ -58,14 +58,18 @@ class FacetQuery
     @datasets = ['main'] unless @datasets
 
     # Parse filters
-    @filters = []
+    @commonFilter = null
+    @datasetFilters = {}
     while i < numCommands
       command = commands[i]
       break if command.operation isnt 'filter'
       filter = FacetFilter.fromSpec(command)
-      dataset = filter.getDataset()
-      throw new Error("filter dataset '#{dataset}' is not defined") unless dataset in @datasets
-      @filters.push(filter)
+      if filter.dataset
+        dataset = filter.getDataset()
+        throw new Error("filter dataset '#{dataset}' is not defined") unless dataset in @datasets
+        @datasetFilters[dataset] = if @datasetFilters[dataset] then new AndFilter(@datasetFilters[dataset], filter).simplify() else filter
+      else
+        @commonFilter = if @commonFilter new AndFilter(@commonFilter, filter).simplify() else new TrueFilter()
       i++
 
     # Parse split apply combines
@@ -80,8 +84,8 @@ class FacetQuery
 
         when 'split'
           split = FacetSplit.fromSpec(command)
-          dataset = split.getDataset()
-          throw new Error("split dataset '#{dataset}' is not defined") unless dataset in @datasets
+          for dataset in split.getDatasets()
+            throw new Error("split dataset '#{dataset}' is not defined") unless dataset in @datasets
           curGroup = new FacetGroup()
           curGroup.setSplit(split)
           @groups.push(curGroup)
@@ -112,8 +116,20 @@ class FacetQuery
   valueOf: ->
     spec = []
 
-    for filter in @filters
-      filterVal = filter.valueOf()
+    if @datasets.length isnt 1 or @datasets[0] isnt 'main'
+      spec.push {
+        operation: 'dataset'
+        datasets: @datasets
+      }
+
+    if @commonFilter
+      filterVal = @commonFilter.valueOf()
+      filterVal.operation = 'filter'
+      spec.push(filterVal)
+
+    for dataset in @datasets
+      continue unless @datasetFilters[dataset]
+      filterVal = @datasetFilters[dataset].valueOf()
       filterVal.operation = 'filter'
       spec.push(filterVal)
 
@@ -124,8 +140,14 @@ class FacetQuery
 
   toJSON: @::valueOf
 
+  getDatasets: ->
+    return @datasets
+
   getFilter: ->
-    return @filters[0] or new TrueFilter()
+    return @commonFilter or new TrueFilter()
+
+  getDatasetFilter: (dataset) ->
+    return @datasetFilters[dataset] or new TrueFilter()
 
   getGroups: ->
     return @groups

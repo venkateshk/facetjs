@@ -51,7 +51,7 @@ exports.cleanProp = (prop) ->
 exports.cleanSegments = cleanSegments = (segment) ->
   delete segment.parent
   delete segment._filter
-  delete segment._raw
+  delete segment._raws
 
   prop = segment.prop
   for key of prop

@@ -131,7 +131,7 @@ aggregateFns = {
   constant: ({value}) -> () ->
     return Number(value)
 
-  count: -> (ds) ->
+  count: (dataset) -> (ds) ->
     return ds.length
 
   sum: ({attribute}) -> (ds) ->
@@ -178,21 +178,17 @@ aggregateFns = {
 }
 
 arithmeticFns = {
-  add: ({operands}) ->
-    [lhs, rhs] = operands.map(makeApplyFn)
-    return (ds) -> lhs(ds) + rhs(ds)
+  add: ([lhs, rhs]) -> (ds) ->
+    return lhs(ds) + rhs(ds)
 
-  subtract: ({operands}) ->
-    [lhs, rhs] = operands.map(makeApplyFn)
-    return (ds) -> lhs(ds) - rhs(ds)
+  subtract: ([lhs, rhs]) -> (ds) ->
+    return lhs(ds) - rhs(ds)
 
-  multiply: ({operands}) ->
-    [lhs, rhs] = operands.map(makeApplyFn)
-    return (ds) -> lhs(ds) * rhs(ds)
+  multiply: ([lhs, rhs]) -> (ds) ->
+    return lhs(ds) * rhs(ds)
 
-  divide: ({operands}) ->
-    [lhs, rhs] = operands.map(makeApplyFn)
-    return (ds) -> lhs(ds) / rhs(ds)
+  divide: ([lhs, rhs]) -> (ds) ->
+    return lhs(ds) / rhs(ds)
 }
 
 makeApplyFn = (apply) ->
@@ -200,16 +196,17 @@ makeApplyFn = (apply) ->
   if apply.aggregate
     aggregateFn = aggregateFns[apply.aggregate]
     throw new Error("aggregate '#{apply.aggregate}' unsupported by driver") unless aggregateFn
+    dataset = apply.getDataset()
     rawApplyFn = aggregateFn(apply)
     if apply.filter
       filterFn = makeFilterFn(apply.filter)
-      return (ds) -> rawApplyFn(ds.filter(filterFn))
+      return (dss) -> rawApplyFn(dss[dataset].filter(filterFn))
     else
-      return rawApplyFn
+      return (dss) -> rawApplyFn(dss[dataset])
   else if apply.arithmetic
     arithmeticFn = arithmeticFns[apply.arithmetic]
     throw new Error("arithmetic '#{apply.arithmetic}' unsupported by driver") unless arithmeticFn
-    return arithmeticFn(apply)
+    return arithmeticFn(apply.operands.map(makeApplyFn))
   else
     throw new Error("apply must have an aggregate or an arithmetic")
   return
@@ -272,26 +269,18 @@ makeCombineFn = (combine) ->
 
 computeQuery = (data, query) ->
   rootRaw = {}
+
+  commonFilterFn = makeFilterFn(query.getFilter())
   for datasetName in query.getDatasets()
-    rootRaw[datasetName] = data
+    datasetFilterFn = makeFilterFn(query.getDatasetFilter(datasetName))
+    rootRaw[datasetName] = data.filter(commonFilterFn).filter(datasetFilterFn)
 
   rootSegment = {
     prop: {}
     parent: null
-    _raw: rootRaw
+    _raws: rootRaw
   }
   originalSegmentGroups = segmentGroups = [[rootSegment]]
-
-  filter = query.getFilter()
-  if filter.type isnt 'true'
-    datasetName = filter.getDataset()
-    filterFn = makeFilterFn(filter)
-    for segmentGroup in segmentGroups
-      driverUtil.inPlaceFilter(segmentGroup, (segment) ->
-        segment._raw[datasetName] = segment._raw[datasetName].filter(filterFn)
-        # ToDo: check that all datasets are empty
-        return segment._raw[datasetName].length > 0
-      )
 
   groups = query.getGroups()
   for {split, applies, combine} in groups
@@ -299,9 +288,9 @@ computeQuery = (data, query) ->
       propName = split.name
       parallelSplits = if split.bucket is 'parallel' then split.splits else [split]
 
-      splitFns = {}
+      parallelSplitFns = {}
       for parallelSplit in parallelSplits
-        splitFns[parallelSplit.getDataset()] = makeSplitFn(parallelSplit)
+        parallelSplitFns[parallelSplit.getDataset()] = makeSplitFn(parallelSplit)
 
       segmentFilterFn = if split.segmentFilter then split.segmentFilter.getFilterFn() else null
       segmentGroups = driverUtil.filterMap driverUtil.flatten(segmentGroups), (segment) ->
@@ -309,11 +298,10 @@ computeQuery = (data, query) ->
         keys = []
         bucketsByDataset = {}
         bucketValue = {}
-        for dataset, splitFn of splitFns
+        for dataset, parallelSplitFn of parallelSplitFns
           buckets = {}
-          bucketsByDataset[dataset] = buckets
-          for d in segment._raw[dataset]
-            key = splitFn(d)
+          for d in segment._raws[dataset]
+            key = parallelSplitFn(d)
             throw new Error("bucket returned undefined") unless key? # ToDo: handle nulls
             keyString = String(key)
 
@@ -321,21 +309,20 @@ computeQuery = (data, query) ->
               keys.push(keyString)
               bucketValue[keyString] = key
 
-            if not buckets[keyString]
-              buckets[keyString] = []
-
+            buckets[keyString] = [] unless buckets[keyString]
             buckets[keyString].push(d)
+          bucketsByDataset[dataset] = buckets
 
         segment.splits = keys.map((keyString) ->
           prop = {}
           prop[propName] = bucketValue[keyString]
 
-          raw = {}
+          raws = {}
           for dataset, buckets of bucketsByDataset
-            raw[dataset] = buckets[keyString]
+            raws[dataset] = buckets[keyString] or []
 
           return {
-            _raw: raw
+            _raws: raws
             prop
             parent: segment
           }
@@ -344,11 +331,10 @@ computeQuery = (data, query) ->
 
     for apply in applies
       propName = apply.name
-      dataset = apply.getDataset()
       applyFn = makeApplyFn(apply)
       for segmentGroup in segmentGroups
         for segment in segmentGroup
-          segment.prop[propName] = applyFn(segment._raw[dataset])
+          segment.prop[propName] = applyFn(segment._raws)
 
     if combine
       combineFn = makeCombineFn(combine)

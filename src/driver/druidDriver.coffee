@@ -9,6 +9,20 @@ driverUtil = require('./driverUtil')
 andFilters = (filter1, filter2) ->
   return new AndFilter([filter1, filter2]).simplify()
 
+arithmeticToDruidFn = {
+  add: '+'
+  subtract: '-'
+  multiply: '*'
+  divide: '/'
+}
+
+aggregateToJS = {
+  count: ['0', (a, b) -> "#{a}+#{b}"]
+  sum:   ['0', (a, b) -> "#{a}+#{b}"]
+  min:   ['Infinity',  (a, b) -> "Math.min(#{a},#{b})"]
+  max:   ['-Infinity', (a, b) -> "Math.max(#{a},#{b})"]
+}
+
 class DruidQueryBuilder
   @ALL_DATA_CHUNKS = 10000
   @allTimeInterval = ["1000-01-01/3000-01-01"]
@@ -309,150 +323,26 @@ class DruidQueryBuilder
     return
 
   # This method will ether return a post aggregation or add it.
-  addApplyHelper: do ->
-    arithmeticToDruidFn = {
-      add: '+'
-      subtract: '-'
-      multiply: '*'
-      divide: '/'
-    }
-    aggregateToJS = {
-      count: ['0', (a, b) -> "#{a}+#{b}"]
-      sum:   ['0', (a, b) -> "#{a}+#{b}"]
-      min:   ['Infinity',  (a, b) -> "Math.min(#{a},#{b})"]
-      max:   ['-Infinity', (a, b) -> "Math.max(#{a},#{b})"]
-    }
-    return (apply, returnPostAggregation) ->
-      applyName = apply.name or @throwawayName()
-      if apply.aggregate
-        switch apply.aggregate
-          when 'constant'
-            postAggregation = {
-              type: "constant"
-              value: apply.value
-            }
-            if returnPostAggregation
-              return postAggregation
-            else
-              postAggregation.name = applyName
-              @addPostAggregation(postAggregation)
-              return
+  addApplyHelper: (apply, returnPostAggregation) ->
+    applyName = apply.name or @throwawayName()
+    if apply.aggregate
+      switch apply.aggregate
+        when 'constant'
+          postAggregation = {
+            type: "constant"
+            value: apply.value
+          }
+          if returnPostAggregation
+            return postAggregation
+          else
+            postAggregation.name = applyName
+            @addPostAggregation(postAggregation)
+            return
 
-          when 'count', 'sum', 'min', 'max'
-            if @approximate and apply.aggregate in ['min', 'max'] and /_hist$/.test(apply.attribute)
-              # A hacky way to determine that this is a histogram aggregated column (it ends with _hist)
+        when 'count', 'sum', 'min', 'max'
+          if @approximate and apply.aggregate in ['min', 'max'] and /_hist$/.test(apply.attribute)
+            # A hacky way to determine that this is a histogram aggregated column (it ends with _hist)
 
-              aggregation = {
-                type: "approxHistogramFold"
-                fieldName: apply.attribute
-              }
-              options = apply.options or {}
-              aggregation.lowerLimit = options.druidLowerLimit if options.druidLowerLimit?
-              aggregation.upperLimit = options.druidUpperLimit if options.druidUpperLimit?
-              aggregation.resolution = options.druidResolution if options.druidResolution
-              histogramAggregationName = @addAggregation(aggregation)
-              postAggregation = {
-                type: apply.aggregate
-                fieldName: histogramAggregationName
-              }
-
-              if returnPostAggregation
-                return postAggregation
-              else
-                postAggregation.name = applyName
-                @addPostAggregation(postAggregation)
-                return
-            else
-              if apply.filter
-                { jsFilter, context } = @filterToJS(apply.filter)
-                fieldNames = []
-                varNames = []
-                for fieldName, varName of context
-                  fieldNames.push(fieldName)
-                  varNames.push(varName)
-
-                [zero, jsAgg] = aggregateToJS[apply.aggregate]
-
-                if apply.aggregate is 'count'
-                  jsIf = "(#{jsFilter}?1:#{zero})"
-                else
-                  fieldNames.push(apply.attribute)
-                  varNames.push('a')
-                  jsIf = "(#{jsFilter}?a:#{zero})"
-
-                aggregation = {
-                  type: "javascript"
-                  name: applyName
-                  fieldNames: fieldNames
-                  fnAggregate: "function(cur,#{varNames.join(',')}){return #{jsAgg('cur', jsIf)};}"
-                  fnCombine: "function(pa,pb){return #{jsAgg('pa', 'pb')};}"
-                  fnReset: "function(){return #{zero};}"
-                }
-              else
-                aggregation = {
-                  type: if apply.aggregate is 'sum' then 'doubleSum' else apply.aggregate
-                  name: applyName
-                }
-
-                if apply.aggregate isnt 'count'
-                  throw new Error("#{apply.aggregate} must have an attribute") unless apply.attribute
-                  aggregation.fieldName = apply.attribute
-
-              aggregationName = @addAggregation(aggregation)
-              if returnPostAggregation
-                return { type: "fieldAccess", fieldName: aggregationName }
-              else
-                return
-
-          when 'uniqueCount'
-            throw new Error("approximate queries not allowed") unless @approximate
-            throw new Error("filtering uniqueCount unsupported by driver") if apply.filter
-
-            # ToDo: add a throw here in case approximate is false
-            aggregation = {
-              type: "hyperUnique"
-              name: applyName
-              fieldName: apply.attribute
-            }
-
-            aggregationName = @addAggregation(aggregation)
-            if returnPostAggregation
-              # hyperUniqueCardinality is the fieldAccess equivalent for uniques
-              return { type: "hyperUniqueCardinality", fieldName: aggregationName }
-            else
-              return
-
-          when 'average'
-            throw new Error("can not filter an average right now") if apply.filter
-
-            sumAggregationName = @addAggregation {
-              type: 'doubleSum'
-              fieldName: apply.attribute
-            }
-
-            countAggregationName = @addAggregation {
-              type: 'count'
-            }
-
-            postAggregation = {
-              type: "arithmetic"
-              fn: "/"
-              fields: [
-                { type: "fieldAccess", fieldName: sumAggregationName }
-                { type: "fieldAccess", fieldName: countAggregationName }
-              ]
-            }
-
-            if returnPostAggregation
-              return postAggregation
-            else
-              postAggregation.name = applyName
-              @addPostAggregation(postAggregation)
-              return
-
-          when 'quantile'
-            throw new Error("approximate queries not allowed") unless @approximate
-            throw new Error("quantile apply must have quantile") unless apply.quantile
             aggregation = {
               type: "approxHistogramFold"
               fieldName: apply.attribute
@@ -463,9 +353,8 @@ class DruidQueryBuilder
             aggregation.resolution = options.druidResolution if options.druidResolution
             histogramAggregationName = @addAggregation(aggregation)
             postAggregation = {
-              type: "quantile"
+              type: apply.aggregate
               fieldName: histogramAggregationName
-              probability: apply.quantile
             }
 
             if returnPostAggregation
@@ -474,21 +363,110 @@ class DruidQueryBuilder
               postAggregation.name = applyName
               @addPostAggregation(postAggregation)
               return
-
           else
-            throw new Error("unsupported aggregate '#{apply.aggregate}'")
+            if apply.filter
+              { jsFilter, context } = @filterToJS(apply.filter)
+              fieldNames = []
+              varNames = []
+              for fieldName, varName of context
+                fieldNames.push(fieldName)
+                varNames.push(varName)
 
-      else if apply.arithmetic
-        if apply.operands.length isnt 2
-          throw new Error("arithmetic apply must have 2 operands (has: #{apply.operands.length})")
-        druidFn = arithmeticToDruidFn[apply.arithmetic]
-        if druidFn
-          a = @addApplyHelper(apply.operands[0], true)
-          b = @addApplyHelper(apply.operands[1], true)
+              [zero, jsAgg] = aggregateToJS[apply.aggregate]
+
+              if apply.aggregate is 'count'
+                jsIf = "(#{jsFilter}?1:#{zero})"
+              else
+                fieldNames.push(apply.attribute)
+                varNames.push('a')
+                jsIf = "(#{jsFilter}?a:#{zero})"
+
+              aggregation = {
+                type: "javascript"
+                name: applyName
+                fieldNames: fieldNames
+                fnAggregate: "function(cur,#{varNames.join(',')}){return #{jsAgg('cur', jsIf)};}"
+                fnCombine: "function(pa,pb){return #{jsAgg('pa', 'pb')};}"
+                fnReset: "function(){return #{zero};}"
+              }
+            else
+              aggregation = {
+                type: if apply.aggregate is 'sum' then 'doubleSum' else apply.aggregate
+                name: applyName
+              }
+
+              if apply.aggregate isnt 'count'
+                throw new Error("#{apply.aggregate} must have an attribute") unless apply.attribute
+                aggregation.fieldName = apply.attribute
+
+            aggregationName = @addAggregation(aggregation)
+            if returnPostAggregation
+              return { type: "fieldAccess", fieldName: aggregationName }
+            else
+              return
+
+        when 'uniqueCount'
+          throw new Error("approximate queries not allowed") unless @approximate
+          throw new Error("filtering uniqueCount unsupported by driver") if apply.filter
+
+          # ToDo: add a throw here in case approximate is false
+          aggregation = {
+            type: "hyperUnique"
+            name: applyName
+            fieldName: apply.attribute
+          }
+
+          aggregationName = @addAggregation(aggregation)
+          if returnPostAggregation
+            # hyperUniqueCardinality is the fieldAccess equivalent for uniques
+            return { type: "hyperUniqueCardinality", fieldName: aggregationName }
+          else
+            return
+
+        when 'average'
+          throw new Error("can not filter an average right now") if apply.filter
+
+          sumAggregationName = @addAggregation {
+            type: 'doubleSum'
+            fieldName: apply.attribute
+          }
+
+          countAggregationName = @addAggregation {
+            type: 'count'
+          }
+
           postAggregation = {
             type: "arithmetic"
-            fn: druidFn
-            fields: [a, b]
+            fn: "/"
+            fields: [
+              { type: "fieldAccess", fieldName: sumAggregationName }
+              { type: "fieldAccess", fieldName: countAggregationName }
+            ]
+          }
+
+          if returnPostAggregation
+            return postAggregation
+          else
+            postAggregation.name = applyName
+            @addPostAggregation(postAggregation)
+            return
+
+        when 'quantile'
+          throw new Error("approximate queries not allowed") unless @approximate
+          throw new Error("quantile apply must have quantile") unless apply.quantile
+          aggregation = {
+            type: "approxHistogramFold"
+            fieldName: apply.attribute
+          }
+          options = apply.options or {}
+          aggregation.lowerLimit = options.druidLowerLimit if options.druidLowerLimit?
+          aggregation.upperLimit = options.druidUpperLimit if options.druidUpperLimit?
+          aggregation.resolution = options.druidResolution if options.druidResolution
+          histogramAggregationName = @addAggregation(aggregation)
+          postAggregation = {
+            type: "quantile"
+            fieldName: histogramAggregationName
+            probability: apply.quantile
           }
 
           if returnPostAggregation
@@ -499,10 +477,33 @@ class DruidQueryBuilder
             return
 
         else
-          throw new Error("unsupported arithmetic '#{apply.arithmetic}'")
+          throw new Error("unsupported aggregate '#{apply.aggregate}'")
+
+    else if apply.arithmetic
+      if apply.operands.length isnt 2
+        throw new Error("arithmetic apply must have 2 operands (has: #{apply.operands.length})")
+      druidFn = arithmeticToDruidFn[apply.arithmetic]
+      if druidFn
+        a = @addApplyHelper(apply.operands[0], true)
+        b = @addApplyHelper(apply.operands[1], true)
+        postAggregation = {
+          type: "arithmetic"
+          fn: druidFn
+          fields: [a, b]
+        }
+
+        if returnPostAggregation
+          return postAggregation
+        else
+          postAggregation.name = applyName
+          @addPostAggregation(postAggregation)
+          return
 
       else
-        throw new Error("must have an aggregate or an arithmetic")
+        throw new Error("unsupported arithmetic '#{apply.arithmetic}'")
+
+    else
+      throw new Error("must have an aggregate or an arithmetic")
 
   addApply: (apply) ->
     throw new TypeError() unless apply instanceof FacetApply

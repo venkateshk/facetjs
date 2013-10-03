@@ -16,7 +16,9 @@ moveTimestamp = (timestamp, period, timezone) ->
       newTimestamp.setUTCHours(newTimestamp.getUTCHours() + 1)
     when 'P1D'
       newTimestamp = driverUtil.convertToTimezoneJS(timestamp, timezone)
+      prevDate = newTimestamp.getDate()
       newTimestamp.setDate(newTimestamp.getDate() + 1)
+
       if newTimestamp.getHours() < 2
         newTimestamp.setHours(0)
       else

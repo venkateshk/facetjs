@@ -6,9 +6,6 @@ driverUtil = require('./driverUtil')
 
 # -----------------------------------------------------
 
-andFilters = (filter1, filter2) ->
-  return new AndFilter([filter1, filter2]).simplify()
-
 aggregateToSqlFn = {
   count:       (c) -> "COUNT(#{c})"
   sum:         (c) -> "SUM(#{c})"
@@ -476,11 +473,12 @@ module.exports = ({requester, table, filter}) ->
       return
 
     datasetToTable = {}
-    commonFilter = andFilters(filter, query.getFilter())
+
+    commonFilter = new AndFilter([filter, query.getFilter()])
     filtersByDataset = {}
     for dataset in query.getDatasets()
       datasetToTable[dataset] = table
-      filtersByDataset[dataset] = andFilters(commonFilter, query.getDatasetFilter(dataset))
+      filtersByDataset[dataset] = new AndFilter([commonFilter, query.getDatasetFilter(dataset)]).simplify()
 
     init = true
     rootSegment = {

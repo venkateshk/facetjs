@@ -263,7 +263,7 @@ class SQLQueryBuilder
         dataset = op1Datasets[0]
         { datasetSQL: op1SQL } = @applyToSQL(op1)
         { datasetSQL: op2SQL } = @applyToSQL(op2)
-        applyStr = "(#{op1SQL} #{sqlOp} #{op2SQL})"
+        applyStr = "(#{op1SQL[dataset]} #{sqlOp} #{op2SQL[dataset]})"
         datasetSQL = {}
         if name
           datasetSQL[dataset] = "#{applyStr} AS `#{name}`"
@@ -340,36 +340,47 @@ class SQLQueryBuilder
 
     return this
 
+  getQueryForDataset: (dataset) ->
+    datasetPart = @datasetParts[dataset]
+    select = [].concat(
+      datasetPart.splitSelectParts
+      datasetPart.applySelectParts
+    ).join(', ')
+    groupBy = datasetPart.groupByParts.join(', ') or '""'
+    return "SELECT #{select} FROM #{datasetPart.fromWherePart} GROUP BY #{groupBy}"
+
   getQuery: ->
-    return null unless @commonApplySelectParts.length
-    commonApplySelect = @commonApplySelectParts.join(',\n      ')
-    partials = @datasets.map(((dataset) ->
-      commonSplitSelect = @commonSplitSelectParts.map((commonSplitSelectPart) -> "`#{dataset}`.#{commonSplitSelectPart}").join(', ')
-      partialQuery = [
-        "SELECT #{commonSplitSelect},"
-        '  ' + commonApplySelect
-        'FROM'
-      ]
-      innerDataset = dataset
-      datasetPart = @datasetParts[innerDataset]
-      partialQuery.push(  "  (SELECT #{datasetPart.splitSelectParts.join(', ')}, #{datasetPart.applySelectParts.join(', ')} FROM #{datasetPart.fromWherePart} GROUP BY #{datasetPart.groupByParts.join(', ') or '""'}) AS `#{innerDataset}`")
-      for innerDataset in @datasets
-        continue if innerDataset is dataset
+    return null if @commonSplitSelectParts.length is 0 and @commonApplySelectParts.length is 0
+
+    if @datasets.length > 1
+      partials = @datasets.map(((dataset) ->
+        select = [].concat(
+          @commonSplitSelectParts.map((commonSplitSelectPart) -> "`#{dataset}`.#{commonSplitSelectPart}")
+          @commonApplySelectParts
+        ).join(',\n    ')
+        partialQuery = [
+          "SELECT #{select}"
+          'FROM'
+        ]
+        innerDataset = dataset
         datasetPart = @datasetParts[innerDataset]
-        partialQuery.push("LEFT JOIN")
-        partialQuery.push("  (SELECT #{datasetPart.splitSelectParts.join(', ')}, #{datasetPart.applySelectParts.join(', ')} FROM #{datasetPart.fromWherePart} GROUP BY #{datasetPart.groupByParts.join(', ') or '""'}) AS `#{innerDataset}`")
-        partialQuery.push("USING(#{@commonSplitSelectParts.join(', ')})")
+        partialQuery.push(  "  (#{@getQueryForDataset(innerDataset)}) AS `#{innerDataset}`")
+        for innerDataset in @datasets
+          continue if innerDataset is dataset
+          datasetPart = @datasetParts[innerDataset]
+          partialQuery.push("LEFT JOIN")
+          partialQuery.push("  (#{@getQueryForDataset(innerDataset)}) AS `#{innerDataset}`")
+          partialQuery.push("USING(#{@commonSplitSelectParts.join(', ')})")
 
-      return '  ' + partialQuery.join('\n  ')
-    ), this)
+        return '  ' + partialQuery.join('\n  ')
+      ), this)
+      query = [partials.join('\nUNION\n')]
+    else
+      query = [@getQueryForDataset(@datasets[0])]
 
-    query = [partials.join('\nUNION\n')]
     query.push(@orderByPart) if @orderByPart
     query.push(@limitPart) if @limitPart
     ret = query.join('\n') + ';'
-    console.log 'vvvvvvvvvvvvv'
-    console.log ret
-    console.log '^^^^^^^^^^^^^'
     return ret
 
 

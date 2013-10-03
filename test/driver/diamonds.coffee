@@ -59,8 +59,6 @@ describe "Diamonds dataset", ->
       ]
     }
 
-###
-
   describe "many applies", ->
     it "should have the same results for different drivers", testEquality {
       drivers: ['simple', 'mySql']
@@ -465,4 +463,3 @@ describe "Diamonds dataset", ->
         }
       ]
     }
-###

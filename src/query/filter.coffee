@@ -457,6 +457,14 @@ class OrFilter extends FacetFilter
     return if @filters.every(hasNoClaim) then [this] else null
 
 
+FacetFilter.andFiltersByDataset = (filters1, filters2) ->
+  resFilters = {}
+  for dataset, filter1 of filters1
+    filter2 = filters2[dataset]
+    throw new Error("unmatched datasets") unless filter2
+    resFilters[dataset] = new AndFilter([filter1, filter2]).simplify()
+  return resFilters
+
 
 # Make lookup
 filterConstructorMap = {

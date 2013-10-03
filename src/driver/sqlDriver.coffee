@@ -9,13 +9,56 @@ driverUtil = require('./driverUtil')
 andFilters = (filter1, filter2) ->
   return new AndFilter([filter1, filter2]).simplify()
 
+aggregateToSqlFn = {
+  count:       (c) -> "COUNT(#{c})"
+  sum:         (c) -> "SUM(#{c})"
+  average:     (c) -> "AVG(#{c})"
+  min:         (c) -> "MIN(#{c})"
+  max:         (c) -> "MAX(#{c})"
+  uniqueCount: (c) -> "COUNT(DISTINCT #{c})"
+}
+
+aggregateToZero = {
+  count:       "NULL"
+  sum:         "0"
+  average:     "NULL"
+  min:         "NULL"
+  max:         "NULL"
+  uniqueCount: "NULL"
+}
+
+arithmeticToSqlOp = {
+  add:      '+'
+  subtract: '-'
+  multiply: '*'
+  divide:   '/'
+}
+
+directionMap = {
+  ascending:  'ASC'
+  descending: 'DESC'
+}
+
 class SQLQueryBuilder
-  constructor: (table) ->
-    throw new Error("must have table") unless typeof table is 'string'
-    @selectParts = []
-    @groupByParts = []
-    @filterPart = null
-    @fromPart = "FROM #{@escapeAttribute(table)}"
+  constructor: (datasetToTable) ->
+    throw new Error("must have datasetToTable mapping") unless datasetToTable
+    if typeof datasetToTable is 'string'
+      datasetToTable = { main: datasetToTable }
+
+    @commonSplitSelectParts = []
+    @commonApplySelectParts = []
+
+    @datasets = []
+    @datasetParts = {}
+    for dataset, table of datasetToTable
+      @datasets.push(dataset)
+      @datasetParts[dataset] = {
+        splitSelectParts: []
+        applySelectParts: []
+        fromWherePart: @escapeAttribute(table)
+        groupByParts: []
+      }
+
     @orderByPart = null
     @limitPart = null
 
@@ -72,9 +115,12 @@ class SQLQueryBuilder
       else
         throw new Error("filter type '#{filter.type}' unsupported by driver")
 
-  addFilter: (filter) ->
-    return unless filter
-    @filterPart = "WHERE #{@filterToSQL(filter)}"
+  addFilters: (filtersByDataset) ->
+    for dataset, datasetPart of @datasetParts
+      filter = filtersByDataset[dataset]
+      throw new Error("must have filter for dataset '#{dataset}'") unless filter
+      continue if filter.type is 'true'
+      datasetPart.fromWherePart += " WHERE #{@filterToSQL(filter)}"
     return this
 
   timeBucketing: {
@@ -104,12 +150,12 @@ class SQLQueryBuilder
     }
   }
 
-  splitToSQL: (split) ->
+  splitToSQL: (split, name) ->
     switch split.bucket
       when 'identity'
         groupByPart = @escapeAttribute(split.attribute)
         return {
-          selectPart: "#{groupByPart} AS \"#{split.name}\""
+          selectPart: "#{groupByPart} AS `#{name}`"
           groupByPart
         }
 
@@ -121,7 +167,7 @@ class SQLQueryBuilder
         groupByPart = "#{groupByPart} * #{split.size}" if split.size isnt 1
         groupByPart = "#{groupByPart} - #{split.offset}" if split.offset isnt 0
         return {
-          selectPart: "#{groupByPart} AS \"#{split.name}\""
+          selectPart: "#{groupByPart} AS `#{name}`"
           groupByPart
         }
 
@@ -145,7 +191,7 @@ class SQLQueryBuilder
           sqlAttribute = "CONVERT_TZ(#{@escapeAttribute(split.attribute)}, '+0:00', #{bucketTimezone})"
 
         return {
-          selectPart: "DATE_FORMAT(#{sqlAttribute}, '#{bucketSpec.select}') AS \"#{split.name}\""
+          selectPart: "DATE_FORMAT(#{sqlAttribute}, '#{bucketSpec.select}') AS `#{name}`"
           groupByPart: "DATE_FORMAT(#{sqlAttribute}, '#{bucketSpec.group}')"
         }
 
@@ -162,85 +208,108 @@ class SQLQueryBuilder
 
   addSplit: (split) ->
     throw new TypeError("split must be a FacetSplit") unless split instanceof FacetSplit
-    @split = split
-    { selectPart, groupByPart } = @splitToSQL(split)
-    @selectParts.push(selectPart)
-    @groupByParts.push(groupByPart)
+    splits = if split.bucket is 'parallel' then split.splits else [split]
+    @commonSplitSelectParts.push("`#{split.name}`")
+    for subSplit in splits
+      datasetPart = @datasetParts[subSplit.getDataset()]
+      { selectPart, groupByPart } = @splitToSQL(subSplit, split.name)
+      datasetPart.splitSelectParts.push(selectPart)
+      datasetPart.groupByParts.push(groupByPart)
     return this
 
-  applyToSQL: do ->
-    aggregateToSqlFn = {
-      count:       (c) -> "COUNT(#{c})"
-      sum:         (c) -> "SUM(#{c})"
-      average:     (c) -> "AVG(#{c})"
-      min:         (c) -> "MIN(#{c})"
-      max:         (c) -> "MAX(#{c})"
-      uniqueCount: (c) -> "COUNT(DISTINCT #{c})"
-    }
-    aggregateToZero = {
-      count:       "NULL"
-      sum:         "0"
-      average:     "NULL"
-      min:         "NULL"
-      max:         "NULL"
-      uniqueCount: "NULL"
-    }
-    arithmeticToSqlOp = {
-      add:      '+'
-      subtract: '-'
-      multiply: '*'
-      divide:   '/'
-    }
-    return (apply) ->
-      throw new TypeError("apply must be a FacetApply") unless apply instanceof FacetApply
-      if apply.aggregate
-        switch apply.aggregate
-          when 'constant'
-            @escapeAttribute(apply.value)
+  applyToSQL: (apply, name) ->
+    throw new TypeError("apply must be a FacetApply") unless apply instanceof FacetApply
 
-          when 'count', 'sum', 'average', 'min', 'max', 'uniqueCount'
-            expresion = if apply.aggregate is 'count' then '1' else @escapeAttribute(apply.attribute)
-            if apply.filter
-              zero = aggregateToZero[apply.aggregate]
-              expresion = "IF(#{@filterToSQL(apply.filter)}, #{expresion}, #{zero})"
-            aggregateToSqlFn[apply.aggregate](expresion)
+    if apply.aggregate
+      dataset = apply.getDataset()
+      switch apply.aggregate
+        when 'constant'
+          applyStr = @escapeAttribute(apply.value)
 
-          when 'quantile'
-            throw new Error("not implemented yet") # ToDo
+        when 'count', 'sum', 'average', 'min', 'max', 'uniqueCount'
+          expresion = if apply.aggregate is 'count' then '1' else @escapeAttribute(apply.attribute)
+          if apply.filter
+            zero = aggregateToZero[apply.aggregate]
+            expresion = "IF(#{@filterToSQL(apply.filter)}, #{expresion}, #{zero})"
+          applyStr = aggregateToSqlFn[apply.aggregate](expresion)
 
-          else
-            throw new Error("unsupported aggregate '#{apply.aggregate}'")
+        when 'quantile'
+          throw new Error("not implemented yet") # ToDo
 
-      else if apply.arithmetic
-        sqlOp = arithmeticToSqlOp[apply.arithmetic]
-        if sqlOp
-          return "(#{@applyToSQL(apply.operands[0])} #{sqlOp} #{@applyToSQL(apply.operands[1])})"
         else
-          throw new Error("unsupported arithmetic '#{apply.arithmetic}'")
+          throw new Error("unsupported aggregate '#{apply.aggregate}'")
 
+      datasetSQL = {}
+      if name
+        datasetSQL[dataset] = "#{applyStr} AS `#{name}`"
+        return {
+          datasetSQL
+          commonSQL: "`#{name}`"
+        }
       else
-        throw new Error("must have an aggregate or an arithmetic")
+        datasetSQL[dataset] = applyStr
+        return {
+          datasetSQL
+          commonSQL: null
+        }
 
+    if apply.arithmetic
+      sqlOp = arithmeticToSqlOp[apply.arithmetic]
+      throw new Error("unsupported arithmetic '#{apply.arithmetic}'") unless sqlOp
+      [op1, op2] = apply.operands
+      op1Datasets = op1.getDatasets()
+      op2Datasets = op2.getDatasets()
+      if op1Datasets.length is 1 and op2Datasets.length is 1 and op1Datasets[0] is op2Datasets[0]
+        dataset = op1Datasets[0]
+        { datasetSQL: op1SQL } = @applyToSQL(op1)
+        { datasetSQL: op2SQL } = @applyToSQL(op2)
+        applyStr = "(#{op1SQL} #{sqlOp} #{op2SQL})"
+        datasetSQL = {}
+        if name
+          datasetSQL[dataset] = "#{applyStr} AS `#{name}`"
+          return {
+            datasetSQL
+            commonSQL: "`#{name}`"
+          }
+        else
+          datasetSQL[dataset] = applyStr
+          return {
+            datasetSQL
+            commonSQL: null
+          }
+      else
+        { datasetSQL: op1SQL, commonSQL: op1C } = @applyToSQL(op1, 'N' + Math.random().toFixed(5).substring(2))
+        { datasetSQL: op2SQL, commonSQL: op2C } = @applyToSQL(op2, 'N' + Math.random().toFixed(5).substring(2))
+        datasetSQL = {}
+        for dataset, sql of op1SQL
+          datasetSQL[dataset] or= []
+          datasetSQL[dataset].push(sql)
+        for dataset, sql of op2SQL
+          datasetSQL[dataset] or= []
+          datasetSQL[dataset].push(sql)
+        for dataset, sqls of datasetSQL
+          datasetSQL[dataset] = sqls.join(', ')
+        return {
+          datasetSQL
+          commonSQL: "(IFNULL(#{op1C}, 0) #{sqlOp} IFNULL(#{op2C}, 0)) AS `#{name}`"
+        }
+
+    throw new Error("must have an aggregate or an arithmetic")
+    return
 
   addApply: (apply) ->
-    @selectParts.push("#{@applyToSQL(apply)} AS \"#{apply.name}\"")
+    { datasetSQL, commonSQL } = @applyToSQL(apply, apply.name)
+    @commonApplySelectParts.push(commonSQL)
+    for dataset, sql of datasetSQL
+      @datasetParts[dataset].applySelectParts.push(sql)
     return this
-
-  directionMap: {
-    ascending:  'ASC'
-    descending: 'DESC'
-  }
 
   addSort: (sort) ->
     return unless sort
-    sqlDirection = @directionMap[sort.direction]
+    sqlDirection = directionMap[sort.direction]
     switch sort.compare
       when 'natural'
         @orderByPart = "ORDER BY #{@escapeAttribute(sort.prop)}"
-
-        # if @split?.bucket is 'identity'
-        #   @orderByPart += " COLLATE utf8_bin"
-
         @orderByPart += " #{sqlDirection}"
 
       when 'caseInsensetive'
@@ -272,29 +341,43 @@ class SQLQueryBuilder
     return this
 
   getQuery: ->
-    return null unless @selectParts.length
-    query = [
-      'SELECT'
-      @selectParts.join(', ')
-      @fromPart
-    ]
+    return null unless @commonApplySelectParts.length
+    commonApplySelect = @commonApplySelectParts.join(',\n      ')
+    partials = @datasets.map(((dataset) ->
+      commonSplitSelect = @commonSplitSelectParts.map((commonSplitSelectPart) -> "`#{dataset}`.#{commonSplitSelectPart}").join(', ')
+      partialQuery = [
+        "SELECT #{commonSplitSelect},"
+        '  ' + commonApplySelect
+        'FROM'
+      ]
+      innerDataset = dataset
+      datasetPart = @datasetParts[innerDataset]
+      partialQuery.push(  "  (SELECT #{datasetPart.splitSelectParts.join(', ')}, #{datasetPart.applySelectParts.join(', ')} FROM #{datasetPart.fromWherePart} GROUP BY #{datasetPart.groupByParts.join(', ') or '""'}) AS `#{innerDataset}`")
+      for innerDataset in @datasets
+        continue if innerDataset is dataset
+        datasetPart = @datasetParts[innerDataset]
+        partialQuery.push("LEFT JOIN")
+        partialQuery.push("  (SELECT #{datasetPart.splitSelectParts.join(', ')}, #{datasetPart.applySelectParts.join(', ')} FROM #{datasetPart.fromWherePart} GROUP BY #{datasetPart.groupByParts.join(', ') or '""'}) AS `#{innerDataset}`")
+        partialQuery.push("USING(#{@commonSplitSelectParts.join(', ')})")
 
-    query.push(@filterPart) if @filterPart
-    if @groupByParts.length
-      query.push('GROUP BY ' + @groupByParts.join(', '))
-    else
-      query.push('GROUP BY ""')
+      return '  ' + partialQuery.join('\n  ')
+    ), this)
+
+    query = [partials.join('\nUNION\n')]
     query.push(@orderByPart) if @orderByPart
     query.push(@limitPart) if @limitPart
+    ret = query.join('\n') + ';'
+    console.log 'vvvvvvvvvvvvv'
+    console.log ret
+    console.log '^^^^^^^^^^^^^'
+    return ret
 
-    return query.join(' ') + ';'
 
-
-condensedQueryToSQL = ({requester, table, filter, condensedQuery}, callback) ->
-  sqlQuery = new SQLQueryBuilder(table)
+condensedQueryToSQL = ({requester, datasetToTable, filtersByDataset, condensedQuery}, callback) ->
+  sqlQuery = new SQLQueryBuilder(datasetToTable)
 
   try
-    sqlQuery.addFilter(filter)
+    sqlQuery.addFilters(filtersByDataset)
 
     # split
     split = condensedQuery.split
@@ -315,7 +398,7 @@ condensedQueryToSQL = ({requester, table, filter, condensedQuery}, callback) ->
 
   queryToRun = sqlQuery.getQuery()
   if not queryToRun
-    callback(null, [{ prop: {}, _filter: filter }])
+    callback(null, [{ prop: {}, _filtersByDataset: filtersByDataset }])
     return
 
   requester {query: queryToRun}, (err, ds) ->
@@ -349,12 +432,15 @@ condensedQueryToSQL = ({requester, table, filter, condensedQuery}, callback) ->
 
       splits = ds.map (prop) -> {
         prop
-        _filter: andFilters(filter, condensedQuery.split.getFilterFor(prop))
+        _filtersByDataset: FacetFilter.andFiltersByDataset(
+          filtersByDataset
+          condensedQuery.split.getFilterByDatasetFor(prop)
+        )
       }
     else
       splits = ds.map (prop) -> {
         prop
-        _filter: filter
+        _filtersByDataset: filtersByDataset
       }
 
     callback(null, if splits.length then splits else null)
@@ -378,10 +464,17 @@ module.exports = ({requester, table, filter}) ->
       callback(e)
       return
 
+    datasetToTable = {}
+    commonFilter = andFilters(filter, query.getFilter())
+    filtersByDataset = {}
+    for dataset in query.getDatasets()
+      datasetToTable[dataset] = table
+      filtersByDataset[dataset] = andFilters(commonFilter, query.getDatasetFilter(dataset))
+
     init = true
     rootSegment = {
       parent: null
-      _filter: if filter then andFilters(filter, query.getFilter()) else query.getFilter()
+      _filtersByDataset: filtersByDataset
     }
     segments = [rootSegment]
 
@@ -401,8 +494,8 @@ module.exports = ({requester, table, filter}) ->
         (parentSegment, callback) ->
           condensedQueryToSQL({
             requester
-            table
-            filter: parentSegment._filter
+            datasetToTable
+            filtersByDataset: parentSegment._filtersByDataset
             condensedQuery: condensedCommand
           }, (err, splits) ->
             if err

@@ -398,3 +398,68 @@ describe "Diamonds dataset", ->
         { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 2 }
       ]
     }
+
+  describe "sort-by-delta", ->
+    it "should have the same results for different drivers", testEquality {
+      drivers: ['simple', 'mySql']
+      query: [
+        {
+          operation: 'dataset'
+          datasets: ['ideal-cut', 'good-cut']
+        }
+        {
+          operation: 'filter'
+          dataset: 'ideal-cut'
+          type: 'is'
+          attribute: 'cut'
+          value: 'Ideal'
+        }
+        {
+          operation: 'filter'
+          dataset: 'good-cut'
+          type: 'is'
+          attribute: 'cut'
+          value: 'Good'
+        }
+        {
+          operation: 'split'
+          name: 'Clarity'
+          bucket: 'parallel'
+          splits: [
+            {
+              dataset: 'ideal-cut'
+              bucket: 'identity'
+              attribute: 'clarity'
+            }
+            {
+              dataset: 'good-cut'
+              bucket: 'identity'
+              attribute: 'clarity'
+            }
+          ]
+        }
+        {
+          operation: 'apply'
+          name: 'PriceDiff'
+          arithmetic: 'subtract'
+          operands: [
+            {
+              dataset: 'ideal-cut'
+              aggregate: 'average'
+              attribute: 'price'
+            }
+            {
+              dataset: 'good-cut'
+              aggregate: 'average'
+              attribute: 'price'
+            }
+          ]
+        }
+        {
+          operation: 'combine'
+          method: 'slice'
+          sort: { prop: 'PriceDiff', compare: 'natural', direction: 'descending' }
+          limit: 4
+        }
+      ]
+    }

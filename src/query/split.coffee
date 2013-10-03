@@ -41,6 +41,14 @@ class FacetSplit
   getDatasets: ->
     return [@dataset or 'main']
 
+  getFilterFor: ->
+    throw new Error("this method should never be called directly")
+
+  getFilterByDatasetFor: (prop) ->
+    filterByDataset = {}
+    filterByDataset[@getDataset()] = @getFilterFor(prop)
+    return filterByDataset
+
   isEqual: (other, compareSegmentFilter) ->
     return Boolean(other) and
            @bucket is other.bucket and
@@ -52,8 +60,6 @@ class FacetSplit
                 @segmentFilter.isEqual(other.segmentFilter))
               )
            )
-
-
 
 
 
@@ -242,7 +248,13 @@ class ParallelSplit extends FacetSplit
     return split
 
   getFilterFor: (prop) ->
-    throw '?'
+    throw new Error("no single filter defined for ParallelSplit")
+
+  getFilterByDatasetFor: (prop) ->
+    filterByDataset = {}
+    for split in @splits
+      filterByDataset[split.getDataset()] = split.getFilterFor(prop)
+    return filterByDataset
 
   isEqual: (other, compareSegmentFilter) ->
     otherSplits = other.splits

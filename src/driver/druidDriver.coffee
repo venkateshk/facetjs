@@ -6,9 +6,6 @@ driverUtil = require('./driverUtil')
 
 # -----------------------------------------------------
 
-andFilters = (filter1, filter2) ->
-  return new AndFilter([filter1, filter2]).simplify()
-
 arithmeticToDruidFn = {
   add: '+'
   subtract: '-'
@@ -23,6 +20,20 @@ aggregateToJS = {
   max:   ['-Infinity', (a, b) -> "Math.max(#{a},#{b})"]
 }
 
+compareFns = {
+  ascending: (a, b) ->
+    return if a < b then -1 else if a > b then 1 else if a >= b then 0 else NaN
+
+  descending: (a, b) ->
+    return if b < a then -1 else if b > a then 1 else if b >= a then 0 else NaN
+}
+
+correctSingletonDruidResult = (result) ->
+  return Array.isArray(result) and result.length <= 1 and (result.length is 0 or result[0].result)
+
+emptySingletonDruidResult = (result) ->
+  return result.length is 0 or result[0].result.length is 0
+
 class DruidQueryBuilder
   @ALL_DATA_CHUNKS = 10000
   @allTimeInterval = ["1000-01-01/3000-01-01"]
@@ -35,7 +46,7 @@ class DruidQueryBuilder
       .replace(/:00$/, '') # remove minutes if 0
       .replace(/T00$/, '') # remove hours if 0
 
-  constructor: (@dataSource, @timeAttribute, @forceInterval, @approximate, @priority) ->
+  constructor: ({@dataSource, @timeAttribute, @forceInterval, @approximate, @priority}) ->
     throw new Error("must have a dataSource") unless typeof @dataSource is 'string'
     throw new Error("must have a timeAttribute") unless typeof @timeAttribute is 'string'
     @priority ?= 'default'
@@ -599,29 +610,8 @@ class DruidQueryBuilder
     query.threshold = @threshold if @threshold
     return query
 
-
-compareFns = {
-  ascending: (a, b) ->
-    return if a < b then -1 else if a > b then 1 else if a >= b then 0 else NaN
-
-  descending: (a, b) ->
-    return if b < a then -1 else if b > a then 1 else if b >= a then 0 else NaN
-}
-
-correctSingletonDruidResult = (result) ->
-  return Array.isArray(result) and result.length <= 1 and (result.length is 0 or result[0].result)
-
-emptySingletonDruidResult = (result) ->
-  return result.length is 0 or result[0].result.length is 0
-
-druidQueryFns = {
-  empty: (_, callback) ->
-    callback(null, [{}])
-    return
-
-  all: ({requester, queryBuilder, parentSegment, condensedCommand}, callback) ->
-    filter = parentSegment._filter
-
+DruidQueryBuilder.queryFns = {
+  all: ({requester, queryBuilder, filter, parentSegment, condensedCommand}, callback) ->
     try
       # filter
       queryBuilder.addFilter(filter)
@@ -658,9 +648,7 @@ druidQueryFns = {
       return
     return
 
-  timeBoundry: ({requester, queryBuilder, parentSegment, condensedCommand}, callback) ->
-    filter = parentSegment._filter
-
+  timeBoundry: ({requester, queryBuilder, filter, parentSegment, condensedCommand}, callback) ->
     if not condensedCommand.applies.every((apply) -> apply.attribute is timeAttribute and apply.aggregate in ['min', 'max'])
       callback(new Error("can not mix and match min / max time with other aggregates (for now)"))
       return
@@ -695,9 +683,7 @@ druidQueryFns = {
 
     return
 
-  timeseries: ({requester, queryBuilder, parentSegment, condensedCommand}, callback) ->
-    filter = parentSegment._filter
-
+  timeseries: ({requester, queryBuilder, filter, parentSegment, condensedCommand}, callback) ->
     try
       # filter
       queryBuilder.addFilter(filter)
@@ -766,9 +752,7 @@ druidQueryFns = {
       return
     return
 
-  topN: ({requester, queryBuilder, parentSegment, condensedCommand}, callback) ->
-    filter = parentSegment._filter
-
+  topN: ({requester, queryBuilder, filter, parentSegment, condensedCommand}, callback) ->
     try
       # filter
       queryBuilder.addFilter(filter)
@@ -811,8 +795,7 @@ druidQueryFns = {
       return
     return
 
-  allData: ({requester, queryBuilder, parentSegment, condensedCommand}, callback) ->
-    filter = parentSegment._filter
+  allData: ({requester, queryBuilder, filter, parentSegment, condensedCommand}, callback) ->
     allDataChunks = DruidQueryBuilder.ALL_DATA_CHUNKS
 
     try
@@ -880,9 +863,7 @@ druidQueryFns = {
     )
     return
 
-  groupBy: ({requester, queryBuilder, parentSegment, condensedCommand}, callback) ->
-    filter = parentSegment._filter
-
+  groupBy: ({requester, queryBuilder, filter, parentSegment, condensedCommand}, callback) ->
     try
       # filter
       queryBuilder.addFilter(filter)
@@ -923,9 +904,7 @@ druidQueryFns = {
       return
     return
 
-  histogram: ({requester, queryBuilder, parentSegment, condensedCommand}, callback) ->
-    filter = parentSegment._filter
-
+  histogram: ({requester, queryBuilder, filter, parentSegment, condensedCommand}, callback) ->
     if not condensedCommand.applies.every(({aggregate}) -> aggregate is 'count')
       callback(new Error("only count aggregated applies are supported"))
       return
@@ -997,9 +976,7 @@ druidQueryFns = {
       return
     return
 
-  heatmap: ({requester, queryBuilder, parentSegment, condensedCommand}, callback) ->
-    filter = parentSegment._filter
-
+  heatmap: ({requester, queryBuilder, filter, parentSegment, condensedCommand}, callback) ->
     try
       # filter
       queryBuilder.addFilter(filter)
@@ -1065,6 +1042,240 @@ druidQueryFns = {
     return
 }
 
+DruidQueryBuilder.makeQuery = ({parentSegment, filter, condensedCommand, builderSettings, requester}, callback) ->
+  { timeAttribute, approximate } = builderSettings
+  if condensedCommand.split
+    switch condensedCommand.split.bucket
+      when 'identity'
+        if approximate
+          if condensedCommand.combine?.limit?
+            queryFnName = 'topN'
+          else
+            queryFnName = 'allData'
+        else
+          queryFnName = 'groupBy'
+      when 'timeDuration', 'timePeriod'
+        queryFnName = 'timeseries'
+      when 'continuous'
+        queryFnName = 'histogram'
+      when 'tuple'
+        if approximate and condensedCommand.split.splits.length is 2
+          queryFnName = 'heatmap'
+        else
+          queryFnName = 'groupBy'
+      else
+        callback({ message: 'unsupported split bucket' }); return
+  else
+    if condensedCommand.applies.some((apply) -> apply.attribute is timeAttribute and apply.aggregate in ['min', 'max'])
+      queryFnName = 'timeBoundry'
+    else
+      queryFnName = 'all'
+
+  queryFn = DruidQueryBuilder.queryFns[queryFnName]
+
+  queryFn({
+    requester
+    queryBuilder: new DruidQueryBuilder(builderSettings)
+    filter
+    parentSegment
+    condensedCommand
+  }, callback)
+  return
+
+
+arithmeticToCombineFn = {
+  add:      (lhs, rhs) -> lhs + rhs
+  subtract: (lhs, rhs) -> lhs - rhs
+  multiply: (lhs, rhs) -> lhs * rhs
+  divide:   (lhs, rhs) -> lhs / rhs
+}
+
+splitupApply = (apply, name) ->
+  if name
+    applySpec = apply.valueOf()
+    applySpec.name = name
+    apply = FacetApply.fromSpec(applySpec)
+
+  appliesByDataset = {}
+  if apply.aggregate
+    appliesByDataset[apply.getDataset()] = [apply]
+    return {
+      postApply: if name then ((prop) -> prop[name]) else null
+      appliesByDataset
+    }
+
+  [op1, op2] = apply.operands
+  op1Datasets = op1.getDatasets()
+  op2Datasets = op2.getDatasets()
+  if op1Datasets.length is 1 and op2Datasets.length is 1 and op1Datasets[0] is op2Datasets[0]
+    appliesByDataset[dataset] = [apply]
+    return {
+      postApply: if name then ((prop) -> prop[name]) else null
+      appliesByDataset
+    }
+
+  { postApply: postApply1, appliesByDataset: appliesByDataset1 } = splitupApply(op1, '_N' + Math.random().toFixed(5).substring(2))
+  { postApply: postApply2, appliesByDataset: appliesByDataset2 } = splitupApply(op2, '_N' + Math.random().toFixed(5).substring(2))
+  for dataset, applies of appliesByDataset1
+    appliesByDataset[dataset] or= []
+    appliesByDataset[dataset].push(applies)
+  for dataset, applies of appliesByDataset2
+    appliesByDataset[dataset] or= []
+    appliesByDataset[dataset].push(applies)
+  for dataset, applieses of appliesByDataset
+    appliesByDataset[dataset] = driverUtil.flatten(applieses)
+  combineFn = arithmeticToCombineFn[apply.arithmetic]
+  return {
+    postApply: (porp) -> combineFn(postApply1(prop), postApply2(prop))
+    appliesByDataset
+  }
+
+postApplyToSetter = (postApply, name) ->
+  return (prop) ->
+    prop[name] = postApply(prop)
+    return
+
+splitupCondensedCommand = (condensedCommand) ->
+  datasets = condensedCommand.getDatasets()
+  postApplies = []
+  condensedCommandByDataset = {}
+  if datasets.length <= 1
+    condensedCommandByDataset[dataset[0]] = condensedCommand if dataset.length
+    return {
+      postApplies
+      condensedCommandByDataset
+    }
+
+  for dataset in datasets
+    condensedCommandByDataset[dataset] = {
+      split: null
+      applies: []
+      combine: null
+    }
+    if condensedCommand.split
+      for subSplit in condensedCommand.split.splits
+        continue unless subSplit.getDataset() is dataset
+        condensedCommandByDataset[dataset].split = subSplit
+        break
+
+  applyBreakdowns = {}
+  for apply in condensedCommand.applies
+    {postApply, appliesByDataset} = applyBreakdowns[apply.name] = splitupApply(apply)
+    if postApply
+      postApplies.push(postApplyToSetter(postApply, apply.name))
+
+    for dataset, applies in appliesByDataset
+      condensedCommandByDataset[dataset].applies = condensedCommandByDataset[dataset].applies.concat(applies)
+
+  if condensedCommand.combine
+    sort = condensedCommand.combine.sort
+    if sort
+      splitName = condensedCommand.split.name
+      if sort.prop is splitName
+        # Sorting on splitting prop
+        throw new Error("not implemented yet")
+      else if applyBreakdowns[sort.prop].postApply
+        # Sorting on a post apply
+        for dataset in datasets
+          condensedCommandByDataset[dataset].combine = new SliceCombine({
+            sort: {
+              compare: 'natural'
+              direction: 'descending'
+              prop: applyBreakdowns[sort.prop].appliesByDataset[dataset][0]
+            }
+            limit: 1000
+          })
+      else
+        # Sorting on regular apply
+        throw new Error("not implemented yet")
+
+    else
+      # no sort... do not do anything for now
+      null
+  else
+    # no combine... so do not add one
+    null
+
+  return {
+    postApplies
+    condensedCommandByDataset
+  }
+
+joinRows = (rows) ->
+  newRow = {}
+  for row in rows
+    for prop, value of row
+      newRow[prop] = value
+  return newRow
+
+joinResults = (splitName, applyNames, results) ->
+  return results[0] if results.length <= 1
+  return [joinRows(results.map((result) -> result[0]))] unless splitName
+  zeroRow = {}
+  zeroRow[name] = 0 for name in applyNames
+  mapping = {}
+  for result in results
+    for row in result
+      key = String(row[splitName])
+      mapping[key] = [zeroRow] unless mapping[key]
+      mapping[key].push(row)
+
+  joinResult = []
+  joinResult.push(joinRows(rows)) for ket, rows of mapping
+  return joinResult
+
+multiDatasorceQuery = ({parentSegment, condensedCommand, builderSettings, requester}, callback) ->
+  datasets = condensedCommand.getDatasets()
+  if datasets.length is 0
+    # emptyness
+    callback(null, [{}])
+    return
+
+  if datasets.length is 1
+    DruidQueryBuilder.makeQuery({
+      parentSegment
+      filter: parentSegment._filtersByDataset[datasets[0]]
+      condensedCommand: condensedCommand
+      builderSettings
+      requester
+    }, callback)
+    return
+
+  { postApplies, condensedCommandByDataset } = splitupCondensedCommand(condensedCommand)
+
+  queries = []
+  for dataset, subCondensedCommand of condensedCommandByDataset
+    queries.push(do (dataset, subCondensedCommand) ->
+      return (callback) ->
+        DruidQueryBuilder.makeQuery({
+          parentSegment
+          filter: parentSegment._filtersByDataset[dataset]
+          condensedCommand: subCondensedCommand
+          builderSettings
+          requester
+        }, callback)
+    )
+
+  async.parallel queries, (err, results) ->
+    if err
+      callback(err)
+      return
+
+    result = joinResults(
+      condensedCommand.split?.name
+      condensedCommand.applies.map(({name}) -> name)
+      results
+    )
+
+    for postApply in postApplies
+      result.forEach(postApply)
+
+    # ToDo: redo sort here
+
+    callback(null, result)
+    return
+  return
+
 
 # This is the Druid driver. It translates facet queries to Druid
 #
@@ -1100,101 +1311,21 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
       callback(e)
       return
 
+    commonFilter = new AndFilter([filter, query.getFilter()])
+    filtersByDataset = {}
+    for dataset in query.getDatasets()
+      filtersByDataset[dataset] = new AndFilter([commonFilter, query.getDatasetFilter(dataset)]).simplify()
+
     init = true
     rootSegment = {
       parent: null
-      _filter: andFilters(filter, query.getFilter())
+      _filtersByDataset: filtersByDataset
     }
     segments = [rootSegment]
 
     condensedGroups = query.getGroups()
 
     queryDruid = (condensedCommand, lastCmd, callback) ->
-      if condensedCommand.split
-        switch condensedCommand.split.bucket
-          when 'identity'
-            if approximate
-              if condensedCommand.combine?.limit?
-                queryFnName = 'topN'
-              else
-                queryFnName = 'allData'
-            else
-              queryFnName = 'groupBy'
-          when 'timeDuration', 'timePeriod'
-            queryFnName = 'timeseries'
-          when 'continuous'
-            queryFnName = 'histogram'
-          when 'tuple'
-            if approximate and condensedCommand.split.splits.length is 2
-              queryFnName = 'heatmap'
-            else
-              queryFnName = 'groupBy'
-          else
-            callback({ message: 'unsupported split bucket' }); return
-      else
-        if condensedCommand.applies.length
-          if condensedCommand.applies.some((apply) -> apply.attribute is timeAttribute and apply.aggregate in ['min', 'max'])
-            queryFnName = 'timeBoundry'
-          else
-            queryFnName = 'all'
-        else
-          queryFnName = 'empty'
-
-      queryFn = druidQueryFns[queryFnName]
-
-      queryForSegment = (parentSegment, callback) ->
-        queriesMade++
-        if queryLimit < queriesMade
-          callback({ message: 'query limit exceeded' })
-          return
-
-        queryFn({
-          requester
-          queryBuilder: new DruidQueryBuilder(dataSource, timeAttribute, forceInterval, approximate, context.priority)
-          parentSegment
-          condensedCommand
-        }, (err, props) ->
-          if err
-            callback(err)
-            return
-
-          if props is null
-            callback(null, null)
-            return
-
-          # Make the results into segments and build the tree
-          if condensedCommand.split
-            propToSplit = if lastCmd
-              (prop) ->
-                driverUtil.cleanProp(prop)
-                return {
-                  parent: parentSegment
-                  prop
-                }
-            else
-              (prop) ->
-                driverUtil.cleanProp(prop)
-                return {
-                  parent: parentSegment
-                  prop
-                  _filter: andFilters(parentSegment._filter, condensedCommand.split.getFilterFor(prop))
-                }
-
-            parentSegment.splits = splits = props.map(propToSplit)
-          else
-            prop = props[0]
-            driverUtil.cleanProp(prop)
-            splits = [{
-              parent: parentSegment
-              prop
-              _filter: parentSegment._filter
-            }]
-
-          callback(null, splits)
-          return
-        )
-        return
-
       if condensedCommand.split?.segmentFilter
         segmentFilterFn = condensedCommand.split.segmentFilter.getFilterFn()
         driverUtil.inPlaceFilter(segments, segmentFilterFn)
@@ -1203,7 +1334,67 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
       async.mapLimit(
         segments
         concurrentQueryLimit
-        queryForSegment
+        (parentSegment, callback) ->
+          queriesMade++
+          if queryLimit < queriesMade
+            callback({ message: 'query limit exceeded' })
+            return
+
+          multiDatasorceQuery({
+            requester
+            builderSettings: {
+              dataSource
+              timeAttribute
+              forceInterval
+              approximate
+              priority: context.priority
+            }
+            parentSegment
+            condensedCommand
+          }, (err, props) ->
+            if err
+              callback(err)
+              return
+
+            if props is null
+              callback(null, null)
+              return
+
+            # Make the results into segments and build the tree
+            if condensedCommand.split
+              propToSplit = if lastCmd
+                (prop) ->
+                  driverUtil.cleanProp(prop)
+                  return {
+                    parent: parentSegment
+                    prop
+                  }
+              else
+                (prop) ->
+                  driverUtil.cleanProp(prop)
+                  return {
+                    parent: parentSegment
+                    prop
+                    _filtersByDataset: FacetFilter.andFiltersByDataset(
+                      parentSegment._filtersByDataset
+                      condensedCommand.split.getFilterByDatasetFor(prop)
+                    )
+                  }
+
+              parentSegment.splits = splits = props.map(propToSplit)
+            else
+              prop = props[0]
+              driverUtil.cleanProp(prop)
+              splits = [{
+                parent: parentSegment
+                prop
+                _filtersByDataset: parentSegment._filtersByDataset
+              }]
+
+            callback(null, splits)
+            return
+          )
+          return
         (err, results) ->
           if err
             callback(err)

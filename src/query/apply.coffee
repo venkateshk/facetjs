@@ -63,7 +63,11 @@ class FacetApply
     return @dataset or 'main'
 
   getDatasets: ->
-    return if @operands then Array::concat.apply([], @operands.map((op) -> op.getDatasets())) else [@getDataset()]
+    return [@getDataset()] unless @operands
+    datasets = @operands[0].getDatasets()
+    for dataset in @operands[1].getDatasets()
+      datasets.push(dataset) unless dataset in datasets
+    return datasets
 
 
 class ConstantApply extends FacetApply

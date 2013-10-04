@@ -78,6 +78,7 @@ class FacetFilter
     return @dataset or 'main'
 
 
+
 class TrueFilter extends FacetFilter
   constructor: ->
     super(arguments[0] or {}, dummyObject)
@@ -85,6 +86,9 @@ class TrueFilter extends FacetFilter
 
   toString: ->
     return "Everything"
+
+  getFilterFn: ->
+    return -> true
 
 
 
@@ -95,6 +99,9 @@ class FalseFilter extends FacetFilter
 
   toString: ->
     return "Nothing"
+
+  getFilterFn: ->
+    return -> false
 
 
 
@@ -115,6 +122,11 @@ class IsFilter extends FacetFilter
 
   isEqual: (other) ->
     return super(other) and other.value is @value
+
+  getFilterFn: ->
+    attribute = @attribute
+    value = @value
+    return (d) -> d[attribute] is value
 
 
 
@@ -144,6 +156,11 @@ class InFilter extends FacetFilter
   isEqual: (other) ->
     return super(other) and other.values.join(';') is @values.join(';')
 
+  getFilterFn: ->
+    attribute = @attribute
+    values = @values
+    return (d) -> d[attribute] in values
+
 
 
 class ContainsFilter extends FacetFilter
@@ -164,6 +181,11 @@ class ContainsFilter extends FacetFilter
 
   isEqual: (other) ->
     return super(other) and other.value is @value
+
+  getFilterFn: ->
+    attribute = @attribute
+    value = @value
+    return (d) -> d[attribute].indexOf(value) isnt -1
 
 
 
@@ -189,6 +211,11 @@ class MatchFilter extends FacetFilter
 
   isEqual: (other) ->
     return super(other) and other.expression is @expression
+
+  getFilterFn: ->
+    attribute = @attribute
+    expression = new RegExp(@expression)
+    return (d) -> expression.test(d[attribute])
 
 
 
@@ -218,6 +245,14 @@ class WithinFilter extends FacetFilter
 
   isEqual: (other) ->
     return super(other) and other.range[0] is @range[0] and other.range[1] is @range[1]
+
+  getFilterFn: ->
+    attribute = @attribute
+    [r0, r1] = @range
+    if r0 instanceof Date
+      return (d) -> r0 <= new Date(d[attribute]) < r1
+    else
+      return (d) -> r0 <= Number(d[attribute]) < r1
 
 
 
@@ -258,6 +293,10 @@ class NotFilter extends FacetFilter
 
   isEqual: (other) ->
     return super(other) and @filter.isEqual(other.filter)
+
+  getFilterFn: ->
+    filter = @filter.getFilterFn()
+    return (d) -> not filter(d)
 
 
 
@@ -361,6 +400,13 @@ class AndFilter extends FacetFilter
       (new AndFilter(extractedFilters)).simplify()
     ]
 
+  getFilterFn: ->
+    filters = @filters.map((f) -> f.getFilterFn())
+    return (d) ->
+      for filter in filters
+        return false unless filter(d)
+      return true
+
 
 
 class OrFilter extends FacetFilter
@@ -455,6 +501,36 @@ class OrFilter extends FacetFilter
       return extract and extract.length is 1
 
     return if @filters.every(hasNoClaim) then [this] else null
+
+  getFilterFn: ->
+    filters = @filters.map((f) -> f.getFilterFn())
+    return (d) ->
+      for filter in filters
+        return true if filter(d)
+      return false
+
+
+# Class methods ------------------------
+
+# Computes the diff between sup & sub assumes that sup and sub are either atomic or an AND of atomic filters
+FacetFilter.filterDiff = (sup, sub) ->
+  supFilters = (if sup.type is 'true' then [] else if sup.type is 'and' then sup.filters else [sup])
+  subFilters = (if sub.type is 'true' then [] else if sub.type is 'and' then sub.filters else [sub])
+
+  filterInSub = (filter) ->
+    for subFilter in subFilters
+      return true if filter.isEqual(subFilter)
+    return false
+
+  diff = []
+  numFoundInSubFilters = 0
+  for supFilter in supFilters
+    if filterInSub(supFilter)
+      numFoundInSubFilters++
+    else
+      diff.push(supFilter)
+
+  return if numFoundInSubFilters is subFilters.length then diff else null
 
 
 FacetFilter.andFiltersByDataset = (filters1, filters2) ->

@@ -42,27 +42,6 @@ isSplitCombineEqual = (splitCombine1, splitCombine2, compareSegmentFilter = fals
 equalApplyLists = (applyList1, applyList2) ->
   return applyList1.length is applyList2.length and applyList1.every((apply1, i) -> apply1.isEqual(applyList2[i]))
 
-# Computes the diff between sup & sub assumes that sup and sub are either atomic or an AND of atomic filters
-filterDiff = (sup, sub) ->
-  sup = (if sup.type is 'true' then [] else if sup.type is 'and' then sup.filters else [sup])
-  sub = (if sub.type is 'true' then [] else if sub.type is 'and' then sub.filters else [sub])
-  throw new Error('sup can not be or have OR types') if sup.some(({type}) -> type is 'or')
-  throw new Error('sub can not be or have OR types') if sub.some(({type}) -> type is 'or')
-
-  filterInSub = (filter) ->
-    for subFilter in sub
-      return true if filter.isEqual(subFilter)
-    return false
-
-  diff = []
-  numFoundInSub = 0
-  for supFilter in sup
-    if filterInSub(supFilter)
-      numFoundInSub++
-    else
-      diff.push supFilter
-
-  return if numFoundInSub is sub.length then diff else null
 
 # -----------
 andFilterToPath = (splitNames, andFilter) ->
@@ -174,7 +153,7 @@ module.exports = ({transport, onData}) ->
 
     myFilter = myQuery.getFilter()
     newFilter = newQuery.getFilter()
-    diff = filterDiff(newFilter, myFilter)
+    diff = FacetFilter.filterDiff(newFilter, myFilter)
     if not diff
       driverLog 'new filters are not a superset, give up'
       makeFullQuery(newQuery)

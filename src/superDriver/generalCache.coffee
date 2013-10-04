@@ -6,7 +6,6 @@ driverUtil = require('./driverUtil')
 
 moveTimestamp = (timestamp, period, timezone) ->
   newTimestamp = new Date(timestamp)
-  prevValue = newTimestamp.valueOf()
 
   switch period
     when 'PT1S'
@@ -16,7 +15,14 @@ moveTimestamp = (timestamp, period, timezone) ->
     when 'PT1H'
       newTimestamp.setUTCHours(newTimestamp.getUTCHours() + 1)
     when 'P1D'
+      newTimestamp = driverUtil.convertToTimezoneJS(timestamp, timezone)
+      prevDate = newTimestamp.getDate()
       newTimestamp.setDate(newTimestamp.getDate() + 1)
+
+      if newTimestamp.getHours() < 2
+        newTimestamp.setHours(0)
+      else
+        newTimestamp.setHours(24)
     else
       throw new Error("time period not supported by driver")
 
@@ -141,7 +147,7 @@ class SplitCache
     timeFilter = separatedFilters[1]
     timezone = splitOp.timezone or 'Etc/UTC'
     timestamps = []
-    [timestamp, end] = driverUtil.convertToTimezoneJS(timeFilter.range, timezone)
+    [timestamp, end] = timeFilter.range.map((timestamp) -> driverUtil.convertToTimezoneJS(timestamp, timezone))
     if splitOp.bucket is 'timeDuration'
       duration = splitOp.duration
       while true

@@ -45,7 +45,7 @@ class FacetFilter
     filter.dataset = @dataset if @dataset
     return filter
 
-  toJSON: @::valueOf
+  toJSON: -> @valueOf.apply(this, arguments)
 
   isEqual: (other) ->
     return Boolean(other) and @type is other.type and @attribute is other.attribute

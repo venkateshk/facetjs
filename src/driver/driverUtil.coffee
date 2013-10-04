@@ -87,8 +87,6 @@ class exports.Table
   constructor: ({root, query}) ->
     @query = query.valueOf()
     @columns = createColumns(@query)
-    # console.log root
-    # console.log createTabular(root)
     @data = createTabular(root)
     @dimensionSize = @query.filter((op) -> op.operation is 'split').length
     @metricSize = @query.filter((op) -> op.operation is 'apply').length

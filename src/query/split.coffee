@@ -33,7 +33,7 @@ class FacetSplit
     split.options = @options.valueOf() if @options
     return split
 
-  toJSON: @::valueOf
+  toJSON: -> @valueOf.apply(this, arguments)
 
   getDataset: ->
     return @dataset or 'main'

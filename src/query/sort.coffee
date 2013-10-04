@@ -12,7 +12,7 @@ class FacetSort
     return
 
   _verifyProp: ->
-    throw new TypeError("sort name must be a string") unless typeof @prop is 'string'
+    throw new TypeError("sort prop must be a string") unless typeof @prop is 'string'
 
   _verifyDirection: ->
     throw new Error("direction must be 'descending' or 'ascending'") unless @direction in ['descending', 'ascending']
@@ -23,7 +23,7 @@ class FacetSort
   valueOf: ->
     return { compare: @compare, prop: @prop, direction: @direction }
 
-  toJSON: @::valueOf
+  toJSON: -> @valueOf.apply(this, arguments)
 
   isEqual: (other) ->
     return Boolean(other) and

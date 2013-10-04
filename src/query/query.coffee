@@ -19,8 +19,13 @@ class FacetGroup
     @combine = combine
     return
 
-  getSplit: ->
-    return @splits[0] or null
+  getDatasets: ->
+    return @split.getDatasets() if @split
+    largestDatasetList = []
+    for apply in @applies
+      datasets = apply.getDatasets()
+      largestDatasetList = datasets if largestDatasetList.length < datasets.length
+    return largestDatasetList
 
   appendToSpec: (spec) ->
     if @split
@@ -159,5 +164,6 @@ class FacetQuery
 
 
 # Export!
+exports.FacetGroup = FacetGroup
 exports.FacetQuery = FacetQuery
 

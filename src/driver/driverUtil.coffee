@@ -50,7 +50,6 @@ exports.cleanProp = (prop) ->
 
 exports.cleanSegments = cleanSegments = (segment) ->
   delete segment.parent
-  delete segment._filter
   delete segment._filtersByDataset
   delete segment._raws
 

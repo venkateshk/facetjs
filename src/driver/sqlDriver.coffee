@@ -37,10 +37,8 @@ directionMap = {
 }
 
 class SQLQueryBuilder
-  constructor: (datasetToTable) ->
-    throw new Error("must have datasetToTable mapping") unless datasetToTable
-    if typeof datasetToTable is 'string'
-      datasetToTable = { main: datasetToTable }
+  constructor: ({datasetToTable}) ->
+    throw new Error("must have datasetToTable mapping") unless typeof datasetToTable is 'object'
 
     @commonSplitSelectParts = []
     @commonApplySelectParts = []
@@ -217,6 +215,7 @@ class SQLQueryBuilder
   applyToSQL: (apply, name) ->
     throw new TypeError("apply must be a FacetApply") unless apply instanceof FacetApply
 
+    datasetSQL = {}
     if apply.aggregate
       dataset = apply.getDataset()
       switch apply.aggregate
@@ -236,7 +235,6 @@ class SQLQueryBuilder
         else
           throw new Error("unsupported aggregate '#{apply.aggregate}'")
 
-      datasetSQL = {}
       if name
         datasetSQL[dataset] = "#{applyStr} AS `#{name}`"
         return {
@@ -250,49 +248,43 @@ class SQLQueryBuilder
           commonSQL: null
         }
 
-    if apply.arithmetic
-      sqlOp = arithmeticToSqlOp[apply.arithmetic]
-      throw new Error("unsupported arithmetic '#{apply.arithmetic}'") unless sqlOp
-      [op1, op2] = apply.operands
-      op1Datasets = op1.getDatasets()
-      op2Datasets = op2.getDatasets()
-      if op1Datasets.length is 1 and op2Datasets.length is 1 and op1Datasets[0] is op2Datasets[0]
-        dataset = op1Datasets[0]
-        { datasetSQL: op1SQL } = @applyToSQL(op1)
-        { datasetSQL: op2SQL } = @applyToSQL(op2)
-        applyStr = "(#{op1SQL[dataset]} #{sqlOp} #{op2SQL[dataset]})"
-        datasetSQL = {}
-        if name
-          datasetSQL[dataset] = "#{applyStr} AS `#{name}`"
-          return {
-            datasetSQL
-            commonSQL: "`#{name}`"
-          }
-        else
-          datasetSQL[dataset] = applyStr
-          return {
-            datasetSQL
-            commonSQL: null
-          }
-      else
-        { datasetSQL: op1SQL, commonSQL: op1C } = @applyToSQL(op1, 'N' + Math.random().toFixed(5).substring(2))
-        { datasetSQL: op2SQL, commonSQL: op2C } = @applyToSQL(op2, 'N' + Math.random().toFixed(5).substring(2))
-        datasetSQL = {}
-        for dataset, sql of op1SQL
-          datasetSQL[dataset] or= []
-          datasetSQL[dataset].push(sql)
-        for dataset, sql of op2SQL
-          datasetSQL[dataset] or= []
-          datasetSQL[dataset].push(sql)
-        for dataset, sqls of datasetSQL
-          datasetSQL[dataset] = sqls.join(', ')
+    sqlOp = arithmeticToSqlOp[apply.arithmetic]
+    throw new Error("unsupported arithmetic '#{apply.arithmetic}'") unless sqlOp
+    [op1, op2] = apply.operands
+    op1Datasets = op1.getDatasets()
+    op2Datasets = op2.getDatasets()
+    if op1Datasets.length is 1 and op2Datasets.length is 1 and op1Datasets[0] is op2Datasets[0]
+      dataset = op1Datasets[0]
+      { datasetSQL: op1SQL } = @applyToSQL(op1)
+      { datasetSQL: op2SQL } = @applyToSQL(op2)
+      applyStr = "(#{op1SQL[dataset]} #{sqlOp} #{op2SQL[dataset]})"
+      if name
+        datasetSQL[dataset] = "#{applyStr} AS `#{name}`"
         return {
           datasetSQL
-          commonSQL: "(IFNULL(#{op1C}, 0) #{sqlOp} IFNULL(#{op2C}, 0)) AS `#{name}`"
+          commonSQL: "`#{name}`"
         }
-
-    throw new Error("must have an aggregate or an arithmetic")
-    return
+      else
+        datasetSQL[dataset] = applyStr
+        return {
+          datasetSQL
+          commonSQL: null
+        }
+    else
+      { datasetSQL: op1SQL, commonSQL: op1C } = @applyToSQL(op1, 'N' + Math.random().toFixed(5).substring(2))
+      { datasetSQL: op2SQL, commonSQL: op2C } = @applyToSQL(op2, 'N' + Math.random().toFixed(5).substring(2))
+      for dataset, sql of op1SQL
+        datasetSQL[dataset] or= []
+        datasetSQL[dataset].push(sql)
+      for dataset, sql of op2SQL
+        datasetSQL[dataset] or= []
+        datasetSQL[dataset].push(sql)
+      for dataset, sqls of datasetSQL
+        datasetSQL[dataset] = sqls.join(', ')
+      return {
+        datasetSQL
+        commonSQL: "(IFNULL(#{op1C}, 0) #{sqlOp} IFNULL(#{op2C}, 0)) AS `#{name}`"
+      }
 
   addApply: (apply) ->
     { datasetSQL, commonSQL } = @applyToSQL(apply, apply.name)
@@ -471,9 +463,8 @@ module.exports = ({requester, table, filter}) ->
       callback(e)
       return
 
-    datasetToTable = {}
-
     commonFilter = new AndFilter([filter, query.getFilter()])
+    datasetToTable = {}
     filtersByDataset = {}
     for dataset in query.getDatasets()
       datasetToTable[dataset] = table
@@ -502,7 +493,7 @@ module.exports = ({requester, table, filter}) ->
         (parentSegment, callback) ->
           condensedQueryToSQL({
             requester
-            queryBuilder: new SQLQueryBuilder(datasetToTable)
+            queryBuilder: new SQLQueryBuilder({datasetToTable})
             parentSegment
             condensedQuery: condensedCommand
           }, (err, splits) ->

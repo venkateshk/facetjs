@@ -40,11 +40,12 @@ class FacetApply
   valueOf: ->
     apply = {}
     apply.name = @name if @name
+    apply.dataset = @dataset if @dataset
     apply.filter = @filter.valueOf() if @filter
     apply.options = @options.valueOf() if @options
     return apply
 
-  toJSON: @::valueOf
+  toJSON: -> @valueOf.apply(this, arguments)
 
   isEqual: (other) ->
     return Boolean(other) and

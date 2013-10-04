@@ -1126,7 +1126,7 @@ splitupApply = (apply, name) ->
     appliesByDataset[dataset] = driverUtil.flatten(applieses)
   combineFn = arithmeticToCombineFn[apply.arithmetic]
   return {
-    postApply: (porp) -> combineFn(postApply1(prop), postApply2(prop))
+    postApply: (prop) -> combineFn(postApply1(prop), postApply2(prop))
     appliesByDataset
   }
 
@@ -1140,7 +1140,7 @@ splitupCondensedCommand = (condensedCommand) ->
   postApplies = []
   condensedCommandByDataset = {}
   if datasets.length <= 1
-    condensedCommandByDataset[dataset[0]] = condensedCommand if dataset.length
+    condensedCommandByDataset[datasets[0]] = condensedCommand if datasets.length
     return {
       postApplies
       condensedCommandByDataset
@@ -1153,9 +1153,12 @@ splitupCondensedCommand = (condensedCommand) ->
       combine: null
     }
     if condensedCommand.split
+      splitName = condensedCommand.split.name
       for subSplit in condensedCommand.split.splits
         continue unless subSplit.getDataset() is dataset
-        condensedCommandByDataset[dataset].split = subSplit
+        subSplitSpec = subSplit.valueOf()
+        subSplitSpec.name = splitName
+        condensedCommandByDataset[dataset].split = FacetSplit.fromSpec(subSplitSpec)
         break
 
   applyBreakdowns = {}
@@ -1164,7 +1167,7 @@ splitupCondensedCommand = (condensedCommand) ->
     if postApply
       postApplies.push(postApplyToSetter(postApply, apply.name))
 
-    for dataset, applies in appliesByDataset
+    for dataset, applies of appliesByDataset
       condensedCommandByDataset[dataset].applies = condensedCommandByDataset[dataset].applies.concat(applies)
 
   if condensedCommand.combine
@@ -1181,7 +1184,7 @@ splitupCondensedCommand = (condensedCommand) ->
             sort: {
               compare: 'natural'
               direction: 'descending'
-              prop: applyBreakdowns[sort.prop].appliesByDataset[dataset][0]
+              prop: applyBreakdowns[sort.prop].appliesByDataset[dataset][0].name
             }
             limit: 1000
           })

@@ -143,7 +143,7 @@ class FacetQuery
 
     return spec
 
-  toJSON: @::valueOf
+  toJSON: -> @valueOf.apply(this, arguments)
 
   getDatasets: ->
     return @datasets

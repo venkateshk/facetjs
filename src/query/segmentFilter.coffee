@@ -185,7 +185,7 @@ class OrSegmentFilter extends FacetSegmentFilter
   valueOf: ->
     return { type: @type, filters: @filters.map(getValueOf) }
 
-  toJSON: @::valueOf
+  toJSON: -> @valueOf.apply(this, arguments)
 
   isEqual: (other) ->
     otherFilters = other.filters

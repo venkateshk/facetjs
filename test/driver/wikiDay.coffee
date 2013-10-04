@@ -469,7 +469,7 @@ describe "Wikipedia dataset", ->
       ]
     }
 
-  describe "split anonymous x robot; apply sum(count)", ->
+  describe.skip "split anonymous x robot; apply sum(count)", ->
     it "should have the same results for different drivers", testEquality {
       drivers: ['druid', 'mySql']
       query: [
@@ -504,6 +504,69 @@ describe "Wikipedia dataset", ->
           },
           "limits": [20, 20],
           "operation": "combine"
+        }
+      ]
+    }
+
+  describe.only "sort-by-delta", ->
+    it "should have the same results for different drivers", testEquality {
+      drivers: ['druid', 'mySql']
+      query: [
+        {
+          operation: 'dataset'
+          datasets: ['robots', 'humans']
+        }
+        {
+          operation: 'filter'
+          type: 'is'
+          attribute: 'namespace'
+          value: 'article'
+        }
+        {
+          operation: 'filter'
+          dataset: 'robots'
+          type: 'is'
+          attribute: 'robot'
+          value: '1'
+        }
+        {
+          operation: 'filter'
+          dataset: 'humans'
+          type: 'is'
+          attribute: 'robot'
+          value: '0'
+        }
+        {
+          operation: 'split'
+          name: 'Language'
+          bucket: 'parallel'
+          splits: [
+            {
+              dataset: 'robots'
+              bucket: 'identity'
+              attribute: 'language'
+            }
+            {
+              dataset: 'humans'
+              bucket: 'identity'
+              attribute: 'language'
+            }
+          ]
+        }
+        {
+          operation: 'apply'
+          name: 'EditsDiff'
+          arithmetic: 'subtract'
+          operands: [
+            { dataset: 'humans', aggregate: 'sum', attribute: 'count' }
+            { dataset: 'robots', aggregate: 'sum', attribute: 'count' }
+          ]
+        }
+        {
+          operation: 'combine'
+          method: 'slice'
+          sort: { prop: 'EditsDiff', compare: 'natural', direction: 'descending' }
+          limit: 10
         }
       ]
     }

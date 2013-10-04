@@ -277,8 +277,8 @@ exports.adjust = {
   }
 }
 
-exports.convertToTimezoneJS = (timerange, timezone) ->
-  return timerange.map((time) -> new timezoneJS.Date(time, timezone))
+exports.convertToTimezoneJS = (time, timezone) ->
+  return new timezoneJS.Date(time, timezone)
 
 # -----------------------------------------------------
 # Handle commonJS crap

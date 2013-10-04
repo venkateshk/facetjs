@@ -1063,3 +1063,117 @@ describe "filter", ->
         ]
       }
       expect(FacetFilter.fromSpec(filterSpec).getComplexity()).to.equal(10)
+
+
+  describe "getFilterFn", ->
+    it "works for IS filter", ->
+      filterSpec = {
+        type: 'is'
+        attribute: 'state'
+        value: 'California'
+      }
+      filterFn = FacetFilter.fromSpec(filterSpec).getFilterFn()
+      expect(filterFn({ state: 'California' })).to.equal(true)
+      expect(filterFn({ state: 'Nevada' })).to.equal(false)
+
+
+  describe.only "FacetFilter.filterDiff", ->
+    it "computes a subset with IN filters", ->
+      sup = FacetFilter.fromSpec({
+        type: 'and'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'state'
+            value: 'California'
+          }
+          {
+            type: 'is'
+            attribute: 'color'
+            value: 'Red'
+          }
+        ]
+      })
+      sub = FacetFilter.fromSpec({
+        type: 'is'
+        attribute: 'color'
+        value: 'Red'
+      })
+
+      diff = FacetFilter.filterDiff(sup, sub)
+      expect(diff).to.be.an('array').and.to.have.length(1)
+      expect(diff[0].valueOf()).to.deep.equal({
+        type: 'is'
+        attribute: 'state'
+        value: 'California'
+      })
+
+      diff = FacetFilter.filterDiff(sub, sup)
+      expect(diff).to.be.null
+
+    it "computes a subset with CONTAINS filters", ->
+      sup = FacetFilter.fromSpec({
+        type: 'and'
+        filters: [
+          {
+            type: 'contains'
+            attribute: 'page'
+            value: 'California'
+          }
+          {
+            type: 'not'
+            filter: {
+              type: 'contains'
+              attribute: 'page'
+              value: 'Moon'
+            }
+          }
+          {
+            type: 'contains'
+            attribute: 'page'
+            value: 'Google'
+          }
+        ]
+      })
+      sub = FacetFilter.fromSpec({
+        type: 'and'
+        filters: [
+          {
+            type: 'contains'
+            attribute: 'page'
+            value: 'California'
+          }
+          {
+            type: 'not'
+            filter: {
+              type: 'contains'
+              attribute: 'page'
+              value: 'Moon'
+            }
+          }
+        ]
+      })
+
+      diff = FacetFilter.filterDiff(sup, sub)
+      expect(diff).to.be.an('array').and.to.have.length(1)
+      expect(diff[0].valueOf()).to.deep.equal({
+        type: 'contains'
+        attribute: 'page'
+        value: 'Google'
+      })
+      return
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

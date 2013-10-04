@@ -149,7 +149,7 @@ class DruidQueryBuilder
             function: "function(a){return a=~~a,#{r0}<=a&&a<#{r1};}"
           }
         else
-          throw new Error("has to be a numeric range")
+          throw new Error("apply within has to have a numeric range")
 
       when 'not'
         {
@@ -615,14 +615,59 @@ emptySingletonDruidResult = (result) ->
   return result.length is 0 or result[0].result.length is 0
 
 druidQueryFns = {
-  timeBoundry: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate, priority}, callback) ->
+  empty: (_, callback) ->
+    callback(null, [{}])
+    return
+
+  all: ({requester, queryBuilder, parentSegment, condensedCommand}, callback) ->
+    filter = parentSegment._filter
+
+    try
+      # filter
+      queryBuilder.addFilter(filter)
+
+      # apply
+      if condensedCommand.applies.length
+        for apply in condensedCommand.applies
+          queryBuilder.addApply(apply)
+      else
+        queryBuilder.addDummyApply()
+
+      queryObj = queryBuilder.getQuery()
+    catch e
+      callback(e)
+      return
+
+    requester {query: queryObj}, (err, ds) ->
+      if err
+        callback({
+          message: err
+          query: queryObj
+        })
+        return
+
+      if not correctSingletonDruidResult(ds)
+        callback({
+          message: "unexpected result from Druid (all)"
+          query: queryObj
+          result: ds
+        })
+        return
+
+      callback(null, if emptySingletonDruidResult(ds) then null else ds.map((d) -> d.result))
+      return
+    return
+
+  timeBoundry: ({requester, queryBuilder, parentSegment, condensedCommand}, callback) ->
+    filter = parentSegment._filter
+
     if not condensedCommand.applies.every((apply) -> apply.attribute is timeAttribute and apply.aggregate in ['min', 'max'])
       callback(new Error("can not mix and match min / max time with other aggregates (for now)"))
       return
 
     queryObj = {
       queryType: "timeBoundary"
-      dataSource
+      dataSource: queryBuilder.dataSource
     }
 
     requester {query: queryObj}, (err, ds) ->
@@ -650,67 +695,24 @@ druidQueryFns = {
 
     return
 
-  all: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate, priority}, callback) ->
-    if condensedCommand.applies.length is 0
-      callback(null, [{}])
-      return
-
-    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval, approximate, priority)
+  timeseries: ({requester, queryBuilder, parentSegment, condensedCommand}, callback) ->
+    filter = parentSegment._filter
 
     try
       # filter
-      druidQuery.addFilter(filter)
-
-      # apply
-      if condensedCommand.applies.length
-        for apply in condensedCommand.applies
-          druidQuery.addApply(apply)
-      else
-        druidQuery.addDummyApply()
-
-      queryObj = druidQuery.getQuery()
-    catch e
-      callback(e)
-      return
-
-    requester {query: queryObj}, (err, ds) ->
-      if err
-        callback({
-          message: err
-          query: queryObj
-        })
-        return
-
-      if not correctSingletonDruidResult(ds)
-        callback({
-          message: "unexpected result from Druid (all)"
-          query: queryObj
-          result: ds
-        })
-        return
-
-      callback(null, if emptySingletonDruidResult(ds) then null else ds.map((d) -> d.result))
-      return
-    return
-
-  timeseries: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate, priority}, callback) ->
-    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval, approximate, priority)
-
-    try
-      # filter
-      druidQuery.addFilter(filter)
+      queryBuilder.addFilter(filter)
 
       # split
-      druidQuery.addSplit(condensedCommand.split)
+      queryBuilder.addSplit(condensedCommand.split)
 
       # apply
       if condensedCommand.applies.length
         for apply in condensedCommand.applies
-          druidQuery.addApply(apply)
+          queryBuilder.addApply(apply)
       else
-        druidQuery.addDummyApply()
+        queryBuilder.addDummyApply()
 
-      queryObj = druidQuery.getQuery()
+      queryObj = queryBuilder.getQuery()
     catch e
       callback(e)
       return
@@ -764,27 +766,27 @@ druidQueryFns = {
       return
     return
 
-  topN: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate, priority}, callback) ->
-    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval, approximate, priority)
+  topN: ({requester, queryBuilder, parentSegment, condensedCommand}, callback) ->
+    filter = parentSegment._filter
 
     try
       # filter
-      druidQuery.addFilter(filter)
+      queryBuilder.addFilter(filter)
 
       # split
-      druidQuery.addSplit(condensedCommand.split)
+      queryBuilder.addSplit(condensedCommand.split)
 
       # apply
       if condensedCommand.applies.length
         for apply in condensedCommand.applies
-          druidQuery.addApply(apply)
+          queryBuilder.addApply(apply)
       else
-        druidQuery.addDummyApply()
+        queryBuilder.addDummyApply()
 
       if condensedCommand.combine
-        druidQuery.addCombine(condensedCommand.combine)
+        queryBuilder.addCombine(condensedCommand.combine)
 
-      queryObj = druidQuery.getQuery()
+      queryObj = queryBuilder.getQuery()
     catch e
       callback(e)
       return
@@ -809,34 +811,34 @@ druidQueryFns = {
       return
     return
 
-  allData: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate, priority}, callback) ->
-    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval, approximate, priority)
+  allData: ({requester, queryBuilder, parentSegment, condensedCommand}, callback) ->
+    filter = parentSegment._filter
     allDataChunks = DruidQueryBuilder.ALL_DATA_CHUNKS
 
     try
       # filter
-      druidQuery.addFilter(filter)
+      queryBuilder.addFilter(filter)
 
       # split
-      druidQuery.addSplit(condensedCommand.split)
+      queryBuilder.addSplit(condensedCommand.split)
 
       # apply
       if condensedCommand.applies.length
         for apply in condensedCommand.applies
-          druidQuery.addApply(apply)
+          queryBuilder.addApply(apply)
       else
-        druidQuery.addDummyApply()
+        queryBuilder.addDummyApply()
 
-      druidQuery.addCombine(new SliceCombine({
+      queryBuilder.addCombine(new SliceCombine({
         sort: {
           compare: 'natural'
           prop: condensedCommand.split.name
-          direction: condensedCommand.combine.sort.direction
+          direction: condensedCommand.combine?.sort.direction or 'ascending'
         }
         limit: allDataChunks
       }))
 
-      queryObj = druidQuery.getQuery()
+      queryObj = queryBuilder.getQuery()
     catch e
       callback(e)
       return
@@ -878,27 +880,27 @@ druidQueryFns = {
     )
     return
 
-  groupBy: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate, priority}, callback) ->
-    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval, approximate, priority)
+  groupBy: ({requester, queryBuilder, parentSegment, condensedCommand}, callback) ->
+    filter = parentSegment._filter
 
     try
       # filter
-      druidQuery.addFilter(filter)
+      queryBuilder.addFilter(filter)
 
       # split
-      druidQuery.addSplit(condensedCommand.split)
+      queryBuilder.addSplit(condensedCommand.split)
 
       # apply
       if condensedCommand.applies.length
         for apply in condensedCommand.applies
-          druidQuery.addApply(apply)
+          queryBuilder.addApply(apply)
       else
-        druidQuery.addDummyApply()
+        queryBuilder.addDummyApply()
 
       if condensedCommand.combine
-        druidQuery.addCombine(condensedCommand.combine)
+        queryBuilder.addCombine(condensedCommand.combine)
 
-      queryObj = druidQuery.getQuery()
+      queryObj = queryBuilder.getQuery()
     catch e
       callback(e)
       return
@@ -921,24 +923,24 @@ druidQueryFns = {
       return
     return
 
-  histogram: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate, priority}, callback) ->
+  histogram: ({requester, queryBuilder, parentSegment, condensedCommand}, callback) ->
+    filter = parentSegment._filter
+
     if not condensedCommand.applies.every(({aggregate}) -> aggregate is 'count')
       callback(new Error("only count aggregated applies are supported"))
       return
 
-    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval, approximate, priority)
-
     try
       # filter
-      druidQuery.addFilter(filter)
+      queryBuilder.addFilter(filter)
 
       # split
-      druidQuery.addSplit(condensedCommand.split)
+      queryBuilder.addSplit(condensedCommand.split)
 
       # applies are constrained to count
       # combine has to be computed in post processing
 
-      queryObj = druidQuery.getQuery()
+      queryObj = queryBuilder.getQuery()
     catch e
       callback(e)
       return
@@ -995,27 +997,27 @@ druidQueryFns = {
       return
     return
 
-  heatmap: ({requester, dataSource, timeAttribute, filter, forceInterval, condensedCommand, approximate, priority}, callback) ->
-    druidQuery = new DruidQueryBuilder(dataSource, timeAttribute, forceInterval, approximate, priority)
+  heatmap: ({requester, queryBuilder, parentSegment, condensedCommand}, callback) ->
+    filter = parentSegment._filter
 
     try
       # filter
-      druidQuery.addFilter(filter)
+      queryBuilder.addFilter(filter)
 
       # split
-      druidQuery.addSplit(condensedCommand.split)
+      queryBuilder.addSplit(condensedCommand.split)
 
       # apply
       if condensedCommand.applies.length
         for apply in condensedCommand.applies
-          druidQuery.addApply(apply)
+          queryBuilder.addApply(apply)
       else
-        druidQuery.addDummyApply()
+        queryBuilder.addDummyApply()
 
       if condensedCommand.combine
-        druidQuery.addCombine(condensedCommand.combine)
+        queryBuilder.addCombine(condensedCommand.combine)
 
-      queryObj = druidQuery.getQuery()
+      queryObj = queryBuilder.getQuery()
     catch e
       callback(e)
       return
@@ -1112,7 +1114,7 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
         switch condensedCommand.split.bucket
           when 'identity'
             if approximate
-              if condensedCommand.combine.limit?
+              if condensedCommand.combine?.limit?
                 queryFnName = 'topN'
               else
                 queryFnName = 'allData'
@@ -1130,10 +1132,13 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
           else
             callback({ message: 'unsupported split bucket' }); return
       else
-        if condensedCommand.applies.some((apply) -> apply.attribute is timeAttribute and apply.aggregate in ['min', 'max'])
-          queryFnName = 'timeBoundry'
+        if condensedCommand.applies.length
+          if condensedCommand.applies.some((apply) -> apply.attribute is timeAttribute and apply.aggregate in ['min', 'max'])
+            queryFnName = 'timeBoundry'
+          else
+            queryFnName = 'all'
         else
-          queryFnName = 'all'
+          queryFnName = 'empty'
 
       queryFn = druidQueryFns[queryFnName]
 
@@ -1145,13 +1150,9 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
 
         queryFn({
           requester
-          dataSource
-          timeAttribute
-          filter: parentSegment._filter
-          forceInterval
+          queryBuilder: new DruidQueryBuilder(dataSource, timeAttribute, forceInterval, approximate, context.priority)
+          parentSegment
           condensedCommand
-          approximate
-          priority: context.priority
         }, (err, props) ->
           if err
             callback(err)

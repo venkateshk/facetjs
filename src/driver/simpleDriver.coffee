@@ -160,44 +160,14 @@ makeApplyFn = (apply) ->
   return
 
 # -------------------
-directionFns = {
-  ascending: (a, b) ->
-    a = a[0] if Array.isArray(a)
-    b = b[0] if Array.isArray(b)
-    return if a < b then -1 else if a > b then 1 else if a >= b then 0 else NaN
-
-  descending: (a, b) ->
-    a = a[0] if Array.isArray(a)
-    b = b[0] if Array.isArray(b)
-    return if b < a then -1 else if b > a then 1 else if b >= a then 0 else NaN
-}
-
-compareFns = {
-  natural: ({prop, direction}) ->
-    directionFn = directionFns[direction]
-    throw new Error("arithmetic '#{direction}' unsupported by driver") unless directionFn
-    return (a, b) -> directionFn(a.prop[prop], b.prop[prop])
-
-  caseInsensetive: ({prop, direction}) ->
-    directionFn = directionFns[direction]
-    throw new Error("arithmetic '#{direction}' unsupported by driver") unless directionFn
-    return (a, b) -> directionFn(String(a.prop[prop]).toLowerCase(), String(b.prop[prop]).toLowerCase())
-}
-
-makeCompareFn = (sortCompare) ->
-  compareFn = compareFns[sortCompare.compare]
-  throw new Error("compare '#{sortCompare.compare}' unsupported by driver") unless compareFn
-  return compareFn(sortCompare)
-
-
 combineFns = {
   slice: ({sort, limit}) ->
     if sort
-      compareFn = makeCompareFn(sort)
+      segmentCompareFn = sort.getSegmentCompareFn()
 
     return (segments) ->
-      if compareFn
-        segments.sort(compareFn)
+      if segmentCompareFn
+        segments.sort(segmentCompareFn)
 
       if limit?
         driverUtil.inPlaceTrim(segments, limit)

@@ -1,6 +1,19 @@
+directionFns = {
+  ascending: (a, b) ->
+    a = a[0] if Array.isArray(a)
+    b = b[0] if Array.isArray(b)
+    return if a < b then -1 else if a > b then 1 else if a >= b then 0 else NaN
+
+  descending: (a, b) ->
+    a = a[0] if Array.isArray(a)
+    b = b[0] if Array.isArray(b)
+    return if b < a then -1 else if b > a then 1 else if b >= a then 0 else NaN
+}
 
 class FacetSort
-  constructor: ->
+  constructor: ({@compare, @prop, @direction}) ->
+    @_verifyProp()
+    @_verifyDirection()
     return
 
   _ensureCompare: (compare) ->
@@ -15,15 +28,29 @@ class FacetSort
     throw new TypeError("sort prop must be a string") unless typeof @prop is 'string'
 
   _verifyDirection: ->
-    throw new Error("direction must be 'descending' or 'ascending'") unless @direction in ['descending', 'ascending']
+    throw new Error("direction must be 'descending' or 'ascending'") unless directionFns[@direction]
 
   toString: ->
     return "base sort"
 
   valueOf: ->
-    return { compare: @compare, prop: @prop, direction: @direction }
+    return {
+      compare: @compare
+      prop: @prop
+      direction: @direction
+    }
 
   toJSON: -> @valueOf.apply(this, arguments)
+
+  getDirectionFn: ->
+    return directionFns[@direction]
+
+  getCompareFn: ->
+    throw new Error('can not call this directly')
+
+  getSegmentCompareFn: ->
+    compareFn = @getCompareFn()
+    return (a, b) -> compareFn(a.prop, b.prop)
 
   isEqual: (other) ->
     return Boolean(other) and
@@ -34,25 +61,32 @@ class FacetSort
 
 
 class NaturalSort extends FacetSort
-  constructor: ({@compare, @prop, @direction}) ->
+  constructor: ->
+    super
     @_ensureCompare('natural')
-    @_verifyProp()
-    @_verifyDirection()
 
   toString: ->
     return "#{@compare}(#{@prop}, #{@direction})"
+
+  getCompareFn: ->
+    directionFn = @getDirectionFn()
+    prop = @prop
+    return (a, b) -> directionFn(a[prop], b[prop])
 
 
 
 class CaseInsensetiveSort extends FacetSort
-  constructor: ({@compare, @prop, @direction}) ->
+  constructor: ->
+    super
     @_ensureCompare('caseInsensetive')
-    @_verifyProp()
-    @_verifyDirection()
 
   toString: ->
     return "#{@compare}(#{@prop}, #{@direction})"
 
+  getCompareFn: ->
+    directionFn = @getDirectionFn()
+    prop = @prop
+    return (a, b) -> directionFn(a[prop].toLowerCase(), b[prop].toLowerCase())
 
 
 # Make lookup

@@ -1102,6 +1102,7 @@ splitupApply = (apply, name) ->
     return {
       postApply: if name then ((prop) -> prop[name]) else null
       appliesByDataset
+      tempProps: []
     }
 
   [op1, op2] = apply.operands
@@ -1112,10 +1113,13 @@ splitupApply = (apply, name) ->
     return {
       postApply: if name then ((prop) -> prop[name]) else null
       appliesByDataset
+      tempProps: []
     }
 
-  { postApply: postApply1, appliesByDataset: appliesByDataset1 } = splitupApply(op1, '_N' + Math.random().toFixed(5).substring(2))
-  { postApply: postApply2, appliesByDataset: appliesByDataset2 } = splitupApply(op2, '_N' + Math.random().toFixed(5).substring(2))
+  name1 = '_N' + Math.random().toFixed(5).substring(2)
+  name2 = '_N' + Math.random().toFixed(5).substring(2)
+  { postApply: postApply1, appliesByDataset: appliesByDataset1, tempProps: tempProps1 } = splitupApply(op1, name1)
+  { postApply: postApply2, appliesByDataset: appliesByDataset2, tempProps: tempProps2 } = splitupApply(op2, name2)
   for dataset, applies of appliesByDataset1
     appliesByDataset[dataset] or= []
     appliesByDataset[dataset].push(applies)
@@ -1128,6 +1132,7 @@ splitupApply = (apply, name) ->
   return {
     postApply: (prop) -> combineFn(postApply1(prop), postApply2(prop))
     appliesByDataset
+    tempProps: [name1, name2].concat(tempProps1, tempProps2)
   }
 
 postApplyToSetter = (postApply, name) ->
@@ -1138,6 +1143,7 @@ postApplyToSetter = (postApply, name) ->
 splitupCondensedCommand = (condensedCommand) ->
   datasets = condensedCommand.getDatasets()
   postApplies = []
+  tempProps = []
   condensedCommandByDataset = {}
   if datasets.length <= 1
     condensedCommandByDataset[datasets[0]] = condensedCommand if datasets.length
@@ -1163,12 +1169,14 @@ splitupCondensedCommand = (condensedCommand) ->
 
   applyBreakdowns = {}
   for apply in condensedCommand.applies
-    {postApply, appliesByDataset} = applyBreakdowns[apply.name] = splitupApply(apply)
+    {postApply, appliesByDataset, tempProps: applyTempProps } = applyBreakdowns[apply.name] = splitupApply(apply)
     if postApply
       postApplies.push(postApplyToSetter(postApply, apply.name))
 
     for dataset, applies of appliesByDataset
       condensedCommandByDataset[dataset].applies = condensedCommandByDataset[dataset].applies.concat(applies)
+
+    tempProps = tempProps.concat(applyTempProps)
 
   if condensedCommand.combine
     sort = condensedCommand.combine.sort
@@ -1202,6 +1210,7 @@ splitupCondensedCommand = (condensedCommand) ->
   return {
     postApplies
     condensedCommandByDataset
+    tempProps
   }
 
 joinRows = (rows) ->
@@ -1244,7 +1253,7 @@ multiDatasorceQuery = ({parentSegment, condensedCommand, builderSettings, reques
     }, callback)
     return
 
-  { postApplies, condensedCommandByDataset } = splitupCondensedCommand(condensedCommand)
+  { postApplies, condensedCommandByDataset, tempProps } = splitupCondensedCommand(condensedCommand)
 
   queries = []
   for dataset, subCondensedCommand of condensedCommandByDataset
@@ -1266,14 +1275,25 @@ multiDatasorceQuery = ({parentSegment, condensedCommand, builderSettings, reques
 
     result = joinResults(
       condensedCommand.split?.name
-      condensedCommand.applies.map(({name}) -> name)
+      condensedCommand.applies.map(({name}) -> name).concat(tempProps)
       results
     )
 
     for postApply in postApplies
       result.forEach(postApply)
 
-    # ToDo: redo sort here
+    if condensedCommand.combine
+      combine = condensedCommand.combine
+      if combine.sort
+        compareFn = combine.sort.getCompareFn()
+        result.sort(compareFn)
+
+      if combine.limit?
+        driverUtil.inPlaceTrim(result, combine.limit)
+
+    # console.log results
+    # console.log '-----------------------'
+    # console.log result
 
     callback(null, result)
     return

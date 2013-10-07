@@ -74,9 +74,9 @@ class FacetQuery
       if filter.dataset
         dataset = filter.getDataset()
         throw new Error("filter dataset '#{dataset}' is not defined") unless dataset in @datasets
-        @datasetFilters[dataset] = if @datasetFilters[dataset] then new AndFilter(@datasetFilters[dataset], filter).simplify() else filter
+        @datasetFilters[dataset] = if @datasetFilters[dataset] then new AndFilter([@datasetFilters[dataset], filter]).simplify() else filter
       else
-        @commonFilter = if @commonFilter then new AndFilter(@commonFilter, filter).simplify() else filter
+        @commonFilter = if @commonFilter then new AndFilter([@commonFilter, filter]).simplify() else filter
       i++
 
     # Parse split apply combines

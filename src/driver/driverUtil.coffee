@@ -68,6 +68,7 @@ exports.joinResults = (splitNames, applyNames, results) ->
   zeroRow[name] = 0 for name in applyNames
   mapping = {}
   for result in results
+    continue unless result # skip any null result (is this right?)
     for row in result
       key = splitNames.map((splitName) -> row[splitName]).join(']#;{#')
       mapping[key] = [zeroRow] unless mapping[key]

@@ -14,6 +14,7 @@ if timezoneJS?.timezone
 # flatten([[1,3], [3,6,7]]) => [1,3,3,6,7]
 exports.flatten = flatten = (ar) -> Array::concat.apply([], ar)
 
+
 # Trims the array in place
 exports.inPlaceTrim = (array, n) ->
   return if array.length < n
@@ -33,6 +34,11 @@ exports.inPlaceFilter = (array, fn) ->
 
 
 # Filter and map (how is this method not part of native JS?!)
+# Maps the `array` according to `fn` and removes the elements that return `undefined`
+#
+# @param {Array} array, the array to filter
+# @param {Function} fn, the function to filter on
+# @return {Array} the mapped (and filtered) array
 exports.filterMap = (array, fn) ->
   ret = []
   for a in array
@@ -41,12 +47,44 @@ exports.filterMap = (array, fn) ->
     ret.push(v)
   return ret
 
+
+# Join all the given rows together into a single row
+#
+# @param {Array(Object)} rows, the rows to merge
+# @return {Object} the joined rows
+exports.joinRows = joinRows = (rows) ->
+  newRow = {}
+  for row in rows
+    for prop, value of row
+      newRow[prop] = value
+  return newRow
+
+
+# Join several arrays of results
+exports.joinResults = (splitNames, applyNames, results) ->
+  return results[0] if results.length <= 1
+  return [joinRows(results.map((result) -> result[0]))] if splitNames.length is 0
+  zeroRow = {}
+  zeroRow[name] = 0 for name in applyNames
+  mapping = {}
+  for result in results
+    for row in result
+      key = splitNames.map((splitName) -> row[splitName]).join(']#;{#')
+      mapping[key] = [zeroRow] unless mapping[key]
+      mapping[key].push(row)
+
+  joinResult = []
+  joinResult.push(joinRows(rows)) for ket, rows of mapping
+  return joinResult
+
+
 # Clean segment - remove everything in the segment that starts with and underscore
 exports.cleanProp = (prop) ->
   for key of prop
     if key[0] is '_'
       delete prop[key]
   return
+
 
 exports.cleanSegments = cleanSegments = (segment) ->
   delete segment.parent
@@ -65,6 +103,7 @@ exports.cleanSegments = cleanSegments = (segment) ->
 
   return segment
 
+
 createTabularHelper = (node, rangeFn, history) ->
   newHistory = {}
   for k, v of history
@@ -77,6 +116,7 @@ createTabularHelper = (node, rangeFn, history) ->
     return flatten(node.splits.map((split) -> createTabularHelper(split, rangeFn, newHistory)))
   else
     return [newHistory]
+
 
 exports.createTabular = createTabular = (node, rangeFn) ->
   rangeFn ?= (range) -> range

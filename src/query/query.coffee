@@ -21,11 +21,13 @@ class FacetGroup
 
   getDatasets: ->
     return @split.getDatasets() if @split
-    largestDatasetList = []
+    datasets = []
     for apply in @applies
-      datasets = apply.getDatasets()
-      largestDatasetList = datasets if largestDatasetList.length < datasets.length
-    return largestDatasetList
+      applyDatasets = apply.getDatasets()
+      for dataset in applyDatasets
+        continue if dataset in datasets
+        datasets.push(dataset)
+    return datasets
 
   appendToSpec: (spec) ->
     if @split

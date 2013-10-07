@@ -1347,7 +1347,7 @@ multiDatasorceQuery = ({parentSegment, condensedCommand, builderSettings, reques
         return (callback) ->
           DruidQueryBuilder.makeSingleQuery({
             parentSegment
-            filter: new AndFilter(parentSegment._filtersByDataset[info.dataset], driverFilter)
+            filter: new AndFilter([parentSegment._filtersByDataset[info.dataset], driverFilter])
             condensedCommand: info.condensedCommand
             builderSettings
             requester

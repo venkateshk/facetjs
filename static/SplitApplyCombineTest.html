@@ -213,12 +213,19 @@
           if (input == '') return;
 
           try {
-            input = new query.FacetQuery(JSON.parse(input));
+            input = JSON.parse(input);
           } catch (e) {
-            console.log(e)
             d3.select("#output")
               .text("Could not parse JSON");
-            return;
+            throw e;
+          }
+
+          try {
+            input = new query.FacetQuery(input);
+          } catch (e) {
+            d3.select("#output")
+              .text("Error in query: " + e.message);
+            throw e;
           }
 
           var start = Date.now();

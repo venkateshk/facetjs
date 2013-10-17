@@ -4,7 +4,7 @@ wrapLiteral = (arg) ->
   return if typeof arg in ['undefined', 'function'] then arg else facet.use.literal(arg)
 
 facet.use = {
-  literal: (value) -> () ->
+  literal: (value) -> return ->
     return value
 
   prop: (propName) ->

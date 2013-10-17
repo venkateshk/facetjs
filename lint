@@ -1,0 +1,6 @@
+#!/bin/bash
+coffeelint -f lintconfig.json \
+  src/*.coffee \
+  src/*/*.coffee \
+  test/*.coffee \
+  test/*/*.coffee

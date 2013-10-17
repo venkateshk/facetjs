@@ -25,7 +25,7 @@ class FacetFilter
 
     return 0
 
-  constructor: ({@type, @dataset}, dummy)->
+  constructor: ({@type, @dataset}, dummy) ->
     throw new TypeError("can not call `new FacetFilter` directly use FacetFilter.fromSpec instead") unless dummy is dummyObject
 
   _ensureType: (filterType) ->

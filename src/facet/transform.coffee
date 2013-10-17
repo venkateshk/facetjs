@@ -14,7 +14,7 @@ pointOnPoint = (args, leftName, rightName) ->
     if right
       return (segment) -> -right(segment)
     else
-      return () -> 0
+      return -> 0
 
 
 pointOnLine = (args, leftName, rightName) ->
@@ -244,11 +244,11 @@ facet.transform = {
         if direction is 'vertical'
           x = fx(segment, space.attr.width)
           [y, l] = fy(segment, space.attr.height)
-          y += l/2 # hack
+          y += l / 2 # hack
           a = 90
         else
           [x, l] = fx(segment, space.attr.width)
-          x += l/2 # hack
+          x += l / 2 # hack
           y = fy(segment, space.attr.height)
 
         return {

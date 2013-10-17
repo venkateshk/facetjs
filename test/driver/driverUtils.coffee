@@ -2,6 +2,7 @@ chai = require("chai")
 expect = chai.expect
 
 driverUtil = require('../../build/driverUtil')
+{ Table } = driverUtil
 data = require('../data')
 
 describe "Utility", ->
@@ -33,10 +34,10 @@ describe "Utility", ->
       it "Basic Rectangular Table", ->
         query = data.diamond[1].query
         root = data.diamond[1].data
-        table = new driverUtil.Table {
+        table = new Table({
           root
           query
-        }
+        })
 
         expect(["Cut", "Count"]).to.deep.equal(table.columns, "Columns of the table is incorrect")
 
@@ -62,10 +63,10 @@ describe "Utility", ->
       it "Inheriting properties", ->
         query = data.diamond[2].query
         root = data.diamond[2].data
-        table = new driverUtil.Table {
+        table = new Table({
           root
           query
-        }
+        })
 
         expect(table.columns).to.deep.equal(["Carat", "Cut", "Count"], "Columns of the table is incorrect")
         expect(table.data).to.deep.equal(data.diamond[2].tabular, "Data of the table is incorrect")
@@ -75,10 +76,10 @@ describe "Utility", ->
       it "Full Mapping", ->
         query = data.diamond[1].query
         root = data.diamond[1].data
-        table = new driverUtil.Table {
+        table = new Table({
           root
           query
-        }
+        })
 
         table.columnMap (name) ->
           map = {
@@ -97,10 +98,10 @@ describe "Utility", ->
       it "Partial Mapping", ->
         query = data.diamond[1].query
         root = data.diamond[1].data
-        table = new driverUtil.Table {
+        table = new Table({
           root
           query
-        }
+        })
 
         table.columnMap (name) ->
           map = {
@@ -118,10 +119,10 @@ describe "Utility", ->
       it "Over Mapping", ->
         query = data.diamond[1].query
         root = data.diamond[1].data
-        table = new driverUtil.Table {
+        table = new Table({
           root
           query
-        }
+        })
 
         table.columnMap (name) ->
           map = {

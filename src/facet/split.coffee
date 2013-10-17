@@ -1,7 +1,8 @@
 # A split is a function that takes a row and returns a string-able thing.
 
 facet.split = {
-  identity: (attribute) -> {
+  identity: (attribute) ->
+    return {
       bucket: 'identity'
       attribute
     }

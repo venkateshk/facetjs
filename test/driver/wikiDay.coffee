@@ -53,8 +53,8 @@ driverFns.druid = druidDriver({
     type: 'within'
     attribute: 'time'
     range: [
-      new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0))
-      new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))
+      new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0))
+      new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))
     ]
   })
 })
@@ -238,8 +238,8 @@ describe "Wikipedia dataset", ->
           type: 'within'
           attribute: 'time'
           range: [
-            new Date(Date.UTC(2013, 2-1, 26, 3, 0, 0))
-            new Date(Date.UTC(2013, 2-1, 26, 5, 0, 0))
+            new Date(Date.UTC(2013, 2 - 1, 26, 3, 0, 0))
+            new Date(Date.UTC(2013, 2 - 1, 26, 5, 0, 0))
           ]
         }
         { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
@@ -379,8 +379,8 @@ describe "Wikipedia dataset", ->
               type: "within"
               attribute: "time"
               range: [
-                new Date(Date.UTC(2013, 2-1, 26, 10, 0, 0))
-                new Date(Date.UTC(2013, 2-1, 26, 15, 0, 0))
+                new Date(Date.UTC(2013, 2 - 1, 26, 10, 0, 0))
+                new Date(Date.UTC(2013, 2 - 1, 26, 15, 0, 0))
               ]
             }
             {

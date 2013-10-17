@@ -61,7 +61,12 @@ facet.connector = {
           len = space.length / 2
           { a, b, e, f } = invParentMatrix.multiply(space.node.node().getScreenCTM())
 
-          return [-a*len+e, -b*len+f, a*len+e, b*len+f] # x1, y1, x2, y2
+          return [
+            -a * len + e # x1
+            -b * len + f # y1
+            +a * len + e # x2
+            +b * len + f # y2
+          ]
         )
 
         space.node.append('path')

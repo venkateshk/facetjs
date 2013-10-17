@@ -14,7 +14,7 @@ min = (a, b) -> if a < b then a else b
 max = (a, b) -> if a < b then b else a
 
 facet.scale = {
-  linear: ({nice, time} = {}) -> () ->
+  linear: ({nice, time} = {}) -> return ->
     baseScale = if time then d3.time.scale() else d3.scale.linear()
 
     self = {
@@ -69,7 +69,7 @@ facet.scale = {
     return self
 
 
-  color: () -> () ->
+  color: ({colors} = {}) -> return ->
     baseScale = d3.scale.category10()
 
     self = {

@@ -94,8 +94,8 @@ describe "Druid driver", ->
           type: 'within'
           attribute: 'time'
           range: [
-            new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0))
-            new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))
+            new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0))
+            new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))
           ]
         },
         {
@@ -157,8 +157,8 @@ describe "Druid driver", ->
               type: 'within'
               attribute: 'time'
               range: [
-                new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0))
-                new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))
+                new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0))
+                new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))
               ]
             },
             {
@@ -204,8 +204,8 @@ describe "Druid driver", ->
           type: 'within'
           attribute: 'time'
           range: [
-            new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0))
-            new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))
+            new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0))
+            new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))
           ]
         }
         { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
@@ -224,8 +224,8 @@ describe "Druid driver", ->
           type: 'within'
           attribute: 'time'
           range: [
-            new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0))
-            new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))
+            new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0))
+            new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))
           ]
         }
         { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }

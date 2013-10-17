@@ -47,8 +47,8 @@ driverFns.druid = druidDriver({
     type: 'within'
     attribute: 'time'
     range: [
-      new Date(Date.UTC(2013, 2-1, 26, 0, 0, 0))
-      new Date(Date.UTC(2013, 2-1, 27, 0, 0, 0))
+      new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0))
+      new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))
     ]
   })
 })

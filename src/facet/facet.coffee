@@ -187,9 +187,9 @@ class FacetVis
       for cmd in operations
         curState = stateStack[stateStack.length - 1]
 
-        if curState.segments.length isnt curState.spaces.length
-          console.log cmd
-          throw "sanity check"
+        # if curState.segments.length isnt curState.spaces.length
+        #   console.log cmd
+        #   throw new Error("sanity check")
 
         switch cmd.operation
           when 'split'

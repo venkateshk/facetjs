@@ -51,15 +51,11 @@ class FacetSplit
 
   isEqual: (other, compareSegmentFilter) ->
     return Boolean(other) and
-           @bucket is other.bucket and
-           @attribute is other.attribute and
-           Boolean(@options) is Boolean(other.options) and
-           (not @options or @options.isEqual(other.options)) and
-           (not compareSegmentFilter or (
-                Boolean(@segmentFilter) is Boolean(other.segmentFilter and
-                @segmentFilter.isEqual(other.segmentFilter))
-              )
-           )
+      @bucket is other.bucket and
+      @attribute is other.attribute and
+      Boolean(@options) is Boolean(other.options) and
+      (not @options or @options.isEqual(other.options)) and
+      (not compareSegmentFilter or (Boolean(@segmentFilter) is Boolean(other.segmentFilter and @segmentFilter.isEqual(other.segmentFilter))))
 
 
 

@@ -611,7 +611,7 @@ correctSingletonDruidResult = (result) ->
   return Array.isArray(result) and result.length <= 1 and (result.length is 0 or result[0].result)
 
 emptySingletonDruidResult = (result) ->
-  return result.length is 0 or result[0].result.length is 0
+  return result.length is 0
 
 druidQueryFns = {
   empty: (_, callback) ->
@@ -660,7 +660,7 @@ druidQueryFns = {
   timeBoundry: ({requester, queryBuilder, parentSegment, condensedCommand}, callback) ->
     filter = parentSegment._filter
 
-    if not condensedCommand.applies.every((apply) -> apply.attribute is timeAttribute and apply.aggregate in ['min', 'max'])
+    if not condensedCommand.applies.every((apply) -> apply.attribute is queryBuilder.timeAttribute and apply.aggregate in ['min', 'max'])
       callback(new Error("can not mix and match min / max time with other aggregates (for now)"))
       return
 
@@ -964,6 +964,10 @@ druidQueryFns = {
         callback(null, null)
         return
 
+      if not ds[0].result or not ds[0].result.histogram
+        callback(new Error('invalid histogram result'), null)
+        return
+
       { breaks, counts } = ds[0].result.histogram
       filterAttribute = condensedCommand.split.attribute
       histName = condensedCommand.split.name
@@ -1036,7 +1040,6 @@ druidQueryFns = {
           result: ds
         })
         return
-
 
       if emptySingletonDruidResult(ds)
         callback(null, null)

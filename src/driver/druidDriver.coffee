@@ -36,7 +36,7 @@ correctSingletonDruidResult = (result) ->
   return Array.isArray(result) and result.length <= 1 and (result.length is 0 or result[0].result)
 
 emptySingletonDruidResult = (result) ->
-  return result.length is 0 or result[0].result.length is 0
+  return result.length is 0
 
 class DruidQueryBuilder
   @ALL_DATA_CHUNKS = 10000
@@ -948,6 +948,10 @@ DruidQueryBuilder.queryFns = {
         callback(null, null)
         return
 
+      if not ds[0].result or not ds[0].result.histogram
+        callback(new Error('invalid histogram result'), null)
+        return
+
       { breaks, counts } = ds[0].result.histogram
       filterAttribute = condensedCommand.split.attribute
       histName = condensedCommand.split.name
@@ -1018,7 +1022,6 @@ DruidQueryBuilder.queryFns = {
           result: ds
         })
         return
-
 
       if emptySingletonDruidResult(ds)
         callback(null, null)

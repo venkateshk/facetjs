@@ -1077,7 +1077,7 @@ describe "filter", ->
       expect(filterFn({ state: 'Nevada' })).to.equal(false)
 
 
-  describe.only "FacetFilter.filterDiff", ->
+  describe "FacetFilter.filterDiff", ->
     it "computes a subset with IN filters", ->
       sup = FacetFilter.fromSpec({
         type: 'and'

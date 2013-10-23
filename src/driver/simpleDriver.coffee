@@ -76,7 +76,7 @@ makeSplitFn = (split) ->
 
 # ----------------------------
 aggregateFns = {
-  constant: ({value}) -> () ->
+  constant: ({value}) -> return ->
     return Number(value)
 
   count: -> (ds) ->
@@ -207,7 +207,7 @@ combineFns = {
 
       return
 
-  matrix: () ->
+  matrix: ->
     throw new Error("matrix combine not implemented yet")
 }
 

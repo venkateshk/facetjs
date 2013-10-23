@@ -976,7 +976,7 @@ druidQueryFns = {
       props = []
       for count, i in counts
         continue if count is 0
-        range = [breaks[i], breaks[i+1]]
+        range = [breaks[i], breaks[i + 1]]
         prop = {}
         prop[histName] = range
         prop[countName] = count

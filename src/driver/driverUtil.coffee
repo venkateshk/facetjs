@@ -33,6 +33,12 @@ exports.inPlaceFilter = (array, fn) ->
   return
 
 
+exports.find = (array, fn) ->
+  for a, i in array
+    return a if fn.call(array, a, i)
+  return null
+
+
 # Filter and map (how is this method not part of native JS?!)
 # Maps the `array` according to `fn` and removes the elements that return `undefined`
 #

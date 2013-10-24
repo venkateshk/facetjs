@@ -94,6 +94,11 @@ class ConstantApply extends FacetApply
   isAdditive: ->
     return true
 
+  getDataset: ->
+    return null
+
+  getDatasets: ->
+    return []
 
 
 class CountApply extends FacetApply

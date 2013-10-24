@@ -1101,73 +1101,88 @@ addApplyName = (apply, name) ->
   return FacetApply.fromSpec(applySpec)
 
 
-# Split up an apply into several individual applies by dataset
-# @param {FacetApply} apply, the apply to split
-# @return
-#   postApply, the JS function that will give back the apply value
-#   appliesByDataset, the applies to be added for the given dataset
-arithmeticToCombineFn = {
+class ApplySegregator
+  constructor: () ->
+    @byDataset = {}
+    @postProcess = []
+    @nameIndex = 0
+
+  getNextName: ->
+    @nameIndex++
+    return "_N_" + @nameIndex
+
+  addSingleDatasetApply: (apply, track) ->
+    if apply.aggregate is 'constant'
+      value = apply.value
+      return -> value
+
+    dataset = apply.getDataset()
+    apply = addApplyName(apply, @getNextName()) if not apply.name
+    @byDataset[dataset] or= []
+
+    existingApplyGetter = driverUtil.find(@byDataset[dataset], (ag) -> ag.apply.isEqual(apply))
+
+    if not existingApplyGetter
+      name = apply.name
+      getter = (prop) -> prop[name]
+      @byDataset[dataset].push(existingApplyGetter = { apply, getter })
+
+    if track
+      @trackApplySegmentation.push({ dataset, applyName: existingApplyGetter.apply.name })
+
+    return existingApplyGetter.getter
+
+  addMultiDatasetApply: (apply, track) ->
+    [op1, op2] = apply.operands
+    op1Datasets = op1.getDatasets()
+    op2Datasets = op2.getDatasets()
+    getter1 = if op1Datasets.length <= 1 then @addSingleDatasetApply(op1, track) else @addMultiDatasetApply(op1, track)
+    getter2 = if op2Datasets.length <= 1 then @addSingleDatasetApply(op2, track) else @addMultiDatasetApply(op2, track)
+    combineFn = ApplySegregator.arithmeticToCombineFn[apply.arithmetic]
+    return (prop) -> combineFn(getter1(prop), getter2(prop))
+
+  addApplies: (applies, trackApplyName) ->
+    @trackApplySegmentation = []
+
+    # First add all the simple applies then add the multi-dataset applies
+    # This greatly simplifies the logic in the addSingleDatasetApply function because it never have to
+    # substitute an apply with a temp name with one that has a permanent name
+
+    multiDatasetApplies = []
+    for apply in applies
+      if apply.getDatasets().length <= 1
+        @addSingleDatasetApply(apply, apply.name is trackApplyName)
+      else
+        multiDatasetApplies.push(apply)
+
+    multiDatasetApplies.forEach(((apply) ->
+      name = apply.name
+      getter = @addMultiDatasetApply(apply, name is trackApplyName)
+      @postProcess.push (prop) ->
+        prop[name] = getter(prop)
+        return
+    ), this)
+
+    return @trackApplySegmentation
+
+  getAppliesForDataset: (dataset) ->
+    return (@byDataset[dataset] or []).map((d) -> d.apply)
+
+  getPostProcessors: ->
+    return @postProcess
+
+
+ApplySegregator.arithmeticToCombineFn = {
   add:      (lhs, rhs) -> lhs + rhs
   subtract: (lhs, rhs) -> lhs - rhs
   multiply: (lhs, rhs) -> lhs * rhs
-  divide:   (lhs, rhs) -> lhs / rhs
+  divide:   (lhs, rhs) -> if rhs is 0 then 0 else lhs / rhs
 }
-DruidQueryBuilder.splitupApply = splitupApply = (apply) ->
-  appliesByDataset = {}
-  if apply.aggregate
-    appliesByDataset[apply.getDataset()] = [apply]
-    name = apply.name
-    return {
-      appliesByDataset
-    }
-
-  [op1, op2] = apply.operands
-  op1Datasets = op1.getDatasets()
-  op2Datasets = op2.getDatasets()
-  if op1Datasets.length is 1 and op2Datasets.length is 1 and op1Datasets[0] is op2Datasets[0]
-    appliesByDataset[dataset] = [apply]
-    name = apply.name
-    return {
-      appliesByDataset
-    }
-
-  name1 = '_N1_' + Math.random().toFixed(5).substring(2)
-  op1 = addApplyName(op1, name1)
-  { postApply: postApply1, appliesByDataset: appliesByDataset1 } = splitupApply(op1)
-  postApply1 or= (prop) -> prop[name1]
-  for dataset, applies of appliesByDataset1
-    appliesByDataset[dataset] or= []
-    appliesByDataset[dataset].push(applies)
-
-  name2 = '_N2_' + Math.random().toFixed(5).substring(2)
-  op2 = addApplyName(op2, name2)
-  { postApply: postApply2, appliesByDataset: appliesByDataset2 } = splitupApply(op2)
-  postApply2 or= (prop) -> prop[name2]
-  for dataset, applies of appliesByDataset2
-    appliesByDataset[dataset] or= []
-    appliesByDataset[dataset].push(applies)
-
-  for dataset, applieses of appliesByDataset
-    appliesByDataset[dataset] = driverUtil.flatten(applieses)
-
-  combineFn = arithmeticToCombineFn[apply.arithmetic]
-  return {
-    postApply: (prop) -> combineFn(postApply1(prop), postApply2(prop))
-    appliesByDataset
-  }
-
-
-# given a getter function and a prop name creates a function that set the value of the getter into the prop
-postApplyToSetter = (postApply, name) ->
-  return (prop) ->
-    prop[name] = postApply(prop)
-    return
 
 
 # Split up the condensed command into condensed commands contained within the dataset
 splitupCondensedCommand = (condensedCommand) ->
   datasets = condensedCommand.getDatasets()
-  postApplies = []
   tempProps = []
   perDatasetInfo = []
   if datasets.length <= 1
@@ -1178,10 +1193,11 @@ splitupCondensedCommand = (condensedCommand) ->
       }
 
     return {
-      postApplies
+      postProcessors: []
       perDatasetInfo
     }
 
+  # Separate splits
   for dataset in datasets
     datasetSplie = null
     if condensedCommand.split
@@ -1200,65 +1216,57 @@ splitupCondensedCommand = (condensedCommand) ->
       }
     }
 
-  applyBreakdowns = {}
-  for apply in condensedCommand.applies
-    { postApply, appliesByDataset } = applyBreakdowns[apply.name] = DruidQueryBuilder.splitupApply(apply)
-    if postApply
-      postApplies.push(postApplyToSetter(postApply, apply.name))
+  # Separate applies
+  applySegregator = new ApplySegregator()
+  sortApplySegmentation = applySegregator.addApplies(condensedCommand.applies, condensedCommand.combine?.sort?.prop)
 
-    for info in perDatasetInfo
-      continue unless appliesByDataset[info.dataset]
-      info.condensedCommand.applies = info.condensedCommand.applies.concat(appliesByDataset[info.dataset])
+  for info in perDatasetInfo
+    info.condensedCommand.applies = applySegregator.getAppliesForDataset(info.dataset)
 
+  # Setup combines
   if condensedCommand.combine
     sort = condensedCommand.combine.sort
     if sort
       splitName = condensedCommand.split.name
-      if sort.prop is splitName
+      if sortApplySegmentation.length is 0
         # Sorting on splitting prop
         throw new Error("not implemented yet")
+      else if sortApplySegmentation.length is 1
+        # Sorting on regular apply
+        mainDataset = sortApplySegmentation[0].dataset
+
+        for info in perDatasetInfo
+          if info.dataset is mainDataset
+            info.condensedCommand.combine = condensedCommand.combine
+          else
+            info.driven = true
+            info.condensedCommand.combine = new SliceCombine({
+              sort: {
+                compare: 'natural'
+                direction: 'descending'
+                prop: splitName
+              }
+              limit: condensedCommand.combine.limit
+            })
       else
-        # Sorting on multi-dataset apply prop
-        { postApply, appliesByDataset } = applyBreakdowns[sort.prop]
-        if postApply
-          # Sorting on a post apply
-          for info in perDatasetInfo
-            if appliesByDataset[info.dataset].length
-              # has a part of the apply that will be combined into the sorting apply
-              sortProp = appliesByDataset[info.dataset][0].name
-            else
-              sortProp = splitName
-              info.driven = true
+        # Sorting on a post apply
+        for info in perDatasetInfo
+          infoApplyName = driverUtil.find(sortApplySegmentation, ({dataset}) -> dataset is info.dataset)
+          if infoApplyName
+            # has a part of the apply that will be combined into the sorting apply
+            sortProp = infoApplyName.applyName
+          else
+            sortProp = splitName
+            info.driven = true
 
-            info.condensedCommand.combine = new SliceCombine({
-              sort: {
-                compare: 'natural'
-                direction: 'descending'
-                prop: sortProp
-              }
-              limit: 1000
-            })
-        else
-          # Sorting on regular apply
-          for dataset, applies of appliesByDataset
-            mainDataset = dataset
-            sortApply = applies[0]
-
-          for info in perDatasetInfo
-            if info.dataset is mainDataset
-              sortProp = sortApply.name
-            else
-              sortProp = splitName
-              info.driven = true
-
-            info.condensedCommand.combine = new SliceCombine({
-              sort: {
-                compare: 'natural'
-                direction: 'descending'
-                prop: sortProp
-              }
-              limit: 1000
-            })
+          info.condensedCommand.combine = new SliceCombine({
+            sort: {
+              compare: 'natural'
+              direction: 'descending'
+              prop: sortProp
+            }
+            limit: 1000
+          })
 
     else
       # no sort... do not do anything for now
@@ -1268,13 +1276,13 @@ splitupCondensedCommand = (condensedCommand) ->
     null
 
   return {
-    postApplies
+    postProcessors: applySegregator.getPostProcessors()
     perDatasetInfo
   }
 
 
 # Make a multi-dataset query
-multiDatasorceQuery = ({parentSegment, condensedCommand, builderSettings, requester}, callback) ->
+multiDatasetQuery = ({parentSegment, condensedCommand, builderSettings, requester}, callback) ->
   datasets = condensedCommand.getDatasets()
   if datasets.length is 0
     # If there are no datasets it means that this is a 'no-op' query, it has no splits or applies
@@ -1292,11 +1300,11 @@ multiDatasorceQuery = ({parentSegment, condensedCommand, builderSettings, reques
     }, callback)
     return
 
-  { postApplies, perDatasetInfo } = splitupCondensedCommand(condensedCommand)
+  { postProcessors, perDatasetInfo } = splitupCondensedCommand(condensedCommand)
 
   performApplyCombine = (result) ->
-    for postApply in postApplies
-      result.forEach(postApply)
+    for postProcessor in postProcessors
+      result.forEach(postProcessor)
 
     if condensedCommand.combine
       combine = condensedCommand.combine
@@ -1339,14 +1347,16 @@ multiDatasorceQuery = ({parentSegment, condensedCommand, builderSettings, reques
     if hasDriven and condensedCommand.split
       # make filter
       splitName = condensedCommand.split.name
-      throw new Error("this split not implemented yet") unless condensedCommand.split.bucket is 'identity'
-      driverFilter = new InFilter({
-        attribute: condensedCommand.split.attribute
-        values: driverResult.map((prop) -> prop[splitName])
-      })
 
       drivenQueries = driverUtil.filterMap perDatasetInfo, (info) ->
         return unless info.driven
+
+        throw new Error("this (#{condensedCommand.split.bucket}) split not implemented yet") unless info.condensedCommand.split.bucket is 'identity'
+        driverFilter = new InFilter({
+          attribute: info.condensedCommand.split.attribute
+          values: driverResult.map((prop) -> prop[splitName])
+        })
+
         return (callback) ->
           DruidQueryBuilder.makeSingleQuery({
             parentSegment
@@ -1439,7 +1449,7 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
             callback({ message: 'query limit exceeded' })
             return
 
-          multiDatasorceQuery({
+          multiDatasetQuery({
             requester
             builderSettings: {
               dataSource

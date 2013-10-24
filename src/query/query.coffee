@@ -156,6 +156,11 @@ class FacetQuery
   getDatasetFilter: (dataset) ->
     return @datasetFilters[dataset] or new TrueFilter()
 
+  getFilterComplexity: ->
+    complexity = @getFilter().getComplexity()
+    complexity += @getDatasetFilter(dataset).getComplexity() for dataset in @datasets
+    return complexity
+
   getGroups: ->
     return @groups
 

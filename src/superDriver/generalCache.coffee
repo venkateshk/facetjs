@@ -332,7 +332,8 @@ module.exports = ({driver, timeAttribute}) ->
     condensedQuery = query.getGroups()
 
     # If there is a split for continuous dimension, don't use cache. Doable. but not now
-    if condensedQuery[1]?.split?.bucket in ['continuous', 'tuple']
+    datasets = query.getDatasets()
+    if condensedQuery[1]?.split?.bucket in ['continuous', 'tuple'] or datasets.length > 1 or datasets[0] isnt 'main'
       return driver({query}, callback)
 
     root = getKnownTree(filter, condensedQuery)

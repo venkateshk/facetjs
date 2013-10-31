@@ -1102,7 +1102,7 @@ addApplyName = (apply, name) ->
 
 
 class ApplySegregator
-  constructor: () ->
+  constructor: ->
     @byDataset = {}
     @postProcess = []
     @nameIndex = 0
@@ -1230,7 +1230,7 @@ splitupCondensedCommand = (condensedCommand) ->
       splitName = condensedCommand.split.name
       if sortApplySegmentation.length is 0
         # Sorting on splitting prop
-        throw new Error("not implemented yet")
+        throw new Error("prop split not implemented yet")
       else if sortApplySegmentation.length is 1
         # Sorting on regular apply
         mainDataset = sortApplySegmentation[0].dataset
@@ -1351,7 +1351,7 @@ multiDatasetQuery = ({parentSegment, condensedCommand, builderSettings, requeste
       drivenQueries = driverUtil.filterMap perDatasetInfo, (info) ->
         return unless info.driven
 
-        throw new Error("this (#{condensedCommand.split.bucket}) split not implemented yet") unless info.condensedCommand.split.bucket is 'identity'
+        throw new Error("This (#{condensedCommand.split.bucket}) split not implemented yet") unless info.condensedCommand.split.bucket is 'identity'
         driverFilter = new InFilter({
           attribute: info.condensedCommand.split.attribute
           values: driverResult.map((prop) -> prop[splitName])

@@ -2,6 +2,10 @@ chai = require("chai")
 expect = chai.expect
 utils = require('../utils')
 
+WallTime = require('walltime-js')
+tzData = require("../../node_modules/walltime-js/client/walltime-data.js")
+WallTime.init(tzData.rules, tzData.zones)
+
 sqlRequester = require('../../build/mySqlRequester')
 sqlDriver = require('../../build/sqlDriver')
 simpleDriver = require('../../build/simpleDriver')
@@ -94,10 +98,10 @@ describe "General cache", ->
         expect(result).to.deep.equal({ prop: { Count: 0 } })
         done()
 
-  describe "dateLightSaving checker", ->
+  describe "dayLightSavings checker", ->
     describe "with P1D granularity", ->
-      it 'should work well when exiting daylightsaving time with P1D granularity', (done) ->
-        dateLightSavingData = {
+      it 'should work well when exiting daylight saving time with P1D granularity', (done) ->
+        dayLightSavingsData = {
           prop: {},
           splits: [
             {prop: {bid_depth_adj: 0.013, timerange: ["2012-11-02T07:00:00.000Z", "2012-11-03T07:00:00.000Z"]}},
@@ -109,15 +113,15 @@ describe "General cache", ->
           ]
         }
 
-        dateLightSavingDriver = (request, callback) ->
-          callback(null, dateLightSavingData)
+        dayLightSavingsDriver = (request, callback) ->
+          callback(null, dayLightSavingsData)
           return
 
-        dateLightSavingDriverCached = generalCache({
-          driver: dateLightSavingDriver
+        dayLightSavingsDriverCached = generalCache({
+          driver: dayLightSavingsDriver
         })
 
-        dateLightSavingDriverCached {
+        dayLightSavingsDriverCached {
           query: new FacetQuery([
             {
               "type": "within",
@@ -163,11 +167,11 @@ describe "General cache", ->
           ])
         }, (err, result) ->
           expect(err).to.be.null
-          expect(JSON.parse(JSON.stringify(result))).to.deep.equal(dateLightSavingData)
+          expect(JSON.parse(JSON.stringify(result))).to.deep.equal(dayLightSavingsData)
           done()
 
-      it 'should work well when entering daylightsaving time with P1D granularity', (done) ->
-        dateLightSavingData = {
+      it 'should work well when entering daylight saving time with P1D granularity', (done) ->
+        dayLightSavingsData = {
           "prop": {},
           "splits": [
             {"prop": {"clicks": 2198708, "timerange": ["2013-03-08T08:00:00.000Z", "2013-03-09T08:00:00.000Z"]}},
@@ -177,15 +181,15 @@ describe "General cache", ->
           ]
         }
 
-        dateLightSavingDriver = (request, callback) ->
-          callback(null, dateLightSavingData)
+        dayLightSavingsDriver = (request, callback) ->
+          callback(null, dayLightSavingsData)
           return
 
-        dateLightSavingDriverCached = generalCache({
-          driver: dateLightSavingDriver
+        dayLightSavingsDriverCached = generalCache({
+          driver: dayLightSavingsDriver
         })
 
-        dateLightSavingDriverCached {
+        dayLightSavingsDriverCached {
           query: new FacetQuery([
             {
               "type": "within",
@@ -222,12 +226,12 @@ describe "General cache", ->
           ])
         }, (err, result) ->
           expect(err).to.be.null
-          expect(JSON.parse(JSON.stringify(result))).to.deep.equal(dateLightSavingData)
+          expect(JSON.parse(JSON.stringify(result))).to.deep.equal(dayLightSavingsData)
           done()
 
 
-      it 'should work well when entering daylightsaving time with P1D granularity in UTC', (done) ->
-        dateLightSavingData = {
+      it 'should work well when entering daylight saving time with P1D granularity in UTC', (done) ->
+        dayLightSavingsData = {
           "prop": {},
           "splits": [
             {"prop": { "robot_ratio": 42.753, "timerange": ["2013-03-06T00:00:00.000Z","2013-03-07T00:00:00.000Z"]}},
@@ -240,15 +244,15 @@ describe "General cache", ->
           ]
         }
 
-        dateLightSavingDriver = (request, callback) ->
-          callback(null, dateLightSavingData)
+        dayLightSavingsDriver = (request, callback) ->
+          callback(null, dayLightSavingsData)
           return
 
-        dateLightSavingDriverCached = generalCache({
-          driver: dateLightSavingDriver
+        dayLightSavingsDriverCached = generalCache({
+          driver: dayLightSavingsDriver
         })
 
-        dateLightSavingDriverCached {
+        dayLightSavingsDriverCached {
           query: new FacetQuery([
             {
               "type": "within",
@@ -308,11 +312,11 @@ describe "General cache", ->
           ])
         }, (err, result) ->
           expect(err).to.be.null
-          expect(JSON.parse(JSON.stringify(result))).to.deep.equal(dateLightSavingData)
+          expect(JSON.parse(JSON.stringify(result))).to.deep.equal(dayLightSavingsData)
           done()
 
-      it 'should work well when exiting daylightsaving time with P1D granularity in UTC', (done) ->
-        dateLightSavingData = {
+      it 'should work well when exiting daylight saving time with P1D granularity in UTC', (done) ->
+        dayLightSavingsData = {
           "prop": {},
           "splits": [
             {"prop": {"robot_ratio": 32.91625462537744,"timerange": ["2012-10-31T00:00:00.000Z","2012-11-01T00:00:00.000Z"]}},
@@ -327,15 +331,15 @@ describe "General cache", ->
           ]
         }
 
-        dateLightSavingDriver = (request, callback) ->
-          callback(null, dateLightSavingData)
+        dayLightSavingsDriver = (request, callback) ->
+          callback(null, dayLightSavingsData)
           return
 
-        dateLightSavingDriverCached = generalCache({
-          driver: dateLightSavingDriver
+        dayLightSavingsDriverCached = generalCache({
+          driver: dayLightSavingsDriver
         })
 
-        dateLightSavingDriverCached {
+        dayLightSavingsDriverCached {
           query: new FacetQuery([
             {
               "type": "within",
@@ -395,13 +399,13 @@ describe "General cache", ->
           ])
         }, (err, result) ->
           expect(err).to.be.null
-          expect(JSON.parse(JSON.stringify(result))).to.deep.equal(dateLightSavingData)
+          expect(JSON.parse(JSON.stringify(result))).to.deep.equal(dayLightSavingsData)
           done()
 
 
     describe "with PT1H granularity", ->
-      it 'should work well when entering daylightsaving time with PT1H granularity', (done) ->
-        dateLightSavingData = {
+      it 'should work well when entering daylight saving time with PT1H granularity', (done) ->
+        dayLightSavingsData = {
           "prop": {},
           "splits": [
             { "prop": { "clicks": 75330, "timerange": [ "2013-03-09T07:00:00.000Z", "2013-03-09T08:00:00.000Z" ] } },
@@ -434,15 +438,15 @@ describe "General cache", ->
           ]
         }
 
-        dateLightSavingDriver = (request, callback) ->
-          callback(null, dateLightSavingData)
+        dayLightSavingsDriver = (request, callback) ->
+          callback(null, dayLightSavingsData)
           return
 
-        dateLightSavingDriverCached = generalCache({
-          driver: dateLightSavingDriver
+        dayLightSavingsDriverCached = generalCache({
+          driver: dayLightSavingsDriver
         })
 
-        dateLightSavingDriverCached {
+        dayLightSavingsDriverCached {
           query: new FacetQuery([
             {
               "type": "within",
@@ -479,11 +483,11 @@ describe "General cache", ->
           ])
         }, (err, result) ->
           expect(err).to.be.null
-          expect(JSON.parse(JSON.stringify(result))).to.deep.equal(dateLightSavingData)
+          expect(JSON.parse(JSON.stringify(result))).to.deep.equal(dayLightSavingsData)
           done()
 
-      it 'should work well when exiting daylightsaving time with PT1H granularity', (done) ->
-        dateLightSavingData = {
+      it 'should work well when exiting daylight saving time with PT1H granularity', (done) ->
+        dayLightSavingsData = {
           "prop": {},
           "splits": [
             { "prop": { "clicks": 117295, "timerange": [ "2013-11-03T00:00:00.000Z", "2013-11-03T01:00:00.000Z" ] } },
@@ -501,15 +505,15 @@ describe "General cache", ->
           ]
         }
 
-        dateLightSavingDriver = (request, callback) ->
-          callback(null, dateLightSavingData)
+        dayLightSavingsDriver = (request, callback) ->
+          callback(null, dayLightSavingsData)
           return
 
-        dateLightSavingDriverCached = generalCache({
-          driver: dateLightSavingDriver
+        dayLightSavingsDriverCached = generalCache({
+          driver: dayLightSavingsDriver
         })
 
-        dateLightSavingDriverCached {
+        dayLightSavingsDriverCached {
           query: new FacetQuery([
             {
               "type": "within",
@@ -546,7 +550,7 @@ describe "General cache", ->
           ])
         }, (err, result) ->
           expect(err).to.be.null
-          expect(JSON.parse(JSON.stringify(result))).to.deep.equal(dateLightSavingData)
+          expect(JSON.parse(JSON.stringify(result))).to.deep.equal(dayLightSavingsData)
           done()
 
 

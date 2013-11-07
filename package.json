@@ -18,11 +18,11 @@
   },
   "main": "target/facet.js",
   "dependencies": {
-    "express": "3.1.0",
     "async": "0.2.5",
+    "walltime-js": "~0.1.2",
     "pg": "0.13.1",
-    "timezone-js": "0.4.4",
-    "mysql": "2.0.0-alpha7"
+    "mysql": "2.0.0-alpha7",
+    "express": "3.1.0"
   },
   "devDependencies": {
     "chai": "~1.6.0",

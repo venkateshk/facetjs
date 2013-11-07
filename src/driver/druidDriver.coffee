@@ -1230,7 +1230,8 @@ splitupCondensedCommand = (condensedCommand) ->
       splitName = condensedCommand.split.name
       if sortApplySegmentation.length is 0
         # Sorting on splitting prop
-        throw new Error("prop split not implemented yet")
+        for info in perDatasetInfo
+          info.condensedCommand.combine = condensedCommand.combine
       else if sortApplySegmentation.length is 1
         # Sorting on regular apply
         mainDataset = sortApplySegmentation[0].dataset

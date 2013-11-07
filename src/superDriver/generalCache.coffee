@@ -2,31 +2,18 @@
 
 # -----------------------------------------------------
 driverUtil = require('./driverUtil')
+timeUtil = require('./timeUtil')
 { FacetQuery, AndFilter, TrueFilter, FacetFilter, FacetSplit, FacetCombine } = require('./query')
 
 moveTimestamp = (timestamp, period, timezone) ->
-  newTimestamp = new Date(timestamp)
+  name = switch period
+    when 'PT1S' then 'second'
+    when 'PT1M' then 'minute'
+    when 'PT1H' then 'hour'
+    when 'P1D'  then 'day'
+    else throw new Error("time period '#{period}' not supported by driver")
 
-  switch period
-    when 'PT1S'
-      newTimestamp.setUTCSeconds(newTimestamp.getUTCSeconds() + 1)
-    when 'PT1M'
-      newTimestamp.setUTCMinutes(newTimestamp.getUTCMinutes() + 1)
-    when 'PT1H'
-      newTimestamp.setUTCHours(newTimestamp.getUTCHours() + 1)
-    when 'P1D'
-      newTimestamp = driverUtil.convertToTimezoneJS(timestamp, timezone)
-      prevDate = newTimestamp.getDate()
-      newTimestamp.setDate(newTimestamp.getDate() + 1)
-
-      if newTimestamp.getHours() < 2
-        newTimestamp.setHours(0)
-      else
-        newTimestamp.setHours(24)
-    else
-      throw new Error("time period not supported by driver")
-
-  return newTimestamp
+  return timeUtil[name].move(timestamp, timezone, 1)
 
 
 filterToHashHelper = (filter) ->
@@ -147,7 +134,7 @@ class SplitCache
     timeFilter = separatedFilters[1]
     timezone = splitOp.timezone or 'Etc/UTC'
     timestamps = []
-    [timestamp, end] = timeFilter.range.map((timestamp) -> driverUtil.convertToTimezoneJS(timestamp, timezone))
+    [timestamp, end] = timeFilter.range
     if splitOp.bucket is 'timeDuration'
       duration = splitOp.duration
       while true

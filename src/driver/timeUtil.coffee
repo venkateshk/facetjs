@@ -102,7 +102,7 @@ exports.day = {
 exports.week = {
   floor: (dt, tz) ->
     wt = WallTime.UTCToWallTime(dt, tz)
-    return WallTime.WallTimeToUTC(tz, wt.getFullYear(), wt.getMonth(), wt.getDate() - d.getUTCDay(), 0, 0, 0, 0)
+    return WallTime.WallTimeToUTC(tz, wt.getFullYear(), wt.getMonth(), wt.getDate() - wt.getUTCDay(), 0, 0, 0, 0)
 
   ceil: (dt, tz) ->
     throw new Error("week ceil not implemented yet")

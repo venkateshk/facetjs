@@ -137,17 +137,17 @@ class SplitCache
     [timestamp, end] = timeFilter.range
     if splitOp.bucket is 'timeDuration'
       duration = splitOp.duration
-      while true
+      loop
         newTimestamp = new Date(timestamp.valueOf() + duration)
         break if newTimestamp > end
-        timestamps.push([new Date(timestamp), new Date(newTimestamp)])
+        timestamps.push([new Date(timestamp), newTimestamp])
         timestamp = newTimestamp
 
     else if splitOp.bucket is 'timePeriod'
-      while true
+      loop
         newTimestamp = moveTimestamp(timestamp, splitOp.period, timezone)
         break if newTimestamp > end
-        timestamps.push([new Date(timestamp), new Date(newTimestamp)])
+        timestamps.push([new Date(timestamp), newTimestamp])
         timestamp = newTimestamp
     else
       throw new Error("unknown time bucket")

@@ -1,10 +1,10 @@
-chai = require("chai")
-expect = chai.expect
+{ expect } = require("chai")
 utils = require('../utils')
 
 WallTime = require('walltime-js')
-tzData = require("../../node_modules/walltime-js/client/walltime-data.js")
-WallTime.init(tzData.rules, tzData.zones)
+if not WallTime.rules
+  tzData = require("../../node_modules/walltime-js/client/walltime-data.js")
+  WallTime.init(tzData.rules, tzData.zones)
 
 sqlRequester = require('../../build/mySqlRequester')
 sqlDriver = require('../../build/sqlDriver')

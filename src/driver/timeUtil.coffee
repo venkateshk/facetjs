@@ -5,6 +5,17 @@ WallTime = require('walltime-js', "WallTime")
 exports.isTimezone = isTimezone = (tz) ->
   return typeof tz is 'string' and tz.indexOf('/') isnt -1
 
+exports.milliseconds = {
+  floor: (dt, tz) ->
+    return new Date(dt)
+
+  ceil: (dt, tz) ->
+    return new Date(dt)
+
+  move: (dt, tz, i) ->
+    return new Date(dt.valueOf() + i)
+}
+
 exports.second = {
   floor: (dt, tz) ->
     throw new TypeError("#{tz} is not a valid timezone") unless isTimezone(tz)
@@ -90,7 +101,8 @@ exports.day = {
 
 exports.week = {
   floor: (dt, tz) ->
-    throw new Error("week floor not implemented yet")
+    wt = WallTime.UTCToWallTime(dt, tz)
+    return WallTime.WallTimeToUTC(tz, wt.getFullYear(), wt.getMonth(), wt.getDate() - d.getUTCDay(), 0, 0, 0, 0)
 
   ceil: (dt, tz) ->
     throw new Error("week ceil not implemented yet")
@@ -116,6 +128,23 @@ exports.month = {
     throw new TypeError("tz must be provided") unless isTimezone(tz)
     wt = WallTime.UTCToWallTime(dt, tz)
     return WallTime.WallTimeToUTC(tz, wt.getFullYear(), wt.getMonth() + i, wt.getDate(), wt.getHours(), wt.getMinutes(), wt.getSeconds(), wt.getMilliseconds())
+}
+
+exports.year = {
+  floor: (dt, tz) ->
+    wt = WallTime.UTCToWallTime(dt, tz)
+    return WallTime.WallTimeToUTC(tz, wt.getFullYear(), 0, 1, 0, 0, 0, 0)
+
+  ceil: (dt, tz) ->
+    wt = WallTime.UTCToWallTime(dt, tz)
+    year = wt.getFullYear()
+    year++ if wt.getMilliseconds() or wt.getSeconds() or wt.getMinutes() or wt.getHours() or wt.getDate() isnt 1 or wt.getMonth()
+    return WallTime.WallTimeToUTC(tz, year, 0, 1, 0, 0, 0, 0)
+
+  move: (dt, tz, i) ->
+    throw new TypeError("tz must be provided") unless isTimezone(tz)
+    wt = WallTime.UTCToWallTime(dt, tz)
+    return WallTime.WallTimeToUTC(tz, wt.getFullYear() + i, wt.getMonth(), wt.getDate(), wt.getHours(), wt.getMinutes(), wt.getSeconds(), wt.getMilliseconds())
 }
 
 

@@ -2,7 +2,7 @@
 
 # -----------------------------------------------------
 driverUtil = require('./driverUtil')
-timeUtil = require('./timeUtil')
+chronology = require('./chronology')
 { FacetQuery, AndFilter, TrueFilter, FacetFilter, FacetSplit, FacetCombine } = require('./query')
 
 moveTimestamp = (timestamp, period, timezone) ->
@@ -13,7 +13,7 @@ moveTimestamp = (timestamp, period, timezone) ->
     when 'P1D'  then 'day'
     else throw new Error("time period '#{period}' not supported by driver")
 
-  return timeUtil[name].move(timestamp, timezone, 1)
+  return chronology[name].move(timestamp, timezone, 1)
 
 
 filterToHashHelper = (filter) ->

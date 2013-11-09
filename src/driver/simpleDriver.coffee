@@ -1,6 +1,7 @@
 `(typeof window === 'undefined' ? {} : window)['simpleDriver'] = (function(module, require){"use strict"; var exports = module.exports`
 
 async = require('async')
+chronology = require('./chronology')
 driverUtil = require('./driverUtil')
 {FacetFilter, FacetSplit, FacetApply, FacetCombine, FacetQuery} = require('./query')
 
@@ -18,49 +19,23 @@ splitFns = {
       return [b, b + size]
 
   timeDuration: ({attribute, duration, offset}) ->
-    throw new Error("not implemented yet") # todo
+    throw new Error("not implemented yet (ToDo)")
 
   timePeriod: ({attribute, period, timezone}) ->
-    throw new Error('only UTC is supported by driver (for now)') unless timezone is 'Etc/UTC'
-    switch period
-      when 'PT1S'
-        return (d) ->
-          ds = new Date(d[attribute])
-          return null if isNaN(ds)
-          ds.setUTCMilliseconds(0)
-          de = new Date(ds)
-          de.setUTCMilliseconds(1000)
-          return [ds, de]
+    periodName = switch period
+      when 'PT1S' then 'second'
+      when 'PT1M' then 'minute'
+      when 'PT1H' then 'hour'
+      when 'P1D'  then 'day'
+      else throw new Error("Period '#{period}' not supported by driver")
 
-      when 'PT1M'
-        return (d) ->
-          ds = new Date(d[attribute])
-          return null if isNaN(ds)
-          ds.setUTCSeconds(0, 0)
-          de = new Date(ds)
-          de.setUTCSeconds(60)
-          return [ds, de]
+    { floor, move } = chronology[periodName]
 
-      when 'PT1H'
-        return (d) ->
-          ds = new Date(d[attribute])
-          return null if isNaN(ds)
-          ds.setUTCMinutes(0, 0, 0)
-          de = new Date(ds)
-          de.setUTCMinutes(60)
-          return [ds, de]
-
-      when 'P1D'
-        return (d) ->
-          ds = new Date(d[attribute])
-          return null if isNaN(ds)
-          ds.setUTCHours(0, 0, 0, 0)
-          de = new Date(ds)
-          de.setUTCHours(24)
-          return [ds, de]
-
-      else
-        throw new Error("period '#{period}' not supported by driver")
+    return (d) ->
+      ds = new Date(d[attribute])
+      return null if isNaN(ds)
+      ds = floor(ds, timezone)
+      return [ds, move(ds, timezone, 1)]
 
   tuple: ({splits}) ->
     tupleSplits = splits.map(makeSplitFn)
@@ -223,7 +198,7 @@ computeQuery = (data, query) ->
             throw new Error("bucket returned undefined") unless key? # ToDo: handle nulls
             keyString = String(key)
 
-            if not bucketValue[keyString]
+            if not bucketValue.hasOwnProperty(keyString)
               keys.push(keyString)
               bucketValue[keyString] = key
 

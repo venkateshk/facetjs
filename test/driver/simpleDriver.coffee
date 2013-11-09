@@ -327,4 +327,73 @@ describe "simple driver", ->
       })
       done()
 
+  it.only "splits identity correctly", (done) ->
+    querySpec = [
+      {
+        "type": "and",
+        "filters": [
+          {
+            "type": "within",
+            "attribute": "time",
+            "range": [
+              "2013-02-24T12:00:00.000Z",
+              "2013-03-01T00:00:00.001Z"
+            ]
+          },
+          {
+            "type": "in",
+            "attribute": "language",
+            "values": [
+              "en"
+            ]
+          }
+        ],
+        "operation": "filter"
+      },
+      {
+        "bucket": "identity",
+        "name": "unpatrolled",
+        "attribute": "unpatrolled",
+        "operation": "split"
+      },
+      {
+        "name": "count",
+        "aggregate": "sum",
+        "attribute": "count",
+        "operation": "apply"
+      },
+      {
+        "method": "slice",
+        "sort": {
+          "compare": "natural",
+          "prop": "count",
+          "direction": "descending"
+        },
+        "limit": 13,
+        "operation": "combine"
+      }
+    ]
+
+    wikiDriver { query: new FacetQuery(querySpec) }, (err, result) ->
+      expect(err).to.equal(null)
+      expect(result).to.deep.equal({
+        "prop": {},
+        "splits": [
+          {
+            "prop": {
+              "unpatrolled": 0,
+              "count": 16384
+            }
+          },
+          {
+            "prop": {
+              "unpatrolled": 1,
+              "count": 191
+            }
+          }
+        ]
+      })
+      done()
+
+
 

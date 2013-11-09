@@ -1,4 +1,4 @@
-`(typeof window === 'undefined' ? {} : window)['timeUtil'] = (function(module, require){"use strict"; var exports = module.exports`
+`(typeof window === 'undefined' ? {} : window)['chronology'] = (function(module, require){"use strict"; var exports = module.exports`
 
 WallTime = require('walltime-js', "WallTime")
 

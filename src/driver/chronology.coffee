@@ -12,8 +12,8 @@ exports.milliseconds = {
   ceil: (dt, tz) ->
     return new Date(dt)
 
-  move: (dt, tz, i) ->
-    return new Date(dt.valueOf() + i)
+  move: (dt, tz, step) ->
+    return new Date(dt.valueOf() + step)
 }
 
 exports.second = {
@@ -32,9 +32,9 @@ exports.second = {
       dt.setUTCMilliseconds(1000)
     return dt
 
-  move: (dt, tz, i) ->
+  move: (dt, tz, step) ->
     dt = new Date(dt)
-    dt.setUTCSeconds(dt.getUTCSeconds() + i)
+    dt.setUTCSeconds(dt.getUTCSeconds() + step)
     return dt
 }
 
@@ -54,9 +54,9 @@ exports.minute = {
       dt.setUTCSeconds(60, 0)
     return dt
 
-  move: (dt, tz, i) ->
+  move: (dt, tz, step) ->
     dt = new Date(dt)
-    dt.setUTCMinutes(dt.getUTCMinutes() + i)
+    dt.setUTCMinutes(dt.getUTCMinutes() + step)
     return dt
 }
 
@@ -76,9 +76,9 @@ exports.hour = {
       dt.setUTCMinutes(60, 0, 0)
     return dt
 
-  move: (dt, tz, i) ->
+  move: (dt, tz, step) ->
     dt = new Date(dt)
-    dt.setUTCHours(dt.getUTCHours() + i)
+    dt.setUTCHours(dt.getUTCHours() + step)
     return dt
 }
 
@@ -93,10 +93,10 @@ exports.day = {
     date++ if wt.getMilliseconds() or wt.getSeconds() or wt.getMinutes() or wt.getHours()
     return WallTime.WallTimeToUTC(tz, wt.getFullYear(), wt.getMonth(), date, 0, 0, 0, 0)
 
-  move: (dt, tz, i) ->
+  move: (dt, tz, step) ->
     throw new TypeError("tz must be provided") unless isTimezone(tz)
     wt = WallTime.UTCToWallTime(dt, tz)
-    return WallTime.WallTimeToUTC(tz, wt.getFullYear(), wt.getMonth(), wt.getDate() + i, wt.getHours(), wt.getMinutes(), wt.getSeconds(), wt.getMilliseconds())
+    return WallTime.WallTimeToUTC(tz, wt.getFullYear(), wt.getMonth(), wt.getDate() + step, wt.getHours(), wt.getMinutes(), wt.getSeconds(), wt.getMilliseconds())
 }
 
 exports.week = {
@@ -107,10 +107,10 @@ exports.week = {
   ceil: (dt, tz) ->
     throw new Error("week ceil not implemented yet")
 
-  move: (dt, tz, i) ->
+  move: (dt, tz, step) ->
     throw new TypeError("tz must be provided") unless isTimezone(tz)
     wt = WallTime.UTCToWallTime(dt, tz)
-    return WallTime.WallTimeToUTC(tz, wt.getFullYear(), wt.getMonth(), wt.getDate() + i * 7, wt.getHours(), wt.getMinutes(), wt.getSeconds(), wt.getMilliseconds())
+    return WallTime.WallTimeToUTC(tz, wt.getFullYear(), wt.getMonth(), wt.getDate() + step * 7, wt.getHours(), wt.getMinutes(), wt.getSeconds(), wt.getMilliseconds())
 }
 
 exports.month = {
@@ -124,10 +124,10 @@ exports.month = {
     month++ if wt.getMilliseconds() or wt.getSeconds() or wt.getMinutes() or wt.getHours() or wt.getDate() isnt 1
     return WallTime.WallTimeToUTC(tz, wt.getFullYear(), month, 1, 0, 0, 0, 0)
 
-  move: (dt, tz, i) ->
+  move: (dt, tz, step) ->
     throw new TypeError("tz must be provided") unless isTimezone(tz)
     wt = WallTime.UTCToWallTime(dt, tz)
-    return WallTime.WallTimeToUTC(tz, wt.getFullYear(), wt.getMonth() + i, wt.getDate(), wt.getHours(), wt.getMinutes(), wt.getSeconds(), wt.getMilliseconds())
+    return WallTime.WallTimeToUTC(tz, wt.getFullYear(), wt.getMonth() + step, wt.getDate(), wt.getHours(), wt.getMinutes(), wt.getSeconds(), wt.getMilliseconds())
 }
 
 exports.year = {
@@ -141,12 +141,60 @@ exports.year = {
     year++ if wt.getMilliseconds() or wt.getSeconds() or wt.getMinutes() or wt.getHours() or wt.getDate() isnt 1 or wt.getMonth()
     return WallTime.WallTimeToUTC(tz, year, 0, 1, 0, 0, 0, 0)
 
-  move: (dt, tz, i) ->
+  move: (dt, tz, step) ->
     throw new TypeError("tz must be provided") unless isTimezone(tz)
     wt = WallTime.UTCToWallTime(dt, tz)
-    return WallTime.WallTimeToUTC(tz, wt.getFullYear() + i, wt.getMonth(), wt.getDate(), wt.getHours(), wt.getMinutes(), wt.getSeconds(), wt.getMilliseconds())
+    return WallTime.WallTimeToUTC(tz, wt.getFullYear() + step, wt.getMonth(), wt.getDate(), wt.getHours(), wt.getMinutes(), wt.getSeconds(), wt.getMilliseconds())
 }
 
+
+periodWeekRegExp = ///
+  ^P
+  (\d+)W   # week
+  $
+  ///
+
+periodRegExp = ///
+  ^P
+  (?:(\d+)Y)?    # year
+  (?:(\d+)M)?    # month
+  (?:(\d+)D)?    # day
+  (?:T           # T separator
+    (?:(\d+)H)?  # hour
+    (?:(\d+)M)?  # minute
+    (?:(\d+)S)?  # second
+  )?
+  $
+  ///
+
+exports.durationMove = (duration) ->
+  durationPart = {}
+  if matches = periodWeekRegExp.exec(duration)
+    matches = matches.map(Number)
+    durationPart.week =    matches[1] if matches[1]
+
+  else if matches = periodRegExp.exec(duration)
+    matches = matches.map(Number)
+    durationPart.year =   matches[1] if matches[1]
+    durationPart.month =  matches[2] if matches[2]
+    durationPart.day =    matches[3] if matches[3]
+    durationPart.hour =   matches[4] if matches[4]
+    durationPart.minute = matches[5] if matches[5]
+    durationPart.second = matches[6] if matches[6]
+  else
+    throw new Error("Can not parse duration '#{duration}'")
+
+  nonZero = false
+  for k, v of durationPart
+    nonZero = true
+    break
+
+  throw new Error("Must be a non zero duration") unless nonZero
+
+  return (dt, tz, step = 1) ->
+    for durationType, value of durationPart
+      dt = exports[durationType].move(dt, tz, step * value)
+    return dt
 
 # ---------------------------------------------------------
 

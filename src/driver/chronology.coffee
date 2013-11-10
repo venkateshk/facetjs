@@ -5,7 +5,7 @@ WallTime = require('walltime-js', "WallTime")
 exports.isTimezone = isTimezone = (tz) ->
   return typeof tz is 'string' and tz.indexOf('/') isnt -1
 
-exports.milliseconds = {
+exports.millisecond = {
   floor: (dt, tz) ->
     return new Date(dt)
 
@@ -167,7 +167,7 @@ periodRegExp = ///
   $
   ///
 
-exports.durationMove = (duration) ->
+parseDuration = (duration) ->
   durationPart = {}
   if matches = periodWeekRegExp.exec(duration)
     matches = matches.map(Number)
@@ -183,6 +183,26 @@ exports.durationMove = (duration) ->
     durationPart.second = matches[6] if matches[6]
   else
     throw new Error("Can not parse duration '#{duration}'")
+
+  return durationPart
+
+
+exports.durationFloor = (duration) ->
+  durationPart = parseDuration(duration)
+
+  floorType = null
+  for k, v of durationPart
+    if v isnt 1 or floorType
+      throw new Error("Can not floor on a complex duration")
+    else
+      floorType = k
+
+  floorType or= 'millisecond'
+  return exports[floorType].floor
+
+
+exports.durationMove = (duration) ->
+  durationPart = parseDuration(duration)
 
   nonZero = false
   for k, v of durationPart

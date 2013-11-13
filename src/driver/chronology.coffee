@@ -183,26 +183,67 @@ periodRegExp = ///
   $
   ///
 
+spans = ['year', 'month', 'day', 'hour', 'minute', 'second']
 class Duration
-  constructor: (durationStr) ->
-    if Array.isArray(durationStr)
-      @durationParts = durationStr
+  constructor: (x, end, timezone) ->
+    if arguments.length is 1
+      @_createFromString(x)
     else
-      @durationParts = []
-      if matches = periodWeekRegExp.exec(durationStr)
-        matches = matches.map(Number)
-        @durationParts.push(['week',   matches[1]]) if matches[1]
+      @_createFromSpan(x, end, timezone)
 
-      else if matches = periodRegExp.exec(durationStr)
-        matches = matches.map(Number)
-        @durationParts.push(['year',   matches[1]]) if matches[1]
-        @durationParts.push(['month',  matches[2]]) if matches[2]
-        @durationParts.push(['day',    matches[3]]) if matches[3]
-        @durationParts.push(['hour',   matches[4]]) if matches[4]
-        @durationParts.push(['minute', matches[5]]) if matches[5]
-        @durationParts.push(['second', matches[6]]) if matches[6]
-      else
-        throw new Error("Can not parse duration '#{durationStr}'")
+  _createFromString: (durationStr) ->
+    @durationParts = []
+    if matches = periodWeekRegExp.exec(durationStr)
+      matches = matches.map(Number)
+      @durationParts.push(['week',   matches[1]]) if matches[1]
+
+    else if matches = periodRegExp.exec(durationStr)
+      matches = matches.map(Number)
+      @durationParts.push(['year',   matches[1]]) if matches[1]
+      @durationParts.push(['month',  matches[2]]) if matches[2]
+      @durationParts.push(['day',    matches[3]]) if matches[3]
+      @durationParts.push(['hour',   matches[4]]) if matches[4]
+      @durationParts.push(['minute', matches[5]]) if matches[5]
+      @durationParts.push(['second', matches[6]]) if matches[6]
+    else
+      throw new Error("Can not parse duration '#{durationStr}'")
+
+    return
+
+  _createFromSpan: (start, end, timezone) ->
+    start = exports.second.floor(start, timezone)
+    end = exports.second.floor(end, timezone)
+    throw new Error("start must come before end") unless start < end
+
+    @durationParts = []
+    iter = start
+    for span in spans
+      spanCount = 0
+
+      # Shortcut
+      length = end - iter
+      canonical = exports[span].canonical
+      continue if length < canonical / 4
+      numberToFit = Math.min(0, Math.floor(length / canonical) - 1)
+      if numberToFit > 0
+        # try to skip by numberToFit
+        iterMove = exports[span].move(iter, timezone, numberToFit)
+        if iterMove <= end
+          spanCount += numberToFit
+          iter = iterMove
+
+      loop
+        iterMove = exports[span].move(iter, timezone, 1)
+        if iterMove <= end
+          iter = iterMove
+          spanCount++
+        else
+          break
+
+      if spanCount
+        @durationParts.push([span, spanCount])
+
+    return
 
   toString: ->
     strArr = ['P']
@@ -230,43 +271,6 @@ class Duration
     for [durationType, value] in @durationParts
       dt = exports[durationType].move(dt, tz, step * value)
     return dt
-
-
-spans = ['year', 'month', 'day', 'hour', 'minute', 'second']
-Duration.fromSpan = (start, end, timezone) ->
-  start = exports.second.floor(start, timezone)
-  end = exports.second.floor(end, timezone)
-  throw new Error("start must come before end") unless start < end
-
-  spec = []
-  iter = start
-  for span in spans
-    spanCount = 0
-
-    # Shortcut
-    length = end - iter
-    canonical = exports[span].canonical
-    continue if length < canonical / 4
-    numberToFit = Math.min(0, Math.floor(length / canonical) - 1)
-    if numberToFit > 0
-      # try to skip by numberToFit
-      iterMove = exports[span].move(iter, timezone, numberToFit)
-      if iterMove <= end
-        spanCount += numberToFit
-        iter = iterMove
-
-    loop
-      iterMove = exports[span].move(iter, timezone, 1)
-      if iterMove <= end
-        iter = iterMove
-        spanCount++
-      else
-        break
-
-    if spanCount
-      spec.push([span, spanCount])
-
-  return new Duration(spec)
 
 
 exports.Duration = Duration

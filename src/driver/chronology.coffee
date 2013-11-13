@@ -6,6 +6,8 @@ exports.isTimezone = isTimezone = (tz) ->
   return typeof tz is 'string' and tz.indexOf('/') isnt -1
 
 exports.millisecond = {
+  canonical: 1
+
   floor: (dt, tz) ->
     return new Date(dt)
 
@@ -17,6 +19,8 @@ exports.millisecond = {
 }
 
 exports.second = {
+  canonical: 1000
+
   floor: (dt, tz) ->
     throw new TypeError("#{tz} is not a valid timezone") unless isTimezone(tz)
     # Seconds do not actually need a timezone because all timezones align on seconds... for now...
@@ -39,6 +43,8 @@ exports.second = {
 }
 
 exports.minute = {
+  canonical: 60000
+
   floor: (dt, tz) ->
     throw new TypeError("#{tz} is not a valid timezone") unless isTimezone(tz)
     # Minutes do not actually need a timezone because all timezones align on minutes... for now...
@@ -61,6 +67,8 @@ exports.minute = {
 }
 
 exports.hour = {
+  canonical: 3600000
+
   floor: (dt, tz) ->
     throw new TypeError("#{tz} is not a valid timezone") unless isTimezone(tz)
     # Not all timezones align on hours! (India)
@@ -83,6 +91,8 @@ exports.hour = {
 }
 
 exports.day = {
+  canonical: 24 * 3600000
+
   floor: (dt, tz) ->
     wt = WallTime.UTCToWallTime(dt, tz)
     return WallTime.WallTimeToUTC(tz, wt.getFullYear(), wt.getMonth(), wt.getDate(), 0, 0, 0, 0)
@@ -100,6 +110,8 @@ exports.day = {
 }
 
 exports.week = {
+  canonical: 7 * 24 * 3600000
+
   floor: (dt, tz) ->
     wt = WallTime.UTCToWallTime(dt, tz)
     return WallTime.WallTimeToUTC(tz, wt.getFullYear(), wt.getMonth(), wt.getDate() - wt.getUTCDay(), 0, 0, 0, 0)
@@ -114,6 +126,8 @@ exports.week = {
 }
 
 exports.month = {
+  canonical: 30 * 24 * 3600000
+
   floor: (dt, tz) ->
     wt = WallTime.UTCToWallTime(dt, tz)
     return WallTime.WallTimeToUTC(tz, wt.getFullYear(), wt.getMonth(), 1, 0, 0, 0, 0)
@@ -131,6 +145,8 @@ exports.month = {
 }
 
 exports.year = {
+  canonical: 365 * 24 * 3600000
+
   floor: (dt, tz) ->
     wt = WallTime.UTCToWallTime(dt, tz)
     return WallTime.WallTimeToUTC(tz, wt.getFullYear(), 0, 1, 0, 0, 0, 0)
@@ -169,21 +185,24 @@ periodRegExp = ///
 
 class Duration
   constructor: (durationStr) ->
-    @durationParts = []
-    if matches = periodWeekRegExp.exec(durationStr)
-      matches = matches.map(Number)
-      @durationParts.push(['week',   matches[1]]) if matches[1]
-
-    else if matches = periodRegExp.exec(durationStr)
-      matches = matches.map(Number)
-      @durationParts.push(['year',   matches[1]]) if matches[1]
-      @durationParts.push(['month',  matches[2]]) if matches[2]
-      @durationParts.push(['day',    matches[3]]) if matches[3]
-      @durationParts.push(['hour',   matches[4]]) if matches[4]
-      @durationParts.push(['minute', matches[5]]) if matches[5]
-      @durationParts.push(['second', matches[6]]) if matches[6]
+    if Array.isArray(durationStr)
+      @durationParts = durationStr
     else
-      throw new Error("Can not parse duration '#{durationStr}'")
+      @durationParts = []
+      if matches = periodWeekRegExp.exec(durationStr)
+        matches = matches.map(Number)
+        @durationParts.push(['week',   matches[1]]) if matches[1]
+
+      else if matches = periodRegExp.exec(durationStr)
+        matches = matches.map(Number)
+        @durationParts.push(['year',   matches[1]]) if matches[1]
+        @durationParts.push(['month',  matches[2]]) if matches[2]
+        @durationParts.push(['day',    matches[3]]) if matches[3]
+        @durationParts.push(['hour',   matches[4]]) if matches[4]
+        @durationParts.push(['minute', matches[5]]) if matches[5]
+        @durationParts.push(['second', matches[6]]) if matches[6]
+      else
+        throw new Error("Can not parse duration '#{durationStr}'")
 
   toString: ->
     strArr = ['P']
@@ -211,6 +230,43 @@ class Duration
     for [durationType, value] in @durationParts
       dt = exports[durationType].move(dt, tz, step * value)
     return dt
+
+
+spans = ['year', 'month', 'day', 'hour', 'minute', 'second']
+Duration.fromSpan = (start, end, timezone) ->
+  start = exports.second.floor(start, timezone)
+  end = exports.second.floor(end, timezone)
+  throw new Error("start must come before end") unless start < end
+
+  spec = []
+  iter = start
+  for span in spans
+    spanCount = 0
+
+    # Shortcut
+    length = end - iter
+    canonical = exports[span].canonical
+    continue if length < canonical / 4
+    numberToFit = Math.min(0, Math.floor(length / canonical) - 1)
+    if numberToFit > 0
+      # try to skip by numberToFit
+      iterMove = exports[span].move(iter, timezone, numberToFit)
+      if iterMove <= end
+        spanCount += numberToFit
+        iter = iterMove
+
+    loop
+      iterMove = exports[span].move(iter, timezone, 1)
+      if iterMove <= end
+        iter = iterMove
+        spanCount++
+      else
+        break
+
+    if spanCount
+      spec.push([span, spanCount])
+
+  return new Duration(spec)
 
 
 exports.Duration = Duration

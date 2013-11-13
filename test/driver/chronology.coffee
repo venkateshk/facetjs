@@ -197,3 +197,36 @@ describe "chronology", ->
         expect(pComplex.move(new Date("2012-01-01T00:00:00-08:00"), tz)).to.deep
                       .equal(new Date("2013-03-04T04:05:06-08:00"))
 
+
+    describe ".fromSpan", ->
+      it "parses days over DST", ->
+        expect(Duration.fromSpan(
+          new Date("2012-10-29T00:00:00-07:00")
+          new Date("2012-11-05T00:00:00-08:00")
+          tz
+        ).toString()).to.equal('P7D')
+
+        expect(Duration.fromSpan(
+          new Date("2012-10-29T00:00:00-07:00")
+          new Date("2012-11-12T00:00:00-08:00")
+          tz
+        ).toString()).to.equal('P14D')
+
+      it "parses complex case", ->
+        expect(Duration.fromSpan(
+          new Date("2012-10-29T00:00:00-07:00")
+          new Date(new Date("2012-11-05T00:00:00-08:00") - 1000)
+          tz
+        ).toString()).to.equal('P6DT24H59M59S')
+
+        expect(Duration.fromSpan(
+          new Date("2012-01-01T00:00:00-08:00")
+          new Date("2013-03-04T04:05:06-08:00")
+          tz
+        ).toString()).to.equal('P1Y2M3DT4H5M6S')
+
+
+
+
+
+

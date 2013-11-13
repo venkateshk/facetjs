@@ -70,13 +70,13 @@
         return int.start.toFixed(1) + ' - ' + int.end.toFixed(1)
       }
 
-      var vis = facet.define('.example', 800, 600, sqlDriverClient)
-        .transform(transform.rectangle.rectangle({left: 10, right: 10, top: 10, bottom: 10}))
+      var vis = facet.define('.example', 600, 400, sqlDriverClient)
+        .transform(transform.rectangle.rectangle({left: 30, right: 10, top: 10, bottom: 50}))
         .scale('horiz', scale.linear())
         .range('horiz', use.space('width'))
         .scale('vert', scale.linear())
         .range('vert', use.space('height'))
-        .connector('line', connector.line({color: 'steelblue'}))
+        .connector('line', connector.line({color: 'steelblue', width: 3}))
           .split('Carat', split.continuous('carat', 0.1))
           .apply('Count', apply.count())
           .apply('AvgPrice', apply.average('price'))
@@ -92,23 +92,18 @@
               fill: '#f0f0f0',
               stroke: 'black'
             }))
-            .transform(transform.rectangle.point({ bottom: 6 }))
+            .transform(transform.rectangle.point({ bottom: -6 }))
               .plot(plot.label({
                 text: use.fn(use.prop('Carat'), intervalToString),
                 baseline: 'center',
-                angle: 90
+                anchor: 'end',
+                angle: 60
               }))
             .untransform()
             .transform(transform.rectangle.point({ top: 0 }))
               .plot(plot.circle({
                 color: 'red',
                 radius: 3
-              }))
-              .plot(plot.label({
-                baseline: 'bottom',
-                anchor: 'middle',
-                size: 10,
-                text: use.prop('Count')
               }))
               .connect('line')
 

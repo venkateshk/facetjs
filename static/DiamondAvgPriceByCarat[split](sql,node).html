@@ -29,6 +29,7 @@
       var combine = facet.combine;
       var sort = facet.sort;
       var transform = facet.transform;
+      var connector = facet.connector;
     </script>
   </head>
 
@@ -69,8 +70,8 @@
         return int.start.toFixed(1) + ' - ' + int.end.toFixed(1)
       }
 
-      var vis = facet.define('.example', 800, 600, sqlDriverClient)
-        .transform(transform.rectangle.rectangle({left: 10, right: 10, top: 10, bottom: 10}))
+      var vis = facet.define('.example', 600, 400, sqlDriverClient)
+        .transform(transform.rectangle.rectangle({left: 30, right: 10, top: 10, bottom: 50}))
         .scale('vert', scale.linear())
           .split('Carat', split.continuous('carat', 0.1))
           .apply('AvgPrice', apply.average('price'))
@@ -86,11 +87,12 @@
               fill: '#f0f0f0',
               stroke: 'black'
             }))
-            .transform(transform.rectangle.point({ bottom: 6 }))
+            .transform(transform.rectangle.point({ bottom: -6 }))
               .plot(plot.label({
                 text: use.fn(use.prop('Carat'), intervalToString),
                 baseline: 'center',
-                angle: 90
+                anchor: 'end',
+                angle: 60
               }))
 
       vis.render(true);

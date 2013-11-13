@@ -327,7 +327,7 @@ describe "simple driver", ->
       })
       done()
 
-  it.only "splits identity correctly", (done) ->
+  it "splits identity correctly", (done) ->
     querySpec = [
       {
         "type": "and",

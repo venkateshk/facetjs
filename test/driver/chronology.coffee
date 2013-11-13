@@ -6,6 +6,7 @@ if not WallTime.rules
   WallTime.init(tzData.rules, tzData.zones)
 
 chronology = require('../../build/chronology')
+{ Duration } = chronology
 
 describe "chronology", ->
   tz = "America/Los_Angeles"
@@ -95,95 +96,104 @@ describe "chronology", ->
       expect(chronology.year.move(dates[i - 1], tz, 1)).to.deep.equal(dates[i]) for i in [1...dates.length]
 
 
-  describe "#durationFloor", ->
+  describe "Duration", ->
     it "throws error if invalid duration", ->
       expect(->
-        chronology.durationFloor('')
+        new Duration('')
       ).to.throw(Error, "Can not parse duration ''")
 
       expect(->
-        chronology.durationFloor('P00')
+        new Duration('P00')
       ).to.throw(Error, "Can not parse duration 'P00'")
 
-    it "throws error if complex duration", ->
-      expect(->
-        chronology.durationFloor('PT2H')
-      ).to.throw(Error, "Can not floor on a complex duration")
+    describe "#toString", ->
+      it "gives back the correct string", ->
+        durationStr = 'P3Y'
+        expect(new Duration(durationStr).toString()).to.equal(durationStr)
 
-      expect(->
-        chronology.durationFloor('P1Y2D')
-      ).to.throw(Error, "Can not floor on a complex duration")
+        durationStr = 'P2W'
+        expect(new Duration(durationStr).toString()).to.equal(durationStr)
 
-      expect(->
-        chronology.durationFloor('P3DT15H')
-      ).to.throw(Error, "Can not floor on a complex duration")
+        durationStr = 'PT5H'
+        expect(new Duration(durationStr).toString()).to.equal(durationStr)
 
-    it "works for year", ->
-      floor1y = chronology.durationFloor('P1Y')
-      expect(floor1y(new Date("2013-09-29T01:02:03.456-07:00"), tz)).to.deep
-              .equal(new Date("2013-01-01T00:00:00.000-08:00"))
+        durationStr = 'P3DT15H'
+        expect(new Duration(durationStr).toString()).to.equal(durationStr)
 
-    it "works for week", ->
-      floor1w = chronology.durationFloor('P1W')
-      expect(floor1w(new Date("2013-09-29T01:02:03.456-07:00"), tz)).to.deep
-              .equal(new Date("2013-09-29T00:00:00.000-07:00"))
+      it "eliminates 0", ->
+        expect(new Duration('P0DT15H').toString()).to.equal('PT15H')
 
-      expect(floor1w(new Date("2013-10-03T01:02:03.456-07:00"), tz)).to.deep
-              .equal(new Date("2013-09-29T00:00:00.000-07:00"))
+    describe "#floor", ->
+      it "throws error if complex duration", ->
+        expect(->
+          new Duration('PT2H').floor(new Date(), tz)
+        ).to.throw(Error, "Can not floor on a complex duration")
 
-    it "works for milliseconds", ->
-      floor1ms = chronology.durationFloor('P')
-      expect(floor1ms(new Date("2013-09-29T01:02:03.456-07:00"), tz)).to.deep
-               .equal(new Date("2013-09-29T01:02:03.456-07:00"))
+        expect(->
+          new Duration('P1Y2D').floor(new Date(), tz)
+        ).to.throw(Error, "Can not floor on a complex duration")
 
-      floor1ms = chronology.durationFloor('P0YT0H')
-      expect(floor1ms(new Date("2013-09-29T01:02:03.456-07:00"), tz)).to.deep
-               .equal(new Date("2013-09-29T01:02:03.456-07:00"))
+        expect(->
+          new Duration('P3DT15H').floor(new Date(), tz)
+        ).to.throw(Error, "Can not floor on a complex duration")
+
+      it "works for year", ->
+        p1y = new Duration('P1Y')
+        expect(p1y.floor(new Date("2013-09-29T01:02:03.456-07:00"), tz)).to.deep
+                  .equal(new Date("2013-01-01T00:00:00.000-08:00"))
+
+      it "works for week", ->
+        p1w = new Duration('P1W')
+        expect(p1w.floor(new Date("2013-09-29T01:02:03.456-07:00"), tz)).to.deep
+                  .equal(new Date("2013-09-29T00:00:00.000-07:00"))
+
+        expect(p1w.floor(new Date("2013-10-03T01:02:03.456-07:00"), tz)).to.deep
+                  .equal(new Date("2013-09-29T00:00:00.000-07:00"))
+
+      it "works for milliseconds", ->
+        p1ms = new Duration('P')
+        expect(p1ms.floor(new Date("2013-09-29T01:02:03.456-07:00"), tz)).to.deep
+                   .equal(new Date("2013-09-29T01:02:03.456-07:00"))
+
+        p1ms = new Duration('P0YT0H')
+        expect(p1ms.floor(new Date("2013-09-29T01:02:03.456-07:00"), tz)).to.deep
+                   .equal(new Date("2013-09-29T01:02:03.456-07:00"))
 
 
-  describe "#durationMove", ->
-    it "throws error if invalid duration", ->
-      expect(->
-        chronology.durationMove('')
-      ).to.throw(Error, "Can not parse duration ''")
+    describe "#move", ->
+      it "throws error if empty duration", ->
+        expect(->
+          new Duration('P').move(new Date(), tz)
+        ).to.throw(Error, "Must be a non zero duration")
 
-      expect(->
-        chronology.durationMove('P00')
-      ).to.throw(Error, "Can not parse duration 'P00'")
+        expect(->
+          new Duration('PT').move(new Date(), tz)
+        ).to.throw(Error, "Must be a non zero duration")
 
-    it "throws error if empty duration", ->
-      expect(->
-        chronology.durationMove('P')
-      ).to.throw(Error, "Must be a non zero duration")
+      it "throws error if empty duration with zeros", ->
+        expect(->
+          new Duration('P0W').move(new Date(), tz)
+        ).to.throw(Error, "Must be a non zero duration")
 
-      expect(->
-        chronology.durationMove('PT')
-      ).to.throw(Error, "Must be a non zero duration")
+        expect(->
+          new Duration('P0Y0MT0H0M0S').move(new Date(), tz)
+        ).to.throw(Error, "Must be a non zero duration")
 
-    it "throws error if empty duration with zeros", ->
-      expect(->
-        chronology.durationMove('P0W')
-      ).to.throw(Error, "Must be a non zero duration")
+      it "works for weeks", ->
+        p1w = new Duration('P1W')
+        expect(p1w.move(new Date("2012-10-29T00:00:00-07:00"), tz)).to.deep
+                 .equal(new Date("2012-11-05T00:00:00-08:00"))
 
-      expect(->
-        chronology.durationMove('P0Y0MT0H0M0S')
-      ).to.throw(Error, "Must be a non zero duration")
+        p1w = new Duration('P1W')
+        expect(p1w.move(new Date("2012-10-29T00:00:00-07:00"), tz, 2)).to.deep
+                 .equal(new Date("2012-11-12T00:00:00-08:00"))
 
-    it "works for weeks", ->
-      move1w = chronology.durationMove('P1W')
-      expect(move1w(new Date("2012-10-29T00:00:00-07:00"), tz)).to.deep
-             .equal(new Date("2012-11-05T00:00:00-08:00"))
+        p2w = new Duration('P2W')
+        expect(p2w.move(new Date("2012-10-29T05:16:17-07:00"), tz)).to.deep
+                 .equal(new Date("2012-11-12T05:16:17-08:00"))
 
-      move1w = chronology.durationMove('P1W')
-      expect(move1w(new Date("2012-10-29T00:00:00-07:00"), tz, 2)).to.deep
-             .equal(new Date("2012-11-12T00:00:00-08:00"))
-
-      move2w = chronology.durationMove('P2W')
-      expect(move2w(new Date("2012-10-29T05:16:17-07:00"), tz)).to.deep
-             .equal(new Date("2012-11-12T05:16:17-08:00"))
-
-    it "works for general complex case", ->
-      moveComplex = chronology.durationMove('P1Y2M3DT4H5M6S')
-      expect(moveComplex(new Date("2012-01-01T00:00:00-08:00"), tz)).to.deep
-                  .equal(new Date("2013-03-04T04:05:06-08:00"))
+      it "works for general complex case", ->
+        pComplex = new Duration('P1Y2M3DT4H5M6S')
+        expect(pComplex.move(new Date("2012-01-01T00:00:00-08:00"), tz)).to.deep
+                      .equal(new Date("2013-03-04T04:05:06-08:00"))
 

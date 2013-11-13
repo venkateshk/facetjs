@@ -2,19 +2,8 @@
 
 # -----------------------------------------------------
 driverUtil = require('./driverUtil')
-chronology = require('./chronology')
+{ Duration } = require('./chronology')
 { FacetQuery, AndFilter, TrueFilter, FacetFilter, FacetSplit, FacetCombine } = require('./query')
-
-moveTimestamp = (timestamp, period, timezone) ->
-  name = switch period
-    when 'PT1S' then 'second'
-    when 'PT1M' then 'minute'
-    when 'PT1H' then 'hour'
-    when 'P1D'  then 'day'
-    else throw new Error("time period '#{period}' not supported by driver")
-
-  return chronology[name].move(timestamp, timezone, 1)
-
 
 filterToHashHelper = (filter) ->
   return switch filter.type
@@ -144,9 +133,12 @@ class SplitCache
         timestamp = newTimestamp
 
     else if splitOp.bucket is 'timePeriod'
+      # CAUTION: this is really confusing what is happening here with the names 'duration' and 'period'
+      #          be careful for now, I will resolve this soon -VO
+      splitDuration = new Duration(splitOp.period)
       loop
-        newTimestamp = moveTimestamp(timestamp, splitOp.period, timezone)
-        break if newTimestamp > end
+        newTimestamp = splitDuration.move(timestamp, timezone, 1)
+        break if end < newTimestamp
         timestamps.push([new Date(timestamp), newTimestamp])
         timestamp = newTimestamp
     else

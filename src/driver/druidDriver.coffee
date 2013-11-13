@@ -1,6 +1,7 @@
 `(typeof window === 'undefined' ? {} : window)['druidDriver'] = (function(module, require){"use strict"; var exports = module.exports`
 
 async = require('async')
+{ Duration } = require('./chronology')
 driverUtil = require('./driverUtil')
 {
   FacetQuery
@@ -713,7 +714,7 @@ DruidQueryBuilder.queryFns = {
         return
 
       # ToDo: implement actual timezones
-      periodMap = {
+      canonicalPeriodMap = {
         'PT1S': 1000
         'PT1M': 60 * 1000
         'PT1H': 60 * 60 * 1000
@@ -722,17 +723,19 @@ DruidQueryBuilder.queryFns = {
 
       timePropName = condensedCommand.split.name
 
-      period = periodMap[condensedCommand.split.period]
-      periodAndThenSome = period * 1.5
+      timezone = condensedCommand.split.timezone or 'Etc/UTC'
+      splitDuration = new Duration(condensedCommand.split.period)
+      canonicalPeriod = canonicalPeriodMap[condensedCommand.split.period]
+      canonicalPeriodAndThenSome = canonicalPeriod * 1.5
       props = ds.map (d, i) ->
         rangeStart = new Date(d.timestamp)
         next = ds[i + 1]
         next = new Date(next.timestamp) if next
 
-        if next and rangeStart < next and next - rangeStart < periodAndThenSome
+        if next and rangeStart < next and next - rangeStart < canonicalPeriodAndThenSome
           rangeEnd = next
         else
-          rangeEnd = new Date(rangeStart.valueOf() + period)
+          rangeEnd = splitDuration.move(rangeStart, timezone, 1)
 
         prop = d.result
         prop[timePropName] = [rangeStart, rangeEnd]

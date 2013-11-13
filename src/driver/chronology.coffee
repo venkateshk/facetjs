@@ -167,54 +167,53 @@ periodRegExp = ///
   $
   ///
 
-parseDuration = (duration) ->
-  durationPart = {}
-  if matches = periodWeekRegExp.exec(duration)
-    matches = matches.map(Number)
-    durationPart.week =    matches[1] if matches[1]
+class Duration
+  constructor: (durationStr) ->
+    @durationParts = []
+    if matches = periodWeekRegExp.exec(durationStr)
+      matches = matches.map(Number)
+      @durationParts.push(['week',   matches[1]]) if matches[1]
 
-  else if matches = periodRegExp.exec(duration)
-    matches = matches.map(Number)
-    durationPart.year =   matches[1] if matches[1]
-    durationPart.month =  matches[2] if matches[2]
-    durationPart.day =    matches[3] if matches[3]
-    durationPart.hour =   matches[4] if matches[4]
-    durationPart.minute = matches[5] if matches[5]
-    durationPart.second = matches[6] if matches[6]
-  else
-    throw new Error("Can not parse duration '#{duration}'")
-
-  return durationPart
-
-
-exports.durationFloor = (duration) ->
-  durationPart = parseDuration(duration)
-
-  floorType = null
-  for k, v of durationPart
-    if v isnt 1 or floorType
-      throw new Error("Can not floor on a complex duration")
+    else if matches = periodRegExp.exec(durationStr)
+      matches = matches.map(Number)
+      @durationParts.push(['year',   matches[1]]) if matches[1]
+      @durationParts.push(['month',  matches[2]]) if matches[2]
+      @durationParts.push(['day',    matches[3]]) if matches[3]
+      @durationParts.push(['hour',   matches[4]]) if matches[4]
+      @durationParts.push(['minute', matches[5]]) if matches[5]
+      @durationParts.push(['second', matches[6]]) if matches[6]
     else
-      floorType = k
+      throw new Error("Can not parse duration '#{durationStr}'")
 
-  floorType or= 'millisecond'
-  return exports[floorType].floor
+  toString: ->
+    strArr = ['P']
+    addedT = false
+    for [type, value] in @durationParts
+      if not addedT and type in ['hour', 'minute', 'second']
+        strArr.push('T')
+        addedT = true
+      strArr.push(value, type[0].toUpperCase())
+    return strArr.join('')
 
+  floor: (dt, tz) ->
+    floorType = null
+    for [type, value] in @durationParts
+      if value isnt 1 or floorType
+        throw new Error("Can not floor on a complex duration")
+      else
+        floorType = type
 
-exports.durationMove = (duration) ->
-  durationPart = parseDuration(duration)
+    floorType or= 'millisecond'
+    return exports[floorType].floor(dt, tz)
 
-  nonZero = false
-  for k, v of durationPart
-    nonZero = true
-    break
-
-  throw new Error("Must be a non zero duration") unless nonZero
-
-  return (dt, tz, step = 1) ->
-    for durationType, value of durationPart
+  move: (dt, tz, step = 1) ->
+    throw new Error("Must be a non zero duration") unless @durationParts.length
+    for [durationType, value] in @durationParts
       dt = exports[durationType].move(dt, tz, step * value)
     return dt
+
+
+exports.Duration = Duration
 
 # ---------------------------------------------------------
 

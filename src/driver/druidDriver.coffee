@@ -671,7 +671,7 @@ DruidQueryBuilder.queryFns = {
         })
         return
 
-      if not correctSingletonDruidResult(ds)
+      if not correctSingletonDruidResult(ds) or ds.length isnt 1
         callback({
           message: "unexpected result from Druid (timeBoundry)"
           query: queryObj

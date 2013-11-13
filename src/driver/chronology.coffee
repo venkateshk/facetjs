@@ -6,6 +6,8 @@ exports.isTimezone = isTimezone = (tz) ->
   return typeof tz is 'string' and tz.indexOf('/') isnt -1
 
 exports.millisecond = {
+  canonical: 1
+
   floor: (dt, tz) ->
     return new Date(dt)
 
@@ -17,6 +19,8 @@ exports.millisecond = {
 }
 
 exports.second = {
+  canonical: 1000
+
   floor: (dt, tz) ->
     throw new TypeError("#{tz} is not a valid timezone") unless isTimezone(tz)
     # Seconds do not actually need a timezone because all timezones align on seconds... for now...
@@ -39,6 +43,8 @@ exports.second = {
 }
 
 exports.minute = {
+  canonical: 60000
+
   floor: (dt, tz) ->
     throw new TypeError("#{tz} is not a valid timezone") unless isTimezone(tz)
     # Minutes do not actually need a timezone because all timezones align on minutes... for now...
@@ -61,6 +67,8 @@ exports.minute = {
 }
 
 exports.hour = {
+  canonical: 3600000
+
   floor: (dt, tz) ->
     throw new TypeError("#{tz} is not a valid timezone") unless isTimezone(tz)
     # Not all timezones align on hours! (India)
@@ -83,6 +91,8 @@ exports.hour = {
 }
 
 exports.day = {
+  canonical: 24 * 3600000
+
   floor: (dt, tz) ->
     wt = WallTime.UTCToWallTime(dt, tz)
     return WallTime.WallTimeToUTC(tz, wt.getFullYear(), wt.getMonth(), wt.getDate(), 0, 0, 0, 0)
@@ -100,6 +110,8 @@ exports.day = {
 }
 
 exports.week = {
+  canonical: 7 * 24 * 3600000
+
   floor: (dt, tz) ->
     wt = WallTime.UTCToWallTime(dt, tz)
     return WallTime.WallTimeToUTC(tz, wt.getFullYear(), wt.getMonth(), wt.getDate() - wt.getUTCDay(), 0, 0, 0, 0)

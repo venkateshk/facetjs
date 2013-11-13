@@ -508,7 +508,7 @@ describe "Wikipedia dataset", ->
       ]
     }
 
-  describe.only "sort-by-delta", ->
+  describe "sort-by-delta", ->
     it "should have the same results for different drivers", testEquality {
       drivers: ['druid', 'mySql']
       query: [

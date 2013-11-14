@@ -225,9 +225,17 @@ describe "chronology", ->
                       .equal(new Date("2013-03-04T04:05:06-08:00"))
 
 
+    describe "#canonicalLength", ->
+      it "gives back the correct canonicalLength", ->
+        durationStr = 'P3Y'
+        expect(new Duration(durationStr).canonicalLength()).to.equal(94608000000)
 
+        durationStr = 'P2W'
+        expect(new Duration(durationStr).canonicalLength()).to.equal(1209600000)
 
+        durationStr = 'PT5H'
+        expect(new Duration(durationStr).canonicalLength()).to.equal(18000000)
 
-
-
+        durationStr = 'P3DT15H'
+        expect(new Duration(durationStr).canonicalLength()).to.equal(313200000)
 

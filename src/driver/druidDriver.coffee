@@ -713,26 +713,17 @@ DruidQueryBuilder.queryFns = {
         callback(err)
         return
 
-      # ToDo: implement actual timezones
-      canonicalPeriodMap = {
-        'PT1S': 1000
-        'PT1M': 60 * 1000
-        'PT1H': 60 * 60 * 1000
-        'P1D' : 24 * 60 * 60 * 1000
-      }
-
       timePropName = condensedCommand.split.name
 
       timezone = condensedCommand.split.timezone or 'Etc/UTC'
       splitDuration = new Duration(condensedCommand.split.period)
-      canonicalPeriod = canonicalPeriodMap[condensedCommand.split.period]
-      canonicalPeriodAndThenSome = canonicalPeriod * 1.5
+      canonicalDurationLengthAndThenSome = splitDuration.canonicalLength() * 1.5
       props = ds.map (d, i) ->
         rangeStart = new Date(d.timestamp)
         next = ds[i + 1]
         next = new Date(next.timestamp) if next
 
-        if next and rangeStart < next and next - rangeStart < canonicalPeriodAndThenSome
+        if next and rangeStart < next and next - rangeStart < canonicalDurationLengthAndThenSome
           rangeEnd = next
         else
           rangeEnd = splitDuration.move(rangeStart, timezone, 1)

@@ -15,4 +15,9 @@ specialJoin = (array, sep, lastSep) ->
 
 getValueOf = (d) -> d.valueOf()
 
+# This is copy pasted from chronology
+# ToDo: remove this after properly resolving dependency
+isTimezone = (tz) ->
+  return typeof tz is 'string' and tz.indexOf('/') isnt -1
+
 dummyObject = {}

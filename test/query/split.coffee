@@ -5,26 +5,29 @@ expect = chai.expect
 
 describe "split", ->
   describe "error", ->
-    it "bad input", ->
+    it "fails on bad input", ->
       splitSpec = "hello world"
       expect(-> FacetSplit.fromSpec(splitSpec)).to.throw(Error, "unrecognizable split")
 
-    it "no bucket", ->
+    it "fails on no bucket", ->
       splitSpec = {}
       expect(-> FacetSplit.fromSpec(splitSpec)).to.throw(Error, "bucket must be defined")
 
-    it "bad bucket", ->
+    it "fails on bad bucket", ->
       splitSpec = { bucket: ['wtf?'] }
       expect(-> FacetSplit.fromSpec(splitSpec)).to.throw(Error, "bucket must be a string")
 
-    it "unknown bucket", ->
+    it "fails on unknown bucket", ->
       splitSpec = { bucket: 'poo' }
       expect(-> FacetSplit.fromSpec(splitSpec)).to.throw(Error, "unsupported bucket 'poo'")
 
-    it "bad name", ->
+    it "fails on bad name", ->
       splitSpec = { bucket: "identity", name: ["wtf?"] }
       expect(-> FacetSplit.fromSpec(splitSpec)).to.throw(Error, "split name must be a string")
 
+    it "fails on bad timezone in timePeriod", ->
+      splitSpec = { name: 'stuff', attribute: 'something', bucket: "timePeriod", period: 'P1D', timezone: 'UTC' }
+      expect(-> FacetSplit.fromSpec(splitSpec)).to.throw(TypeError, "invalid timezone 'UTC'")
 
   describe "preserves", ->
     it "identity", ->

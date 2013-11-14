@@ -92,7 +92,7 @@ class SplitCache
     #   <value>
     #   <value>
     # ]
-    if splitOp.bucket in ['timePeriod', 'timeDuration'] and splitOp.name is combineOp.sort?.prop
+    if splitOp.bucket is 'timePeriod' and splitOp.name is combineOp.sort?.prop
       return @_timeCalculate(filter, splitOp, combineOp)
     else
       hash = generateHash(filter, splitOp, combineOp)
@@ -124,25 +124,15 @@ class SplitCache
     timezone = splitOp.timezone or 'Etc/UTC'
     timestamps = []
     [timestamp, end] = timeFilter.range
-    if splitOp.bucket is 'timeDuration'
-      duration = splitOp.duration
-      loop
-        newTimestamp = new Date(timestamp.valueOf() + duration)
-        break if newTimestamp > end
-        timestamps.push([new Date(timestamp), newTimestamp])
-        timestamp = newTimestamp
 
-    else if splitOp.bucket is 'timePeriod'
-      # CAUTION: this is really confusing what is happening here with the names 'duration' and 'period'
-      #          be careful for now, I will resolve this soon -VO
-      splitDuration = new Duration(splitOp.period)
-      loop
-        newTimestamp = splitDuration.move(timestamp, timezone, 1)
-        break if end < newTimestamp
-        timestamps.push([new Date(timestamp), newTimestamp])
-        timestamp = newTimestamp
-    else
-      throw new Error("unknown time bucket")
+    # CAUTION: this is really confusing what is happening here with the names 'duration' and 'period'
+    #          be careful for now, I will resolve this soon -VO
+    splitDuration = new Duration(splitOp.period)
+    loop
+      newTimestamp = splitDuration.move(timestamp, timezone, 1)
+      break if end < newTimestamp
+      timestamps.push([new Date(timestamp), newTimestamp])
+      timestamp = newTimestamp
 
     return timestamps
 

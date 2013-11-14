@@ -123,40 +123,6 @@ class ContinuousSplit extends FacetSplit
 
 
 
-class TimeDurationSplit extends FacetSplit
-  constructor: ({name, @attribute, @duration, @offset, segmentFilter, options}) ->
-    super(arguments[0], dummyObject)
-    @name = name if name
-    @segmentFilter = FacetSegmentFilter.fromSpec(segmentFilter) if segmentFilter
-    @options = new FacetOptions(options) if options
-    @offset ?= 0
-    throw new TypeError("duration must be a number") unless typeof @duration is 'number'
-    throw new TypeError("offset must be a number") unless typeof @offset is 'number'
-    @_ensureBucket('timeDuration')
-    @_verifyName()
-    @_verifyAttribute()
-
-  toString: ->
-    return @_addName("#{@bucket}(#{@attribute}, #{@duration}, #{@offset})")
-
-  valueOf: ->
-    split = super
-    split.attribute = @attribute
-    split.duration = @duration
-    split.offset = @offset
-    return split
-
-  getFilterFor: (prop) ->
-    return new WithinFilter({
-      attribute: @attribute
-      range: prop[@name]
-    })
-
-  isEqual: (other, compareSegmentFilter) ->
-    return super and @duration is other.duration and @offset is other.offset
-
-
-
 class TimePeriodSplit extends FacetSplit
   constructor: ({name, @attribute, @period, @timezone, segmentFilter, options}) ->
     super(arguments[0], dummyObject)
@@ -267,7 +233,6 @@ class ParallelSplit extends FacetSplit
 splitConstructorMap = {
   "identity": IdentitySplit
   "continuous": ContinuousSplit
-  "timeDuration": TimeDurationSplit
   "timePeriod": TimePeriodSplit
   "tuple": TupleSplit
   "parallel": ParallelSplit
@@ -287,7 +252,6 @@ FacetSplit.fromSpec = (splitSpec) ->
 exports.FacetSplit = FacetSplit
 exports.IdentitySplit = IdentitySplit
 exports.ContinuousSplit = ContinuousSplit
-exports.TimeDurationSplit = TimeDurationSplit
 exports.TimePeriodSplit = TimePeriodSplit
 exports.TupleSplit = TupleSplit
 exports.ParallelSplit = ParallelSplit

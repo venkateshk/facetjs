@@ -166,9 +166,6 @@ class SQLQueryBuilder
           groupByPart
         }
 
-      when 'timeDuration'
-        throw new Error("not implemented yet (ToDo)")
-
       when 'timePeriod'
         bucketPeriod = split.period
         bucketSpec = @timeBucketing[bucketPeriod]

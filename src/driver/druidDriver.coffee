@@ -231,15 +231,6 @@ class DruidQueryBuilder
           timeZone: split.timezone
         }
 
-      when 'timeDuration'
-        throw new Error("timeDuration split can only work on '#{@timeAttribute}'") if split.attribute isnt @timeAttribute
-        throw new Error("invalid duration") unless split.duration
-        #@queryType stays 'timeseries'
-        @granularity = {
-          type: "duration"
-          duration: split.duration
-        }
-
       when 'continuous'
         throw new Error("approximate queries not allowed") unless @approximate
         #@queryType stays 'timeseries'
@@ -1055,7 +1046,7 @@ DruidQueryBuilder.makeSingleQuery = ({parentSegment, filter, condensedCommand, b
             queryFnName = 'allData'
         else
           queryFnName = 'groupBy'
-      when 'timeDuration', 'timePeriod'
+      when 'timePeriod'
         queryFnName = 'timeseries'
       when 'continuous'
         queryFnName = 'histogram'

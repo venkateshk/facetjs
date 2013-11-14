@@ -18,9 +18,6 @@ splitFns = {
       b = Math.floor((num + offset) / size) * size - offset
       return [b, b + size]
 
-  timeDuration: ({attribute, duration, offset}) ->
-    throw new Error("not implemented yet (ToDo)")
-
   timePeriod: ({attribute, period, timezone}) ->
     duration = new Duration(period)
     return (d) ->

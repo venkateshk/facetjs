@@ -1,7 +1,7 @@
 `(typeof window === 'undefined' ? {} : window)['simpleDriver'] = (function(module, require){"use strict"; var exports = module.exports`
 
 async = require('async')
-chronology = require('./chronology')
+{ Duration } = require('./chronology')
 driverUtil = require('./driverUtil')
 {FacetFilter, FacetSplit, FacetApply, FacetCombine, FacetQuery} = require('./query')
 
@@ -22,20 +22,12 @@ splitFns = {
     throw new Error("not implemented yet (ToDo)")
 
   timePeriod: ({attribute, period, timezone}) ->
-    periodName = switch period
-      when 'PT1S' then 'second'
-      when 'PT1M' then 'minute'
-      when 'PT1H' then 'hour'
-      when 'P1D'  then 'day'
-      else throw new Error("Period '#{period}' not supported by driver")
-
-    { floor, move } = chronology[periodName]
-
+    duration = new Duration(period)
     return (d) ->
       ds = new Date(d[attribute])
       return null if isNaN(ds)
-      ds = floor(ds, timezone)
-      return [ds, move(ds, timezone, 1)]
+      ds = duration.floor(ds, timezone)
+      return [ds, duration.move(ds, timezone, 1)]
 
   tuple: ({splits}) ->
     tupleSplits = splits.map(makeSplitFn)

@@ -6,7 +6,7 @@ exports.isTimezone = isTimezone = (tz) ->
   return typeof tz is 'string' and tz.indexOf('/') isnt -1
 
 exports.millisecond = {
-  canonical: 1
+  canonicalLength: 1
 
   floor: (dt, tz) ->
     return new Date(dt)
@@ -19,7 +19,7 @@ exports.millisecond = {
 }
 
 exports.second = {
-  canonical: 1000
+  canonicalLength: 1000
 
   floor: (dt, tz) ->
     throw new TypeError("#{tz} is not a valid timezone") unless isTimezone(tz)
@@ -43,7 +43,7 @@ exports.second = {
 }
 
 exports.minute = {
-  canonical: 60000
+  canonicalLength: 60000
 
   floor: (dt, tz) ->
     throw new TypeError("#{tz} is not a valid timezone") unless isTimezone(tz)
@@ -67,7 +67,7 @@ exports.minute = {
 }
 
 exports.hour = {
-  canonical: 3600000
+  canonicalLength: 3600000
 
   floor: (dt, tz) ->
     throw new TypeError("#{tz} is not a valid timezone") unless isTimezone(tz)
@@ -91,7 +91,7 @@ exports.hour = {
 }
 
 exports.day = {
-  canonical: 24 * 3600000
+  canonicalLength: 24 * 3600000
 
   floor: (dt, tz) ->
     wt = WallTime.UTCToWallTime(dt, tz)
@@ -110,7 +110,7 @@ exports.day = {
 }
 
 exports.week = {
-  canonical: 7 * 24 * 3600000
+  canonicalLength: 7 * 24 * 3600000
 
   floor: (dt, tz) ->
     wt = WallTime.UTCToWallTime(dt, tz)
@@ -126,7 +126,7 @@ exports.week = {
 }
 
 exports.month = {
-  canonical: 30 * 24 * 3600000
+  canonicalLength: 30 * 24 * 3600000
 
   floor: (dt, tz) ->
     wt = WallTime.UTCToWallTime(dt, tz)
@@ -145,7 +145,7 @@ exports.month = {
 }
 
 exports.year = {
-  canonical: 365 * 24 * 3600000
+  canonicalLength: 365 * 24 * 3600000
 
   floor: (dt, tz) ->
     wt = WallTime.UTCToWallTime(dt, tz)
@@ -222,9 +222,9 @@ class Duration
 
       # Shortcut
       length = end - iter
-      canonical = exports[span].canonical
-      continue if length < canonical / 4
-      numberToFit = Math.min(0, Math.floor(length / canonical) - 1)
+      canonicalLength = exports[span].canonicalLength
+      continue if length < canonicalLength / 4
+      numberToFit = Math.min(0, Math.floor(length / canonicalLength) - 1)
       if numberToFit > 0
         # try to skip by numberToFit
         iterMove = exports[span].move(iter, timezone, numberToFit)
@@ -272,6 +272,11 @@ class Duration
       dt = exports[durationType].move(dt, tz, step * value)
     return dt
 
+  canonicalLength: ->
+    length = 0
+    for [type, value] in @durationParts
+      length += value * exports[type].canonicalLength
+    return length
 
 exports.Duration = Duration
 

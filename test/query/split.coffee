@@ -3,7 +3,7 @@ expect = chai.expect
 
 {FacetSplit} = require('../../build/query')
 
-describe "split", ->
+describe "FacetSplit", ->
   describe "error", ->
     it "fails on bad input", ->
       splitSpec = "hello world"

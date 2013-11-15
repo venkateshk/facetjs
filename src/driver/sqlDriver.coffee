@@ -218,6 +218,7 @@ class SQLQueryBuilder
       switch apply.aggregate
         when 'constant'
           applyStr = @escapeAttribute(apply.value)
+          dataset = '_const_' # ToDo refactor this
 
         when 'count', 'sum', 'average', 'min', 'max', 'uniqueCount'
           expresion = if apply.aggregate is 'count' then '1' else @escapeAttribute(apply.attribute)
@@ -268,8 +269,8 @@ class SQLQueryBuilder
           commonSQL: null
         }
     else
-      { datasetSQL: op1SQL, commonSQL: op1C } = @applyToSQL(op1, 'N' + Math.random().toFixed(5).substring(2))
-      { datasetSQL: op2SQL, commonSQL: op2C } = @applyToSQL(op2, 'N' + Math.random().toFixed(5).substring(2))
+      { datasetSQL: op1SQL, commonSQL: op1C } = @applyToSQL(op1, 'N1' + Math.random().toFixed(5).substring(2))
+      { datasetSQL: op2SQL, commonSQL: op2C } = @applyToSQL(op2, 'N2' + Math.random().toFixed(5).substring(2))
       for dataset, sql of op1SQL
         datasetSQL[dataset] or= []
         datasetSQL[dataset].push(sql)
@@ -287,6 +288,7 @@ class SQLQueryBuilder
     { datasetSQL, commonSQL } = @applyToSQL(apply, apply.name)
     @commonApplySelectParts.push(commonSQL)
     for dataset, sql of datasetSQL
+      continue if dataset is '_const_'
       @datasetParts[dataset].applySelectParts.push(sql)
     return this
 

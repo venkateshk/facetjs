@@ -3,7 +3,7 @@ expect = chai.expect
 
 {FacetCombine} = require('../../build/query')
 
-describe "combine", ->
+describe "FacetCombine", ->
   describe "preserves", ->
     it "slice", ->
       combineSpec = {

@@ -20,4 +20,9 @@ getValueOf = (d) -> d.valueOf()
 isTimezone = (tz) ->
   return typeof tz is 'string' and tz.indexOf('/') isnt -1
 
+find = (array, fn) ->
+  for a, i in array
+    return a if fn.call(array, a, i)
+  return null
+
 dummyObject = {}

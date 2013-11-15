@@ -3,7 +3,7 @@ expect = chai.expect
 
 {FacetApply} = require('../../build/query')
 
-describe "apply", ->
+describe "FacetApply", ->
   describe "error", ->
     it "bad input", ->
       applySpec = "hello world"
@@ -233,25 +233,207 @@ describe "apply", ->
             throw new Error("expected apply to be #{if i is j then 'equal' else 'unequal'}")
 
 
+  describe "segregate", ->
+    it "works in a single-dataset case", ->
+      applySpecs = [
+        { name: 'Count', aggregate: 'sum', attribute: 'count' }
+      ]
 
+      {
+        appliesByDataset
+        postProcessors
+        trackedSegregation
+      } = FacetApply.segregate(applySpecs.map(FacetApply.fromSpec))
+      expect(trackedSegregation).to.be.null
+      expect(postProcessors).to.have.length(0)
+      expect(appliesByDataset).to.be.an('object')
+      expect(appliesByDataset.main).to.have.length(1)
+      expect(appliesByDataset.main[0].valueOf()).to.deep.equal({
+        name: 'Count', aggregate: 'sum', attribute: 'count'
+      })
 
+    it "works in a simple multi-dataset case", ->
+      applySpecs = [
+        {
+          name: 'EditsDiff'
+          arithmetic: 'subtract'
+          operands: [
+            { dataset: 'humans', aggregate: 'sum', attribute: 'count' }
+            { dataset: 'robots', aggregate: 'sum', attribute: 'count' }
+          ]
+        }
+      ]
 
+      {
+        appliesByDataset
+        postProcessors
+        trackedSegregation
+      } = FacetApply.segregate(applySpecs.map(FacetApply.fromSpec))
+      expect(trackedSegregation).to.be.null
+      expect(postProcessors).to.have.length(1)
+      expect(appliesByDataset).to.be.an('object')
+      expect(appliesByDataset.humans).to.have.length(1)
+      expect(appliesByDataset.robots).to.have.length(1)
+      expect(appliesByDataset.humans[0].name[0]).to.equal('_')
+      expect(appliesByDataset.robots[0].name[0]).to.equal('_')
 
+    it "works in a simple multi-dataset case with multiple post processors", ->
+      applySpecs = [
+        {
+          name: 'EditsDiff'
+          arithmetic: 'subtract'
+          operands: [
+            { dataset: 'humans', aggregate: 'sum', attribute: 'count' }
+            { dataset: 'robots', aggregate: 'sum', attribute: 'count' }
+          ]
+        }
+        {
+          name: 'EditsSum'
+          arithmetic: 'add'
+          operands: [
+            { dataset: 'humans', aggregate: 'sum', attribute: 'count' }
+            { dataset: 'robots', aggregate: 'sum', attribute: 'count' }
+          ]
+        }
+      ]
 
+      {
+        appliesByDataset
+        postProcessors
+        trackedSegregation
+      } = FacetApply.segregate(applySpecs.map(FacetApply.fromSpec))
+      expect(trackedSegregation).to.be.null
+      expect(postProcessors).to.have.length(2)
+      expect(appliesByDataset).to.be.an('object')
+      expect(appliesByDataset.humans).to.have.length(1)
+      expect(appliesByDataset.robots).to.have.length(1)
+      expect(appliesByDataset.humans[0].name[0]).to.equal('_')
+      expect(appliesByDataset.robots[0].name[0]).to.equal('_')
 
+    it "works in a simple multi-dataset case and opts for the simple name", ->
+      applySpecs = [
+        {
+          name: 'EditsDiff'
+          arithmetic: 'subtract'
+          operands: [
+            { dataset: 'humans', aggregate: 'sum', attribute: 'count' }
+            { dataset: 'robots', aggregate: 'sum', attribute: 'count' }
+          ]
+        }
+        { name: 'HumanCount', dataset: 'humans', aggregate: 'sum', attribute: 'count' }
+        { name: 'RobotCount', dataset: 'robots', aggregate: 'sum', attribute: 'count' }
+      ]
 
+      {
+        appliesByDataset
+        postProcessors
+        trackedSegregation
+      } = FacetApply.segregate(applySpecs.map(FacetApply.fromSpec))
+      expect(trackedSegregation).to.be.null
+      expect(postProcessors).to.have.length(1)
 
+      row = { HumanCount: 10, RobotCount: 6 }
+      postProcessors[0](row)
+      expect(row).to.deep.equal({ HumanCount: 10, RobotCount: 6, EditsDiff: 4 })
 
+      expect(appliesByDataset).to.be.an('object')
+      expect(appliesByDataset.humans).to.have.length(1)
+      expect(appliesByDataset.robots).to.have.length(1)
+      expect(appliesByDataset.humans[0].valueOf()).to.deep.equal({
+        name: 'HumanCount', dataset: 'humans', aggregate: 'sum', attribute: 'count'
+      })
+      expect(appliesByDataset.robots[0].valueOf()).to.deep.equal({
+        name: 'RobotCount', dataset: 'robots', aggregate: 'sum', attribute: 'count'
+      })
 
+    it "works in a simple multi-dataset case with constant", ->
+      applySpecs = [
+        {
+          name: 'EditsDiffOver2'
+          arithmetic: 'divide'
+          operands: [
+            {
+              arithmetic: 'subtract'
+              operands: [
+                { dataset: 'humans', aggregate: 'sum', attribute: 'count' }
+                { dataset: 'robots', aggregate: 'sum', attribute: 'count' }
+              ]
+            }
+            {
+              aggregate: 'constant'
+              value: 2
+            }
+          ]
+        }
+        { name: 'HumanCount', dataset: 'humans', aggregate: 'sum', attribute: 'count' }
+        { name: 'RobotCount', dataset: 'robots', aggregate: 'sum', attribute: 'count' }
+      ]
 
+      {
+        appliesByDataset
+        postProcessors
+        trackedSegregation
+      } = FacetApply.segregate(applySpecs.map(FacetApply.fromSpec))
+      expect(trackedSegregation).to.be.null
+      expect(postProcessors).to.have.length(1)
 
+      row = { HumanCount: 10, RobotCount: 6 }
+      postProcessors[0](row)
+      expect(row).to.deep.equal({ HumanCount: 10, RobotCount: 6, EditsDiffOver2: 2 })
 
+      expect(appliesByDataset).to.be.an('object')
+      expect(appliesByDataset.humans).to.have.length(1)
+      expect(appliesByDataset.robots).to.have.length(1)
+      expect(appliesByDataset.humans[0].valueOf()).to.deep.equal({
+        name: 'HumanCount', dataset: 'humans', aggregate: 'sum', attribute: 'count'
+      })
+      expect(appliesByDataset.robots[0].valueOf()).to.deep.equal({
+        name: 'RobotCount', dataset: 'robots', aggregate: 'sum', attribute: 'count'
+      })
 
+    it "works with a custom post processor scheme", ->
+      customPostProcessorScheme = {
+        constant: ({value}) -> "CONSTANT(#{value})"
+        getter: ({name}) -> "[#{name}]"
+        arithmetic: (arithmetic, lhs, rhs) ->
+          return switch arithmetic
+            when 'add' then      "(#{lhs} + #{rhs})"
+            when 'subtract' then "(#{lhs} - #{rhs})"
+            when 'multiply' then "(#{lhs} * #{rhs})"
+            when 'divide' then   "(#{lhs} / #{rhs})"
+            else throw new Error('unknown arithmetic')
+        finish: (name, getter) -> "#{name} <- #{getter}"
+      }
 
+      applySpecs = [
+        {
+          name: 'EditsDiff'
+          arithmetic: 'subtract'
+          operands: [
+            { dataset: 'humans', aggregate: 'sum', attribute: 'count' }
+            { dataset: 'robots', aggregate: 'sum', attribute: 'count' }
+          ]
+        }
+        { name: 'HumanCount', dataset: 'humans', aggregate: 'sum', attribute: 'count' }
+        { name: 'RobotCount', dataset: 'robots', aggregate: 'sum', attribute: 'count' }
+      ]
 
+      {
+        appliesByDataset
+        postProcessors
+        trackedSegregation
+      } = FacetApply.segregate(applySpecs.map(FacetApply.fromSpec), null, customPostProcessorScheme)
+      expect(trackedSegregation).to.be.null
+      expect(postProcessors).to.have.length(1)
+      expect(postProcessors[0]).to.equal('EditsDiff <- ([HumanCount] - [RobotCount])')
 
-
-
-
-
+      expect(appliesByDataset).to.be.an('object')
+      expect(appliesByDataset.humans).to.have.length(1)
+      expect(appliesByDataset.robots).to.have.length(1)
+      expect(appliesByDataset.humans[0].valueOf()).to.deep.equal({
+        name: 'HumanCount', dataset: 'humans', aggregate: 'sum', attribute: 'count'
+      })
+      expect(appliesByDataset.robots[0].valueOf()).to.deep.equal({
+        name: 'RobotCount', dataset: 'robots', aggregate: 'sum', attribute: 'count'
+      })
 

@@ -3,7 +3,7 @@ expect = chai.expect
 
 {FacetQuery} = require('../../build/query')
 
-describe "query", ->
+describe "FacetQuery", ->
   describe "preserves", ->
     it "empty", ->
       querySpec = []

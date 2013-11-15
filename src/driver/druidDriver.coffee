@@ -1080,90 +1080,6 @@ addSplitName = (split, name) ->
   splitSpec.name = name
   return FacetSplit.fromSpec(splitSpec)
 
-addApplyName = (apply, name) ->
-  applySpec = apply.valueOf()
-  applySpec.name = name
-  return FacetApply.fromSpec(applySpec)
-
-
-class ApplySegregator
-  constructor: ->
-    @byDataset = {}
-    @postProcess = []
-    @nameIndex = 0
-
-  getNextName: ->
-    @nameIndex++
-    return "_N_" + @nameIndex
-
-  addSingleDatasetApply: (apply, track) ->
-    if apply.aggregate is 'constant'
-      value = apply.value
-      return -> value
-
-    dataset = apply.getDataset()
-    apply = addApplyName(apply, @getNextName()) if not apply.name
-    @byDataset[dataset] or= []
-
-    existingApplyGetter = driverUtil.find(@byDataset[dataset], (ag) -> ag.apply.isEqual(apply))
-
-    if not existingApplyGetter
-      name = apply.name
-      getter = (prop) -> prop[name]
-      @byDataset[dataset].push(existingApplyGetter = { apply, getter })
-
-    if track
-      @trackApplySegmentation.push({ dataset, applyName: existingApplyGetter.apply.name })
-
-    return existingApplyGetter.getter
-
-  addMultiDatasetApply: (apply, track) ->
-    [op1, op2] = apply.operands
-    op1Datasets = op1.getDatasets()
-    op2Datasets = op2.getDatasets()
-    getter1 = if op1Datasets.length <= 1 then @addSingleDatasetApply(op1, track) else @addMultiDatasetApply(op1, track)
-    getter2 = if op2Datasets.length <= 1 then @addSingleDatasetApply(op2, track) else @addMultiDatasetApply(op2, track)
-    combineFn = ApplySegregator.arithmeticToCombineFn[apply.arithmetic]
-    return (prop) -> combineFn(getter1(prop), getter2(prop))
-
-  addApplies: (applies, trackApplyName) ->
-    @trackApplySegmentation = []
-
-    # First add all the simple applies then add the multi-dataset applies
-    # This greatly simplifies the logic in the addSingleDatasetApply function because it never have to
-    # substitute an apply with a temp name with one that has a permanent name
-
-    multiDatasetApplies = []
-    for apply in applies
-      if apply.getDatasets().length <= 1
-        @addSingleDatasetApply(apply, apply.name is trackApplyName)
-      else
-        multiDatasetApplies.push(apply)
-
-    multiDatasetApplies.forEach(((apply) ->
-      name = apply.name
-      getter = @addMultiDatasetApply(apply, name is trackApplyName)
-      @postProcess.push (prop) ->
-        prop[name] = getter(prop)
-        return
-    ), this)
-
-    return @trackApplySegmentation
-
-  getAppliesForDataset: (dataset) ->
-    return (@byDataset[dataset] or []).map((d) -> d.apply)
-
-  getPostProcessors: ->
-    return @postProcess
-
-
-ApplySegregator.arithmeticToCombineFn = {
-  add:      (lhs, rhs) -> lhs + rhs
-  subtract: (lhs, rhs) -> lhs - rhs
-  multiply: (lhs, rhs) -> lhs * rhs
-  divide:   (lhs, rhs) -> if rhs is 0 then 0 else lhs / rhs
-}
-
 
 # Split up the condensed command into condensed commands contained within the dataset
 splitupCondensedCommand = (condensedCommand) ->
@@ -1201,25 +1117,29 @@ splitupCondensedCommand = (condensedCommand) ->
       }
     }
 
-  # Separate applies
-  applySegregator = new ApplySegregator()
-  sortApplySegmentation = applySegregator.addApplies(condensedCommand.applies, condensedCommand.combine?.sort?.prop)
+  # Segregate applies
+  {
+    appliesByDataset
+    postProcessors
+    trackedSegregation: sortApplySegregation
+  } = FacetApply.segregator(condensedCommand.applies, condensedCommand.combine?.sort?.prop)
+
 
   for info in perDatasetInfo
-    info.condensedCommand.applies = applySegregator.getAppliesForDataset(info.dataset)
+    info.condensedCommand.applies = appliesByDataset[info.dataset] or []
 
   # Setup combines
   if condensedCommand.combine
     sort = condensedCommand.combine.sort
     if sort
       splitName = condensedCommand.split.name
-      if sortApplySegmentation.length is 0
+      if sortApplySegregation.length is 0
         # Sorting on splitting prop
         for info in perDatasetInfo
           info.condensedCommand.combine = condensedCommand.combine
-      else if sortApplySegmentation.length is 1
+      else if sortApplySegregation.length is 1
         # Sorting on regular apply
-        mainDataset = sortApplySegmentation[0].dataset
+        mainDataset = sortApplySegregation[0].dataset
 
         for info in perDatasetInfo
           if info.dataset is mainDataset
@@ -1237,7 +1157,7 @@ splitupCondensedCommand = (condensedCommand) ->
       else
         # Sorting on a post apply
         for info in perDatasetInfo
-          infoApplyName = driverUtil.find(sortApplySegmentation, ({dataset}) -> dataset is info.dataset)
+          infoApplyName = driverUtil.find(sortApplySegregation, ({dataset}) -> dataset is info.dataset)
           if infoApplyName
             # has a part of the apply that will be combined into the sorting apply
             sortProp = infoApplyName.applyName
@@ -1262,7 +1182,7 @@ splitupCondensedCommand = (condensedCommand) ->
     null
 
   return {
-    postProcessors: applySegregator.getPostProcessors()
+    postProcessors
     perDatasetInfo
   }
 

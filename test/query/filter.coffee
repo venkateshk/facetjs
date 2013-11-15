@@ -3,7 +3,7 @@ expect = chai.expect
 
 {FacetFilter} = require('../../build/query')
 
-describe "filter", ->
+describe "FacetFilter", ->
   describe "errors", ->
     it "missing type", ->
       filterSpec = {}

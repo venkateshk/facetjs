@@ -374,6 +374,118 @@ class DivideApply extends FacetApply
     return @operands[0].isAdditive() and @operands[1] instanceof ConstantApply
 
 
+# Segregator
+
+jsPostProcessorScheme = {
+  constant: ({value}) -> return -> value
+
+  getter: ({name}) -> (prop) -> prop[name]
+
+  arithmetic: (arithmetic, lhs, rhs) ->
+    return switch arithmetic
+      when 'add'
+        (prop) -> lhs(prop) + rhs(prop)
+      when 'subtract'
+        (prop) -> lhs(prop) - rhs(prop)
+      when 'multiply'
+        (prop) -> lhs(prop) * rhs(prop)
+      when 'divide'
+        (prop) -> rv = rhs(prop); if rv is 0 then 0 else lhs(prop) / rv
+      else
+        throw new Error('unknown arithmetic')
+
+  finish: (name, getter) -> (prop) ->
+    prop[name] = getter(prop)
+    return
+}
+
+addApplyName = (apply, name) ->
+  applySpec = apply.valueOf()
+  applySpec.name = name
+  return FacetApply.fromSpec(applySpec)
+
+class ApplySegregator
+  constructor: (@postProcessorScheme) ->
+    @byDataset = {}
+    @postProcess = []
+    @nameIndex = 0
+
+  getNextName: ->
+    @nameIndex++
+    return "_N_" + @nameIndex
+
+  addSingleDatasetApply: (apply, track) ->
+    if apply.aggregate is 'constant'
+      return @postProcessorScheme.constant(apply)
+
+    dataset = apply.getDataset()
+    apply = addApplyName(apply, @getNextName()) if not apply.name
+    @byDataset[dataset] or= []
+
+    existingApplyGetter = find(@byDataset[dataset], (ag) -> ag.apply.isEqual(apply))
+
+    if not existingApplyGetter
+      getter = @postProcessorScheme.getter(apply)
+      @byDataset[dataset].push(existingApplyGetter = { apply, getter })
+
+    if track
+      @trackApplySegmentation.push({ dataset, applyName: existingApplyGetter.apply.name })
+
+    return existingApplyGetter.getter
+
+  addMultiDatasetApply: (apply, track) ->
+    [op1, op2] = apply.operands
+    op1Datasets = op1.getDatasets()
+    op2Datasets = op2.getDatasets()
+    getter1 = if op1Datasets.length <= 1 then @addSingleDatasetApply(op1, track) else @addMultiDatasetApply(op1, track)
+    getter2 = if op2Datasets.length <= 1 then @addSingleDatasetApply(op2, track) else @addMultiDatasetApply(op2, track)
+    return @postProcessorScheme.arithmetic(apply.arithmetic, getter1, getter2)
+
+  addApplies: (applies, trackApplyName) ->
+    @trackApplySegmentation = if trackApplyName then [] else null
+
+    # First add all the simple applies then add the multi-dataset applies
+    # This greatly simplifies the logic in the addSingleDatasetApply function because it never have to
+    # substitute an apply with a temp name with one that has a permanent name
+
+    multiDatasetApplies = []
+    for apply in applies
+      if apply.getDatasets().length <= 1
+        @addSingleDatasetApply(apply, apply.name is trackApplyName)
+      else
+        multiDatasetApplies.push(apply)
+
+    multiDatasetApplies.forEach(((apply) ->
+      applyName = apply.name
+      getter = @addMultiDatasetApply(apply, applyName is trackApplyName)
+      @postProcess.push(@postProcessorScheme.finish(applyName, getter))
+    ), this)
+
+    return @trackApplySegmentation
+
+  getAppliesByDataset: ->
+    appliesByDataset = {}
+    for dataset, applyGetters of @byDataset
+      appliesByDataset[dataset] = applyGetters.map((d) -> d.apply)
+    return appliesByDataset
+
+  getPostProcessors: ->
+    return @postProcess
+
+
+# Segregate (split up) potentially multi-dataset applies into their component datasets
+#
+# @param {Array(Apply)} applies, the list of applies to segregate
+# @param {String} trackApplyName, the name of the apply to single out (optional)
+FacetApply.segregate = (applies, trackApplyName = null, postProcessorScheme = jsPostProcessorScheme) ->
+  applySegregator = new ApplySegregator(postProcessorScheme)
+  trackedSegregation = applySegregator.addApplies(applies, trackApplyName)
+
+  return {
+    appliesByDataset: applySegregator.getAppliesByDataset()
+    postProcessors: applySegregator.getPostProcessors()
+    trackedSegregation
+  }
 
 # Make lookup
 applyAggregateConstructorMap = {

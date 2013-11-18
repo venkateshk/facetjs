@@ -212,13 +212,10 @@ class SQLQueryBuilder
   applyToSQL: (apply, name) ->
     throw new TypeError("apply must be a FacetApply") unless apply instanceof FacetApply
 
-    datasetSQL = {}
     if apply.aggregate
-      dataset = apply.getDataset()
       switch apply.aggregate
         when 'constant'
           applyStr = @escapeAttribute(apply.value)
-          dataset = '_const_' # ToDo refactor this
 
         when 'count', 'sum', 'average', 'min', 'max', 'uniqueCount'
           expresion = if apply.aggregate is 'count' then '1' else @escapeAttribute(apply.attribute)
@@ -234,62 +231,42 @@ class SQLQueryBuilder
           throw new Error("unsupported aggregate '#{apply.aggregate}'")
 
       if name
-        datasetSQL[dataset] = "#{applyStr} AS `#{name}`"
-        return {
-          datasetSQL
-          commonSQL: "`#{name}`"
-        }
+        return "#{applyStr} AS `#{name}`"
       else
-        datasetSQL[dataset] = applyStr
-        return {
-          datasetSQL
-          commonSQL: null
-        }
+        return applyStr
 
     sqlOp = arithmeticToSqlOp[apply.arithmetic]
     throw new Error("unsupported arithmetic '#{apply.arithmetic}'") unless sqlOp
     [op1, op2] = apply.operands
-    op1Datasets = op1.getDatasets()
-    op2Datasets = op2.getDatasets()
-    if op1Datasets.length is 1 and op2Datasets.length is 1 and op1Datasets[0] is op2Datasets[0]
-      dataset = op1Datasets[0]
-      { datasetSQL: op1SQL } = @applyToSQL(op1)
-      { datasetSQL: op2SQL } = @applyToSQL(op2)
-      applyStr = "(#{op1SQL[dataset]} #{sqlOp} #{op2SQL[dataset]})"
-      if name
-        datasetSQL[dataset] = "#{applyStr} AS `#{name}`"
-        return {
-          datasetSQL
-          commonSQL: "`#{name}`"
-        }
-      else
-        datasetSQL[dataset] = applyStr
-        return {
-          datasetSQL
-          commonSQL: null
-        }
+    op1SQL = @applyToSQL(op1)
+    op2SQL = @applyToSQL(op2)
+    applyStr = "(#{op1SQL} #{sqlOp} #{op2SQL})"
+    if name
+      return "#{applyStr} AS `#{name}`"
     else
-      { datasetSQL: op1SQL, commonSQL: op1C } = @applyToSQL(op1, 'N1' + Math.random().toFixed(5).substring(2))
-      { datasetSQL: op2SQL, commonSQL: op2C } = @applyToSQL(op2, 'N2' + Math.random().toFixed(5).substring(2))
-      for dataset, sql of op1SQL
-        datasetSQL[dataset] or= []
-        datasetSQL[dataset].push(sql)
-      for dataset, sql of op2SQL
-        datasetSQL[dataset] or= []
-        datasetSQL[dataset].push(sql)
-      for dataset, sqls of datasetSQL
-        datasetSQL[dataset] = sqls.join(', ')
-      return {
-        datasetSQL
-        commonSQL: "(IFNULL(#{op1C}, 0) #{sqlOp} IFNULL(#{op2C}, 0)) AS `#{name}`"
-      }
+      return applyStr
 
-  addApply: (apply) ->
-    { datasetSQL, commonSQL } = @applyToSQL(apply, apply.name)
-    @commonApplySelectParts.push(commonSQL)
-    for dataset, sql of datasetSQL
-      continue if dataset is '_const_'
-      @datasetParts[dataset].applySelectParts.push(sql)
+  addApplies: (applies) ->
+    sqlProcessorScheme = {
+      constant: ({value}) -> "#{value}"
+      getter: ({name}) -> "#{name}"
+      arithmetic: (arithmetic, lhs, rhs) ->
+        sqlOp = arithmeticToSqlOp[arithmetic]
+        throw new Error('unknown arithmetic') unless sqlOp
+        return "(IFNULL(#{lhs}, 0) #{sqlOp} IFNULL(#{rhs}, 0))"
+      finish: (name, getter) -> "#{getter} AS `#{name}`"
+    }
+
+    {
+      appliesByDataset
+      postProcessors
+      #trackedSegregation
+    } = FacetApply.segregate(applies, null, sqlProcessorScheme)
+
+    @commonApplySelectParts = postProcessors
+    for dataset, datasetApplies of appliesByDataset
+      @datasetParts[dataset].applySelectParts = datasetApplies.map(((apply) -> @applyToSQL(apply, apply.name)), this)
+
     return this
 
   addSort: (sort) ->
@@ -328,24 +305,28 @@ class SQLQueryBuilder
 
     return this
 
-  getQueryForDataset: (dataset) ->
+  getQueryForDataset: (dataset, topLevel) ->
     datasetPart = @datasetParts[dataset]
-    select = [].concat(
+    selectParts = [
       datasetPart.splitSelectParts
       datasetPart.applySelectParts
-    ).join(', ')
+    ]
+    selectParts.push(@commonApplySelectParts) if topLevel
+    selectParts = driverUtil.flatten(selectParts)
+    return null unless selectParts.length
+    select = selectParts.join(', ')
     groupBy = datasetPart.groupByParts.join(', ') or '""'
     return "SELECT #{select} FROM #{datasetPart.fromWherePart} GROUP BY #{groupBy}"
 
   getQuery: ->
-    return null if @commonSplitSelectParts.length is 0 and @commonApplySelectParts.length is 0
-
     if @datasets.length > 1
       partials = @datasets.map(((dataset) ->
-        select = [].concat(
+        selectParts = [].concat(
           @commonSplitSelectParts.map((commonSplitSelectPart) -> "`#{dataset}`.#{commonSplitSelectPart}")
           @commonApplySelectParts
-        ).join(',\n    ')
+        )
+        return null unless selectParts.length
+        select = selectParts.join(',\n    ')
         partialQuery = [
           "SELECT #{select}"
           'FROM'
@@ -362,13 +343,17 @@ class SQLQueryBuilder
 
         return '  ' + partialQuery.join('\n  ')
       ), this)
+      return null unless partials.every(Boolean)
       query = [partials.join('\nUNION\n')]
     else
-      query = [@getQueryForDataset(@datasets[0])]
+      queryForOnlyDataset = @getQueryForDataset(@datasets[0], true)
+      return null unless queryForOnlyDataset
+      query = [queryForOnlyDataset]
 
     query.push(@orderByPart) if @orderByPart
     query.push(@limitPart) if @limitPart
     ret = query.join('\n') + ';'
+    #console.log 'query', ret
     return ret
 
 condensedQueryToSQL = ({requester, queryBuilder, parentSegment, condensedQuery}, callback) ->
@@ -383,8 +368,7 @@ condensedQueryToSQL = ({requester, queryBuilder, parentSegment, condensedQuery},
       queryBuilder.addSplit(split)
 
     # apply
-    for apply in condensedQuery.applies
-      queryBuilder.addApply(apply)
+    queryBuilder.addApplies(condensedQuery.applies)
 
     # combine
     combine = condensedQuery.combine

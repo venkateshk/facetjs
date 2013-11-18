@@ -450,10 +450,15 @@ class ApplySegregator
 
     multiDatasetApplies = []
     for apply in applies
-      if apply.getDatasets().length <= 1
-        @addSingleDatasetApply(apply, apply.name is trackApplyName)
-      else
-        multiDatasetApplies.push(apply)
+      applyName = apply.name
+      switch apply.getDatasets().length
+        when 0
+          getter = @addSingleDatasetApply(apply, applyName is trackApplyName)
+          @postProcess.push(@postProcessorScheme.finish(applyName, getter))
+        when 1
+          @addSingleDatasetApply(apply, applyName is trackApplyName)
+        else
+          multiDatasetApplies.push(apply)
 
     multiDatasetApplies.forEach(((apply) ->
       applyName = apply.name

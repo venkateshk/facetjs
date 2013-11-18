@@ -237,6 +237,7 @@ describe "FacetApply", ->
     it "works in a single-dataset case", ->
       applySpecs = [
         { name: 'Count', aggregate: 'sum', attribute: 'count' }
+        { name: 'Const42', aggregate: 'constant', value: 42 }
       ]
 
       {
@@ -245,7 +246,12 @@ describe "FacetApply", ->
         trackedSegregation
       } = FacetApply.segregate(applySpecs.map(FacetApply.fromSpec))
       expect(trackedSegregation).to.be.null
-      expect(postProcessors).to.have.length(0)
+      expect(postProcessors).to.have.length(1)
+
+      row = { Count: 6 }
+      postProcessors[0](row)
+      expect(row).to.deep.equal({ Count: 6, Const42: 42 })
+
       expect(appliesByDataset).to.be.an('object')
       expect(appliesByDataset.main).to.have.length(1)
       expect(appliesByDataset.main[0].valueOf()).to.deep.equal({

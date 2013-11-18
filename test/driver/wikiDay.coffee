@@ -61,7 +61,7 @@ driverFns.druid = druidDriver({
 
 testEquality = utils.makeEqualityTest(driverFns)
 
-describe "Wikipedia dataset", ->
+describe "Wikipedia day dataset", ->
   @timeout(40 * 1000)
 
   describe "apply count", ->

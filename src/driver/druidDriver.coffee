@@ -1122,7 +1122,7 @@ splitupCondensedCommand = (condensedCommand) ->
     appliesByDataset
     postProcessors
     trackedSegregation: sortApplySegregation
-  } = FacetApply.segregator(condensedCommand.applies, condensedCommand.combine?.sort?.prop)
+  } = FacetApply.segregate(condensedCommand.applies, condensedCommand.combine?.sort?.prop)
 
 
   for info in perDatasetInfo

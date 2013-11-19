@@ -202,6 +202,50 @@ describe "simple driver", ->
       })
       done()
 
+  it "does handles nothingness", (done) ->
+    querySpec = [
+      { operation: 'filter', type: 'false' }
+    ]
+    diamondsDriver { query: new FacetQuery(querySpec) }, (err, result) ->
+      expect(err).to.equal(null)
+      expect(result).to.deep.equal({
+        "prop": {}
+      })
+      done()
+
+  it "does handles nothingness with apply", (done) ->
+    querySpec = [
+      { operation: 'filter', type: 'false' }
+      { operation: 'apply', name: 'Count', aggregate: 'count' }
+    ]
+    diamondsDriver { query: new FacetQuery(querySpec) }, (err, result) ->
+      expect(err).to.equal(null)
+      expect(result).to.deep.equal({
+        "prop": {
+          "Count": 0
+        }
+      })
+      done()
+
+  it "does handles nothingness with split", (done) ->
+    querySpec = [
+      { operation: 'filter', type: 'false' }
+      { operation: 'apply', name: 'Count', aggregate: 'count' }
+
+      { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
+      { operation: 'apply', name: 'Count', aggregate: 'count' }
+      { operation: 'combine', method: 'slice', sort: { prop: 'Count', compare: 'natural', direction: 'descending' }, limit: 2 }
+    ]
+    diamondsDriver { query: new FacetQuery(querySpec) }, (err, result) ->
+      expect(err).to.equal(null)
+      expect(result).to.deep.equal({
+        "prop": {
+          "Count": 0
+        }
+        "splits": []
+      })
+      done()
+
   it "does a maxTime query", (done) ->
     querySpec = [
       { operation: 'apply', name: 'Max', aggregate: 'max', attribute: 'time' }

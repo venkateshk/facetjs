@@ -41,14 +41,22 @@ describe "Druid driver", ->
       it "should work with [] return", (done) ->
         nullDriver {query}, (err, result) ->
           expect(err).to.be.null
-          expect(result).to.deep.equal({})
+          expect(result).to.deep.equal({
+            prop: {
+              Count: 0
+            }
+          })
           done()
           return
 
       it "should work with [{result:[]}] return", (done) ->
         emptyDriver {query}, (err, result) ->
           expect(err).to.be.null
-          expect(result).to.deep.equal({})
+          expect(result).to.deep.equal({
+            prop: {
+              Count: 0
+            }
+          })
           done()
           return
 
@@ -131,6 +139,45 @@ describe "Druid driver", ->
           expect(withFilterRes).to.be.an('object')
           expect(noFilterRes).to.deep.equal(withFilterRes)
           done()
+
+  describe "should work with nothingness", ->
+    druidPass = druidRequester({
+      host: '10.60.134.138'
+      port: 8080
+    })
+
+    wikiDriver = druidDriver({
+      requester: druidPass
+      dataSource: 'wikipedia_editstream'
+      timeAttribute: 'time'
+      approximate: true
+      forceInterval: true
+    })
+
+    it "does handles nothingness", (done) ->
+      querySpec = [
+        { operation: 'filter', type: 'false' }
+      ]
+      wikiDriver { query: new FacetQuery(querySpec) }, (err, result) ->
+        expect(err).to.equal(null)
+        expect(result).to.deep.equal({
+          "prop": {}
+        })
+        done()
+
+    it "deals well with empty results", (done) ->
+      querySpec = [
+        { operation: 'filter', type: 'false' }
+        { operation: 'apply', name: 'Count', aggregate: 'count' }
+      ]
+      wikiDriver { query: new FacetQuery(querySpec) }, (err, result) ->
+        expect(err).to.be.null
+        expect(result).to.deep.equal({
+          prop: {
+            Count: 0
+          }
+        })
+        done()
 
 
   describe "specific queries", ->

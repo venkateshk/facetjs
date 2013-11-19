@@ -640,7 +640,14 @@ DruidQueryBuilder.queryFns = {
         })
         return
 
-      callback(null, if emptySingletonDruidResult(ds) then null else ds.map((d) -> d.result))
+      if emptySingletonDruidResult(ds)
+        result = {}
+        result[apply.name] = 0 for apply in condensedCommand.applies
+        callback(null, [result])
+      else
+        callback(null, ds.map((d) -> d.result))
+
+
       return
     return
 

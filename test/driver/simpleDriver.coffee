@@ -272,6 +272,20 @@ describe "simple driver", ->
       })
       done()
 
+  it "filters on a numeric dimension", (done) ->
+    querySpec = [
+      { operation: 'filter', type: 'contains', attribute: 'robot', value: '1' }
+      { operation: 'apply', name: 'Count', aggregate: 'count' }
+    ]
+    wikiDriver { query: new FacetQuery(querySpec) }, (err, result) ->
+      expect(err).to.equal(null)
+      expect(result).to.deep.equal({
+        "prop": {
+          "Count": 19106
+        }
+      })
+      done()
+
   it "splits on time correctly", (done) ->
     timeData = [
       "2013-09-02T00:00:00.000Z"

@@ -90,32 +90,37 @@ describe "SQL driver", ->
           expect(noFilterRes).to.deep.equal(withFilterRes)
           done()
 
-  describe "should work with asking for a non existent result", ->
+  describe "should work with nothingness", ->
     diamondsDriver = sqlDriver({
       requester: sqlPass
       table: 'diamonds'
       filter: null
     })
 
+    it "does handles nothingness", (done) ->
+      querySpec = [
+        { operation: 'filter', type: 'false' }
+      ]
+      diamondsDriver { query: new FacetQuery(querySpec) }, (err, result) ->
+        expect(err).to.equal(null)
+        expect(result).to.deep.equal({
+          "prop": {}
+        })
+        done()
+
     it "deals well with empty results", ->
-      diamondsDriver {
-        query: new FacetQuery([
-          {
-            operation: 'filter'
-            type: 'and'
-            filters: [
-              { type: 'is', attribute: 'color', value: 'E' }
-              { type: 'not', filter: { type: 'is', attribute: 'color', value: 'E' } }
-            ]
-          }
-          { operation: 'apply', name: 'Count', aggregate: 'count' }
-        ])
-      }, (err, res) ->
+      querySpec = [
+        { operation: 'filter', type: 'false' }
+        { operation: 'apply', name: 'Count', aggregate: 'count' }
+      ]
+      diamondsDriver { query: new FacetQuery(querySpec) }, (err, result) ->
         expect(err).to.be.null
-        expect(res).to.deep.equal({
+        expect(result).to.deep.equal({
           prop: {
             Count: 0
           }
         })
+        done()
+
 
 

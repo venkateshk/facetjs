@@ -185,7 +185,7 @@ class ContainsFilter extends FacetFilter
   getFilterFn: ->
     attribute = @attribute
     value = @value
-    return (d) -> d[attribute].indexOf(value) isnt -1
+    return (d) -> String(d[attribute]).indexOf(value) isnt -1
 
 
 

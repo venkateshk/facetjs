@@ -179,6 +179,25 @@ describe "Druid driver", ->
         })
         done()
 
+    it "deals well with empty results and split", (done) ->
+      querySpec = [
+        { operation: 'filter', type: 'false' }
+        { operation: 'apply', name: 'Count', aggregate: 'count' }
+
+        { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
+        { operation: 'apply', name: 'Count', aggregate: 'count' }
+        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 3 }
+      ]
+      wikiDriver { query: new FacetQuery(querySpec) }, (err, result) ->
+        expect(err).to.be.null
+        expect(result).to.deep.equal({
+          prop: {
+            Count: 0
+          }
+          splits: []
+        })
+        done()
+
 
   describe "specific queries", ->
     druidPass = druidRequester({

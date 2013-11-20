@@ -744,7 +744,7 @@ DruidQueryBuilder.queryFns = {
           limit = condensedCommand.combine.limit
           driverUtil.inPlaceTrim(props, limit)
 
-      callback(null, if props.length then props else null)
+      callback(null, props)
       return
     return
 
@@ -787,7 +787,7 @@ DruidQueryBuilder.queryFns = {
         })
         return
 
-      callback(null, if emptySingletonDruidResult(ds) then null else ds[0].result)
+      callback(null, if emptySingletonDruidResult(ds) then [] else ds[0].result)
       return
     return
 

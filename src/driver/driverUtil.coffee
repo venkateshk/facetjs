@@ -119,7 +119,7 @@ createTabularHelper = (node, rangeFn, history) ->
 
 exports.createTabular = createTabular = (node, rangeFn) ->
   rangeFn ?= (range) -> range
-  return [] unless node.prop or node.splits
+  return [] unless node?.splits
   return createTabularHelper(node, rangeFn, {})
 
 class exports.Table

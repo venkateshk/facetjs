@@ -388,14 +388,6 @@ condensedQueryToSQL = ({requester, queryBuilder, parentSegment, condensedQuery},
       callback(err)
       return
 
-    # ToDo: implement actual timezones
-    periodMap = {
-      'PT1S': 1000
-      'PT1M': 60 * 1000
-      'PT1H': 60 * 60 * 1000
-      'P1D' : 24 * 60 * 60 * 1000
-    }
-
     if condensedQuery.split
       splitAttribute = condensedQuery.split.attribute
       splitProp = condensedQuery.split.name
@@ -406,10 +398,11 @@ condensedQueryToSQL = ({requester, queryBuilder, parentSegment, condensedQuery},
           start = d[splitProp]
           d[splitProp] = [start, start + splitSize]
       else if condensedQuery.split.bucket is 'timePeriod'
-        period = periodMap[condensedQuery.split.period]
+        timezone = condensedCommand.split.timezone or 'Etc/UTC'
+        splitDuration = new Duration(condensedCommand.split.period)
         for d in ds
           rangeStart = new Date(d[splitProp])
-          range = [rangeStart, new Date(rangeStart.valueOf() + period)]
+          range = [rangeStart, splitDuration.move(rangeStart, timezone, 1)]
           d[splitProp] = range
 
       splits = ds.map (prop) -> {
@@ -420,12 +413,16 @@ condensedQueryToSQL = ({requester, queryBuilder, parentSegment, condensedQuery},
         )
       }
     else
-      splits = ds.map (prop) -> {
-        prop
-        _filtersByDataset: filtersByDataset
-      }
+      if ds.length is 1
+        splits = {
+          prop: ds[0]
+          _filtersByDataset: filtersByDataset
+        }
+      else
+        callback(null, null)
+        return
 
-    callback(null, if splits.length then splits else null)
+    callback(null, splits)
     return
   return
 

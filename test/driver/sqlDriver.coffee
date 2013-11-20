@@ -122,5 +122,24 @@ describe "SQL driver", ->
         })
         done()
 
+    it "deals well with empty results", ->
+      querySpec = [
+        { operation: 'filter', type: 'false' }
+        { operation: 'apply', name: 'Count', aggregate: 'count' }
+
+        { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
+        { operation: 'apply', name: 'Count', aggregate: 'count' }
+        { operation: 'combine', method: 'slice', sort: { prop: 'Count', compare: 'natural', direction: 'descending' }, limit: 2 }
+      ]
+      diamondsDriver { query: new FacetQuery(querySpec) }, (err, result) ->
+        expect(err).to.be.null
+        expect(result).to.deep.equal({
+          prop: {
+            Count: 0
+          }
+          splits: []
+        })
+        done()
+
 
 

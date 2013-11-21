@@ -9,6 +9,7 @@ if not WallTime.rules
 sqlRequester = require('../../build/mySqlRequester')
 sqlDriver = require('../../build/sqlDriver')
 simpleDriver = require('../../build/simpleDriver')
+#generalCache = require('../../build/splitCache')
 generalCache = require('../../build/generalCache')
 
 {FacetQuery} = require('../../build/query')
@@ -56,6 +57,625 @@ testEquality = utils.makeEqualityTest(driverFns)
 
 describe "General cache", ->
   @timeout(40 * 1000)
+
+  describe "(sanity check) apply count", ->
+    it "should have the same results for different drivers", testEquality {
+      drivers: ['diamondsCached', 'diamonds']
+      query: [
+        { operation: 'apply', name: 'Cheapest', aggregate: 'min', attribute: 'price' }
+        { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+      ]
+    }
+
+  describe 'exclude filter Cache', ->
+    setUpQuery = [
+        { operation: "filter", type: "not", filter: { type: "in", attribute: "table", values: [ "61" ] } }
+        { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+        { operation: 'apply', name: 'Cheapest', aggregate: 'min', attribute: 'price' }
+        { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+      ]
+
+    before (done) ->
+      driverFns.diamondsCached({ query: new FacetQuery(setUpQuery) }, (err, result) ->
+        throw err if err
+        done()
+        return
+      )
+
+    after -> allowQuery = true
+
+    it "split Color; apply Revenue; combine descending", testEquality {
+      drivers: ['diamondsCached', 'diamonds']
+      query: [
+        { operation: "filter", type: "not", filter: { type: "in", attribute: "table", values: [ "61", "65" ] } }
+        { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+        { operation: 'apply', name: 'Cheapest', aggregate: 'min', attribute: 'price' }
+        { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+      ]
+    }
+
+  describe 'topN Cache', ->
+    setUpQuery = [
+      { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+      { operation: 'apply', name: 'Cheapest', aggregate: 'min', attribute: 'price' }
+      { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+    ]
+
+    before (done) ->
+      driverFns.diamondsCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
+        throw err if err
+        allowQuery = false
+        done()
+        return
+      )
+
+    after -> allowQuery = true
+
+    it "split Color; apply Revenue; combine descending", testEquality {
+      drivers: ['diamondsCached', 'diamonds']
+      query: [
+        { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+        { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+      ]
+    }
+
+    it "split Color; apply Revenue, Cheapest; combine descending", testEquality {
+      drivers: ['diamondsCached', 'diamonds']
+      query: [
+        { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+        { operation: 'apply', name: 'Cheapest', aggregate: 'min', attribute: 'price' }
+        { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+      ]
+    }
+
+    describe "different sorting", ->
+      before -> allowQuery = true
+
+      it "split Color; apply Revenue; combine Revenue, descending", testEquality {
+        drivers: ['diamondsCached', 'diamonds']
+        query: [
+          { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+        ]
+      }
+
+      it "split Color; apply Revenue; combine Revenue, ascending", testEquality {
+        drivers: ['diamondsCached', 'diamonds']
+        query: [
+          { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'ascending' }, limit: 5 }
+        ]
+      }
+
+      it "split Color; apply Revenue; combine Color, descending", testEquality {
+        drivers: ['diamondsCached', 'diamonds']
+        query: [
+          { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Color', direction: 'descending' }, limit: 5 }
+        ]
+      }
+
+      it "split Color; apply Revenue; combine Color, ascending", testEquality {
+        drivers: ['diamondsCached', 'diamonds']
+        query: [
+          { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Color', direction: 'ascending' }, limit: 5 }
+        ]
+      }
+
+
+  describe "timeseries cache", ->
+    describe "without filters", ->
+      setUpQuery = [
+        { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
+        { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
+        { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+        { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
+      ]
+
+      before (done) ->
+        driverFns.wikipediaCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
+          throw err if err
+          allowQuery = false
+          done()
+          return
+        )
+
+      after -> allowQuery = true
+
+      it "split time; apply count", testEquality {
+        drivers: ['wikipediaCached', 'wikipedia']
+        query: [
+          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
+          { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
+          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
+        ]
+      }
+
+      it "split time; apply count; filter within another time filter", testEquality {
+        drivers: ['wikipediaCached', 'wikipedia']
+        query: [
+          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 26, 12, 0, 0))] }
+          { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
+          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
+        ]
+      }
+
+      it "split time; apply count; limit", testEquality {
+        drivers: ['wikipediaCached', 'wikipedia']
+        query: [
+          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
+          { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
+          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' }, limit: 5 }
+        ]
+      }
+
+
+    describe "filtered on one thing", ->
+      setUpQuery = [
+        { operation: 'filter', type: 'and', filters: [
+          { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
+          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
+        ]}
+        { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
+        { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+        { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
+      ]
+
+      before (done) ->
+        driverFns.wikipediaCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
+          throw err if err
+          allowQuery = false
+          done()
+          return
+        )
+
+      after -> allowQuery = true
+
+      it "filter; split time; apply count; apply added", testEquality {
+        drivers: ['wikipediaCached', 'wikipedia']
+        query: [
+          { operation: 'filter', type: 'and', filters: [
+            { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
+            { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
+          ]}
+          { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
+          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+          { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
+        ]
+      }
+
+      it "filter; split time; apply count; apply added; combine time descending", testEquality {
+        drivers: ['wikipediaCached', 'wikipedia']
+        query: [
+          { operation: 'filter', type: 'and', filters: [
+            { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
+            { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
+          ]}
+          { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
+          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+          { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'descending' } }
+        ]
+      }
+
+
+    describe "filtered on two things", ->
+      setUpQuery = [
+        { operation: 'filter', type: 'and', filters: [
+          { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
+          { operation: 'filter', attribute: 'namespace', type: 'is', value: 'article' }
+          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
+        ]}
+        { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
+        { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+        { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
+      ]
+
+      before (done) ->
+        driverFns.wikipediaCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
+          throw err if err
+          allowQuery = false
+          done()
+          return
+        )
+
+      after -> allowQuery = true
+
+      it "filter; split time; apply count; apply added", testEquality {
+        drivers: ['wikipediaCached', 'wikipedia']
+        query: [
+          { operation: 'filter', type: 'and', filters: [
+            { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
+            { operation: 'filter', attribute: 'namespace', type: 'is', value: 'article' }
+            { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
+          ]}
+          { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
+          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+          { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
+        ]
+      }
+
+      it "filter; split time; apply count; apply added; combine time descending", testEquality {
+        drivers: ['wikipediaCached', 'wikipedia']
+        query: [
+          { operation: 'filter', type: 'and', filters: [
+            { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
+            { operation: 'filter', attribute: 'namespace', type: 'is', value: 'article' }
+            { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
+          ]}
+          { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
+          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+          { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'descending' } }
+        ]
+      }
+
+    describe 'splits on time; combine on a metric', ->
+      it "split time; apply count; combine count, descending (positive metrics)", testEquality {
+        drivers: ['wikipediaCached', 'wikipedia']
+        query: [
+          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
+          { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
+          { name: "count", aggregate: "sum", attribute: "count", operation: "apply" }
+          { operation: "combine", combine: "slice", sort: { compare: "natural", prop: "count", direction: "descending" }, "limit": 5 }
+        ]
+      }
+
+      it "split time; apply count; combine count, ascending (positive metrics)", testEquality {
+        drivers: ['wikipediaCached', 'wikipedia']
+        query: [
+          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
+          { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
+          { name: "count", aggregate: "sum", attribute: "count", operation: "apply" }
+          { operation: "combine", combine: "slice", sort: { compare: "natural", prop: "count", direction: "ascending" }, "limit": 5 }
+        ]
+      }
+
+      it "split time; apply deleted; combine deleted, descending (negative metrics)", testEquality {
+        drivers: ['wikipediaCached', 'wikipedia']
+        query: [
+          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
+          { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
+          { name: "deleted", aggregate: "sum", attribute: "deleted", operation: "apply" }
+          { operation: "combine", combine: "slice", sort: { compare: "natural", prop: "deleted", direction: "descending" }, "limit": 5 }
+        ]
+      }
+
+      it "split time; apply deleted; combine deleted, ascending (negative metrics)", testEquality {
+        drivers: ['wikipediaCached', 'wikipedia']
+        query: [
+          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
+          { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
+          { name: "deleted", aggregate: "sum", attribute: "deleted", operation: "apply" }
+          { operation: "combine", combine: "slice", sort: { compare: "natural", prop: "deleted", direction: "ascending" }, "limit": 5 }
+        ]
+      }
+
+      it "split time; apply count; combine count, descending, split page; apply count; combine count, descending", testEquality {
+        drivers: ['wikipediaCached', 'wikipedia']
+        query: [
+          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
+          { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
+          { name: "count", aggregate: "sum", attribute: "count", operation: "apply" }
+          { operation: "combine", combine: "slice", sort: { compare: "natural", prop: "count", direction: "descending" }, "limit": 5 }
+          { name: "page",attribute: "page",bucket: "identity",operation: "split" }
+          { name: "count","aggregate": "sum",attribute: "count",operation: "apply" }
+          { name: "deleted","aggregate": "sum",attribute: "deleted",operation: "apply" }
+          { operation: "combine", combine: "slice", sort: { compare:"natural", prop: "count", direction: "descending" }, "limit": 5 }
+        ]
+      }
+
+  describe "fillTree test", ->
+    it "filter; split time; apply count; apply added", testEquality {
+      drivers: ['wikipediaCached', 'wikipedia']
+      query: [
+        { operation: 'filter', type: 'and', filters: [
+          { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
+          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
+        ]}
+        { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
+        { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
+      ]
+    }
+
+    it "filter; split time; apply count; apply added; combine time descending", testEquality {
+      drivers: ['wikipediaCached', 'wikipedia']
+      query: [
+        { operation: 'filter', type: 'and', filters: [
+          { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
+          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
+        ]}
+        { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
+        { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+        { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'descending' } }
+      ]
+    }
+
+  describe "splitCache fills filterCache as well", ->
+    setUpQuery = [
+      { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
+      { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
+      { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+      { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
+    ]
+
+    before (done) ->
+      driverFns.wikipediaCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
+        throw err if err
+        allowQuery = false
+        done()
+        return
+      )
+
+    after -> allowQuery = true
+
+    it "filter; split time; apply count; apply added; combine time descending", testEquality {
+      drivers: ['wikipediaCached', 'wikipedia']
+      query: [
+        { operation: 'filter', type: 'and', filters: [
+          { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
+          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
+        ]}
+        { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+        { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+      ]
+    }
+
+  describe "selected applies", ->
+    setUpQuery = [
+      { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
+      { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
+      { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+      { operation: 'apply', name: 'Deleted', aggregate: 'sum', attribute: 'deleted' }
+      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
+    ]
+
+    before (done) ->
+      driverFns.wikipediaCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
+        throw err if err
+        checkEquality = true
+        done()
+        return
+      )
+
+    after -> checkEquality = false
+
+    describe "filter; split time; apply count; apply added; combine time descending", ->
+      before ->
+        expectedQuery = [
+          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
+          { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
+          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+          { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
+        ]
+
+      after ->
+        expectedQuery = null
+
+      it "should have the same results for different drivers", testEquality {
+        drivers: ['wikipediaCached', 'wikipedia']
+        query: [
+          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
+          { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
+          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+          { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+          { operation: 'apply', name: 'Deleted', aggregate: 'sum', attribute: 'deleted' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
+        ]
+      }
+
+  describe "multiple splits", ->
+    setUpQuery = [
+      { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+      { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+      { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
+      { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+    ]
+
+    before (done) ->
+      driverFns.diamondsCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
+        throw err if err
+        allowQuery = false
+        done()
+        return
+      )
+
+    after -> allowQuery = true
+
+    it "filter; split time; apply count; split time; apply count; combine count descending", testEquality {
+      drivers: ['diamondsCached', 'diamonds']
+      query: [
+        { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+        { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+        { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
+        { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+      ]
+    }
+
+  describe "filtered splits cache", ->
+    setUpQuery = [
+      { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+      { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+      { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut', bucketFilter: {
+          prop: 'Color'
+          type: 'in'
+          values: ['E', 'I']
+        }
+      }
+      { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+    ]
+
+    before (done) ->
+      driverFns.diamondsCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
+        throw err if err
+        done()
+        return
+      )
+
+    describe "included filter", ->
+      before -> allowQuery = false
+      after -> allowQuery = true
+
+      it "should have the same results for different drivers", testEquality {
+        drivers: ['diamondsCached', 'diamonds']
+        query: [
+          { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+          { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut', bucketFilter: {
+              prop: 'Color'
+              type: 'in'
+              values: ['E']
+            }
+          }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+        ]
+      }
+
+    describe "adding a new element outside filter", ->
+      before ->
+        checkEquality = true
+        expectedQuery = [
+          { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+          { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut', bucketFilter: {
+              prop: 'Color'
+              type: 'in'
+              values: ['G']
+            }
+          }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+        ]
+
+      after ->
+        checkEquality = false
+        expectedQuery = null
+
+      it "should have the same results for different drivers", testEquality {
+        drivers: ['diamondsCached', 'diamonds']
+        query: [
+          { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+          { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut', bucketFilter: {
+              prop: 'Color'
+              type: 'in'
+              values: ['I', 'G']
+            }
+          }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+        ]
+      }
+
+    describe "only with a new element", ->
+      before ->
+        checkEquality = true
+        expectedQuery = [
+          { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+          { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut', bucketFilter: {
+              prop: 'Color'
+              type: 'in'
+              values: ['H']
+            }
+          }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+        ]
+
+      after -> checkEquality = false
+
+      it "should have the same results for different drivers", testEquality {
+        drivers: ['diamondsCached', 'diamonds']
+        query: [
+          { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+          { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut', bucketFilter: {
+              prop: 'Color'
+              type: 'in'
+              values: ['H']
+            }
+          }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+        ]
+      }
+
+    describe "combine all filters", ->
+      before -> allowQuery = false
+      after -> allowQuery = true
+
+      it "should have the same results for different drivers", testEquality {
+        drivers: ['diamondsCached', 'diamonds']
+        query: [
+          { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+          { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut', bucketFilter: {
+              prop: 'Color'
+              type: 'in'
+              values: ['E', 'H', 'I', 'G']
+            }
+          }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+        ]
+      }
+
+    describe "same filter in a different order", ->
+      before -> allowQuery = false
+      after -> allowQuery = true
+
+      it "should have the same results for different drivers", testEquality {
+        drivers: ['diamondsCached', 'diamonds']
+        query: [
+          { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+          { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut', bucketFilter: {
+              prop: 'Color'
+              type: 'in'
+              values: ['I', 'E']
+            }
+          }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+        ]
+      }
 
   describe "emptyness checker", ->
     emptyDriver = (request, callback) ->
@@ -552,623 +1172,3 @@ describe "General cache", ->
           expect(err).to.be.null
           expect(JSON.parse(JSON.stringify(result))).to.deep.equal(dayLightSavingsData)
           done()
-
-
-  describe "(sanity check) apply count", ->
-    it "should have the same results for different drivers", testEquality {
-      drivers: ['diamondsCached', 'diamonds']
-      query: [
-        { operation: 'apply', name: 'Cheapest', aggregate: 'min', attribute: 'price' }
-        { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
-      ]
-    }
-
-  describe 'exclude filter Cache', ->
-    setUpQuery = [
-        { operation: "filter", type: "not", filter: { type: "in", attribute: "table", values: [ "61" ] } }
-        { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
-        { operation: 'apply', name: 'Cheapest', aggregate: 'min', attribute: 'price' }
-        { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
-        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
-      ]
-
-    before (done) ->
-      driverFns.diamondsCached({ query: new FacetQuery(setUpQuery) }, (err, result) ->
-        throw err if err?
-        done()
-        return
-      )
-
-    after -> allowQuery = true
-
-    it "split Color; apply Revenue; combine descending", testEquality {
-      drivers: ['diamondsCached', 'diamonds']
-      query: [
-        { operation: "filter", type: "not", filter: { type: "in", attribute: "table", values: [ "61", "65" ] } }
-        { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
-        { operation: 'apply', name: 'Cheapest', aggregate: 'min', attribute: 'price' }
-        { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
-        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
-      ]
-    }
-
-  describe 'topN Cache', ->
-    setUpQuery = [
-      { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
-      { operation: 'apply', name: 'Cheapest', aggregate: 'min', attribute: 'price' }
-      { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
-      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
-    ]
-
-    before (done) ->
-      driverFns.diamondsCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
-        throw err if err?
-        allowQuery = false
-        done()
-        return
-      )
-
-    after -> allowQuery = true
-
-    it "split Color; apply Revenue; combine descending", testEquality {
-      drivers: ['diamondsCached', 'diamonds']
-      query: [
-        { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
-        { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
-        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
-      ]
-    }
-
-    it "split Color; apply Revenue, Cheapest; combine descending", testEquality {
-      drivers: ['diamondsCached', 'diamonds']
-      query: [
-        { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
-        { operation: 'apply', name: 'Cheapest', aggregate: 'min', attribute: 'price' }
-        { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
-        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
-      ]
-    }
-
-    describe "different sorting", ->
-      before -> allowQuery = true
-
-      it "split Color; apply Revenue; combine Revenue, descending", testEquality {
-        drivers: ['diamondsCached', 'diamonds']
-        query: [
-          { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
-          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
-        ]
-      }
-
-      it "split Color; apply Revenue; combine Revenue, ascending", testEquality {
-        drivers: ['diamondsCached', 'diamonds']
-        query: [
-          { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
-          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'ascending' }, limit: 5 }
-        ]
-      }
-
-      it "split Color; apply Revenue; combine Color, descending", testEquality {
-        drivers: ['diamondsCached', 'diamonds']
-        query: [
-          { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
-          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Color', direction: 'descending' }, limit: 5 }
-        ]
-      }
-
-      it "split Color; apply Revenue; combine Color, ascending", testEquality {
-        drivers: ['diamondsCached', 'diamonds']
-        query: [
-          { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
-          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Color', direction: 'ascending' }, limit: 5 }
-        ]
-      }
-
-
-  describe "timeseries cache", ->
-    describe "without filters", ->
-      setUpQuery = [
-        { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
-        { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
-        { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-        { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
-        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
-      ]
-
-      before (done) ->
-        driverFns.wikipediaCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
-          throw err if err?
-          allowQuery = false
-          done()
-          return
-        )
-
-      after -> allowQuery = true
-
-      it "split time; apply count", testEquality {
-        drivers: ['wikipediaCached', 'wikipedia']
-        query: [
-          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
-          { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
-          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
-        ]
-      }
-
-      it "split time; apply count; filter within another time filter", testEquality {
-        drivers: ['wikipediaCached', 'wikipedia']
-        query: [
-          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 26, 12, 0, 0))] }
-          { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
-          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
-        ]
-      }
-
-      it "split time; apply count; limit", testEquality {
-        drivers: ['wikipediaCached', 'wikipedia']
-        query: [
-          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
-          { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
-          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' }, limit: 5 }
-        ]
-      }
-
-
-    describe "filtered on one thing", ->
-      setUpQuery = [
-        { operation: 'filter', type: 'and', filters: [
-          { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
-          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
-        ]}
-        { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
-        { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-        { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
-        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
-      ]
-
-      before (done) ->
-        driverFns.wikipediaCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
-          throw err if err?
-          allowQuery = false
-          done()
-          return
-        )
-
-      after -> allowQuery = true
-
-      it "filter; split time; apply count; apply added", testEquality {
-        drivers: ['wikipediaCached', 'wikipedia']
-        query: [
-          { operation: 'filter', type: 'and', filters: [
-            { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
-            { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
-          ]}
-          { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
-          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-          { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
-        ]
-      }
-
-      it "filter; split time; apply count; apply added; combine time descending", testEquality {
-        drivers: ['wikipediaCached', 'wikipedia']
-        query: [
-          { operation: 'filter', type: 'and', filters: [
-            { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
-            { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
-          ]}
-          { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
-          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-          { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'descending' } }
-        ]
-      }
-
-
-    describe "filtered on two things", ->
-      setUpQuery = [
-        { operation: 'filter', type: 'and', filters: [
-          { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
-          { operation: 'filter', attribute: 'namespace', type: 'is', value: 'article' }
-          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
-        ]}
-        { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
-        { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-        { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
-        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
-      ]
-
-      before (done) ->
-        driverFns.wikipediaCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
-          throw err if err?
-          allowQuery = false
-          done()
-          return
-        )
-
-      after -> allowQuery = true
-
-      it "filter; split time; apply count; apply added", testEquality {
-        drivers: ['wikipediaCached', 'wikipedia']
-        query: [
-          { operation: 'filter', type: 'and', filters: [
-            { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
-            { operation: 'filter', attribute: 'namespace', type: 'is', value: 'article' }
-            { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
-          ]}
-          { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
-          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-          { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
-        ]
-      }
-
-      it "filter; split time; apply count; apply added; combine time descending", testEquality {
-        drivers: ['wikipediaCached', 'wikipedia']
-        query: [
-          { operation: 'filter', type: 'and', filters: [
-            { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
-            { operation: 'filter', attribute: 'namespace', type: 'is', value: 'article' }
-            { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
-          ]}
-          { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
-          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-          { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'descending' } }
-        ]
-      }
-
-    describe 'splits on time; combine on a metric', ->
-      it "split time; apply count; combine count, descending (positive metrics)", testEquality {
-        drivers: ['wikipediaCached', 'wikipedia']
-        query: [
-          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
-          { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
-          { name: "count", aggregate: "sum", attribute: "count", operation: "apply" }
-          { operation: "combine", combine: "slice", sort: { compare: "natural", prop: "count", direction: "descending" }, "limit": 5 }
-        ]
-      }
-
-      it "split time; apply count; combine count, ascending (positive metrics)", testEquality {
-        drivers: ['wikipediaCached', 'wikipedia']
-        query: [
-          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
-          { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
-          { name: "count", aggregate: "sum", attribute: "count", operation: "apply" }
-          { operation: "combine", combine: "slice", sort: { compare: "natural", prop: "count", direction: "ascending" }, "limit": 5 }
-        ]
-      }
-
-      it "split time; apply deleted; combine deleted, descending (negative metrics)", testEquality {
-        drivers: ['wikipediaCached', 'wikipedia']
-        query: [
-          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
-          { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
-          { name: "deleted", aggregate: "sum", attribute: "deleted", operation: "apply" }
-          { operation: "combine", combine: "slice", sort: { compare: "natural", prop: "deleted", direction: "descending" }, "limit": 5 }
-        ]
-      }
-
-      it "split time; apply deleted; combine deleted, ascending (negative metrics)", testEquality {
-        drivers: ['wikipediaCached', 'wikipedia']
-        query: [
-          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
-          { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
-          { name: "deleted", aggregate: "sum", attribute: "deleted", operation: "apply" }
-          { operation: "combine", combine: "slice", sort: { compare: "natural", prop: "deleted", direction: "ascending" }, "limit": 5 }
-        ]
-      }
-
-      it "split time; apply count; combine count, descending, split page; apply count; combine count, descending", testEquality {
-        drivers: ['wikipediaCached', 'wikipedia']
-        query: [
-          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
-          { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
-          { name: "count", aggregate: "sum", attribute: "count", operation: "apply" }
-          { operation: "combine", combine: "slice", sort: { compare: "natural", prop: "count", direction: "descending" }, "limit": 5 }
-          { name: "page",attribute: "page",bucket: "identity",operation: "split" }
-          { name: "count","aggregate": "sum",attribute: "count",operation: "apply" }
-          { name: "deleted","aggregate": "sum",attribute: "deleted",operation: "apply" }
-          { operation: "combine", combine: "slice", sort: { compare:"natural", prop: "count", direction: "descending" }, "limit": 5 }
-        ]
-      }
-
-  describe "fillTree test", ->
-    it "filter; split time; apply count; apply added", testEquality {
-      drivers: ['wikipediaCached', 'wikipedia']
-      query: [
-        { operation: 'filter', type: 'and', filters: [
-          { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
-          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
-        ]}
-        { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
-        { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
-      ]
-    }
-
-    it "filter; split time; apply count; apply added; combine time descending", testEquality {
-      drivers: ['wikipediaCached', 'wikipedia']
-      query: [
-        { operation: 'filter', type: 'and', filters: [
-          { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
-          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
-        ]}
-        { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
-        { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-        { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
-        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'descending' } }
-      ]
-    }
-
-  describe "splitCache fills filterCache as well", ->
-    setUpQuery = [
-      { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
-      { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
-      { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-      { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
-      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
-    ]
-
-    before (done) ->
-      driverFns.wikipediaCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
-        throw err if err?
-        allowQuery = false
-        done()
-        return
-      )
-
-    after -> allowQuery = true
-
-    it "filter; split time; apply count; apply added; combine time descending", testEquality {
-      drivers: ['wikipediaCached', 'wikipedia']
-      query: [
-        { operation: 'filter', type: 'and', filters: [
-          { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
-          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
-        ]}
-        { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-        { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
-      ]
-    }
-
-  describe "selected applies", ->
-    setUpQuery = [
-      { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
-      { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
-      { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-      { operation: 'apply', name: 'Deleted', aggregate: 'sum', attribute: 'deleted' }
-      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
-    ]
-
-    before (done) ->
-      driverFns.wikipediaCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
-        throw err if err?
-        checkEquality = true
-        done()
-        return
-      )
-
-    after -> checkEquality = false
-
-    describe "filter; split time; apply count; apply added; combine time descending", ->
-      before ->
-        expectedQuery = [
-          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
-          { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
-          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-          { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
-        ]
-
-      after ->
-        expectedQuery = null
-
-      it "should have the same results for different drivers", testEquality {
-        drivers: ['wikipediaCached', 'wikipedia']
-        query: [
-          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
-          { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
-          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-          { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
-          { operation: 'apply', name: 'Deleted', aggregate: 'sum', attribute: 'deleted' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
-        ]
-      }
-
-  describe "multiple splits", ->
-    setUpQuery = [
-      { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
-      { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
-      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
-      { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
-      { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
-      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
-    ]
-
-    before (done) ->
-      driverFns.diamondsCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
-        throw err if err?
-        allowQuery = false
-        done()
-        return
-      )
-
-    after -> allowQuery = true
-
-    it "filter; split time; apply count; split time; apply count; combine count descending", testEquality {
-      drivers: ['diamondsCached', 'diamonds']
-      query: [
-        { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
-        { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
-        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
-        { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
-        { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
-        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
-      ]
-    }
-
-  describe "filtered splits cache", ->
-    setUpQuery = [
-      { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
-      { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
-      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
-      { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut', bucketFilter: {
-          prop: 'Color'
-          type: 'in'
-          values: ['E', 'I']
-        }
-      }
-      { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
-      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
-    ]
-
-    before (done) ->
-      driverFns.diamondsCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
-        throw err if err?
-        done()
-        return
-      )
-
-    describe "included filter", ->
-      before -> allowQuery = false
-      after -> allowQuery = true
-
-      it "should have the same results for different drivers", testEquality {
-        drivers: ['diamondsCached', 'diamonds']
-        query: [
-          { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
-          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
-          { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut', bucketFilter: {
-              prop: 'Color'
-              type: 'in'
-              values: ['E']
-            }
-          }
-          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
-        ]
-      }
-
-    describe "adding a new element outside filter", ->
-      before ->
-        checkEquality = true
-        expectedQuery = [
-          { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
-          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
-          { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut', bucketFilter: {
-              prop: 'Color'
-              type: 'in'
-              values: ['G']
-            }
-          }
-          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
-        ]
-
-      after ->
-        checkEquality = false
-        expectedQuery = null
-
-      it "should have the same results for different drivers", testEquality {
-        drivers: ['diamondsCached', 'diamonds']
-        query: [
-          { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
-          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
-          { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut', bucketFilter: {
-              prop: 'Color'
-              type: 'in'
-              values: ['I', 'G']
-            }
-          }
-          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
-        ]
-      }
-
-    describe "only with a new element", ->
-      before ->
-        checkEquality = true
-        expectedQuery = [
-          { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
-          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
-          { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut', bucketFilter: {
-              prop: 'Color'
-              type: 'in'
-              values: ['H']
-            }
-          }
-          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
-        ]
-
-      after -> checkEquality = false
-
-      it "should have the same results for different drivers", testEquality {
-        drivers: ['diamondsCached', 'diamonds']
-        query: [
-          { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
-          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
-          { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut', bucketFilter: {
-              prop: 'Color'
-              type: 'in'
-              values: ['H']
-            }
-          }
-          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
-        ]
-      }
-
-    describe "combine all filters", ->
-      before -> allowQuery = false
-      after -> allowQuery = true
-
-      it "should have the same results for different drivers", testEquality {
-        drivers: ['diamondsCached', 'diamonds']
-        query: [
-          { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
-          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
-          { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut', bucketFilter: {
-              prop: 'Color'
-              type: 'in'
-              values: ['E', 'H', 'I', 'G']
-            }
-          }
-          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
-        ]
-      }
-
-    describe "same filter in a different order", ->
-      before -> allowQuery = false
-      after -> allowQuery = true
-
-      it "should have the same results for different drivers", testEquality {
-        drivers: ['diamondsCached', 'diamonds']
-        query: [
-          { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
-          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
-          { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut', bucketFilter: {
-              prop: 'Color'
-              type: 'in'
-              values: ['I', 'E']
-            }
-          }
-          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
-          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
-        ]
-      }

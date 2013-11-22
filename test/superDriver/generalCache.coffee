@@ -9,8 +9,8 @@ if not WallTime.rules
 sqlRequester = require('../../build/mySqlRequester')
 sqlDriver = require('../../build/sqlDriver')
 simpleDriver = require('../../build/simpleDriver')
-#generalCache = require('../../build/splitCache')
-generalCache = require('../../build/generalCache')
+generalCache = require('../../build/splitCache')
+#generalCache = require('../../build/generalCache')
 
 {FacetQuery} = require('../../build/query')
 
@@ -96,7 +96,7 @@ describe "General cache", ->
       ]
     }
 
-  describe 'topN Cache', ->
+  describe 'Identity split cache (incomplete)', ->
     setUpQuery = [
       { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
       { operation: 'apply', name: 'Cheapest', aggregate: 'min', attribute: 'price' }
@@ -130,6 +130,15 @@ describe "General cache", ->
         { operation: 'apply', name: 'Cheapest', aggregate: 'min', attribute: 'price' }
         { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
         { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+      ]
+    }
+
+    it "split Color; apply Revenue; combine descending limit 3", testEquality {
+      drivers: ['diamondsCached', 'diamonds']
+      query: [
+        { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+        { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 3 }
       ]
     }
 
@@ -171,6 +180,89 @@ describe "General cache", ->
           { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Color', direction: 'ascending' }, limit: 5 }
         ]
       }
+
+  describe 'Identity split cache (complete)', ->
+    setUpQuery = [
+      { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+      { operation: 'apply', name: 'Cheapest', aggregate: 'min', attribute: 'price' }
+      { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 8 }
+    ]
+
+    before (done) ->
+      driverFns.diamondsCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
+        throw err if err
+        allowQuery = false
+        done()
+        return
+      )
+
+    after -> allowQuery = true
+
+    it "split Color; apply Revenue; combine descending", testEquality {
+      drivers: ['diamondsCached', 'diamonds']
+      query: [
+        { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+        { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+      ]
+    }
+
+    it "split Color; apply Revenue, Cheapest; combine descending", testEquality {
+      drivers: ['diamondsCached', 'diamonds']
+      query: [
+        { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+        { operation: 'apply', name: 'Cheapest', aggregate: 'min', attribute: 'price' }
+        { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+      ]
+    }
+
+    it "split Color; apply Revenue; combine Revenue, descending", testEquality {
+      drivers: ['diamondsCached', 'diamonds']
+      query: [
+        { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+        { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+      ]
+    }
+
+    it "split Color; apply Revenue; combine Revenue, ascending", testEquality {
+      drivers: ['diamondsCached', 'diamonds']
+      query: [
+        { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+        { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'ascending' }, limit: 5 }
+      ]
+    }
+
+    it "split Color; apply Revenue; combine Color, descending", testEquality {
+      drivers: ['diamondsCached', 'diamonds']
+      query: [
+        { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+        { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Color', direction: 'descending' }, limit: 5 }
+      ]
+    }
+
+    it "split Color; apply Revenue; combine Color, ascending", testEquality {
+      drivers: ['diamondsCached', 'diamonds']
+      query: [
+        { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+        { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Color', direction: 'ascending' }, limit: 5 }
+      ]
+    }
+
+    it "filter color=D; split Color; apply Revenue; combine Color, descending", testEquality {
+      drivers: ['diamondsCached', 'diamonds']
+      query: [
+        { operation: 'filter', type: 'is', attribute: 'color', value: 'D' }
+        { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+        { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Color', direction: 'descending' }, limit: 5 }
+      ]
+    }
 
 
   describe "timeseries cache", ->

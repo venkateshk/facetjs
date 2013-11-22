@@ -118,24 +118,34 @@ class IdentityCombineToSplitValues
   get: (filter, split, combine) ->
     return null unless @splitValues
     return null unless combine.method is 'slice'
-    if @complete
-      return {
-        splitValues: @splitValues
-        needsCombine: true # be smarter
-      }
+    myFilter = filter.extractFilterByAttribute(split.attribute)?[1]
 
-    combineSort = combine.sort
-    return null unless combineSort and combineSort.isEqual(@sort)
-    if combine.limit?
-      if combine.limit <= @limit
-        return {
-          splitValues: @splitValues.slice(0, combine.limit)
-          needsCombine: false
-        }
+    if myFilter
+      if @complete
+        splitAttribute = split.attribute
+        filterFn = myFilter.getFilterFn()
+        return @splitValues.filter (splitValue) ->
+          row = {}
+          row[splitAttribute] = splitValue
+          return filterFn(row)
+      else
+        return null unless myFilter.type in ['is', 'in']
+        values = if myFilter.type is 'is' then [myFilter.value] else myFilter.values
+        for value in values
+          return null unless value in @splitValues
+        return values
+
+    else
+      combineSort = combine.sort
+      return null unless combineSort
+
+      if combine.limit? and combineSort.isEqual(@sort) and combine.limit <= @limit
+        return @splitValues.slice(0, combine.limit)
+
+      if @complete
+        return @splitValues
       else
         return null
-    else
-      return null
 
   set: (combine, splitValues) ->
     return unless combine.method is 'slice'
@@ -171,14 +181,8 @@ class TimePeriodCombineToSplitValues
     if sort.prop is split.name
       splitValues.reverse() if sort.direction is 'descending'
       driverUtil.inPlaceTrim(splitValues, combine.limit) if combine.limit?
-      needsCombine = false
-    else
-      needsCombine = true
 
-    return {
-      splitValues
-      needsCombine
-    }
+    return splitValues
 
   set: ->
     return
@@ -231,9 +235,8 @@ module.exports = ({driver}) ->
       filterSplitHash = filterSplitToHash(filter, split)
       combineToSplitsCacheSlot = combineToSplitCache.getWithHash(filterSplitHash)
       return null unless combineToSplitsCacheSlot
-      splitValuesInfo = combineToSplitsCacheSlot.get(filter, split, combine)
-      return null unless splitValuesInfo
-      { splitValues, needsCombine } = splitValuesInfo
+      splitValues = combineToSplitsCacheSlot.get(filter, split, combine)
+      return null unless splitValues
       segments = []
       for splitValue in splitValues
         splitValueProp = {}
@@ -248,9 +251,8 @@ module.exports = ({driver}) ->
         segment.splits = childSegments if childSegments
         segments.push(segment)
 
-      if needsCombine
-        segments.sort(combine.sort.getSegmentCompareFn())
-        driverUtil.inPlaceTrim(segments, combine.limit) if combine.limit?
+      segments.sort(combine.sort.getSegmentCompareFn())
+      driverUtil.inPlaceTrim(segments, combine.limit) if combine.limit?
 
       return segments
 

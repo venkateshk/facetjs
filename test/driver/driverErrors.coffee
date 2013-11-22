@@ -34,7 +34,7 @@ driverFns.mySql = sqlDriver({
 
 # # Druid
 druidPass = druidRequester({
-  host: '10.60.134.138'
+  host: '10.209.98.48'
   port: 8080
 })
 

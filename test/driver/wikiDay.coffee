@@ -37,7 +37,7 @@ driverFns.mySql = sqlDriver({
 
 # # Druid
 druidPass = druidRequester({
-  host: '10.60.134.138'
+  host: '10.209.98.48'
   port: 8080
 })
 
@@ -509,7 +509,7 @@ describe "Wikipedia day dataset", ->
     }
 
   describe "sort-by-delta", ->
-    it "should have the same results for different drivers", testEquality {
+    it "should work on a simple apply", testEquality {
       drivers: ['druid', 'mySql']
       query: [
         {
@@ -560,6 +560,80 @@ describe "Wikipedia day dataset", ->
           operands: [
             { dataset: 'humans', aggregate: 'sum', attribute: 'count' }
             { dataset: 'robots', aggregate: 'sum', attribute: 'count' }
+          ]
+        }
+        {
+          operation: 'combine'
+          method: 'slice'
+          sort: { prop: 'EditsDiff', compare: 'natural', direction: 'descending' }
+          limit: 10
+        }
+      ]
+    }
+
+    it "should work on a derived apply", testEquality {
+      drivers: ['druid', 'mySql']
+      query: [
+        {
+          operation: 'dataset'
+          datasets: ['robots', 'humans']
+        }
+        {
+          operation: 'filter'
+          type: 'is'
+          attribute: 'namespace'
+          value: 'article'
+        }
+        {
+          operation: 'filter'
+          dataset: 'robots'
+          type: 'is'
+          attribute: 'robot'
+          value: '1'
+        }
+        {
+          operation: 'filter'
+          dataset: 'humans'
+          type: 'is'
+          attribute: 'robot'
+          value: '0'
+        }
+        {
+          operation: 'split'
+          name: 'Language'
+          bucket: 'parallel'
+          splits: [
+            {
+              dataset: 'robots'
+              bucket: 'identity'
+              attribute: 'language'
+            }
+            {
+              dataset: 'humans'
+              bucket: 'identity'
+              attribute: 'language'
+            }
+          ]
+        }
+        {
+          operation: 'apply'
+          name: 'EditsDiff'
+          arithmetic: 'subtract'
+          operands: [
+            {
+              arithmetic: 'divide'
+              operands: [
+                { dataset: 'humans', aggregate: 'sum', attribute: 'count' }
+                { dataset: 'humans', aggregate: 'constant', value: 2 }
+              ]
+            }
+            {
+              arithmetic: 'divide'
+              operands: [
+                { dataset: 'robots', aggregate: 'sum', attribute: 'count' }
+                { dataset: 'robots', aggregate: 'constant', value: 2 }
+              ]
+            }
           ]
         }
         {

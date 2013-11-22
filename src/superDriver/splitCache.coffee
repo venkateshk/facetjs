@@ -142,12 +142,9 @@ class IdentityCombineToSplitValues
       if combine.limit? and combineSort.isEqual(@sort) and combine.limit <= @limit
         return @splitValues.slice(0, combine.limit)
 
-      if @complete
-        return @splitValues
-      else
-        return null
+      return if @complete then @splitValues else null
 
-  set: (combine, splitValues) ->
+  set: (filter, split, combine, splitValues) ->
     return unless combine.method is 'slice'
     @sort = combine.sort
     @splitValues = splitValues
@@ -304,7 +301,7 @@ module.exports = ({driver}) ->
         splitValues.push(segment.prop[split.name])
         saveCondensedCommandToCache(segment.splits, segmentFilter, condensedCommands, idx + 1)
 
-      combineToSplitsCacheSlot.set(combine, splitValues)
+      combineToSplitsCacheSlot.set(filter, split, combine, splitValues)
 
     else
       segment = segments[0]

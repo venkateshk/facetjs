@@ -82,7 +82,7 @@ describe "Druid driver", ->
 
   describe "should work with driver level filter", ->
     druidPass = druidRequester({
-      host: '10.60.134.138'
+      host: '10.209.98.48'
       port: 8080
     })
 
@@ -142,7 +142,7 @@ describe "Druid driver", ->
 
   describe "should work with nothingness", ->
     druidPass = druidRequester({
-      host: '10.60.134.138'
+      host: '10.209.98.48'
       port: 8080
     })
 
@@ -201,7 +201,7 @@ describe "Druid driver", ->
 
   describe "specific queries", ->
     druidPass = druidRequester({
-      host: '10.60.134.138'
+      host: '10.209.98.48'
       port: 8080
     })
 
@@ -306,4 +306,107 @@ describe "Druid driver", ->
       driver {query}, (err, res) ->
         expect(err).to.equal(null)
         expect(res).to.be.an('object')
+        done()
+
+    it "should work with sort-by-delta on derived apply", (done) ->
+      query = new FacetQuery([
+        {
+          operation: 'dataset'
+          datasets: ['robots', 'humans']
+        }
+        {
+          operation: 'filter'
+          type: 'within'
+          attribute: 'time'
+          range: [
+            new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0))
+            new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))
+          ]
+        }
+        {
+          operation: 'filter'
+          dataset: 'robots'
+          type: 'is'
+          attribute: 'robot'
+          value: '1'
+        }
+        {
+          operation: 'filter'
+          dataset: 'humans'
+          type: 'is'
+          attribute: 'robot'
+          value: '0'
+        }
+        {
+          operation: 'split'
+          name: 'Language'
+          bucket: 'parallel'
+          splits: [
+            {
+              dataset: 'robots'
+              bucket: 'identity'
+              attribute: 'language'
+            }
+            {
+              dataset: 'humans'
+              bucket: 'identity'
+              attribute: 'language'
+            }
+          ]
+        }
+        {
+          operation: 'apply'
+          name: 'EditsDiff'
+          arithmetic: 'subtract'
+          operands: [
+            {
+              dataset: 'humans'
+              arithmetic: 'divide'
+              operands: [
+                { aggregate: 'sum', attribute: 'count' }
+                { aggregate: 'constant', value: 2 }
+              ]
+            }
+            {
+              dataset: 'robots'
+              arithmetic: 'divide'
+              operands: [
+                { aggregate: 'sum', attribute: 'count' }
+                { aggregate: 'constant', value: 2 }
+              ]
+            }
+          ]
+        }
+        {
+          operation: 'combine'
+          method: 'slice'
+          sort: { prop: 'EditsDiff', compare: 'natural', direction: 'descending' }
+          limit: 3
+        }
+      ])
+      driver {query}, (err, res) ->
+        expect(err).to.equal(null)
+        expect(res).to.deep.equal({
+          "prop": {},
+          "splits": [
+            {
+              "prop": {
+                "Language": "de",
+                "EditsDiff": 7462.5
+              }
+            },
+            {
+              "prop": {
+                "Language": "fr",
+                "EditsDiff": 7246
+              }
+            },
+            {
+              "prop": {
+                "Language": "es",
+                "EditsDiff": 5212
+              }
+            }
+          ]
+        })
         done()

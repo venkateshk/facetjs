@@ -58,7 +58,7 @@ testEquality = utils.makeEqualityTest(driverFns)
 describe "General cache", ->
   @timeout(40 * 1000)
 
-  describe "(sanity check) apply count", ->
+  describe "No split", ->
     it "should have the same results for different drivers", testEquality {
       drivers: ['diamondsCached', 'diamonds']
       query: [
@@ -180,6 +180,7 @@ describe "General cache", ->
           { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Color', direction: 'ascending' }, limit: 5 }
         ]
       }
+
 
   describe 'Identity split cache (complete)', ->
     setUpQuery = [

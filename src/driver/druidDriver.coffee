@@ -1131,7 +1131,6 @@ splitupCondensedCommand = (condensedCommand) ->
     trackedSegregation: sortApplySegregation
   } = FacetApply.segregate(condensedCommand.applies, condensedCommand.combine?.sort?.prop)
 
-
   for info in perDatasetInfo
     info.condensedCommand.applies = appliesByDataset[info.dataset] or []
 

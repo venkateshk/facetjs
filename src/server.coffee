@@ -79,7 +79,7 @@ app.post '/pass/druid', (req, res) ->
 
   {host, port} = context or {}
   druidPass = druidRequester({
-    host: host or '10.60.134.138'
+    host: host or '10.209.98.48'
     port: port or 8080
   })
 
@@ -96,7 +96,7 @@ app.post '/driver/druid', (req, res) ->
 
   { host, port } = context or {}
   druidPass = druidRequester({
-    host: host or '10.60.134.138'
+    host: host or '10.209.98.48'
     port: port or 8080
   })
 
@@ -107,9 +107,9 @@ app.post '/driver/druid', (req, res) ->
   return
 
 # Druid notes:
-# http://10.60.134.138:8080/druid/v2/datasources/
-# http://10.60.134.138:8080/druid/v2/datasources/wikipedia_editstream
-# http://10.60.134.138:8080/druid/v2/datasources/wikipedia_editstream/dimensions
+# http://10.209.98.48:8080/druid/v2/datasources/
+# http://10.209.98.48:8080/druid/v2/datasources/wikipedia_editstream
+# http://10.209.98.48:8080/druid/v2/datasources/wikipedia_editstream/dimensions
 
 app.listen(9876)
 console.log('Listening on port 9876')

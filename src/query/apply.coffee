@@ -4,7 +4,7 @@ class FacetApply
     throw new TypeError("can not call `new FacetApply` directly use FacetApply.fromSpec instead") unless dummy is dummyObject
     if dataset and @datasetContext isnt ''
       @dataset = dataset
-      if dataset and @datasetContext and dataset isnt @datasetContext
+      if @datasetContext and dataset isnt @datasetContext
         throw new Error("dataset conflict between '#{@datasetContext}' and '#{dataset}'")
 
 

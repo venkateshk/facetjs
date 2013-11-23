@@ -259,7 +259,7 @@ describe "FacetFilter", ->
 
 
   describe "simplify", ->
-    it "it keeps regular filters unchanged", ->
+    it "keeps regular filters unchanged", ->
       expect(FacetFilter.fromSpec({
         type: 'is'
         attribute: 'lady'
@@ -268,6 +268,28 @@ describe "FacetFilter", ->
         type: 'is'
         attribute: 'lady'
         value: 'GaGa'
+      })
+
+    it "turns IN filter into IS filter when appropriate", ->
+      expect(FacetFilter.fromSpec({
+        type: 'in'
+        attribute: 'device'
+        values: ['Nexus 5', 'Nexus 5', 'Nexus 5']
+      }).simplify().valueOf()).to.deep.equal({
+        type: 'is'
+        attribute: 'device'
+        value: 'Nexus 5'
+      })
+
+    it "sorts IN filters and removes duplicate values", ->
+      expect(FacetFilter.fromSpec({
+        type: 'in'
+        attribute: 'device'
+        values: ['Nexus 5', 'Nexus 5', 'iPhone 5', 'Galaxy Note', 'Nexus 5']
+      }).simplify().valueOf()).to.deep.equal({
+        type: 'in'
+        attribute: 'device'
+        values: ['Galaxy Note', 'Nexus 5', 'iPhone 5']
       })
 
     it "flattens (and sorts) nested ANDs", ->
@@ -390,6 +412,132 @@ describe "FacetFilter", ->
             value: 'Google'
           }
         ]
+      })
+
+    it "AND turns same attributed IS and IN filters into INs", ->
+      expect(FacetFilter.fromSpec({
+        type: 'and'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Microsoft'
+          }
+          {
+            type: 'in'
+            attribute: 'venue'
+            values: ['Microsoft', 'Yelp']
+          }
+          {
+            type: 'is'
+            attribute: 'robot'
+            value: 'Yes'
+          }
+          {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Microsoft'
+          }
+          {
+            type: 'in'
+            attribute: 'venue'
+            values: ['LinkedIn', 'Facebook', 'Microsoft']
+          }
+        ]
+      }).simplify().valueOf()).to.deep.equal({
+        type: 'and'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'robot'
+            value: 'Yes'
+          }
+          {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Microsoft'
+          }
+        ]
+      })
+
+    it "OR turns same attributed IS and IN filters into INs", ->
+      expect(FacetFilter.fromSpec({
+        type: 'or'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Google'
+          }
+          {
+            type: 'in'
+            attribute: 'venue'
+            values: ['Microsoft', 'Yelp']
+          }
+          {
+            type: 'is'
+            attribute: 'robot'
+            value: 'Yes'
+          }
+          {
+            type: 'is'
+            attribute: 'venue'
+            value: 'GitHub'
+          }
+          {
+            type: 'in'
+            attribute: 'venue'
+            values: ['LinkedIn', 'Facebook']
+          }
+        ]
+      }).simplify().valueOf()).to.deep.equal({
+        type: 'or'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'robot'
+            value: 'Yes'
+          }
+          {
+            type: 'in'
+            attribute: 'venue'
+            values: ['Facebook', 'GitHub', 'Google', 'LinkedIn', 'Microsoft', 'Yelp']
+          }
+        ]
+      })
+
+    it "AND detects a complex FALSE", ->
+      expect(FacetFilter.fromSpec({
+        type: 'and'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Microsoft'
+          }
+          {
+            type: 'in'
+            attribute: 'venue'
+            values: ['Microsoft', 'Yelp']
+          }
+          {
+            type: 'is'
+            attribute: 'robot'
+            value: 'Yes'
+          }
+          {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Microsoft'
+          }
+          {
+            type: 'in'
+            attribute: 'venue'
+            values: ['LinkedIn', 'Facebook']
+          }
+        ]
+      }).simplify().valueOf()).to.deep.equal({
+        type: 'false'
       })
 
     it "gets rid of empty ANDs", ->
@@ -570,6 +718,23 @@ describe "FacetFilter", ->
         value: 'Google'
       })
 
+    it "preserves simple not()", ->
+      expect(FacetFilter.fromSpec({
+        type: 'not'
+        filter: {
+          type: 'is'
+          attribute: 'venue'
+          value: 'Google'
+        }
+      }).simplify().valueOf()).to.deep.equal({
+        type: 'not'
+        filter: {
+          type: 'is'
+          attribute: 'venue'
+          value: 'Google'
+        }
+      })
+
     it "gets rid of NOT(TRUE)", ->
       expect(FacetFilter.fromSpec({
         type: 'not'
@@ -590,23 +755,6 @@ describe "FacetFilter", ->
         type: 'true'
       })
 
-    it "handles not()", ->
-      expect(FacetFilter.fromSpec({
-        type: 'not'
-        filter: {
-          type: 'is'
-          attribute: 'venue'
-          value: 'Google'
-        }
-      }).simplify().valueOf()).to.deep.equal({
-        type: 'not'
-        filter: {
-          type: 'is'
-          attribute: 'venue'
-          value: 'Google'
-        }
-      })
-
     it "gets rid of NOT(NOT(*))", ->
       expect(FacetFilter.fromSpec({
         type: 'not'
@@ -622,6 +770,86 @@ describe "FacetFilter", ->
         type: 'is'
         attribute: 'venue'
         value: 'Google'
+      })
+
+    it "gets rid of NOT(AND(*)) with De Morgan", ->
+      expect(FacetFilter.fromSpec({
+        type: 'not'
+        filter: {
+          type: 'and'
+          filters: [
+            {
+              type: 'is'
+              attribute: 'venue'
+              value: 'Google'
+            }
+            {
+              type: 'not'
+              filter: {
+                type: 'is'
+                attribute: 'device'
+                value: 'Nexus 5'
+              }
+            }
+          ]
+        }
+      }).simplify().valueOf()).to.deep.equal({
+        type: 'or'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'device'
+            value: 'Nexus 5'
+          }
+          {
+            type: 'not'
+            filter: {
+              type: 'is'
+              attribute: 'venue'
+              value: 'Google'
+            }
+          }
+        ]
+      })
+
+    it "gets rid of NOT(OR(*)) with De Morgan", ->
+      expect(FacetFilter.fromSpec({
+        type: 'not'
+        filter: {
+          type: 'or'
+          filters: [
+            {
+              type: 'is'
+              attribute: 'venue'
+              value: 'Google'
+            }
+            {
+              type: 'not'
+              filter: {
+                type: 'is'
+                attribute: 'device'
+                value: 'Nexus 5'
+              }
+            }
+          ]
+        }
+      }).simplify().valueOf()).to.deep.equal({
+        type: 'and'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'device'
+            value: 'Nexus 5'
+          }
+          {
+            type: 'not'
+            filter: {
+              type: 'is'
+              attribute: 'venue'
+              value: 'Google'
+            }
+          }
+        ]
       })
 
     it "merges WITHIN filters in AND", ->
@@ -754,6 +982,27 @@ describe "FacetFilter", ->
         type: 'false'
       })
 
+    it "knows when something is simple", ->
+      filter = FacetFilter.fromSpec({
+        type: 'and'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Google'
+          }
+          {
+            type: 'is'
+            attribute: 'robot'
+            value: 'Yes'
+          }
+        ]
+      })
+      simpleFilter = filter.simplify()
+      expect(filter).to.not.equal(simpleFilter)
+      simpleSimpleFilter = simpleFilter.simplify()
+      expect(simpleFilter).to.equal(simpleSimpleFilter)
+
 
   describe "extractFilterByAttribute", ->
     mapValueOf = (arr) ->
@@ -793,6 +1042,9 @@ describe "FacetFilter", ->
           type: 'is'
           attribute: 'venue'
           value: 'Google'
+        }
+        {
+          type: 'true'
         }
       ])
 
@@ -921,6 +1173,7 @@ describe "FacetFilter", ->
         type: 'true'
       }).extractFilterByAttribute('country'))).to.deep.equal([
         { type: 'true' }
+        { type: 'true' }
       ])
 
     it 'works with a false filter', ->
@@ -928,10 +1181,10 @@ describe "FacetFilter", ->
         type: 'false'
       }).extractFilterByAttribute('country'))).to.deep.equal([
         { type: 'false' }
+        { type: 'true' }
       ])
 
-    it 'does not work on OR filter', ->
-      # last
+    it 'does not work on mixed OR filter', ->
       expect(mapValueOf(FacetFilter.fromSpec({
         type: 'or'
         filters: [
@@ -952,6 +1205,143 @@ describe "FacetFilter", ->
           }
         ]
       }).extractFilterByAttribute('country'))).to.deep.equal(null)
+
+    it 'works on mixed OR filter (all in)', ->
+      expect(mapValueOf(FacetFilter.fromSpec({
+        type: 'or'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Google'
+          }
+          {
+            type: 'not'
+            filter: {
+              type: 'is'
+              attribute: 'venue'
+              value: 'Apple'
+            }
+          }
+          {
+            type: 'contains'
+            attribute: 'venue'
+            value: 'Moon'
+          }
+        ]
+      }).extractFilterByAttribute('venue'))).to.deep.equal([
+        { type: 'true' }
+        {
+          type: 'or'
+          filters: [
+            {
+              type: 'is'
+              attribute: 'venue'
+              value: 'Google'
+            }
+            {
+              type: 'not'
+              filter: {
+                type: 'is'
+                attribute: 'venue'
+                value: 'Apple'
+              }
+            }
+            {
+              type: 'contains'
+              attribute: 'venue'
+              value: 'Moon'
+            }
+          ]
+        }
+      ])
+
+    it 'works on mixed OR filter (all out)', ->
+      expect(mapValueOf(FacetFilter.fromSpec({
+        type: 'or'
+        filters: [
+          {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Google'
+          }
+          {
+            type: 'not'
+            filter: {
+              type: 'is'
+              attribute: 'venue'
+              value: 'Apple'
+            }
+          }
+          {
+            type: 'contains'
+            attribute: 'venue'
+            value: 'Moon'
+          }
+        ]
+      }).extractFilterByAttribute('country'))).to.deep.equal([
+        {
+          type: 'or'
+          filters: [
+            {
+              type: 'is'
+              attribute: 'venue'
+              value: 'Google'
+            }
+            {
+              type: 'not'
+              filter: {
+                type: 'is'
+                attribute: 'venue'
+                value: 'Apple'
+              }
+            }
+            {
+              type: 'contains'
+              attribute: 'venue'
+              value: 'Moon'
+            }
+          ]
+        }
+        { type: 'true' }
+      ])
+
+    it 'works on NOT filter', ->
+      expect(mapValueOf(FacetFilter.fromSpec({
+        type: 'not'
+        filter: {
+          type: 'or'
+          filters: [
+            {
+              type: 'is'
+              attribute: 'venue'
+              value: 'Google'
+            }
+            {
+              type: 'not'
+              filter: {
+                type: 'is'
+                attribute: 'brand'
+                value: 'Apple'
+              }
+            }
+          ]
+        }
+      }).extractFilterByAttribute('venue'))).to.deep.equal([
+        {
+          type: 'is'
+          attribute: 'brand'
+          value: 'Apple'
+        }
+        {
+          type: 'not'
+          filter: {
+            type: 'is'
+            attribute: 'venue'
+            value: 'Google'
+          }
+        }
+      ])
 
 
   describe "isEqual", ->
@@ -1079,7 +1469,7 @@ describe "FacetFilter", ->
 
   describe "FacetFilter.filterDiff", ->
     it "computes a subset with IN filters", ->
-      sup = FacetFilter.fromSpec({
+      subFilter = FacetFilter.fromSpec({
         type: 'and'
         filters: [
           {
@@ -1094,13 +1484,13 @@ describe "FacetFilter", ->
           }
         ]
       })
-      sub = FacetFilter.fromSpec({
+      superFilter = FacetFilter.fromSpec({
         type: 'is'
         attribute: 'color'
         value: 'Red'
       })
 
-      diff = FacetFilter.filterDiff(sup, sub)
+      diff = FacetFilter.filterDiff(subFilter, superFilter)
       expect(diff).to.be.an('array').and.to.have.length(1)
       expect(diff[0].valueOf()).to.deep.equal({
         type: 'is'
@@ -1108,11 +1498,11 @@ describe "FacetFilter", ->
         value: 'California'
       })
 
-      diff = FacetFilter.filterDiff(sub, sup)
+      diff = FacetFilter.filterDiff(superFilter, subFilter)
       expect(diff).to.be.null
 
     it "computes a subset with CONTAINS filters", ->
-      sup = FacetFilter.fromSpec({
+      subFilter = FacetFilter.fromSpec({
         type: 'and'
         filters: [
           {
@@ -1135,7 +1525,7 @@ describe "FacetFilter", ->
           }
         ]
       })
-      sub = FacetFilter.fromSpec({
+      superFilter = FacetFilter.fromSpec({
         type: 'and'
         filters: [
           {
@@ -1154,7 +1544,7 @@ describe "FacetFilter", ->
         ]
       })
 
-      diff = FacetFilter.filterDiff(sup, sub)
+      diff = FacetFilter.filterDiff(subFilter, superFilter)
       expect(diff).to.be.an('array').and.to.have.length(1)
       expect(diff[0].valueOf()).to.deep.equal({
         type: 'contains'
@@ -1162,18 +1552,3 @@ describe "FacetFilter", ->
         value: 'Google'
       })
       return
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -405,21 +405,25 @@ describe "Diamonds dataset", ->
       query: [
         {
           operation: 'dataset'
-          datasets: ['ideal-cut', 'good-cut']
+          name: 'ideal-cut'
+          source: 'base'
+          filter: {
+            dataset: 'ideal-cut'
+            type: 'is'
+            attribute: 'cut'
+            value: 'Ideal'
+          }
         }
         {
-          operation: 'filter'
-          dataset: 'ideal-cut'
-          type: 'is'
-          attribute: 'cut'
-          value: 'Ideal'
-        }
-        {
-          operation: 'filter'
-          dataset: 'good-cut'
-          type: 'is'
-          attribute: 'cut'
-          value: 'Good'
+          operation: 'dataset'
+          name: 'good-cut'
+          source: 'base'
+          filter: {
+            dataset: 'good-cut'
+            type: 'is'
+            attribute: 'cut'
+            value: 'Good'
+          }
         }
         {
           operation: 'split'

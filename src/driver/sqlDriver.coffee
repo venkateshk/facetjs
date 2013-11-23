@@ -1,6 +1,7 @@
 `(typeof window === 'undefined' ? {} : window)['sqlDriver'] = (function(module, require){"use strict"; var exports = module.exports`
 
 async = require('async')
+{Duration} = require('./chronology')
 driverUtil = require('./driverUtil')
 {FacetFilter, TrueFilter, FacetSplit, FacetApply, FacetCombine, FacetQuery, AndFilter} = require('./query')
 
@@ -356,24 +357,17 @@ class SQLQueryBuilder
     #console.log 'query', ret
     return ret
 
-condensedQueryToSQL = ({requester, queryBuilder, parentSegment, condensedQuery}, callback) ->
+condensedCommandToSQL = ({requester, queryBuilder, parentSegment, condensedCommand}, callback) ->
   filtersByDataset = parentSegment._filtersByDataset
+
+  split = condensedCommand.getSplit()
+  combine = condensedCommand.getCombine()
 
   try
     queryBuilder.addFilters(filtersByDataset)
-
-    # split
-    split = condensedQuery.split
-    if split
-      queryBuilder.addSplit(split)
-
-    # apply
-    queryBuilder.addApplies(condensedQuery.applies)
-
-    # combine
-    combine = condensedQuery.combine
-    if combine
-      queryBuilder.addCombine(combine)
+    queryBuilder.addSplit(split) if split
+    queryBuilder.addApplies(condensedCommand.applies)
+    queryBuilder.addCombine(combine) if combine
   catch e
     callback(e)
     return
@@ -388,18 +382,18 @@ condensedQueryToSQL = ({requester, queryBuilder, parentSegment, condensedQuery},
       callback(err)
       return
 
-    if condensedQuery.split
-      splitAttribute = condensedQuery.split.attribute
-      splitProp = condensedQuery.split.name
+    if split
+      splitAttribute = split.attribute
+      splitProp = split.name
 
-      if condensedQuery.split.bucket is 'continuous'
-        splitSize = condensedQuery.split.size
+      if split.bucket is 'continuous'
+        splitSize = split.size
         for d in ds
           start = d[splitProp]
           d[splitProp] = [start, start + splitSize]
-      else if condensedQuery.split.bucket is 'timePeriod'
-        timezone = condensedCommand.split.timezone or 'Etc/UTC'
-        splitDuration = new Duration(condensedCommand.split.period)
+      else if split.bucket is 'timePeriod'
+        timezone = split.timezone or 'Etc/UTC'
+        splitDuration = new Duration(split.period)
         for d in ds
           rangeStart = new Date(d[splitProp])
           range = [rangeStart, splitDuration.move(rangeStart, timezone, 1)]
@@ -409,7 +403,7 @@ condensedQueryToSQL = ({requester, queryBuilder, parentSegment, condensedQuery},
         prop
         _filtersByDataset: FacetFilter.andFiltersByDataset(
           filtersByDataset
-          condensedQuery.split.getFilterByDatasetFor(prop)
+          split.getFilterByDatasetFor(prop)
         )
       }
     else
@@ -443,12 +437,12 @@ module.exports = ({requester, table, filter}) ->
       callback(e)
       return
 
-    commonFilter = new AndFilter([filter, query.getFilter()])
+    commonFilter = new AndFilter([filter, query.getFilter()]).simplify()
     datasetToTable = {}
     filtersByDataset = {}
     for dataset in query.getDatasets()
-      datasetToTable[dataset] = table
-      filtersByDataset[dataset] = new AndFilter([commonFilter, query.getDatasetFilter(dataset)]).simplify()
+      datasetToTable[dataset.name] = table or dataset.source
+      filtersByDataset[dataset.name] = new AndFilter([commonFilter, dataset.getFilter()]).simplify()
 
     init = true
     rootSegment = {
@@ -457,7 +451,7 @@ module.exports = ({requester, table, filter}) ->
     }
     segments = [rootSegment]
 
-    condensedGroups = query.getGroups()
+    condensedGroups = query.getCondensedCommands()
 
     querySQL = (condensedCommand, callback) ->
       # do the query in parallel
@@ -471,11 +465,11 @@ module.exports = ({requester, table, filter}) ->
         segments
         QUERY_LIMIT
         (parentSegment, callback) ->
-          condensedQueryToSQL({
+          condensedCommandToSQL({
             requester
             queryBuilder: new SQLQueryBuilder({datasetToTable})
             parentSegment
-            condensedQuery: condensedCommand
+            condensedCommand
           }, (err, splits) ->
             if err
               callback(err)

@@ -1,6 +1,13 @@
 # Group the queries steps in to the logical queries that will need to be done
-class FacetGroup
+
+addSplitName = (split, name) ->
+  splitSpec = split.valueOf()
+  splitSpec.name = name
+  return FacetSplit.fromSpec(splitSpec)
+
+class CondensedCommand
   constructor: ->
+    @knownProps = {}
     @split = null
     @applies = []
     @combine = null
@@ -8,14 +15,18 @@ class FacetGroup
   setSplit: (split) ->
     throw new Error("split already defined") if @split
     @split = split
+    @knownProps[split.name] = split if split.name
     return
 
   addApply: (apply) ->
     @applies.push(apply)
+    @knownProps[apply.name] = apply
 
   setCombine: (combine) ->
     throw new Error("combine called without split") unless @split
     throw new Error("can not combine more than once") if @combine
+    if combine.sort and not @knownProps[combine.sort.prop]
+      throw new Error("sort on unknown prop '#{combine.sort.prop}'")
     @combine = combine
     return
 
@@ -28,6 +39,44 @@ class FacetGroup
         continue if dataset in datasets
         datasets.push(dataset)
     return datasets
+
+  getSplit: ->
+    return @split
+
+  getEffectiveSplit: ->
+    return @split if not @split or @split.bucket isnt 'parallel'
+    sortBy = @getSortBy()
+    return @split if sortBy instanceof FacetSplit
+    # if here then sortBy is instanceof FacetApply
+
+    sortDatasets = sortBy.getDatasets()
+    effectiveSplits = @split.splits.filter((split) -> split.getDataset() in sortDatasets)
+    switch effectiveSplits.length
+      when 0
+        return @split.splits[0] # This should not happen unless we are sorting by constant
+      when 1
+        return addSplitName(effectiveSplits[0], @split.name)
+      else
+        return new ParallelSplit({
+          name: @split.name
+          splits: effectiveSplits
+          segmentFilter: @split.segmentFilter
+        })
+
+  getApplies: ->
+    return @applies
+
+  getCombine: ->
+    return @combine if @combine
+    if @split
+      return new SliceCombine({ sort: { compare: 'natural', prop: @split.name, direction: 'ascending' } })
+    else
+      return null
+
+  getSortBy: ->
+    combine = @getCombine()
+    return null unless combine?.sort
+    return @knownProps[combine.sort.prop]
 
   appendToSpec: (spec) ->
     if @split
@@ -52,38 +101,53 @@ class FacetQuery
   constructor: (commands) ->
     throw new TypeError("query spec must be an array") unless Array.isArray(commands)
 
+    # Backwards compatible
+    if commands.length and commands[0].datasets
+      newCommands = commands[0].datasets.map((datasetName) -> {
+        operation: 'dataset'
+        name: datasetName
+        source: 'base'
+      })
+      newCommandsMap = {}
+      for newCommand in newCommands
+        newCommandsMap[newCommand.name] = newCommand
+      i = 1
+      while commands[i].operation is 'filter' and commands[i].dataset
+        newCommandsMap[commands[i].dataset].filter = commands[i]
+        i++
+      commands = newCommands.concat(commands.slice(i))
+    # /Backwards compatible
+
+
     i = 0
     numCommands = commands.length
 
     # Parse dataset operation
-    if i < numCommands
-      command = commands[i]
-      if command.operation is 'dataset'
-        @datasets = command.datasets
-        i++
-
-    @datasets = ['main'] unless @datasets
-
-    # Parse filters
-    @commonFilter = null
-    @datasetFilters = {}
+    @datasets = []
     while i < numCommands
       command = commands[i]
-      break if command.operation isnt 'filter'
-      filter = FacetFilter.fromSpec(command)
-      if filter.dataset
-        dataset = filter.getDataset()
-        throw new Error("filter dataset '#{dataset}' is not defined") unless dataset in @datasets
-        @datasetFilters[dataset] = if @datasetFilters[dataset] then new AndFilter([@datasetFilters[dataset], filter]).simplify() else filter
-      else
-        @commonFilter = if @commonFilter then new AndFilter([@commonFilter, filter]).simplify() else filter
+      break unless command.operation is 'dataset'
+      @datasets.push(new FacetDataset(command))
       i++
 
+    if @datasets.length is 0
+      @datasets.push(FacetDataset.base)
+
+    # Parse filter
+    @filter = null
+    if i < numCommands and commands[i].operation is 'filter'
+      @filter = FacetFilter.fromSpec(command)
+      i++
+
+    hasDataset = {}
+    for dataset in @datasets
+      hasDataset[dataset.name] = true
+
     # Parse split apply combines
-    @groups = [new FacetGroup()]
+    @condensedCommands = [new CondensedCommand()]
     while i < numCommands
       command = commands[i]
-      curGroup = @groups[@groups.length - 1]
+      curGroup = @condensedCommands[@condensedCommands.length - 1]
 
       switch command.operation
         when 'dataset', 'filter'
@@ -92,17 +156,18 @@ class FacetQuery
         when 'split'
           split = FacetSplit.fromSpec(command)
           for dataset in split.getDatasets()
-            throw new Error("split dataset '#{dataset}' is not defined") unless dataset in @datasets
-          curGroup = new FacetGroup()
+            throw new Error("split dataset '#{dataset}' is not defined") unless hasDataset[dataset]
+
+          curGroup = new CondensedCommand()
           curGroup.setSplit(split)
-          @groups.push(curGroup)
+          @condensedCommands.push(curGroup)
 
         when 'apply'
           apply = FacetApply.fromSpec(command)
           throw new Error("base apply must have a name") unless apply.name
           datasets = apply.getDatasets()
           for dataset in datasets
-            throw new Error("apply dataset '#{dataset}' is not defined") unless dataset in @datasets
+            throw new Error("apply dataset '#{dataset}' is not defined") unless hasDataset[dataset]
           curGroup.addApply(apply)
 
         when 'combine'
@@ -123,25 +188,19 @@ class FacetQuery
   valueOf: ->
     spec = []
 
-    if @datasets.length isnt 1 or @datasets[0] isnt 'main'
-      spec.push {
-        operation: 'dataset'
-        datasets: @datasets
-      }
+    if not (@datasets.length is 1 and @datasets[0] is FacetDataset.base)
+      for dataset in @datasets
+        datasetSpec = dataset.valueOf()
+        datasetSpec.operation = 'dataset'
+        spec.push(datasetSpec)
 
-    if @commonFilter
-      filterVal = @commonFilter.valueOf()
-      filterVal.operation = 'filter'
-      spec.push(filterVal)
+    if @filter
+      filterSpec = @filter.valueOf()
+      filterSpec.operation = 'filter'
+      spec.push(filterSpec)
 
-    for dataset in @datasets
-      continue unless @datasetFilters[dataset]
-      filterVal = @datasetFilters[dataset].valueOf()
-      filterVal.operation = 'filter'
-      spec.push(filterVal)
-
-    for group in @groups
-      group.appendToSpec(spec)
+    for condensedCommand in @condensedCommands
+      condensedCommand.appendToSpec(spec)
 
     return spec
 
@@ -151,26 +210,23 @@ class FacetQuery
     return @datasets
 
   getFilter: ->
-    return @commonFilter or new TrueFilter()
-
-  getDatasetFilter: (dataset) ->
-    return @datasetFilters[dataset] or new TrueFilter()
+    return @filter or new TrueFilter()
 
   getFilterComplexity: ->
     complexity = @getFilter().getComplexity()
-    complexity += @getDatasetFilter(dataset).getComplexity() for dataset in @datasets
+    complexity += dataset.getFilter().getComplexity() for dataset in @datasets
     return complexity
 
-  getGroups: ->
-    return @groups
+  getCondensedCommands: ->
+    return @condensedCommands
 
   getSplits: ->
-    splits = @groups.map(({split}) -> split)
+    splits = @condensedCommands.map(({split}) -> split)
     splits.shift()
     return splits
 
 
 # Export!
-exports.FacetGroup = FacetGroup
+exports.CondensedCommand = CondensedCommand
 exports.FacetQuery = FacetQuery
 

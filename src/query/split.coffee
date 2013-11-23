@@ -210,7 +210,23 @@ class ParallelSplit extends FacetSplit
     return split
 
   getFilterFor: (prop) ->
-    throw new Error("no single filter defined for ParallelSplit")
+    firstSplit = @splits[0]
+    value = prop[@name]
+    return switch firstSplit.bucket
+      when 'identity'
+        new IsFilter({
+          attribute: firstSplit.attribute
+          value
+        })
+
+      when 'continuous', 'timePeriod'
+        new WithinFilter({
+          attribute: firstSplit.attribute
+          range: value
+        })
+
+      else
+        throw new Error("unsupported sub split '#{firstSplit.bucket}'")
 
   getFilterByDatasetFor: (prop) ->
     filterByDataset = {}

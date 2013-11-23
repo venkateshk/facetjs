@@ -50,6 +50,7 @@ driverFns.wikipediaCached = (query, callback) ->
 testEquality = utils.makeEqualityTest(driverFns)
 
 describe "Nested cache", ->
+
   describe "errors", ->
     it "complains when there is no query", ->
       expect(->
@@ -79,7 +80,7 @@ describe "Nested cache", ->
       { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
       { operation: "split", name: "Language", bucket: "identity", attribute: "language" }
       { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
-      { operation: "combine", method: "slice", sort: { compare: "natural", prop: "count", direction: "descending" }, limit: 10 }
+      { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
       {
         operation: "split", name: "Page", bucket: "identity", attribute: "page",
         segmentFilter: {
@@ -91,7 +92,7 @@ describe "Nested cache", ->
         }
       }
       { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
-      { operation: "combine", method: "slice", sort: { compare: "natural", prop: "count", direction: "descending" }, limit: 10 }
+      { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
     ]
 
     before (done) ->
@@ -116,7 +117,7 @@ describe "Nested cache", ->
         { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
         { operation: "split", name: "Language", bucket: "identity", attribute: "language" }
         { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
-        { operation: "combine", method: "slice", sort: { compare: "natural", prop: "count", direction: "descending" }, limit: 10 }
+        { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
         {
           operation: "split", name: "Page", bucket: "identity", attribute: "page",
           segmentFilter: {
@@ -127,7 +128,7 @@ describe "Nested cache", ->
           }
         }
         { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
-        { operation: "combine", method: "slice", sort: { compare: "natural", prop: "count", direction: "descending" }, limit: 10 }
+        { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
       ]
     }
 
@@ -137,7 +138,7 @@ describe "Nested cache", ->
         { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
         { operation: "split", name: "Language", bucket: "identity", attribute: "language" }
         { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
-        { operation: "combine", method: "slice", sort: { compare: "natural", prop: "count", direction: "descending" }, limit: 10 }
+        { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
         {
           operation: "split", name: "Page", bucket: "identity", attribute: "page",
           segmentFilter: {
@@ -145,7 +146,7 @@ describe "Nested cache", ->
           }
         }
         { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
-        { operation: "combine", method: "slice", sort: { compare: "natural", prop: "count", direction: "descending" }, limit: 10 }
+        { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
       ]
     }
 
@@ -155,7 +156,7 @@ describe "Nested cache", ->
         { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
         { operation: "split", name: "Language", bucket: "identity", attribute: "language" }
         { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
-        { operation: "combine", method: "slice", sort: { compare: "natural", prop: "count", direction: "descending" }, limit: 10 }
+        { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
       ]
     }
 
@@ -165,7 +166,7 @@ describe "Nested cache", ->
       { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
       { operation: "split", name: "Language", bucket: "identity", attribute: "language" }
       { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
-      { operation: "combine", method: "slice", sort: { compare: "natural", prop: "count", direction: "descending" }, limit: 10 }
+      { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
     ]
 
     before (done) ->
@@ -185,7 +186,7 @@ describe "Nested cache", ->
         { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
         { operation: "split", name: "Language", bucket: "identity", attribute: "language" }
         { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
-        { operation: "combine", method: "slice", sort: { compare: "natural", prop: "count", direction: "descending" }, limit: 10 }
+        { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
         {
           operation: "split", name: "Page", bucket: "identity", attribute: "page",
           segmentFilter: {
@@ -193,7 +194,7 @@ describe "Nested cache", ->
           }
         }
         { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
-        { operation: "combine", method: "slice", sort: { compare: "natural", prop: "count", direction: "descending" }, limit: 10 }
+        { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
       ]
     }
 
@@ -204,7 +205,7 @@ describe "Nested cache", ->
         { operation: "filter", type: "is", attribute: "language", value: "en" }
         { operation: "split", name: "Page", bucket: "identity", attribute: "page" }
         { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
-        { operation: "combine", method: "slice", sort: { compare: "natural", prop: "count", direction: "descending" }, limit: 10 }
+        { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
       ]
       testEquality({
         drivers: ['wikipediaCached', 'wikipediaSimple']
@@ -212,7 +213,7 @@ describe "Nested cache", ->
           { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
           { operation: "split", name: "Language", bucket: "identity", attribute: "language" }
           { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
-          { operation: "combine", method: "slice", sort: { compare: "natural", prop: "count", direction: "descending" }, limit: 10 }
+          { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
           {
             operation: "split", name: "Page", bucket: "identity", attribute: "page",
             segmentFilter: {
@@ -223,7 +224,7 @@ describe "Nested cache", ->
             }
           }
           { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
-          { operation: "combine", method: "slice", sort: { compare: "natural", prop: "count", direction: "descending" }, limit: 10 }
+          { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
         ]
       })(done)
 
@@ -234,7 +235,7 @@ describe "Nested cache", ->
         { operation: "filter", type: "is", attribute: "language", value: "fr" }
         { operation: "split", name: "Page", bucket: "identity", attribute: "page" }
         { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
-        { operation: "combine", method: "slice", sort: { compare: "natural", prop: "count", direction: "descending" }, limit: 10 }
+        { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
       ]
       testEquality({
         drivers: ['wikipediaCached', 'wikipediaSimple']
@@ -242,7 +243,7 @@ describe "Nested cache", ->
           { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
           { operation: "split", name: "Language", bucket: "identity", attribute: "language" }
           { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
-          { operation: "combine", method: "slice", sort: { compare: "natural", prop: "count", direction: "descending" }, limit: 10 }
+          { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
           {
             operation: "split", name: "Page", bucket: "identity", attribute: "page",
             segmentFilter: {
@@ -254,7 +255,7 @@ describe "Nested cache", ->
             }
           }
           { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
-          { operation: "combine", method: "slice", sort: { compare: "natural", prop: "count", direction: "descending" }, limit: 10 }
+          { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
         ]
       })(done)
 
@@ -265,7 +266,7 @@ describe "Nested cache", ->
         { operation: "filter", type: "is", attribute: "language", value: "poo" }
         { operation: "split", name: "Page", bucket: "identity", attribute: "page" }
         { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
-        { operation: "combine", method: "slice", sort: { compare: "natural", prop: "count", direction: "descending" }, limit: 10 }
+        { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
       ]
       testEquality({
         drivers: ['wikipediaCached', 'wikipediaSimple']
@@ -273,7 +274,7 @@ describe "Nested cache", ->
           { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
           { operation: "split", name: "Language", bucket: "identity", attribute: "language" }
           { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
-          { operation: "combine", method: "slice", sort: { compare: "natural", prop: "count", direction: "descending" }, limit: 10 }
+          { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
           {
             operation: "split", name: "Page", bucket: "identity", attribute: "page",
             segmentFilter: {
@@ -286,7 +287,7 @@ describe "Nested cache", ->
             }
           }
           { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
-          { operation: "combine", method: "slice", sort: { compare: "natural", prop: "count", direction: "descending" }, limit: 10 }
+          { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
         ]
       })(done)
 
@@ -301,6 +302,6 @@ describe "Nested cache", ->
           { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
           { operation: "split", name: "Page", bucket: "identity", attribute: "page" }
           { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
-          { operation: "combine", method: "slice", sort: { compare: "natural", prop: "count", direction: "descending" }, limit: 10 }
+          { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
         ]
       })(done)

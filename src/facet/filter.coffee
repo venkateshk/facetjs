@@ -7,39 +7,39 @@
 # { type: "or", filters: [{...}] }
 
 facet.filter = {
-  true: -> {
+  'true': -> {
     type: 'true'
   }
 
-  false: -> {
+  'false': -> {
     type: 'false'
   }
 
-  is: (attribute, value) -> {
+  'is': (attribute, value) -> {
     type: 'is'
     attribute
     value
   }
 
-  in: (attribute, values) -> {
+  'in': (attribute, values) -> {
     type: 'in'
     attribute
     values
   }
 
-  contains: (attribute, value) -> {
+  'contains': (attribute, value) -> {
     type: 'contains'
     attribute
     value
   }
 
-  match: (attribute, expression) -> {
+  'match': (attribute, expression) -> {
     type: 'match'
     attribute
     expression
   }
 
-  within: (attribute, range) ->
+  'within': (attribute, range) ->
     throw new TypeError("range must be an array of two things") unless Array.isArray(range) and range.length is 2
     return {
       type: 'within'
@@ -47,21 +47,21 @@ facet.filter = {
       range
     }
 
-  not: (filter) ->
+  'not': (filter) ->
     throw new TypeError("filter must be a filter object") unless typeof filter is 'object'
     return {
       type: 'not'
       filter
     }
 
-  and: (filters...) ->
+  'and': (filters...) ->
     throw new TypeError('must have some filters') unless filters.length
     return {
       type: 'and'
       filters
     }
 
-  or: (filters...) ->
+  'or': (filters...) ->
     throw new TypeError('must have some filters') unless filters.length
     return {
       type: 'or'

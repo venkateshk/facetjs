@@ -1,27 +1,93 @@
-filterTypePresedence = {
-  'true': 1
-  'false': 2
-  'within': 3
-  'is': 4
-  'in': 5
-  'contains': 6
-  'match': 7
-  'not': 8
-  'and': 9
-  'or': 10
+union = (sets...) ->
+  ret = []
+  seen = {}
+  for set in sets
+    for value in set
+      continue if seen[value]
+      seen[value] = true
+      ret.push(value)
+  return ret
+
+intersection = (set, sets...) ->
+  return set.filter (value) ->
+    for s in sets
+      return false unless value in s
+
+    return true
+
+compare = (a, b) ->
+  return -1 if a < b
+  return +1 if a > b
+  return 0
+
+arrayCompare = (arr1, arr2) ->
+  arr1Length = arr1.length
+  arr2Length = arr2.length
+  lengthDiff = arr1Length - arr2Length
+  return lengthDiff if lengthDiff isnt 0 or arr1Length is 0
+
+  # Left with same length non-empty arrays
+  # Do a 'dictionary' compare
+  for x1, i in arr1
+    diff = compare(x1, arr2[i])
+    return diff if diff isnt 0
+
+  return 0
+
+
+filterSortTypePresedence = {
+  'true': -2
+  'false': -1
+  'within': 0
+  'in': 0
+  'not in': 0
+  'contains': 0
+  'match': 0
+  'not': 1
+  'and': 2
+  'or': 3
+}
+
+filterSortTypeSubPresedence = {
+  'within': 0
+  'in': 1
+  'not in': 2
+  'contains': 3
+  'match': 4
 }
 
 class FacetFilter
   @compare = (filter1, filter2) ->
-    typeDiff = filterTypePresedence[filter1.type] - filterTypePresedence[filter2.type]
-    return typeDiff if typeDiff isnt 0 or filter1.type in ['not', 'and', 'or']
-    return -1 if filter1.attribute < filter2.attribute
-    return +1 if filter1.attribute > filter2.attribute
+    filter1SortType = filter1._getSortType()
+    filter2SortType = filter2._getSortType()
 
-    # ToDo: expand this to all filters
-    if filter1.type is 'is'
-      return -1 if filter1.value < filter2.value
-      return +1 if filter1.value > filter2.value
+    presedence1 = filterSortTypePresedence[filter1SortType]
+    presedence2 = filterSortTypePresedence[filter2SortType]
+    presedenceDiff = presedence1 - presedence2
+    return presedenceDiff if presedenceDiff isnt 0 or presedence1 > 0
+
+    # We are left with 'within', 'is', 'in', 'contains', 'match' at this point
+    # Sort by attribute
+    attributeDiff = compare(filter1.attribute, filter2.attribute)
+    return attributeDiff if attributeDiff isnt 0
+
+    # Same attribute, sort by subPresedence
+    presedenceDiff = filterSortTypeSubPresedence[filter1SortType] - filterSortTypeSubPresedence[filter2SortType]
+    return presedenceDiff if presedenceDiff isnt 0
+
+    # Same attribute, same type, sort by specifics
+    switch filter1SortType
+      when 'within'
+        return arrayCompare(filter1.range, filter2.range)
+
+      when 'in', 'not in'
+        return arrayCompare(filter1._getInValues(), filter2._getInValues())
+
+      when 'contains'
+        return compare(filter1.value, filter2.value)
+
+      when 'match'
+        return compare(filter1.expression, filter2.expression)
 
     return 0
 
@@ -39,6 +105,9 @@ class FacetFilter
   _validateAttribute: ->
     if typeof @attribute isnt 'string'
       throw new TypeError("attribute must be a string")
+
+  _getSortType: ->
+    return @type
 
   valueOf: ->
     filter = { type: @type }
@@ -70,7 +139,7 @@ class FacetFilter
   extractFilterByAttribute: (attribute) ->
     throw new TypeError("must have an attribute") unless typeof attribute is 'string'
     if not @attribute or @attribute isnt attribute
-      return [this]
+      return [this, new TrueFilter()]
     else
       return [new TrueFilter(), this]
 
@@ -111,6 +180,12 @@ class IsFilter extends FacetFilter
     @_ensureType('is')
     @_validateAttribute()
 
+  _getSortType: ->
+    return 'in'
+
+  _getInValues: ->
+    return [@value]
+
   toString: ->
     return "#{@attribute} is #{@value}"
 
@@ -137,6 +212,9 @@ class InFilter extends FacetFilter
     @_validateAttribute()
     throw new TypeError('values must be an array') unless Array.isArray(@values)
 
+  _getInValues: ->
+    return @values
+
   toString: ->
     switch @values.length
       when 0 then return "Nothing"
@@ -151,7 +229,21 @@ class InFilter extends FacetFilter
     return filter
 
   simplify: ->
-    return if @values.length then this else new FalseFilter()
+    return this if @simple
+
+    vs = union(@values)
+    switch vs.length
+      when 0
+        return new FalseFilter()
+
+      when 1
+        return new IsFilter({ attribute: @attribute, value: vs[0] })
+
+      else
+        vs.sort()
+        simpleFilter = new InFilter({ attribute: @attribute, values: vs })
+        simpleFilter.simple = true
+        return simpleFilter
 
   isEqual: (other) ->
     return super(other) and other.values.join(';') is @values.join(';')
@@ -265,6 +357,13 @@ class NotFilter extends FacetFilter
       @filter = arg
     @_ensureType('not')
 
+  _getSortType: ->
+    filterSortType = @filter._getSortType()
+    return if filterSortType is 'in' then 'not in' else 'not'
+
+  _getInValues: ->
+    return @filter._getInValues()
+
   toString: ->
     return "not (#{@filter})"
 
@@ -277,19 +376,33 @@ class NotFilter extends FacetFilter
     return 1 + @filter.getComplexity()
 
   simplify: ->
-    return switch @filter.type
-      when 'true' then new FalseFilter()
-      when 'false' then new TrueFilter()
-      when 'not' then @filter.filter.simplify()
-      else new NotFilter(@filter.simplify())
+    return this if @simple
+
+    switch @filter.type
+      when 'true'
+        return new FalseFilter()
+
+      when 'false'
+        return new TrueFilter()
+
+      when 'not'
+        return @filter.filter.simplify()
+
+      when 'and', 'or'
+        AndOrConstructor = if @filter.type is 'and' then OrFilter else AndFilter
+        return new AndOrConstructor(@filter.filters.map((filter) -> new NotFilter(filter))).simplify()
+
+      else
+        simpleFilter = new NotFilter(@filter.simplify())
+        simpleFilter.simple = true
+        return simpleFilter
 
   extractFilterByAttribute: (attribute) ->
     throw new TypeError("must have an attribute") unless typeof attribute is 'string'
-    return null unless @filter.type in ['true', 'false', 'is', 'in', 'contains', 'match', 'within']
-    if @filter.type is ['true', 'false'] or @filter.attribute isnt attribute
-      return [this]
-    else
-      return [new TrueFilter(), this]
+    return @simplify().extractFilterByAttribute(attribute) unless @simple
+
+    return null unless @filter.attribute # Not sure when this could ever happen in a simple filter
+    return if @filter.attribute is attribute then [new TrueFilter(), this] else [this, new TrueFilter()]
 
   isEqual: (other) ->
     return super(other) and @filter.isEqual(other.filter)
@@ -334,26 +447,50 @@ class AndFilter extends FacetFilter
     return complexity
 
   _mergeFilters: (filter1, filter2) ->
-    return new FalseFilter() if filter1.type is 'false' or filter2.type is 'false'
-    return filter2 if filter1.type is 'true'
-    return filter1 if filter2.type is 'true'
+    filter1SortType = filter1._getSortType()
+    filter2SortType = filter2._getSortType()
+
+    return new FalseFilter() if filter1SortType is 'false' or filter2SortType is 'false'
+    return filter2 if filter1SortType is 'true'
+    return filter1 if filter2SortType is 'true'
+
+    return unless filter1.attribute is filter2.attribute
+    attribute = filter1.attribute
+
     return filter1 if filter1.isEqual(filter2)
-    return unless filter1.type is filter2.type and filter1.attribute is filter2.attribute
-    switch filter1.type
+
+    if filter1SortType isnt filter2SortType
+      # if filter1SortType in ['in', 'not in'] and filter2SortType in ['in', 'not in']
+      #   ...
+      return
+
+    switch filter1SortType
       when 'within'
-        if rangesIntersect(filter1.range, filter2.range)
-          [start1, end1] = filter1.range
-          [start2, end2] = filter2.range
-          return new WithinFilter({
-            attribute: filter1.attribute
-            range: [larger(start1, start2), smaller(end1, end2)]
-          })
-        else
-          return
-      else
-        return
+        return unless rangesIntersect(filter1.range, filter2.range)
+        [start1, end1] = filter1.range
+        [start2, end2] = filter2.range
+        return new WithinFilter({
+          attribute
+          range: [larger(start1, start2), smaller(end1, end2)]
+        })
+
+      when 'in'
+        return new InFilter({
+          attribute
+          values: intersection(filter1._getInValues(), filter2._getInValues())
+        }).simplify()
+
+      when 'not in'
+        return new NotFilter(new InFilter({
+          attribute
+          values: intersection(filter1._getInValues(), filter2._getInValues())
+        })).simplify()
+
+    return
 
   simplify: ->
+    return this if @simple
+
     newFilters = []
     for filter in @filters
       filter = filter.simplify()
@@ -377,27 +514,36 @@ class AndFilter extends FacetFilter
           mergedFilters.push(acc)
           acc = currentFilter
         i++
-      mergedFilters.push(acc)
+      # Check last filter for being TRUE or FALSE
+      return new FalseFilter() if acc.type is 'false'
+      mergedFilters.push(acc) unless acc.type is 'true'
       newFilters = mergedFilters
 
-    return switch newFilters.length
-      when 0 then new TrueFilter()
-      when 1 then newFilters[0]
-      else new AndFilter(newFilters)
+    switch newFilters.length
+      when 0
+        return new TrueFilter()
+      when 1
+        return newFilters[0]
+      else
+        simpleFilter = new AndFilter(newFilters)
+        simpleFilter.simple = true
+        return simpleFilter
 
   extractFilterByAttribute: (attribute) ->
     throw new TypeError("must have an attribute") unless typeof attribute is 'string'
+    return @simplify().extractFilterByAttribute(attribute) unless @simple
+
     remainingFilters = []
     extractedFilters = []
     for filter in @filters
       extract = filter.extractFilterByAttribute(attribute)
       return null if extract is null
       remainingFilters.push(extract[0])
-      extractedFilters.push(extract[1]) if extract.length > 1
+      extractedFilters.push(extract[1])
 
     return [
-      (new AndFilter(remainingFilters)).simplify()
-      (new AndFilter(extractedFilters)).simplify()
+      new AndFilter(remainingFilters).simplify()
+      new AndFilter(extractedFilters).simplify()
     ]
 
   getFilterFn: ->
@@ -443,12 +589,35 @@ class OrFilter extends FacetFilter
     return complexity
 
   _mergeFilters: (filter1, filter2) ->
-    return new TrueFilter() if filter1.type is 'true' or filter2.type is 'true'
-    return filter2 if filter1.type is 'false'
-    return filter1 if filter2.type is 'false'
+    filter1SortType = filter1._getSortType()
+    filter2SortType = filter2._getSortType()
+
+    return new TrueFilter() if filter1SortType is 'true' or filter2SortType is 'true'
+    return filter2 if filter1SortType is 'false'
+    return filter1 if filter2SortType is 'false'
+
+    return unless filter1.attribute is filter2.attribute
+    attribute = filter1.attribute
+
     return filter1 if filter1.isEqual(filter2)
-    return unless filter1.type is filter2.type and filter1.attribute is filter2.attribute
-    switch filter1.type
+
+    if filter1SortType isnt filter2SortType
+      # if filter1SortType in ['in', 'not in'] and filter2SortType in ['in', 'not in']
+      #   if filter1SortType is 'in'
+      #     inFilter = filter1
+      #     notInFilter = filter2
+      #   else
+      #     inFilter = filter2
+      #     notInFilter = filter1
+
+      #   return new InFilter({
+      #     attribute
+      #     values: difference(inFilter._getInValues(), notInFilter._getInValues())
+      #   }).simplify()
+
+      return
+
+    switch filter1SortType
       when 'within'
         if rangesIntersect(filter1.range, filter2.range)
           [start1, end1] = filter1.range
@@ -459,10 +628,24 @@ class OrFilter extends FacetFilter
           })
         else
           return new FalseFilter()
-      else
-        return
+
+      when 'in'
+        return new InFilter({
+          attribute
+          values: union(filter1._getInValues(), filter2._getInValues())
+        }).simplify()
+
+      when 'not in'
+        return new NotFilter(new InFilter({
+          attribute
+          values: union(filter1._getInValues(), filter2._getInValues())
+        })).simplify()
+
+    return
 
   simplify: ->
+    return this if @simple
+
     newFilters = []
     for filter in @filters
       filter = filter.simplify()
@@ -486,21 +669,38 @@ class OrFilter extends FacetFilter
           mergedFilters.push(acc)
           acc = currentFilter
         i++
-      mergedFilters.push(acc)
+      # Check last filter for being TRUE or FALSE
+      return new TrueFilter() if acc.type is 'true'
+      mergedFilters.push(acc) unless acc.type is 'false'
       newFilters = mergedFilters
 
-    return switch newFilters.length
-      when 0 then new FalseFilter()
-      when 1 then newFilters[0]
-      else new OrFilter(newFilters)
+    switch newFilters.length
+      when 0
+        return new FalseFilter()
+      when 1
+        return newFilters[0]
+      else
+        simpleFilter = new OrFilter(newFilters)
+        simpleFilter.simple = true
+        return simpleFilter
 
   extractFilterByAttribute: (attribute) ->
     throw new TypeError("must have an attribute") unless typeof attribute is 'string'
-    hasNoClaim = (filter) ->
-      extract = filter.extractFilterByAttribute(attribute)
-      return extract and extract.length is 1
+    return @simplify().extractFilterByAttribute(attribute) unless @simple
 
-    return if @filters.every(hasNoClaim) then [this] else null
+    hasRemaining = false
+    hasExtracted = false
+    for filter in @filters
+      extracts = filter.extractFilterByAttribute(attribute)
+      return null unless extracts
+      hasRemaining or= extracts[0].type isnt 'true'
+      hasExtracted or= extracts[1].type isnt 'true'
+
+    if hasRemaining
+      return if hasExtracted then null else [this, new TrueFilter()]
+    else
+      throw new Error("something went wrong") unless hasExtracted
+      return [new TrueFilter(), this]
 
   getFilterFn: ->
     filters = @filters.map((f) -> f.getFilterFn())
@@ -513,24 +713,31 @@ class OrFilter extends FacetFilter
 # Class methods ------------------------
 
 # Computes the diff between sup & sub assumes that sup and sub are either atomic or an AND of atomic filters
-FacetFilter.filterDiff = (sup, sub) ->
-  supFilters = (if sup.type is 'true' then [] else if sup.type is 'and' then sup.filters else [sup])
-  subFilters = (if sub.type is 'true' then [] else if sub.type is 'and' then sub.filters else [sub])
+FacetFilter.filterDiff = (subFilter, superFilter) ->
+  subFilter = subFilter.simplify()
+  superFilter = superFilter.simplify()
 
-  filterInSub = (filter) ->
-    for subFilter in subFilters
-      return true if filter.isEqual(subFilter)
+  subFilters = if subFilter.type is 'true' then [] else if subFilter.type is 'and' then subFilter.filters else [subFilter]
+  superFilters = if superFilter.type is 'true' then [] else if superFilter.type is 'and' then superFilter.filters else [superFilter]
+
+  filterInSuperFilter = (filter) ->
+    for sf in superFilters
+      return true if filter.isEqual(sf)
     return false
 
   diff = []
   numFoundInSubFilters = 0
-  for supFilter in supFilters
-    if filterInSub(supFilter)
+  for subFilterFilter in subFilters
+    if filterInSuperFilter(subFilterFilter)
       numFoundInSubFilters++
     else
-      diff.push(supFilter)
+      diff.push(subFilterFilter)
 
-  return if numFoundInSubFilters is subFilters.length then diff else null
+  return if numFoundInSubFilters is superFilters.length then diff else null
+
+
+FacetFilter.filterSubset = (subFilter, superFilter) ->
+  return Boolean(FacetFilter.filterDiff(subFilter, superFilter))
 
 
 FacetFilter.andFiltersByDataset = (filters1, filters2) ->

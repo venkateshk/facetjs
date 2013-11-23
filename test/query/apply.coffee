@@ -715,6 +715,71 @@ describe "FacetApply", ->
         ]
       })
 
+    it "works in the case of a delta", ->
+      applySpecs = [
+        {
+          name: "count"
+          aggregate: "sum"
+          attribute: "count"
+        }
+        {
+          name: "count_delta_"
+          arithmetic: "multiply"
+          operands: [
+            {
+              arithmetic: "divide"
+              operands: [
+                {
+                  arithmetic: "subtract"
+                  operands: [
+                    {
+                      dataset: "main"
+                      aggregate: "sum"
+                      attribute: "count"
+                    }
+                    {
+                      dataset: "prev"
+                      aggregate: "sum"
+                      attribute: "count"
+                    }
+                  ]
+                }
+                {
+                  dataset: "prev"
+                  aggregate: "sum"
+                  attribute: "count"
+                }
+              ]
+            }
+            {
+              aggregate: "constant"
+              value: 100
+            }
+          ]
+        }
+      ]
 
+      {
+        appliesByDataset
+        postProcessors
+        trackedSegregation
+      } = FacetApply.segregate(applySpecs.map(FacetApply.fromSpec), null, customPostProcessorScheme)
+      expect(trackedSegregation).to.be.null
+      expect(postProcessors).to.have.length(1)
+      expect(postProcessors[0]).to.equal('count_delta_ <- ((([count] - [_N_2]) / [_N_2]) * CONSTANT(100))')
 
+      expect(appliesByDataset).to.be.an('object')
+      expect(appliesByDataset.main).to.have.length(1)
+      expect(appliesByDataset.prev).to.have.length(1)
+      expect(appliesByDataset.main[0].valueOf()).to.deep.equal({
+        name: "count"
+        aggregate: "sum"
+        attribute: "count"
+      })
+      expect(appliesByDataset.prev[0].valueOf()).to.deep.equal({
+        dataset: "prev"
+        name: "_N_2"
+        aggregate: "sum"
+        attribute: "count"
+      })
 

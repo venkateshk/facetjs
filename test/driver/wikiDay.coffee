@@ -514,27 +514,33 @@ describe "Wikipedia day dataset", ->
       query: [
         {
           operation: 'dataset'
-          datasets: ['robots', 'humans']
+          name: 'robots'
+          source: 'base'
+          filter: {
+            operation: 'filter'
+            dataset: 'robots'
+            type: 'is'
+            attribute: 'robot'
+            value: '1'
+          }
+        }
+        {
+          operation: 'dataset'
+          name: 'humans'
+          source: 'base'
+          filter: {
+            operation: 'filter'
+            dataset: 'robots'
+            type: 'is'
+            attribute: 'robot'
+            value: '0'
+          }
         }
         {
           operation: 'filter'
           type: 'is'
           attribute: 'namespace'
           value: 'article'
-        }
-        {
-          operation: 'filter'
-          dataset: 'robots'
-          type: 'is'
-          attribute: 'robot'
-          value: '1'
-        }
-        {
-          operation: 'filter'
-          dataset: 'humans'
-          type: 'is'
-          attribute: 'robot'
-          value: '0'
         }
         {
           operation: 'split'
@@ -576,27 +582,33 @@ describe "Wikipedia day dataset", ->
       query: [
         {
           operation: 'dataset'
-          datasets: ['robots', 'humans']
+          name: 'robots'
+          source: 'base'
+          filter: {
+            operation: 'filter'
+            dataset: 'robots'
+            type: 'is'
+            attribute: 'robot'
+            value: '1'
+          }
+        }
+        {
+          operation: 'dataset'
+          name: 'humans'
+          source: 'base'
+          filter: {
+            operation: 'filter'
+            dataset: 'robots'
+            type: 'is'
+            attribute: 'robot'
+            value: '0'
+          }
         }
         {
           operation: 'filter'
           type: 'is'
           attribute: 'namespace'
           value: 'article'
-        }
-        {
-          operation: 'filter'
-          dataset: 'robots'
-          type: 'is'
-          attribute: 'robot'
-          value: '1'
-        }
-        {
-          operation: 'filter'
-          dataset: 'humans'
-          type: 'is'
-          attribute: 'robot'
-          value: '0'
         }
         {
           operation: 'split'

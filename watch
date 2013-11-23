@@ -31,6 +31,7 @@ coffee --compile --watch --bare --output build --join build/query.js \
   src/query/options.coffee \
   src/query/filter.coffee \
   src/query/segmentFilter.coffee \
+  src/query/dataset.coffee \
   src/query/split.coffee \
   src/query/apply.coffee \
   src/query/sort.coffee \

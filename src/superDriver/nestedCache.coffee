@@ -18,13 +18,13 @@ difference = (list1, list2) ->
 
 # Get the split and combines grouped together
 getSplitCombines = (query) ->
-  splitCombines = query.getGroups().map(({split, combine}) -> { split, combine })
+  splitCombines = query.getCondensedCommands().map(({split, combine}) -> { split, combine })
   splitCombines.shift()
   return splitCombines
 
 # Get a single set of applies, this assumes that the same applies are executer on each split
 getApplies = (query) ->
-  return query.getGroups()[0].applies
+  return query.getCondensedCommands()[0].applies
 
 isPropEqual = (prop1, prop2) ->
   type = typeof prop1

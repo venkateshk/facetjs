@@ -59,42 +59,167 @@ describe "General cache", ->
   @timeout(40 * 1000)
 
   describe "No split", ->
-    it "should have the same results for different drivers", testEquality {
-      drivers: ['diamondsCached', 'diamonds']
-      query: [
-        { operation: 'apply', name: 'Cheapest', aggregate: 'min', attribute: 'price' }
-        { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
-      ]
-    }
-
-  describe 'exclude filter Cache', ->
     setUpQuery = [
-        { operation: "filter", type: "not", filter: { type: "in", attribute: "table", values: [ "61" ] } }
-        { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
-        { operation: 'apply', name: 'Cheapest', aggregate: 'min', attribute: 'price' }
-        { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
-        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
-      ]
+      { operation: 'apply', name: 'Cheapest', aggregate: 'min', attribute: 'price' }
+      { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+    ]
 
     before (done) ->
-      driverFns.diamondsCached({ query: new FacetQuery(setUpQuery) }, (err, result) ->
+      driverFns.diamondsCached.clear()
+      driverFns.diamondsCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
         throw err if err
+        allowQuery = false
         done()
-        return
       )
 
     after -> allowQuery = true
 
-    it "split Color; apply Revenue; combine descending", testEquality {
+    it "apply Cheapest, Revenue", testEquality {
       drivers: ['diamondsCached', 'diamonds']
       query: [
-        { operation: "filter", type: "not", filter: { type: "in", attribute: "table", values: [ "61", "65" ] } }
-        { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
         { operation: 'apply', name: 'Cheapest', aggregate: 'min', attribute: 'price' }
         { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
-        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
       ]
     }
+
+    it "apply Revenue", testEquality {
+      drivers: ['diamondsCached', 'diamonds']
+      query: [
+        { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+      ]
+    }
+
+
+  describe "No split (multi-dataset)", ->
+    setUpQuery = [
+      {
+        operation: 'dataset'
+        name: 'ideal-cut'
+        source: 'base'
+        filter: {
+          dataset: 'ideal-cut'
+          type: 'is'
+          attribute: 'cut'
+          value: 'Ideal'
+        }
+      }
+      {
+        operation: 'dataset'
+        name: 'good-cut'
+        source: 'base'
+        filter: {
+          dataset: 'good-cut'
+          type: 'is'
+          attribute: 'cut'
+          value: 'Good'
+        }
+      }
+      {
+        operation: 'apply'
+        name: 'PriceDiff'
+        arithmetic: 'subtract'
+        operands: [
+          {
+            dataset: 'ideal-cut'
+            aggregate: 'average'
+            attribute: 'price'
+          }
+          {
+            dataset: 'good-cut'
+            aggregate: 'average'
+            attribute: 'price'
+          }
+        ]
+      }
+      {
+        operation: 'apply'
+        name: 'AvgIdealPrice'
+        dataset: 'ideal-cut'
+        aggregate: 'average'
+        attribute: 'price'
+      }
+      {
+        operation: 'apply'
+        name: 'AvgGoodPrice'
+        dataset: 'good-cut'
+        aggregate: 'average'
+        attribute: 'price'
+      }
+    ]
+
+    before (done) ->
+      driverFns.diamondsCached.clear()
+      driverFns.diamondsCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
+        throw err if err
+        allowQuery = false
+        done()
+      )
+
+    after -> allowQuery = true
+
+    it "apply PriceDiff", testEquality {
+      drivers: ['diamondsCached', 'diamonds']
+      query: [
+        {
+          operation: 'dataset'
+          name: 'ideal-cut'
+          source: 'base'
+          filter: {
+            dataset: 'ideal-cut'
+            type: 'is'
+            attribute: 'cut'
+            value: 'Ideal'
+          }
+        }
+        {
+          operation: 'dataset'
+          name: 'good-cut'
+          source: 'base'
+          filter: {
+            dataset: 'good-cut'
+            type: 'is'
+            attribute: 'cut'
+            value: 'Good'
+          }
+        }
+        {
+          operation: 'apply'
+          name: 'PriceDiff'
+          arithmetic: 'subtract'
+          operands: [
+            {
+              dataset: 'ideal-cut'
+              aggregate: 'average'
+              attribute: 'price'
+            }
+            {
+              dataset: 'good-cut'
+              aggregate: 'average'
+              attribute: 'price'
+            }
+          ]
+        }
+      ]
+    }
+
+    it "apply AvgPrice", testEquality {
+      drivers: ['diamondsCached', 'diamonds']
+      query: [
+        {
+          operation: 'filter'
+          type: 'is'
+          attribute: 'cut'
+          value: 'Ideal'
+        }
+        {
+          operation: 'apply'
+          name: 'AvgPrice'
+          aggregate: 'average'
+          attribute: 'price'
+        }
+      ]
+    }
+
 
   describe 'Identity split cache (incomplete)', ->
     setUpQuery = [
@@ -105,11 +230,11 @@ describe "General cache", ->
     ]
 
     before (done) ->
+      driverFns.diamondsCached.clear()
       driverFns.diamondsCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
         throw err if err
         allowQuery = false
         done()
-        return
       )
 
     after -> allowQuery = true
@@ -139,6 +264,14 @@ describe "General cache", ->
         { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
         { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
         { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 3 }
+      ]
+    }
+
+    it "filter color=G; apply Rev", testEquality {
+      drivers: ['diamondsCached', 'diamonds']
+      query: [
+        { operation: 'filter', type: 'is', attribute: 'color', value: 'G' }
+        { operation: 'apply', name: 'Rev', aggregate: 'sum', attribute: 'price' }
       ]
     }
 
@@ -191,11 +324,11 @@ describe "General cache", ->
     ]
 
     before (done) ->
+      driverFns.diamondsCached.clear()
       driverFns.diamondsCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
         throw err if err
         allowQuery = false
         done()
-        return
       )
 
     after -> allowQuery = true
@@ -265,6 +398,463 @@ describe "General cache", ->
       ]
     }
 
+  describe 'Identity split cache sort-single-dataset (complete)', ->
+    setUpQuery = [
+      {
+        operation: 'dataset'
+        name: 'ideal-cut'
+        source: 'base'
+        filter: {
+          dataset: 'ideal-cut'
+          type: 'is'
+          attribute: 'cut'
+          value: 'Ideal'
+        }
+      }
+      {
+        operation: 'dataset'
+        name: 'good-cut'
+        source: 'base'
+        filter: {
+          dataset: 'good-cut'
+          type: 'is'
+          attribute: 'cut'
+          value: 'Good'
+        }
+      }
+      {
+        operation: 'split'
+        name: 'Clarity'
+        bucket: 'parallel'
+        splits: [
+          {
+            dataset: 'ideal-cut'
+            bucket: 'identity'
+            attribute: 'clarity'
+          }
+          {
+            dataset: 'good-cut'
+            bucket: 'identity'
+            attribute: 'clarity'
+          }
+        ]
+      }
+      {
+        operation: 'apply'
+        name: 'PriceDiff'
+        arithmetic: 'subtract'
+        operands: [
+          {
+            dataset: 'ideal-cut'
+            aggregate: 'average'
+            attribute: 'price'
+          }
+          {
+            dataset: 'good-cut'
+            aggregate: 'average'
+            attribute: 'price'
+          }
+        ]
+      }
+      {
+        operation: 'apply'
+        name: 'AvgIdealPrice'
+        dataset: 'ideal-cut'
+        aggregate: 'average'
+        attribute: 'price'
+      }
+      {
+        operation: 'apply'
+        name: 'AvgGoodPrice'
+        dataset: 'good-cut'
+        aggregate: 'average'
+        attribute: 'price'
+      }
+      {
+        operation: 'combine'
+        method: 'slice'
+        sort: { prop: 'AvgIdealPrice', compare: 'natural', direction: 'descending' }
+        limit: 20
+      }
+    ]
+
+    before (done) ->
+      driverFns.diamondsCached.clear()
+      driverFns.diamondsCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
+        throw err if err
+        allowQuery = false
+        done()
+      )
+
+    after -> allowQuery = true
+
+    it "split parallel Cut; apply AvgIdealCut, AvgGoodCut; combine descending", testEquality {
+      drivers: ['diamondsCached', 'diamonds']
+      query: [
+        {
+          operation: 'dataset'
+          name: 'ideal-cut'
+          source: 'base'
+          filter: {
+            dataset: 'ideal-cut'
+            type: 'is'
+            attribute: 'cut'
+            value: 'Ideal'
+          }
+        }
+        {
+          operation: 'dataset'
+          name: 'good-cut'
+          source: 'base'
+          filter: {
+            dataset: 'good-cut'
+            type: 'is'
+            attribute: 'cut'
+            value: 'Good'
+          }
+        }
+        {
+          operation: 'split'
+          name: 'Clarity'
+          bucket: 'parallel'
+          splits: [
+            {
+              dataset: 'ideal-cut'
+              bucket: 'identity'
+              attribute: 'clarity'
+            }
+            {
+              dataset: 'good-cut'
+              bucket: 'identity'
+              attribute: 'clarity'
+            }
+          ]
+        }
+        {
+          operation: 'apply'
+          name: 'PriceDiff'
+          arithmetic: 'subtract'
+          operands: [
+            {
+              dataset: 'ideal-cut'
+              aggregate: 'average'
+              attribute: 'price'
+            }
+            {
+              dataset: 'good-cut'
+              aggregate: 'average'
+              attribute: 'price'
+            }
+          ]
+        }
+        {
+          operation: 'apply'
+          name: 'AvgIdealPrice'
+          dataset: 'ideal-cut'
+          aggregate: 'average'
+          attribute: 'price'
+        }
+        {
+          operation: 'apply'
+          name: 'AvgGoodPrice'
+          dataset: 'good-cut'
+          aggregate: 'average'
+          attribute: 'price'
+        }
+        {
+          operation: 'combine'
+          method: 'slice'
+          sort: { prop: 'AvgIdealPrice', compare: 'natural', direction: 'descending' }
+          limit: 20
+        }
+      ]
+    }
+
+    it "split parallel Cut; apply AvgIdealCut, AvgGoodCut; combine descending", testEquality {
+      drivers: ['diamondsCached', 'diamonds']
+      query: [
+        {
+          operation: 'filter'
+          type: 'is'
+          attribute: 'cut'
+          value: 'Ideal'
+        }
+        {
+          operation: 'split'
+          name: 'Clarity'
+          bucket: 'identity'
+          attribute: 'clarity'
+        }
+        {
+          operation: 'apply'
+          name: 'AvgIdealPrice'
+          aggregate: 'average'
+          attribute: 'price'
+        }
+        {
+          operation: 'combine'
+          method: 'slice'
+          sort: { prop: 'AvgIdealPrice', compare: 'natural', direction: 'ascending' }
+          limit: 20
+        }
+      ]
+    }
+
+
+  describe 'Identity split cache sort-multi-dataset (complete)', ->
+    setUpQuery = [
+      {
+        operation: 'dataset'
+        name: 'ideal-cut'
+        source: 'base'
+        filter: {
+          dataset: 'ideal-cut'
+          type: 'is'
+          attribute: 'cut'
+          value: 'Ideal'
+        }
+      }
+      {
+        operation: 'dataset'
+        name: 'good-cut'
+        source: 'base'
+        filter: {
+          dataset: 'good-cut'
+          type: 'is'
+          attribute: 'cut'
+          value: 'Good'
+        }
+      }
+      {
+        operation: 'split'
+        name: 'Clarity'
+        bucket: 'parallel'
+        splits: [
+          {
+            dataset: 'ideal-cut'
+            bucket: 'identity'
+            attribute: 'clarity'
+          }
+          {
+            dataset: 'good-cut'
+            bucket: 'identity'
+            attribute: 'clarity'
+          }
+        ]
+      }
+      {
+        operation: 'apply'
+        name: 'PriceDiff'
+        arithmetic: 'subtract'
+        operands: [
+          {
+            dataset: 'ideal-cut'
+            aggregate: 'average'
+            attribute: 'price'
+          }
+          {
+            dataset: 'good-cut'
+            aggregate: 'average'
+            attribute: 'price'
+          }
+        ]
+      }
+      {
+        operation: 'apply'
+        name: 'AvgIdealPrice'
+        dataset: 'ideal-cut'
+        aggregate: 'average'
+        attribute: 'price'
+      }
+      {
+        operation: 'apply'
+        name: 'AvgGoodPrice'
+        dataset: 'good-cut'
+        aggregate: 'average'
+        attribute: 'price'
+      }
+      {
+        operation: 'combine'
+        method: 'slice'
+        sort: { prop: 'PriceDiff', compare: 'natural', direction: 'descending' }
+        limit: 20
+      }
+    ]
+
+    before (done) ->
+      driverFns.diamondsCached.clear()
+      driverFns.diamondsCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
+        throw err if err
+        allowQuery = false
+        done()
+      )
+
+    after -> allowQuery = true
+
+    it "split parallel Cut; apply AvgIdealCut, AvgGoodCut; combine descending", testEquality {
+      drivers: ['diamondsCached', 'diamonds']
+      query: [
+        {
+          operation: 'dataset'
+          name: 'ideal-cut'
+          source: 'base'
+          filter: {
+            dataset: 'ideal-cut'
+            type: 'is'
+            attribute: 'cut'
+            value: 'Ideal'
+          }
+        }
+        {
+          operation: 'dataset'
+          name: 'good-cut'
+          source: 'base'
+          filter: {
+            dataset: 'good-cut'
+            type: 'is'
+            attribute: 'cut'
+            value: 'Good'
+          }
+        }
+        {
+          operation: 'split'
+          name: 'Clarity'
+          bucket: 'parallel'
+          splits: [
+            {
+              dataset: 'ideal-cut'
+              bucket: 'identity'
+              attribute: 'clarity'
+            }
+            {
+              dataset: 'good-cut'
+              bucket: 'identity'
+              attribute: 'clarity'
+            }
+          ]
+        }
+        {
+          operation: 'apply'
+          name: 'PriceDiff'
+          arithmetic: 'subtract'
+          operands: [
+            {
+              dataset: 'ideal-cut'
+              aggregate: 'average'
+              attribute: 'price'
+            }
+            {
+              dataset: 'good-cut'
+              aggregate: 'average'
+              attribute: 'price'
+            }
+          ]
+        }
+        {
+          operation: 'apply'
+          name: 'AvgIdealPrice'
+          dataset: 'ideal-cut'
+          aggregate: 'average'
+          attribute: 'price'
+        }
+        {
+          operation: 'apply'
+          name: 'AvgGoodPrice'
+          dataset: 'good-cut'
+          aggregate: 'average'
+          attribute: 'price'
+        }
+        {
+          operation: 'combine'
+          method: 'slice'
+          sort: { prop: 'PriceDiff', compare: 'natural', direction: 'descending' }
+          limit: 20
+        }
+      ]
+    }
+
+    it "split parallel Cut; apply AvgIdealCut, AvgGoodCut; combine ascending", testEquality {
+      drivers: ['diamondsCached', 'diamonds']
+      query: [
+        {
+          operation: 'dataset'
+          name: 'ideal-cut'
+          source: 'base'
+          filter: {
+            dataset: 'ideal-cut'
+            type: 'is'
+            attribute: 'cut'
+            value: 'Ideal'
+          }
+        }
+        {
+          operation: 'dataset'
+          name: 'good-cut'
+          source: 'base'
+          filter: {
+            dataset: 'good-cut'
+            type: 'is'
+            attribute: 'cut'
+            value: 'Good'
+          }
+        }
+        {
+          operation: 'split'
+          name: 'Clarity'
+          bucket: 'parallel'
+          splits: [
+            {
+              dataset: 'ideal-cut'
+              bucket: 'identity'
+              attribute: 'clarity'
+            }
+            {
+              dataset: 'good-cut'
+              bucket: 'identity'
+              attribute: 'clarity'
+            }
+          ]
+        }
+        {
+          operation: 'apply'
+          name: 'PriceDiff'
+          arithmetic: 'subtract'
+          operands: [
+            {
+              dataset: 'ideal-cut'
+              aggregate: 'average'
+              attribute: 'price'
+            }
+            {
+              dataset: 'good-cut'
+              aggregate: 'average'
+              attribute: 'price'
+            }
+          ]
+        }
+        {
+          operation: 'apply'
+          name: 'AvgIdealPrice'
+          dataset: 'ideal-cut'
+          aggregate: 'average'
+          attribute: 'price'
+        }
+        {
+          operation: 'apply'
+          name: 'AvgGoodPrice'
+          dataset: 'good-cut'
+          aggregate: 'average'
+          attribute: 'price'
+        }
+        {
+          operation: 'combine'
+          method: 'slice'
+          sort: { prop: 'PriceDiff', compare: 'natural', direction: 'ascending' }
+          limit: 10
+        }
+      ]
+    }
+
 
   describe "timeseries cache", ->
     describe "without filters", ->
@@ -277,11 +867,11 @@ describe "General cache", ->
       ]
 
       before (done) ->
+        driverFns.wikipediaCached.clear()
         driverFns.wikipediaCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
           throw err if err
           allowQuery = false
           done()
-          return
         )
 
       after -> allowQuery = true
@@ -330,11 +920,11 @@ describe "General cache", ->
       ]
 
       before (done) ->
+        driverFns.wikipediaCached.clear()
         driverFns.wikipediaCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
           throw err if err
           allowQuery = false
           done()
-          return
         )
 
       after -> allowQuery = true
@@ -382,11 +972,11 @@ describe "General cache", ->
       ]
 
       before (done) ->
+        driverFns.wikipediaCached.clear()
         driverFns.wikipediaCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
           throw err if err
           allowQuery = false
           done()
-          return
         )
 
       after -> allowQuery = true
@@ -476,6 +1066,35 @@ describe "General cache", ->
         ]
       }
 
+  describe 'exclude filter Cache', ->
+    setUpQuery = [
+        { operation: "filter", type: "not", filter: { type: "in", attribute: "table", values: [ "61" ] } }
+        { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+        { operation: 'apply', name: 'Cheapest', aggregate: 'min', attribute: 'price' }
+        { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+      ]
+
+    before (done) ->
+      driverFns.diamondsCached.clear()
+      driverFns.diamondsCached({ query: new FacetQuery(setUpQuery) }, (err, result) ->
+        throw err if err
+        done()
+      )
+
+    after -> allowQuery = true
+
+    it "split Color; apply Revenue; combine descending", testEquality {
+      drivers: ['diamondsCached', 'diamonds']
+      query: [
+        { operation: "filter", type: "not", filter: { type: "in", attribute: "table", values: [ "61", "65" ] } }
+        { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+        { operation: 'apply', name: 'Cheapest', aggregate: 'min', attribute: 'price' }
+        { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+      ]
+    }
+
   describe "fillTree test", ->
     it "filter; split time; apply count; apply added", testEquality {
       drivers: ['wikipediaCached', 'wikipedia']
@@ -514,11 +1133,11 @@ describe "General cache", ->
     ]
 
     before (done) ->
+      driverFns.wikipediaCached.clear()
       driverFns.wikipediaCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
         throw err if err
         allowQuery = false
         done()
-        return
       )
 
     after -> allowQuery = true
@@ -535,7 +1154,7 @@ describe "General cache", ->
       ]
     }
 
-  describe "selected applies", ->
+  describe.skip "selected applies", ->
     setUpQuery = [
       { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
       { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
@@ -545,11 +1164,11 @@ describe "General cache", ->
     ]
 
     before (done) ->
+      driverFns.wikipediaCached.clear()
       driverFns.wikipediaCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
         throw err if err
         checkEquality = true
         done()
-        return
       )
 
     after -> checkEquality = false
@@ -590,11 +1209,11 @@ describe "General cache", ->
     ]
 
     before (done) ->
+      driverFns.diamondsCached.clear()
       driverFns.diamondsCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
         throw err if err
         allowQuery = false
         done()
-        return
       )
 
     after -> allowQuery = true
@@ -627,10 +1246,10 @@ describe "General cache", ->
     ]
 
     before (done) ->
+      driverFns.diamondsCached.clear()
       driverFns.diamondsCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
         throw err if err
         done()
-        return
       )
 
     describe "included filter", ->
@@ -804,7 +1423,7 @@ describe "General cache", ->
       zeroDriverCached {
         query: new FacetQuery([
           { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] }
-          { operation: 'apply', name: 'Count', aggregate: 'constant', value: '0' }
+          { operation: 'apply', name: 'Count', aggregate: 'constant', value: 0 }
         ])
       }, (err, result) ->
         expect(err).to.be.null

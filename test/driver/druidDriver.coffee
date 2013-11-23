@@ -312,7 +312,27 @@ describe "Druid driver", ->
       query = new FacetQuery([
         {
           operation: 'dataset'
-          datasets: ['robots', 'humans']
+          name: 'robots'
+          source: 'base'
+          filter: {
+            operation: 'filter'
+            dataset: 'robots'
+            type: 'is'
+            attribute: 'robot'
+            value: '1'
+          }
+        }
+        {
+          operation: 'dataset'
+          name: 'humans'
+          source: 'base'
+          filter: {
+            operation: 'filter'
+            dataset: 'robots'
+            type: 'is'
+            attribute: 'robot'
+            value: '0'
+          }
         }
         {
           operation: 'filter'
@@ -322,20 +342,6 @@ describe "Druid driver", ->
             new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0))
             new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))
           ]
-        }
-        {
-          operation: 'filter'
-          dataset: 'robots'
-          type: 'is'
-          attribute: 'robot'
-          value: '1'
-        }
-        {
-          operation: 'filter'
-          dataset: 'humans'
-          type: 'is'
-          attribute: 'robot'
-          value: '0'
         }
         {
           operation: 'split'

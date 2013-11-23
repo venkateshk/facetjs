@@ -153,9 +153,9 @@ computeQuery = (data, query) ->
   rootRaw = {}
 
   commonFilterFn = query.getFilter().getFilterFn()
-  for datasetName in query.getDatasets()
-    datasetFilterFn = query.getDatasetFilter(datasetName).getFilterFn()
-    rootRaw[datasetName] = data.filter(commonFilterFn).filter(datasetFilterFn)
+  for dataset in query.getDatasets()
+    datasetFilterFn = dataset.getFilter().getFilterFn()
+    rootRaw[dataset.name] = data.filter(commonFilterFn).filter(datasetFilterFn)
 
   rootSegment = {
     prop: {}
@@ -164,8 +164,12 @@ computeQuery = (data, query) ->
   }
   originalSegmentGroups = segmentGroups = [[rootSegment]]
 
-  groups = query.getGroups()
-  for {split, applies, combine} in groups
+  groups = query.getCondensedCommands()
+  for condensedCommand in groups
+    split = condensedCommand.getSplit()
+    applies = condensedCommand.getApplies()
+    combine = condensedCommand.getCombine()
+
     if split
       propName = split.name
       parallelSplits = if split.bucket is 'parallel' then split.splits else [split]

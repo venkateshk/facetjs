@@ -4,7 +4,7 @@ async = require('async')
 { Duration } = require('./chronology')
 driverUtil = require('./driverUtil')
 {
-  FacetQuery
+  FacetQuery, CondensedCommand
   FacetFilter, TrueFilter, InFilter, AndFilter
   FacetSplit, FacetApply, FacetCombine, SliceCombine
 } = require('./query')
@@ -730,19 +730,19 @@ DruidQueryBuilder.queryFns = {
         prop[timePropName] = [rangeStart, rangeEnd]
         return prop
 
-      if condensedCommand.combine
-        if condensedCommand.combine.sort
-          if condensedCommand.combine.sort.prop is timePropName
-            if condensedCommand.combine.sort.direction is 'descending'
-              props.reverse()
-          else
-            comapreFn = compareFns[condensedCommand.combine.sort.direction]
-            sortProp = condensedCommand.combine.sort.prop
-            props.sort((a, b) -> comapreFn(a[sortProp], b[sortProp]))
+      combine = condensedCommand.getCombine()
+      if combine.sort
+        if combine.sort.prop is timePropName
+          if combine.sort.direction is 'descending'
+            props.reverse()
+        else
+          comapreFn = compareFns[combine.sort.direction]
+          sortProp = combine.sort.prop
+          props.sort((a, b) -> comapreFn(a[sortProp], b[sortProp]))
 
-        if condensedCommand.combine.limit?
-          limit = condensedCommand.combine.limit
-          driverUtil.inPlaceTrim(props, limit)
+      if combine.limit?
+        limit = combine.limit
+        driverUtil.inPlaceTrim(props, limit)
 
       callback(null, props)
       return
@@ -754,7 +754,7 @@ DruidQueryBuilder.queryFns = {
       queryBuilder.addFilter(filter)
 
       # split
-      queryBuilder.addSplit(condensedCommand.split)
+      queryBuilder.addSplit(condensedCommand.getSplit())
 
       # apply
       if condensedCommand.applies.length
@@ -763,8 +763,7 @@ DruidQueryBuilder.queryFns = {
       else
         queryBuilder.addDummyApply()
 
-      if condensedCommand.combine
-        queryBuilder.addCombine(condensedCommand.combine)
+      queryBuilder.addCombine(condensedCommand.getCombine())
 
       queryObj = queryBuilder.getQuery()
     catch e
@@ -808,11 +807,12 @@ DruidQueryBuilder.queryFns = {
       else
         queryBuilder.addDummyApply()
 
+      combine = condensedCommand.getCombine()
       queryBuilder.addCombine(new SliceCombine({
         sort: {
           compare: 'natural'
           prop: condensedCommand.split.name
-          direction: condensedCommand.combine?.sort.direction or 'ascending'
+          direction: combine.sort.direction or 'ascending'
         }
         limit: allDataChunks
       }))
@@ -874,8 +874,7 @@ DruidQueryBuilder.queryFns = {
       else
         queryBuilder.addDummyApply()
 
-      if condensedCommand.combine
-        queryBuilder.addCombine(condensedCommand.combine)
+      queryBuilder.addCombine(condensedCommand.getCombine())
 
       queryObj = queryBuilder.getQuery()
     catch e
@@ -958,19 +957,19 @@ DruidQueryBuilder.queryFns = {
         prop[countName] = count
         props.push(prop)
 
-      if condensedCommand.combine
-        if condensedCommand.combine.sort
-          if condensedCommand.combine.sort.prop is histName
-            if condensedCommand.combine.sort.direction is 'descending'
-              props.reverse()
-          else
-            comapreFn = compareFns[condensedCommand.combine.sort.direction]
-            sortProp = condensedCommand.combine.sort.prop
-            props.sort((a, b) -> comapreFn(a[sortProp], b[sortProp]))
+      combine = condensedCommand.getCombine()
+      if combine.sort
+        if combine.sort.prop is histName
+          if combine.sort.direction is 'descending'
+            props.reverse()
+        else
+          comapreFn = compareFns[combine.sort.direction]
+          sortProp = combine.sort.prop
+          props.sort((a, b) -> comapreFn(a[sortProp], b[sortProp]))
 
-        if condensedCommand.combine.limit?
-          limit = condensedCommand.combine.limit
-          driverUtil.inPlaceTrim(props, limit)
+      if combine.limit?
+        limit = combine.limit
+        driverUtil.inPlaceTrim(props, limit)
 
       callback(null, props)
       return
@@ -991,8 +990,7 @@ DruidQueryBuilder.queryFns = {
       else
         queryBuilder.addDummyApply()
 
-      if condensedCommand.combine
-        queryBuilder.addCombine(condensedCommand.combine)
+      queryBuilder.addCombine(condensedCommand.getCombine())
 
       queryObj = queryBuilder.getQuery()
     catch e
@@ -1047,7 +1045,7 @@ DruidQueryBuilder.makeSingleQuery = ({parentSegment, filter, condensedCommand, b
     switch condensedCommand.split.bucket
       when 'identity'
         if approximate
-          if condensedCommand.combine?.limit?
+          if condensedCommand.getCombine().limit?
             queryFnName = 'topN'
           else
             queryFnName = 'allData'
@@ -1091,6 +1089,8 @@ addSplitName = (split, name) ->
 # Split up the condensed command into condensed commands contained within the dataset
 splitupCondensedCommand = (condensedCommand) ->
   datasets = condensedCommand.getDatasets()
+  combine = condensedCommand.getCombine()
+
   tempProps = []
   perDatasetInfo = []
   if datasets.length <= 1
@@ -1107,7 +1107,7 @@ splitupCondensedCommand = (condensedCommand) ->
 
   # Separate splits
   for dataset in datasets
-    datasetSplie = null
+    datasetSplit = null
     if condensedCommand.split
       splitName = condensedCommand.split.name
       for subSplit in condensedCommand.split.splits
@@ -1115,13 +1115,11 @@ splitupCondensedCommand = (condensedCommand) ->
         datasetSplit = addSplitName(subSplit, splitName)
         break
 
+    datasetCondensedCommand = new CondensedCommand()
+    datasetCondensedCommand.setSplit(datasetSplit) if datasetSplit
     perDatasetInfo.push {
       dataset
-      condensedCommand: {
-        split: datasetSplit
-        applies: []
-        combine: null
-      }
+      condensedCommand: datasetCondensedCommand
     }
 
   # Segregate applies
@@ -1129,37 +1127,38 @@ splitupCondensedCommand = (condensedCommand) ->
     appliesByDataset
     postProcessors
     trackedSegregation: sortApplySegregation
-  } = FacetApply.segregate(condensedCommand.applies, condensedCommand.combine?.sort?.prop)
+  } = FacetApply.segregate(condensedCommand.applies, combine?.sort?.prop)
 
   for info in perDatasetInfo
-    info.condensedCommand.applies = appliesByDataset[info.dataset] or []
+    applies = appliesByDataset[info.dataset] or []
+    info.condensedCommand.addApply(apply) for apply in applies
 
   # Setup combines
-  if condensedCommand.combine
-    sort = condensedCommand.combine.sort
+  if combine
+    sort = combine.sort
     if sort
       splitName = condensedCommand.split.name
       if sortApplySegregation.length is 0
         # Sorting on splitting prop
         for info in perDatasetInfo
-          info.condensedCommand.combine = condensedCommand.combine
+          info.condensedCommand.setCombine(combine)
       else if sortApplySegregation.length is 1
         # Sorting on regular apply
         mainDataset = sortApplySegregation[0].dataset
 
         for info in perDatasetInfo
           if info.dataset is mainDataset
-            info.condensedCommand.combine = condensedCommand.combine
+            info.condensedCommand.setCombine(combine)
           else
             info.driven = true
-            info.condensedCommand.combine = new SliceCombine({
+            info.condensedCommand.setCombine(new SliceCombine({
               sort: {
                 compare: 'natural'
                 direction: 'descending'
                 prop: splitName
               }
-              limit: condensedCommand.combine.limit
-            })
+              limit: combine.limit
+            }))
       else
         # Sorting on a post apply
         for info in perDatasetInfo
@@ -1171,14 +1170,14 @@ splitupCondensedCommand = (condensedCommand) ->
             sortProp = splitName
             info.driven = true
 
-          info.condensedCommand.combine = new SliceCombine({
+          info.condensedCommand.setCombine(new SliceCombine({
             sort: {
               compare: 'natural'
               direction: 'descending'
               prop: sortProp
             }
             limit: 1000
-          })
+          }))
 
     else
       # no sort... do not do anything for now
@@ -1196,6 +1195,9 @@ splitupCondensedCommand = (condensedCommand) ->
 # Make a multi-dataset query
 multiDatasetQuery = ({parentSegment, condensedCommand, builderSettings, requester}, callback) ->
   datasets = condensedCommand.getDatasets()
+  split = condensedCommand.getSplit()
+  combine = condensedCommand.getCombine()
+
   if datasets.length is 0
     # If there are no datasets it means that this is a 'no-op' query, it has no splits or applies
     callback(null, [{}])
@@ -1206,7 +1208,7 @@ multiDatasetQuery = ({parentSegment, condensedCommand, builderSettings, requeste
     DruidQueryBuilder.makeSingleQuery({
       parentSegment
       filter: parentSegment._filtersByDataset[datasets[0]]
-      condensedCommand: condensedCommand
+      condensedCommand
       builderSettings
       requester
     }, callback)
@@ -1218,8 +1220,7 @@ multiDatasetQuery = ({parentSegment, condensedCommand, builderSettings, requeste
     for postProcessor in postProcessors
       result.forEach(postProcessor)
 
-    if condensedCommand.combine
-      combine = condensedCommand.combine
+    if combine
       if combine.sort
         compareFn = combine.sort.getCompareFn()
         result.sort(compareFn)
@@ -1251,19 +1252,19 @@ multiDatasetQuery = ({parentSegment, condensedCommand, builderSettings, requeste
       return
 
     driverResult = driverUtil.joinResults(
-      if condensedCommand.split then [condensedCommand.split.name] else []
+      if split then [split.name] else []
       allApplyNames
       driverResults
     )
 
-    if hasDriven and condensedCommand.split
+    if hasDriven and split
       # make filter
-      splitName = condensedCommand.split.name
+      splitName = split.name
 
       drivenQueries = driverUtil.filterMap perDatasetInfo, (info) ->
         return unless info.driven
 
-        throw new Error("This (#{condensedCommand.split.bucket}) split not implemented yet") unless info.condensedCommand.split.bucket is 'identity'
+        throw new Error("This (#{split.bucket}) split not implemented yet") unless info.condensedCommand.split.bucket is 'identity'
         driverFilter = new InFilter({
           attribute: info.condensedCommand.split.attribute
           values: driverResult.map((prop) -> prop[splitName])
@@ -1280,7 +1281,7 @@ multiDatasetQuery = ({parentSegment, condensedCommand, builderSettings, requeste
 
       async.parallel drivenQueries, (err, drivenResults) ->
         fullResult = driverUtil.joinResults(
-          [condensedCommand.split.name]
+          [splitName]
           allApplyNames
           [driverResult].concat(drivenResults)
         )
@@ -1332,10 +1333,10 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
       callback(e)
       return
 
-    commonFilter = new AndFilter([filter, query.getFilter()])
+    commonFilter = new AndFilter([filter, query.getFilter()]).simplify()
     filtersByDataset = {}
     for dataset in query.getDatasets()
-      filtersByDataset[dataset] = new AndFilter([commonFilter, query.getDatasetFilter(dataset)]).simplify()
+      filtersByDataset[dataset.name] = new AndFilter([commonFilter, dataset.getFilter()]).simplify()
 
     init = true
     rootSegment = {
@@ -1344,7 +1345,7 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
     }
     segments = [rootSegment]
 
-    condensedGroups = query.getGroups()
+    condensedGroups = query.getCondensedCommands()
 
     queryDruid = (condensedCommand, lastCmd, callback) ->
       if condensedCommand.split?.segmentFilter

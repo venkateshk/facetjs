@@ -298,7 +298,7 @@ module.exports = ({driver, timeAttribute}) ->
       return
 
     filter = query.getFilter()
-    condensedQuery = query.getGroups()
+    condensedQuery = query.getCondensedCommands()
 
     # If there is a split for continuous dimension, don't use cache. Doable. but not now
     datasets = query.getDatasets()

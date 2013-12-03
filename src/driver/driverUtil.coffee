@@ -14,9 +14,8 @@ exports.flatten = flatten = (ar) ->
       return
     flatAr.push item
   )
-  ar = flatAr
 
-  return ar
+  return flatAr
 
 # Trims the array in place
 exports.inPlaceTrim = (array, n) ->

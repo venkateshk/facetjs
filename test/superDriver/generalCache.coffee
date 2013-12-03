@@ -9,8 +9,7 @@ if not WallTime.rules
 sqlRequester = require('../../build/mySqlRequester')
 sqlDriver = require('../../build/sqlDriver')
 simpleDriver = require('../../build/simpleDriver')
-generalCache = require('../../build/splitCache')
-#generalCache = require('../../build/generalCache')
+generalCache = require('../../build/generalCache')
 
 {FacetQuery} = require('../../build/query')
 

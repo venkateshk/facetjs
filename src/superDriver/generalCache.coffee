@@ -3,293 +3,412 @@
 # -----------------------------------------------------
 driverUtil = require('./driverUtil')
 { Duration } = require('./chronology')
-{ FacetQuery, AndFilter, TrueFilter, FacetFilter, FacetSplit, FacetCombine } = require('./query')
+{ FacetQuery, AndFilter, TrueFilter, FacetFilter, FacetSplit, FacetApply, FacetCombine } = require('./query')
 
-filterToHashHelper = (filter) ->
-  return switch filter.type
-    when 'true'     then "T"
-    when 'false'    then "F"
-    when 'is'       then "IS:#{filter.attribute}:#{filter.value}"
-    when 'in'       then "IN:#{filter.attribute}:#{filter.values.join(';')}"
-    when 'contains' then "C:#{filter.attribute}:#{filter.value}"
-    when 'match'    then "F:#{filter.attribute}:#{filter.expression}"
-    when 'within'   then "W:#{filter.attribute}:#{filter.range[0].valueOf()}:#{filter.range[1].valueOf()}"
-    when 'not'      then "N(#{filterToHashHelper(filter.filter)})"
-    when 'and'      then "A(#{filter.filters.map(filterToHashHelper).join(')(')})"
-    when 'or'       then "O(#{filter.filters.map(filterToHashHelper).join(')(')})"
-    else throw new Error("filter type unsupported by driver")
 
-filterToHash = (filter) ->
-  return filterToHashHelper(filter.simplify())
+class LRUCache
+  constructor: (@hashFn = String, @name = 'cache') ->
+    @clear()
+
+  clear: ->
+    @store = {}
+    @size = 0
+    return
+
+  getWithHash: (hash) ->
+    return @store[hash] #?.value
+
+  get: (key) ->
+    return @getWithHash(@hashFn(key))
+
+  setWithHash: (hash, value) ->
+    @size++ unless @store.hasOwnProperty(hash)
+    @store[hash] = value
+    # {
+    #   value
+    #   time: Date.now()
+    # }
+    return
+
+  set: (key, value) ->
+    @setWithHash(@hashFn(key), value)
+    return
+
+  getOrCreateWithHash: (hash, createFn) ->
+    ret = @getWithHash(hash)
+    if not ret
+      ret = createFn()
+      @setWithHash(hash, ret)
+    return ret
+
+  getOrCreate: (key, createFn) ->
+    return @getOrCreateWithHash(@hashFn(key), createFn)
+
+# -------------------------
+
+# converts a filter to a string
+filterToHash = do ->
+  filterToHashHelper = (filter) ->
+    return switch filter.type
+      when 'true'     then "T"
+      when 'false'    then "F"
+      when 'is'       then "IS:#{filter.attribute}:#{filter.value}"
+      when 'in'       then "IN:#{filter.attribute}:#{filter.values.join(';')}"
+      when 'contains' then "C:#{filter.attribute}:#{filter.value}"
+      when 'match'    then "F:#{filter.attribute}:#{filter.expression}"
+      when 'within'   then "W:#{filter.attribute}:#{filter.range[0].valueOf()}:#{filter.range[1].valueOf()}"
+      when 'not'      then "N(#{filterToHashHelper(filter.filter)})"
+      when 'and'      then "(#{filter.filters.map(filterToHashHelper).join(')^(')})"
+      when 'or'       then "(#{filter.filters.map(filterToHashHelper).join(')v(')})"
+      else throw new Error("filter type unsupported by driver")
+
+  return (filter) -> filterToHashHelper(filter.simplify())
+
+
+# converts a single dataset apply to a string
+applyToHash = (apply) ->
+  if apply.aggregate
+    applyStr = switch apply.aggregate
+      when 'constant'    then "C:#{apply.value}"
+      when 'count'       then "CT"
+      when 'sum'         then "SM:#{apply.attribute}"
+      when 'average'     then "AV:#{apply.attribute}"
+      when 'min'         then "MN:#{apply.attribute}"
+      when 'max'         then "MX:#{apply.attribute}"
+      when 'uniqueCount' then "UC:#{apply.attribute}"
+      when 'quantile'    then "QT:#{apply.attribute}:#{apply.quantile}"
+      else throw new Error("apply aggregate unsupported by driver")
+
+    if apply.filter
+      applyStr += '/' + filterToHash(apply.filter)
+
+  else if apply.arithmetic
+    [op1, op2] = apply.operands
+    applyStr = switch apply.arithmetic
+      when 'add'      then "#{applyToHash(op1)}+#{applyToHash(op2)}"
+      when 'subtract' then "#{applyToHash(op1)}-#{applyToHash(op2)}"
+      when 'multiply' then "#{applyToHash(op1)}*#{applyToHash(op2)}"
+      when 'divide'   then "#{applyToHash(op1)}/#{applyToHash(op2)}"
+      else throw new Error("apply arithmetic unsupported by driver")
+
+  return applyStr
+
 
 splitToHash = (split) ->
-  hash = []
-  for own k, v of split
-    continue if k in ['name', 'segmentFilter']
-    hash.push(k + ":" + v)
+  return switch split.bucket
+    when 'identity'   then "ID:#{split.attribute}"
+    when 'continuous' then "CT:#{split.attribute}:#{split.offset}:#{split.size}"
+    when 'timePeriod' then "TP:#{split.attribute}" # :#{split.period}:#{split.timezone}
+    else throw new Error("bucket '#{split.bucket}' unsupported by driver")
 
-  return hash.sort().join('|')
 
-combineToHash = (combine) ->
-  hash = []
-  for own k, v of combine
-    hash.push(k + ":" + JSON.stringify(v))
+filterSplitToHash = (datasetMap, filter, split) ->
+  splits = if split.bucket is 'parallel' then split.splits else [split]
+  return splits.map((split) ->
+    dataset = datasetMap[split.getDataset()]
+    andFilter = new AndFilter([dataset.getFilter(), filter])
+    extract = andFilter.extractFilterByAttribute(split.attribute)
+    return dataset.source + '#' + filterToHash(extract[0]) + '//' + splitToHash(split)
+  ).sort().join('*')
 
-  return hash.sort().join('|')
 
-generateHash = (filter, splitOp, combineOp) ->
-  # Get Filter and Split
-  return filterToHash(filter) + '&' + splitToHash(splitOp) + '&' + combineToHash(combineOp)
-
-andFilters = (filter1, filter2) ->
-  return new AndFilter([filter1, filter2]).simplify()
-
-class FilterCache
-  # { key: filter,
-  #   value: { key: metric,
-  #            value: value } }
-  constructor: (@timeAttribute) ->
-    @hashmap = {}
-
-  get: (filter) ->
-    # {
-    #   <attribute>: <value>
-    #   <attribute>: <value>
-    # }
-    return @hashmap[filterToHash(filter)]
-
-  put: (filter, condensedQuery, root) -> # Recursively deconstruct root and add to cache
-    @_filterPutHelper(condensedQuery, root, filter, 0)
-    return
-
-  _filterPutHelper: (condensedQuery, node, filter, level) ->
-    return unless node.prop?
-
-    hashValue = @hashmap[filterToHash(filter)] ?= {}
-    applies = condensedQuery[level].applies
+appliesToHashes = (appliesByDataset, datasetMap) ->
+  applyHashes = []
+  for datasetName, applies of appliesByDataset
     for apply in applies
-      hashValue[apply.name] = node.prop[apply.name] ? hashValue[apply.name]
+      dataset = datasetMap[datasetName]
+      throw new Error("something went wrong") unless dataset
 
-    if node.splits?
-      splitOp = condensedQuery[level + 1].split
-      for split in node.splits
-        newFilter = andFilters(filter, splitOp.getFilterFor(split.prop))
-        @_filterPutHelper(condensedQuery, split, newFilter, level + 1)
-    return
+      datasetFilter = dataset.getFilter()
+      applyHashes.push({
+        name: apply.name
+        hash: dataset.source + '#' + applyToHash(apply)
+        datasetFilter
+        datasetFilterHash: filterToHash(datasetFilter)
+      })
+
+  return applyHashes
 
 
-class SplitCache
-  # { key: filter,
-  #   value: { key: split,
-  #            value: [list of dimension values] } }
-  constructor: (@timeAttribute) ->
-    @hashmap = {}
+makeDatasetMap = (query) ->
+  datasets = query.getDatasets()
+  map = {}
+  map[dataset.name] = dataset for dataset in datasets
+  return map
 
-  get: (filter, splitOp, combineOp) ->
-    # Return format:
-    # [
-    #   <value>
-    #   <value>
-    #   <value>
-    # ]
-    if splitOp.bucket is 'timePeriod' and splitOp.name is combineOp.sort?.prop
-      return @_timeCalculate(filter, splitOp, combineOp)
+getRealSplit = (split) ->
+  return if split.bucket is 'parallel' then split.splits[0] else split
+
+class IdentityCombineToSplitValues
+  constructor: ->
+    null
+
+  get: (filter, split, combine) ->
+    return null unless @splitValues
+    return null unless combine.method is 'slice'
+    split = getRealSplit(split)
+    combineSort = combine.sort
+    return null unless combineSort
+    sameSort = combineSort.isEqual(@sort)
+
+    return null unless @complete or sameSort
+
+    myFilter = filter.extractFilterByAttribute(split.attribute)?[1] or new TrueFilter()
+    return null unless FacetFilter.filterSubset(myFilter, @filter)
+
+    splitAttribute = split.attribute
+    filterFn = myFilter.getFilterFn()
+    filteredSplitValues = @splitValues.filter (splitValue) ->
+      row = {}
+      row[splitAttribute] = splitValue
+      return filterFn(row)
+
+    if sameSort and combine.limit? and combine.limit < filteredSplitValues.length
+      filteredSplitValues = filteredSplitValues.slice(0, combine.limit)
+
+    if @complete or (combine.limit? and combine.limit <= filteredSplitValues.length)
+      return filteredSplitValues
     else
-      hash = generateHash(filter, splitOp, combineOp)
-      return @hashmap[hash]
+      return null
 
-  put: (filter, condensedQuery, root) -> # Recursively deconstruct root and add to cache
-    @_splitPutHelper(filter, condensedQuery, root, 0)
+  # Check to see if I want it
+  _want: (givenFilter, givenCombine, givenSplitValues) ->
+    givenComplete = if givenCombine.limit? then givenSplitValues.length < givenCombine.limit else true
+
+    # Take it if I have no values
+    return true unless @splitValues
+
+    # The filter should be at least as great or greater
+    return false unless FacetFilter.filterSubset(@filter, givenFilter)
+
+    # Do not accept non complete splits if I am complete
+    return false if @complete and not givenComplete
+
+    # All tests pass, return true
+    return true
+
+  set: (filter, split, combine, splitValues) ->
+    return unless combine.method is 'slice'
+    split = getRealSplit(split)
+    myFilter = filter.extractFilterByAttribute(split.attribute)?[1] or new TrueFilter()
+    completeInput = if combine.limit? then splitValues.length < combine.limit else true
+
+    if @_want(myFilter, combine, splitValues)
+      @filter = myFilter
+      @sort = combine.sort
+      @limit = combine.limit if combine.limit?
+      @splitValues = splitValues
+      @complete = if combine.limit? then splitValues.length < combine.limit else true
+
     return
 
-  _splitPutHelper: (filter, condensedQuery, node, level) ->
-    return unless node.splits?
 
-    splitOp = condensedQuery[level + 1].split
-    combineOp = condensedQuery[level + 1].combine
-    splitOpName = splitOp.name
-    splitValues = node.splits.map((node) -> node.prop[splitOpName])
-    hash = generateHash(filter, splitOp, combineOp)
-    @hashmap[hash] = splitValues
+class TimePeriodCombineToSplitValues
+  constructor: ->
 
-    if condensedQuery[level + 2]?
-      for split in node.splits
-        newFilter = andFilters(filter, splitOp.getFilterFor(split.prop))
-        @_splitPutHelper(newFilter, condensedQuery, split, level + 1)
+  get: (filter, split, combine) ->
+    split = getRealSplit(split)
+    duration = new Duration(split.period)
+    timezone = split.timezone
+    timeFilter = filter.extractFilterByAttribute(split.attribute)?[1]
+    return null unless timeFilter?.type is 'within'
+    [start, end] = timeFilter.range
+    iter = duration.floor(start, timezone)
+    splitValues = []
+    next = duration.move(iter, timezone, 1)
+    while next <= end
+      splitValues.push([iter, next])
+      iter = next
+      next = duration.move(iter, timezone, 1)
+
+    sort = combine.sort
+    if sort.prop is split.name
+      splitValues.reverse() if sort.direction is 'descending'
+      driverUtil.inPlaceTrim(splitValues, combine.limit) if combine.limit?
+
+    return splitValues
+
+  set: ->
     return
 
-  _timeCalculate: (filter, splitOp, combineOp) ->
-    separatedFilters = filter.extractFilterByAttribute(@timeAttribute)
-    timeFilter = separatedFilters[1]
-    timezone = splitOp.timezone or 'Etc/UTC'
-    timestamps = []
-    [timestamp, end] = timeFilter.range
 
-    # CAUTION: this is really confusing what is happening here with the names 'duration' and 'period'
-    #          be careful for now, I will resolve this soon -VO
-    splitDuration = new Duration(splitOp.period)
-    loop
-      newTimestamp = splitDuration.move(timestamp, timezone, 1)
-      break if end < newTimestamp
-      timestamps.push([new Date(timestamp), newTimestamp])
-      timestamp = newTimestamp
+class ContinuousCombineToSplitValues
+  constructor: ->
+    null
 
-    return timestamps
+  get: (filter, split, combine) ->
+    throw new Error('not implemented yet')
+
+  set: ->
+    return
 
 
-module.exports = ({driver, timeAttribute}) ->
-  timeAttribute ?= 'timestamp'
-  splitCache = new SplitCache(timeAttribute)
-  filterCache = new FilterCache(timeAttribute)
+module.exports = ({driver}) ->
+  # Filter -> (Apply -> Number)
+  applyCache = new LRUCache(filterToHash, 'apply')
 
-  checkDeep = (node, currentLevel, targetLevel, name, bucketFilter) ->
-    if currentLevel is targetLevel
-      return node.prop[name]?
+  # (Filter, Split) -> CombineToSplitValues
+  #              where CombineToSplitValues :: Combine -> [SplitValue]
+  combineToSplitCache = new LRUCache(String, 'splitCombine')
 
-    if filteredSplitValue = node.prop[bucketFilter?.prop]
-      if filteredSplitValue in bucketFilter?.values
-        if node.splits?
-          return node.splits.every((split) -> return checkDeep(split, currentLevel + 1, targetLevel, name))
-        return false
-      else
-        return true
+  # ---------------------------------------------
 
-    if node.splits?
-      return node.splits.every((split) -> return checkDeep(split, currentLevel + 1, targetLevel, name, bucketFilter))
-    return false
-
-  bucketFilterValueCheck = (node, currentLevel, targetLevel, bucketFilter) ->
-    if currentLevel is targetLevel
-      return bucketFilter.values unless node.splits?
-      currentSplits = node.splits.filter(({splits}) -> return splits?).map((split) -> split.prop[bucketFilter.prop])
-      return bucketFilter.values.filter((value) -> value not in currentSplits)
-
-    if node.splits?
-      return node.splits.map((split) -> return bucketFilterValueCheck(split, currentLevel + 1, targetLevel, bucketFilter))
-              .reduce(((prevValue, currValue) -> prevValue.push currValue; return prevValue), [])
-
-    return bucketFilter.values
-
-  getUnknownQuery = (filter, query, root, condensedQuery) ->
-    return query unless root?
-    unknownQuery = []
-    added = false
-
-    if filter not instanceof TrueFilter
-      filterSpec = filter.valueOf()
-      filterSpec.operation = 'filter'
-      unknownQuery.push filterSpec
-
-    for condensedCommand, i in condensedQuery
-      if condensedCommand.split
-        newSplit = condensedCommand.split.valueOf()
-        newSplit.operation = 'split'
-        if condensedCommand.split.segmentFilter?
-          newValues = bucketFilterValueCheck(root, 0, i - 2, condensedCommand.split.segmentFilter)
-          newSplit.segmentFilter.values = newValues
-          if newValues.length > 0
-            added = true
-        unknownQuery.push newSplit
-
-      if condensedCommand.combine
-        mustApply = condensedCommand.combine.sort.prop
-
-      for apply in condensedCommand.applies
-        exists = checkDeep(root, 0, i, apply.name, condensedCommand.split?.segmentFilter)
-        if not exists
-          added = true
-
-        if apply.name is mustApply or not exists
-          applySpec = apply.valueOf()
-          applySpec.operation = 'apply'
-          unknownQuery.push applySpec
-
-      if condensedCommand.combine
-        combineSpec = condensedCommand.combine.valueOf()
-        combineSpec.operation = 'combine'
-        unknownQuery.push combineSpec
-
-    if added
-      return new FacetQuery(unknownQuery)
-
-    return null
-
-  getKnownTreeHelper = (filter, condensedQuery, level, upperSplitValue) ->
-    applies = condensedQuery[level].applies
-    splitOp = condensedQuery[level + 1]?.split
-    combineOp = condensedQuery[level + 1]?.combine
-    filterCacheResult = filterCache.get(filter)
+  propFromCache = (filter, applyHashes) ->
+    return {} unless applyHashes.length
+    cacheCache = {}
 
     prop = {}
-    if filterCacheResult?
-      for apply in applies
-        prop[apply.name] = filterCacheResult[apply.name]
+    for { name, hash, datasetFilter, datasetFilterHash } in applyHashes
+      applyCacheSlot = cacheCache[datasetFilterHash]
+      if not applyCacheSlot
+        combinedFilter = new AndFilter([filter, datasetFilter])
+        applyCacheSlot = cacheCache[datasetFilterHash] = applyCache.get(combinedFilter)
+        return null unless applyCacheSlot
 
-    if not splitOp? # end case
-      return {
-        prop
-      }
+      value = applyCacheSlot[hash]
+      return null unless value?
+      prop[name] = value
 
-    cachedValues = splitCache.get(filter, splitOp, combineOp)
+    return prop
 
-    if not cachedValues?
-      return {
-        prop
-      }
 
-    bucketFilter = splitOp.bucketFilter
-    if bucketFilter?
-      if upperSplitValue not in bucketFilter.values
-        return {
-          prop
-        }
+  getCondensedCommandFromCache = (datasetMap, filter, condensedCommands, idx) ->
+    condensedCommand = condensedCommands[idx]
+    idx++
 
-    splits = []
+    {
+      appliesByDataset
+      postProcessors
+      #trackedSegregation: sortApplySegregation
+    } = FacetApply.segregate(condensedCommand.applies) #, combine?.sort?.prop)
 
-    for value in cachedValues
-      fakeProp = {}
-      fakeProp[splitOp.name] = value
-      newFilter = andFilters(filter, splitOp.getFilterFor(fakeProp))
-      ret = getKnownTreeHelper(newFilter, condensedQuery, level + 1, value)
-      ret.prop[splitOp.name] = value
-      splits.push ret
+    applyHashes = appliesToHashes(appliesByDataset, datasetMap)
 
-    if combineOp?.sort?
-      sortProp = combineOp.sort.prop
-      if combineOp.sort.direction is 'descending'
-        if splits.every((split) -> split.prop[sortProp]?[0]?)
-          sortFn = (a, b) -> return b.prop[sortProp][0] - a.prop[sortProp][0]
-        else
-          sortFn = (a, b) -> return b.prop[sortProp] - a.prop[sortProp]
-      else if combineOp.sort.direction is 'ascending'
-        if splits.every((split) -> split.prop[sortProp]?[0]?)
-          sortFn = (a, b) -> return a.prop[sortProp][0] - b.prop[sortProp][0]
-        else
-          sortFn = (a, b) -> return a.prop[sortProp] - b.prop[sortProp]
+    split = condensedCommand.getEffectiveSplit()
+    if split
+      combine = condensedCommand.getCombine()
+      filterSplitHash = filterSplitToHash(datasetMap, filter, split)
+      combineToSplitsCacheSlot = combineToSplitCache.getWithHash(filterSplitHash)
+      return null unless combineToSplitsCacheSlot
+      splitValues = combineToSplitsCacheSlot.get(filter, split, combine)
+      return null unless splitValues
+      segments = []
+      for splitValue in splitValues
+        splitValueProp = {}
+        splitValueProp[split.name] = splitValue
+        splitValueFilter = new AndFilter([filter, split.getFilterFor(splitValueProp)]).simplify()
+        prop = propFromCache(splitValueFilter, applyHashes)
+        return null unless prop
+        postProcessor(prop) for postProcessor in postProcessors
+        prop[split.name] = splitValue
+        driverUtil.cleanProp(prop)
+        segment = { prop }
 
-      notPartSplits = splits.filter((split) -> not split.prop[sortProp]?)
-      splits = splits.filter((split) -> split.prop[sortProp]?)
-      splits.sort(sortFn)
-      splits = splits.concat(notPartSplits)
+        if idx < condensedCommands.length
+          childSegments = getCondensedCommandFromCache(datasetMap, splitValueFilter, condensedCommands, idx)
+          return null unless childSegments
+          segment.splits = childSegments
 
-      if combineOp.limit?
-        splits.splice(combineOp.limit)
+        segments.push(segment)
 
-    return {
-      prop
-      splits
-    }
+      segments.sort(combine.sort.getSegmentCompareFn())
+      driverUtil.inPlaceTrim(segments, combine.limit) if combine.limit?
 
-  getKnownTree = (filter, condensedQuery) ->
-    throw new Error("must have filter") unless filter
-    return getKnownTreeHelper(filter, condensedQuery, 0)
+      return segments
 
-  convertEmptyTreeToEmptyObject = (tree) ->
-    propKeys = (key for key, value of tree.prop)
-    return {} if (propKeys.length is 0 and not tree.splits?)
-    return tree
+    else
+      prop = propFromCache(filter, applyHashes)
+      return null unless prop
+      postProcessor(prop) for postProcessor in postProcessors
+      driverUtil.cleanProp(prop)
+      segment = { prop }
 
-  return (request, callback) ->
+      if idx < condensedCommands.length
+        childSegments = getCondensedCommandFromCache(datasetMap, filter, condensedCommands, idx)
+        return null unless childSegments
+        segment.splits = childSegments
+
+      return [segment]
+
+
+  # Try to extract the data for the query
+  getQueryDataFromCache = (query) ->
+    return getCondensedCommandFromCache(
+      makeDatasetMap(query)
+      query.getFilter()
+      query.getCondensedCommands()
+      0
+    )?[0] or null
+
+  # ------------------------
+
+  propToCache = (prop, filter, applyHashes) ->
+    return unless applyHashes.length
+    cacheCache = {}
+    for { name, hash, datasetFilter, datasetFilterHash } in applyHashes
+      applyCacheSlot = cacheCache[datasetFilterHash]
+      if not applyCacheSlot
+        combinedFilter = new AndFilter([filter, datasetFilter])
+        applyCacheSlot = cacheCache[datasetFilterHash] = applyCache.getOrCreate(combinedFilter, -> {})
+      applyCacheSlot[hash] = prop[name]
+    return
+
+  saveCondensedCommandToCache = (segments, datasetMap, filter, condensedCommands, idx) ->
+    condensedCommand = condensedCommands[idx]
+    idx++
+
+    {
+      appliesByDataset
+      #postProcessors
+      #trackedSegregation: sortApplySegregation
+    } = FacetApply.segregate(condensedCommand.applies) #, combine?.sort?.prop)
+
+    applyHashes = appliesToHashes(appliesByDataset, datasetMap)
+
+    split = condensedCommand.getEffectiveSplit()
+    if split
+      combine = condensedCommand.getCombine()
+
+      filterSplitHash = filterSplitToHash(datasetMap, filter, split)
+      combineToSplitsCacheSlot = combineToSplitCache.getOrCreateWithHash(filterSplitHash, ->
+        return switch getRealSplit(split).bucket
+          when 'identity'   then new IdentityCombineToSplitValues(filter, split)
+          when 'timePeriod' then new TimePeriodCombineToSplitValues(filter, split)
+          when 'continuous' then new ContinuousCombineToSplitValues(filter, split)
+      )
+
+      splitValues = []
+      for segment in segments
+        splitValueFilter = new AndFilter([filter, split.getFilterFor(segment.prop)]).simplify()
+        propToCache(segment.prop, splitValueFilter, applyHashes)
+        splitValues.push(segment.prop[split.name])
+        if idx < condensedCommands.length
+          saveCondensedCommandToCache(segment.splits, datasetMap, splitValueFilter, condensedCommands, idx)
+
+      combineToSplitsCacheSlot.set(filter, split, combine, splitValues)
+
+    else
+      segment = segments[0]
+      return unless segment?.prop
+      propToCache(segment.prop, filter, applyHashes)
+      if idx < condensedCommands.length
+        saveCondensedCommandToCache(segment.splits, datasetMap, filter, condensedCommands, idx)
+
+    return
+
+  saveQueryDataToCache = (data, query) ->
+    saveCondensedCommandToCache(
+      [data]
+      makeDatasetMap(query)
+      query.getFilter()
+      query.getCondensedCommands()
+      0
+    )
+    return
+
+  # ------------------------
+
+  cachedDriver = (request, callback) ->
     throw new Error("request not supplied") unless request
     {context, query} = request
 
@@ -297,30 +416,36 @@ module.exports = ({driver, timeAttribute}) ->
       callback(new Error("query must be a FacetQuery"))
       return
 
-    filter = query.getFilter()
-    condensedQuery = query.getCondensedCommands()
+    # Skip if:
+    # - tuple split
+    # - non slice combine
 
-    # If there is a split for continuous dimension, don't use cache. Doable. but not now
-    datasets = query.getDatasets()
-    if condensedQuery[1]?.split?.bucket in ['continuous', 'tuple'] or datasets.length > 1 or datasets[0] isnt 'main'
-      return driver({query}, callback)
-
-    root = getKnownTree(filter, condensedQuery)
-    unknownQuery = getUnknownQuery(filter, query, root, condensedQuery)
-    if not unknownQuery
-      callback(null, root)
+    result = getQueryDataFromCache(query)
+    if result
+      callback(null, result)
       return
 
-    return driver {context, query: unknownQuery}, (err, root) ->
-      if err?
-        callback(err, null)
+    driver request, (err, result) ->
+      if err
+        callback(err)
         return
 
-      splitCache.put(filter, condensedQuery, root)
-      filterCache.put(filter, condensedQuery, root)
-      knownTree = convertEmptyTreeToEmptyObject(getKnownTree(filter, condensedQuery))
-      callback(null, knownTree)
+      saveQueryDataToCache(result, query)
+      callback(null, result)
+      return
+
     return
+
+  cachedDriver.clear = ->
+    applyCache.clear()
+    combineToSplitCache.clear()
+    return
+
+  cachedDriver.debug = ->
+    console.log applyCache.store
+    return
+
+  return cachedDriver
 
 
 

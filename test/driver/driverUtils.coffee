@@ -1,7 +1,7 @@
 chai = require("chai")
 expect = chai.expect
 
-driverUtil = require('../../build/driverUtil')
+driverUtil = require('../../src/driver/driverUtil')
 { Table } = driverUtil
 data = require('../data')
 
@@ -10,7 +10,10 @@ describe "Utility", ->
     it "should work on an empty list", ->
       expect(driverUtil.flatten([])).to.deep.equal([])
 
-    it "should work on a a list of empty lists", ->
+    it "should work on a list of an empty list", ->
+      expect(driverUtil.flatten([[]])).to.deep.equal([])
+
+    it "should work on a list of empty lists", ->
       expect(driverUtil.flatten([[], []])).to.deep.equal([])
 
     it "should work on a normal list", ->
@@ -71,6 +74,22 @@ describe "Utility", ->
         expect(table.columns).to.deep.equal(["Carat", "Cut", "Count"], "Columns of the table is incorrect")
         expect(table.data).to.deep.equal(data.diamond[2].tabular, "Data of the table is incorrect")
         expect(table.toTabular(',')).to.deep.equal(data.diamond[2].csv, "CSV of the table is incorrect")
+
+      it "Big Data", ->
+        query = data.diamond[1].query
+        root = {
+          prop: { Count: 200000 }
+          splits: []
+        }
+        num = 5000001
+        while num -= 1
+          root.splits.push { prop: { Cut: 'A', Count: 1 } }
+
+        table = new Table({
+          root
+          query
+        })
+
 
     describe "should map the columns correctly", ->
       it "Full Mapping", ->

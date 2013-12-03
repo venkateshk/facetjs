@@ -1,11 +1,23 @@
-`(typeof window === 'undefined' ? {} : window)['driverUtil'] = (function(module, require){"use strict"; var exports = module.exports`
+
 
 # -----------------------------------------------------
 
 # Flatten an array of array in to a single array
 # flatten([[1,3], [3,6,7]]) => [1,3,3,6,7]
-exports.flatten = flatten = (ar) -> Array::concat.apply([], ar)
+exports.flatten = flatten = (ar) ->
+  flatAr = []
+  ar.forEach((item) ->
+    if Array.isArray(item)
+      arrayExists = true
+      item.forEach((subItem) ->
+        flatAr.push subItem
+      )
+      return
+    flatAr.push item
+  )
+  ar = flatAr
 
+  return ar
 
 # Trims the array in place
 exports.inPlaceTrim = (array, n) ->
@@ -111,8 +123,10 @@ createTabularHelper = (node, rangeFn, history) ->
   for k, v of node.prop
     v = rangeFn(v, k) if Array.isArray(v)
     newHistory[k] = v
+
   if node.splits?
-    return flatten(node.splits.map((split) -> createTabularHelper(split, rangeFn, newHistory)))
+    a = node.splits.map((split) -> createTabularHelper(split, rangeFn, newHistory))
+    return flatten(a)
   else
     return [newHistory]
 
@@ -227,11 +241,3 @@ exports.parentify = parentify = (root, parent = null) ->
 
 # -----------------------------------------------------
 # Handle commonJS crap
-`return module.exports; }).call(this,
-  (typeof module === 'undefined' ? {exports: {}} : module),
-  (typeof require === 'undefined' ? function (modulePath, altPath) {
-    if (altPath) return window[altPath];
-    var moduleParts = modulePath.split('/');
-    return window[moduleParts[moduleParts.length - 1]];
-  } : require)
-)`

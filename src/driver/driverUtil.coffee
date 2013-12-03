@@ -1,5 +1,4 @@
-
-
+`(typeof window === 'undefined' ? {} : window)['driverUtil'] = (function(module, require){"use strict"; var exports = module.exports`
 # -----------------------------------------------------
 
 # Flatten an array of array in to a single array
@@ -125,8 +124,7 @@ createTabularHelper = (node, rangeFn, history) ->
     newHistory[k] = v
 
   if node.splits?
-    a = node.splits.map((split) -> createTabularHelper(split, rangeFn, newHistory))
-    return flatten(a)
+    return flatten(node.splits.map((split) -> createTabularHelper(split, rangeFn, newHistory)))
   else
     return [newHistory]
 
@@ -241,3 +239,11 @@ exports.parentify = parentify = (root, parent = null) ->
 
 # -----------------------------------------------------
 # Handle commonJS crap
+`return module.exports; }).call(this,
+-  (typeof module === 'undefined' ? {exports: {}} : module),
+-  (typeof require === 'undefined' ? function (modulePath, altPath) {
+-    if (altPath) return window[altPath];
+-    var moduleParts = modulePath.split('/');
+-    return window[moduleParts[moduleParts.length - 1]];
+-  } : require)
+-)`

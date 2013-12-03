@@ -209,6 +209,11 @@ class FacetQuery
   getDatasets: ->
     return @datasets
 
+  getDatasetFilter: (datasetName) ->
+    for dataset in @datasets
+      return dataset.getFilter() if dataset.name is datasetName
+    return null
+
   getFilter: ->
     return @filter or new TrueFilter()
 

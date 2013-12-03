@@ -154,7 +154,7 @@ class TrueFilter extends FacetFilter
     @_ensureType('true')
 
   toString: ->
-    return "Everything"
+    return "None"
 
   getFilterFn: ->
     return -> true

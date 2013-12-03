@@ -48,7 +48,7 @@ describe "FacetFilter", ->
     it 'properly describes empty filter', ->
       filterSpec = { type: 'true' }
       expect(FacetFilter.fromSpec(filterSpec).toString())
-        .to.equal('Everything')
+        .to.equal('None')
 
     it 'properly describes false filter', ->
       filterSpec = { type: 'false' }

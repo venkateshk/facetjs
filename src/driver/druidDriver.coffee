@@ -65,6 +65,10 @@ class DruidQueryBuilder
     @intervals = null
     @useCache = true
 
+  isHistogram: (attribute) ->
+    # A hacky way to determine that this is a histogram aggregated column (it ends with _hist)
+    return /_hist$/.test(attribute)
+
   addToContext: (context, attribute) ->
     return context[attribute] if context[attribute]
     context[attribute] = "v#{@jsCount}"
@@ -232,26 +236,45 @@ class DruidQueryBuilder
         }
 
       when 'continuous'
-        throw new Error("approximate queries not allowed") unless @approximate
-        #@queryType stays 'timeseries'
-        #@granularity stays 'all'
-        aggregation = {
-          type: "approxHistogramFold"
-          fieldName: split.attribute
-        }
-        aggregation.lowerLimit = split.lowerLimit if split.lowerLimit?
-        aggregation.upperLimit = split.upperLimit if split.upperLimit?
-        options = split.options or {}
-        aggregation.resolution = options.druidResolution if options.druidResolution
-        tempHistogramName = @addAggregation(aggregation)
-        @addPostAggregation {
-          type: "buckets"
-          name: "histogram"
-          fieldName: tempHistogramName
-          bucketSize: split.size
-          offset: split.offset
-        }
-        #@useCache = false
+        if @isHistogram(split.attribute)
+          throw new Error("approximate queries not allowed") unless @approximate
+          #@queryType stays 'timeseries'
+          #@granularity stays 'all'
+          aggregation = {
+            type: "approxHistogramFold"
+            fieldName: split.attribute
+          }
+          aggregation.lowerLimit = split.lowerLimit if split.lowerLimit?
+          aggregation.upperLimit = split.upperLimit if split.upperLimit?
+          options = split.options or {}
+          aggregation.resolution = options.druidResolution if options.druidResolution
+          tempHistogramName = @addAggregation(aggregation)
+          @addPostAggregation {
+            type: "buckets"
+            name: "histogram"
+            fieldName: tempHistogramName
+            bucketSize: split.size
+            offset: split.offset
+          }
+          #@useCache = false
+        else
+          @queryType = 'groupBy'
+          #@granularity stays 'all'
+          @dimension = {
+            type: 'default'
+            dimension: split.attribute
+            outputName: split.name
+            dimExtractionFn: {
+              type: 'javascript'
+              function: """function(x){
+                x = Number(x);
+                if(isNaN(x)) return null;
+                x = Math.floor(x / #{split.size}) * #{split.size};
+                return x;
+                }
+                """
+            }
+          }
 
       when 'tuple'
         throw new Error("only supported tuples of size 2 (is: #{split.splits.length})") unless split.splits.length is 2
@@ -347,8 +370,7 @@ class DruidQueryBuilder
             return
 
         when 'count', 'sum', 'min', 'max'
-          if @approximate and apply.aggregate in ['min', 'max'] and /_hist$/.test(apply.attribute)
-            # A hacky way to determine that this is a histogram aggregated column (it ends with _hist)
+          if @approximate and apply.aggregate in ['min', 'max'] and @isHistogram(apply.attribute)
 
             aggregation = {
               type: "approxHistogramFold"

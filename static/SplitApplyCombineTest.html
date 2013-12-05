@@ -23,100 +23,11 @@
     <div class="test-cont">
       <textarea id="input">[
   {
-    "operation": "dataset",
-    "datasets": [
-      "main",
-      "prev"
-    ]
-  },
-  {
-    "type": "within",
-    "dataset": "main",
-    "attribute": "timestamp",
-    "range": [
-      "2013-10-18T07:00:00.000Z",
-      "2013-10-24T22:01:00.001Z"
-    ],
-    "operation": "filter"
-  },
-  {
-    "type": "within",
-    "dataset": "prev",
-    "attribute": "timestamp",
-    "range": [
-      "2013-10-11T07:00:00.000Z",
-      "2013-10-17T22:01:00.001Z"
-    ],
-    "operation": "filter"
-  },
-  {
-    "bucket": "parallel",
-    "name": "region_lookup",
-    "splits": [
-      {
-        "bucket": "identity",
-        "dataset": "main",
-        "attribute": "region_lookup"
-      },
-      {
-        "bucket": "identity",
-        "dataset": "prev",
-        "attribute": "region_lookup"
-      }
-    ],
-    "operation": "split"
-  },
-  {
-    "name": "count",
-    "aggregate": "sum",
-    "attribute": "count",
-    "operation": "apply"
-  },
-  {
-    "name": "count_delta_",
+    "name": "Total Price",
     "arithmetic": "multiply",
-    "operands": [
-      {
-        "arithmetic": "divide",
-        "operands": [
-          {
-            "arithmetic": "subtract",
-            "operands": [
-              {
-                "dataset": "main",
-                "aggregate": "sum",
-                "attribute": "count"
-              },
-              {
-                "dataset": "prev",
-                "aggregate": "sum",
-                "attribute": "count"
-              }
-            ]
-          },
-          {
-            "dataset": "prev",
-            "aggregate": "sum",
-            "attribute": "count"
-          }
-        ]
-      },
-      {
-        "aggregate": "constant",
-        "value": 100
-      }
-    ],
+    "aggregate": "sum",
+    "attribute": "price",
     "operation": "apply"
-  },
-  {
-    "method": "slice",
-    "sort": {
-      "compare": "natural",
-      "prop": "count",
-      "direction": "descending"
-    },
-    "limit": 13,
-    "operation": "combine"
   }
 ]</textarea>
       <div class="driver-selector">
@@ -181,7 +92,7 @@
       d3.select("#add-combine")
         .on('click', addObj({
           operation: "combine",
-          combine: "slice",
+          method: "slice",
           sort: {
             compare: "natural",
             direction: "descending",
@@ -220,9 +131,9 @@
             prety: true
           });
 
-          var sqlDriverClient = sqlDriver({
+          return sqlDriver({
             requester: sqlRequester,
-            table: "wiki_day_agg"
+            table: "diamonds"
           });
         }
 
@@ -294,16 +205,3 @@
 
   </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-

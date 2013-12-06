@@ -53,7 +53,7 @@ hadoopPass = hadoopRequester(diamondsData)
 
 driverFns.hadoop = hadoopDriver({
   requester: hadoopPass
-  path: 'whatever'
+  path: 's3://metamx-user-scratch/gian/diamonds'
   filters: null
 })
 

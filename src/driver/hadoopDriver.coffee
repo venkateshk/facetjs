@@ -24,11 +24,11 @@ class HadoopQueryBuilder
 
       when 'is'
         throw new Error("can not filter on specific time") if filter.attribute is @timeAttribute
-        "datum['#{filter.attribute}'] === '#{filter.value}'"
+        "String(datum['#{filter.attribute}']) === '#{filter.value}'"
 
       when 'in'
         throw new Error("can not filter on specific time") if filter.attribute is @timeAttribute
-        filter.values.map((value) -> "datum['#{filter.attribute}'] === '#{value}'").join('||')
+        filter.values.map((value) -> "String(datum['#{filter.attribute}']) === '#{value}'").join('||')
 
       when 'contains'
         throw new Error("can not filter on specific time") if filter.attribute is @timeAttribute
@@ -100,7 +100,19 @@ class HadoopQueryBuilder
         return expr
 
       when 'timePeriod'
-        throw new Error("not implemented yet")
+        timeBucketing = {
+          'PT1S': 1000
+          'PT1M': 60 * 1000
+          'PT1H': 60 * 60 * 1000
+          'P1D':  24 * 60 * 60 * 1000
+        }
+        periodLength = timeBucketing[split.period]
+        throw new Error("unsupported timePeriod period '#{split.period}'") unless periodLength
+
+        timezone = split.timezone or 'Etc/UTC'
+        throw new Error("unsupported timezone '#{timezone}'") unless timezone is 'Etc/UTC'
+
+        return "new Date(new Date(t.datum['#{split.attribute}']).valueOf() / #{periodLength}) * #{periodLength}).toISOString()"
 
       when 'tuple'
         return "[(" + split.splits.map(@splitToHadoop, this).join('), (') + ")].join('#$#')"
@@ -111,10 +123,11 @@ class HadoopQueryBuilder
 
   addSplit: (split) ->
     throw new TypeError("split must be a FacetSplit") unless split instanceof FacetSplit
+    splitName = split.name
     split = if split.bucket is 'parallel' then split.splits[0] else split
 
     @split = {
-      name: split.name
+      name: splitName
       fn: "function(t) { return #{@splitToHadoop(split)}; }"
     }
     return this
@@ -132,7 +145,7 @@ class HadoopQueryBuilder
     }
 
     jsParts = {
-      'count': { zero: '0', update: '$++' }
+      'count': { zero: '0', update: '$ += 1' }
       'sum': { zero: '0', update: '$ += Number(x)' }
       'min': { zero: 'Infinity', update: '$ = Math.min($, x)' }
       'max': { zero: '-Infinity', update: '$ = Math.max($, x)' }
@@ -171,37 +184,37 @@ class HadoopQueryBuilder
         if apply.aggregate is 'constant'
           initLines.push("'#{apply.name}': #{apply.value}")
         else if apply.aggregate is 'uniqueCount'
-          preLines.push("seen['#{apply.name}'] = {}")
+          preLines.push("seen['#{apply.name}'] = {};")
           initLines.push("'#{apply.name}': 0")
-          loopLines.push("  x = datum['#{apply.attribute}']")
-          loopLines.push("  if(!seen['#{apply.name}'][x]) prop['#{apply.name}'] += (seen['#{apply.name}'][x] = 1)")
+          loopLines.push("  x = datum['#{apply.attribute}'];")
+          loopLines.push("  if(!seen['#{apply.name}'][x]) prop['#{apply.name}'] += (seen['#{apply.name}'][x] = 1);")
         else
           jsPart = jsParts[apply.aggregate]
           throw new Error("unsupported aggregate '#{apply.aggregate}'") unless jsPart
           initLines.push("'#{apply.name}': #{jsPart.zero}")
-          loopLines.push("  x = datum['#{apply.attribute}']") if apply.attribute
-          loopLines.push('  ' + jsPart.update.replace(/\$/g, "prop['#{apply.name}']"))
+          loopLines.push("  x = datum['#{apply.attribute}'];") if apply.attribute
+          loopLines.push('  ' + jsPart.update.replace(/\$/g, "prop['#{apply.name}']") + ';')
 
       loopLines.push("}")
 
       for apply in arithmetics
-        afterLines.push("prop['#{apply.name}'] = #{arithmeticToExpresion(apply)}")
+        afterLines.push("prop['#{apply.name}'] = #{arithmeticToExpresion(apply)};")
 
       afterLines = afterLines.concat(postProcessors)
 
     @applies = """
       function(iter) {
         var t, x, datum, dataset, seen = {};
-        #{preLines.join(';\n  ')}
+        #{preLines.join('\n  ')}
         var prop = {
           #{initLines.join(',\n    ')}
         }
         while(iter.hasNext()) {
           t = iter.next();
           datum = t.datum; dataset = t.dataset;
-          #{loopLines.join(';\n    ')}
+          #{loopLines.join('\n    ')}
         }
-        #{afterLines.join(';\n  ')}
+        #{afterLines.join('\n  ')}
         return prop;
       }
       """
@@ -227,7 +240,11 @@ class HadoopQueryBuilder
     return this
 
   getQuery: ->
-    hadoopQuery = {}
+    hadoopQuery = {
+      options: {
+        "mapred.job.priority": "HIGH"
+      }
+    }
     hadoopQuery.datasets = @datasets
     hadoopQuery.split = @split if @split
     hadoopQuery.applies = @applies

@@ -387,12 +387,12 @@ describe "FacetApply", ->
 
       expect(aggregates.map((d) -> d.valueOf())).to.deep.equal([
         {
-          name: "_B1",
+          name: "_B1_Avg Count",
           aggregate: "sum",
           attribute: "count"
         },
         {
-          name: "_B2",
+          name: "_B2_Avg Count",
           aggregate: "count"
         }
       ])
@@ -402,12 +402,12 @@ describe "FacetApply", ->
           arithmetic: "divide",
           operands: [
             {
-              name: "_B1",
+              name: "_B1_Avg Count",
               aggregate: "sum",
               attribute: "count"
             },
             {
-              name: "_B2",
+              name: "_B2_Avg Count",
               aggregate: "count"
             }
           ]
@@ -957,7 +957,7 @@ describe "FacetApply", ->
       } = FacetApply.segregate(applySpecs.map(FacetApply.fromSpec), null, customPostProcessorScheme)
       expect(trackedSegregation).to.be.null
       expect(postProcessors).to.have.length(1)
-      expect(postProcessors[0]).to.equal('count_delta_ <- ((([count] - [_S2]) / [_S2]) * CONSTANT(100))')
+      expect(postProcessors[0]).to.equal('count_delta_ <- ((([count] - [_S2_count_delta_]) / [_S2_count_delta_]) * CONSTANT(100))')
 
       expect(appliesByDataset).to.be.an('object')
       expect(appliesByDataset.main).to.have.length(1)
@@ -969,7 +969,7 @@ describe "FacetApply", ->
       })
       expect(appliesByDataset.prev[0].valueOf()).to.deep.equal({
         dataset: "prev"
-        name: "_S2"
+        name: "_S2_count_delta_"
         aggregate: "sum"
         attribute: "count"
       })

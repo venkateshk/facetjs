@@ -383,11 +383,11 @@ class ApplyBreaker
     @arithmetics = []
     @nameIndex = 0
 
-  getNextName: ->
+  getNextName: (nameContext) ->
     @nameIndex++
-    return "_B" + @nameIndex
+    return "_B#{@nameIndex}_#{nameContext}"
 
-  addAggregateApply: (apply) ->
+  addAggregateApply: (apply, nameContext) ->
     if apply.name
       @aggregates.push(apply)
       return apply
@@ -395,14 +395,14 @@ class ApplyBreaker
       for existingApply in @aggregates when existingApply.isEqual(apply)
         return existingApply
 
-      apply = apply.addName(@getNextName())
+      apply = apply.addName(@getNextName(nameContext))
       @aggregates.push(apply)
       return apply
 
-  addArithmeticApply: (apply) ->
+  addArithmeticApply: (apply, nameContext) ->
     needNewApply = false
     operands = apply.operands.map(((apply) ->
-      newApply = if apply.aggregate then @addAggregateApply(apply) else @addArithmeticApply(apply)
+      newApply = if apply.aggregate then @addAggregateApply(apply, nameContext) else @addArithmeticApply(apply, nameContext)
       needNewApply = true if newApply isnt apply
       return newApply
     ), this)
@@ -432,12 +432,12 @@ class ApplyBreaker
         })
 
       if apply.aggregate
-        @addAggregateApply(apply)
+        @addAggregateApply(apply, apply.name)
       else
         arithmeticApplies.push(apply)
 
     for apply in arithmeticApplies
-      @addArithmeticApply(apply)
+      @addArithmeticApply(apply, apply.name)
 
     return
 
@@ -485,16 +485,16 @@ class ApplySegregator
     @postProcess = []
     @nameIndex = 0
 
-  getNextName: ->
+  getNextName: (nameContext) ->
     @nameIndex++
-    return "_S" + @nameIndex
+    return "_S#{@nameIndex}_#{nameContext}"
 
-  addSingleDatasetApply: (apply, track) ->
+  addSingleDatasetApply: (apply, nameContext, track) ->
     if apply.aggregate is 'constant'
       return @postProcessorScheme.constant(apply)
 
     dataset = apply.getDataset()
-    apply = apply.addName(@getNextName()) if not apply.name
+    apply = apply.addName(@getNextName(nameContext)) if not apply.name
     @byDataset[dataset] or= []
 
     existingApplyGetter = find(@byDataset[dataset], (ag) -> ag.apply.isEqual(apply))
@@ -508,12 +508,12 @@ class ApplySegregator
 
     return existingApplyGetter.getter
 
-  addMultiDatasetApply: (apply, track) ->
+  addMultiDatasetApply: (apply, nameContext, track) ->
     [op1, op2] = apply.operands
     op1Datasets = op1.getDatasets()
     op2Datasets = op2.getDatasets()
-    getter1 = if op1Datasets.length <= 1 then @addSingleDatasetApply(op1, track) else @addMultiDatasetApply(op1, track)
-    getter2 = if op2Datasets.length <= 1 then @addSingleDatasetApply(op2, track) else @addMultiDatasetApply(op2, track)
+    getter1 = if op1Datasets.length <= 1 then @addSingleDatasetApply(op1, nameContext, track) else @addMultiDatasetApply(op1, nameContext, track)
+    getter2 = if op2Datasets.length <= 1 then @addSingleDatasetApply(op2, nameContext, track) else @addMultiDatasetApply(op2, nameContext, track)
     return @postProcessorScheme.arithmetic(apply.arithmetic, getter1, getter2)
 
   addApplies: (applies, trackApplyName) ->
@@ -528,16 +528,16 @@ class ApplySegregator
       applyName = apply.name
       switch apply.getDatasets().length
         when 0
-          getter = @addSingleDatasetApply(apply, applyName is trackApplyName)
+          getter = @addSingleDatasetApply(apply, applyName, applyName is trackApplyName)
           @postProcess.push(@postProcessorScheme.finish(applyName, getter))
         when 1
-          @addSingleDatasetApply(apply, applyName is trackApplyName)
+          @addSingleDatasetApply(apply, applyName, applyName is trackApplyName)
         else
           multiDatasetApplies.push(apply)
 
     multiDatasetApplies.forEach(((apply) ->
       applyName = apply.name
-      getter = @addMultiDatasetApply(apply, applyName is trackApplyName)
+      getter = @addMultiDatasetApply(apply, applyName, applyName is trackApplyName)
       @postProcess.push(@postProcessorScheme.finish(applyName, getter))
     ), this)
 

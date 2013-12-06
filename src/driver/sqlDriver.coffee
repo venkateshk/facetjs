@@ -168,11 +168,8 @@ class SQLQueryBuilder
         }
 
       when 'timePeriod'
-        bucketPeriod = split.period
-        bucketSpec = @timeBucketing[bucketPeriod]
-
-        if not bucketSpec
-          throw new Error("unsupported timePeriod bucketing period '#{bucketPeriod}'")
+        bucketSpec = @timeBucketing[split.period]
+        throw new Error("unsupported timePeriod period '#{split.period}'") unless bucketSpec
 
         bucketTimezone = split.timezone or 'Etc/UTC' # ToDo: move this to condense query
         if split.timezone is 'Etc/UTC'

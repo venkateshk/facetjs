@@ -42,11 +42,11 @@ makeIterator = (array) ->
 #   }
 # }
 
-module.exports = (data) ->
+module.exports = (data, debug) ->
   return ({context, query}, callback) ->
     { datasets, split, applies, combine } = query
 
-    #console.log "Q:", JSON.stringify(query, null, 2)
+    console.log("Querying:", JSON.stringify(query, null, 2)) if debug
 
     # Ignore intervals (for now)
     raws = []
@@ -87,7 +87,7 @@ module.exports = (data) ->
       if combine.limit?
         list = list.slice(0, combine.limit)
 
-    console.log 'returning', list
+    console.log('Returning:', list) if debug
     callback(null, list)
     return
 

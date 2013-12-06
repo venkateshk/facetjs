@@ -35,6 +35,20 @@ exports.inPlaceFilter = (array, fn) ->
   return
 
 
+# Converts dates to intervals
+dateToIntervalPart = (date) ->
+  return date.toISOString()
+    .replace('Z',    '') # remove Z
+    .replace('.000', '') # millis if 0
+    .replace(/:00$/, '') # remove seconds if 0
+    .replace(/:00$/, '') # remove minutes if 0
+    .replace(/T00$/, '') # remove hours if 0
+
+exports.datesToInterval = (start, end) ->
+  return "#{dateToIntervalPart(start)}/#{dateToIntervalPart(end)}"
+
+
+# Finds an element in array that matches fn
 exports.find = (array, fn) ->
   for a, i in array
     return a if fn.call(array, a, i)

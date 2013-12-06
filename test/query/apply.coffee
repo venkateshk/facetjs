@@ -360,6 +360,197 @@ describe "FacetApply", ->
             throw new Error("expected apply to be #{if i is j then 'equal' else 'unequal'}")
 
 
+  describe "breaker", ->
+    it "works on basic example", ->
+      applySpecs = [
+        { name: 'Count', aggregate: 'sum', attribute: 'count' }
+        { name: 'Const42', aggregate: 'constant', value: 42 }
+      ]
+
+      {
+        aggregates
+        arithmetics
+      } = FacetApply.breaker(applySpecs.map(FacetApply.fromSpec))
+
+      expect(aggregates.map((d) -> d.valueOf())).to.deep.equal(applySpecs)
+      expect(arithmetics.map((d) -> d.valueOf())).to.deep.equal([])
+
+    it "works breaks average", ->
+      applySpecs = [
+        { name: 'Avg Count', aggregate: 'average', attribute: 'count' }
+      ]
+
+      {
+        aggregates
+        arithmetics
+      } = FacetApply.breaker(applySpecs.map(FacetApply.fromSpec), true)
+
+      expect(aggregates.map((d) -> d.valueOf())).to.deep.equal([
+        {
+          name: "_B1",
+          aggregate: "sum",
+          attribute: "count"
+        },
+        {
+          name: "_B2",
+          aggregate: "count"
+        }
+      ])
+      expect(arithmetics.map((d) -> d.valueOf())).to.deep.equal([
+        {
+          name: 'Avg Count'
+          arithmetic: "divide",
+          operands: [
+            {
+              name: "_B1",
+              aggregate: "sum",
+              attribute: "count"
+            },
+            {
+              name: "_B2",
+              aggregate: "count"
+            }
+          ]
+        }
+      ])
+
+    it "works prefers existing applies", ->
+      applySpecs = [
+        {
+          name: 'Kills'
+          aggregate: "sum",
+          attribute: "kills"
+        },
+        {
+          name: 'Deaths'
+          aggregate: "sum"
+          attribute: "deaths"
+        }
+        {
+          name: 'K/D Ratio'
+          arithmetic: "divide",
+          operands: [
+            {
+              aggregate: "sum",
+              attribute: "kills"
+            },
+            {
+              aggregate: "sum"
+              attribute: "deaths"
+            }
+          ]
+        }
+      ]
+
+      {
+        aggregates
+        arithmetics
+      } = FacetApply.breaker(applySpecs.map(FacetApply.fromSpec), true)
+
+      expect(aggregates.map((d) -> d.valueOf())).to.deep.equal([
+        {
+          name: 'Kills'
+          aggregate: "sum",
+          attribute: "kills"
+        },
+        {
+          name: 'Deaths'
+          aggregate: "sum"
+          attribute: "deaths"
+        }
+      ])
+      expect(arithmetics.map((d) -> d.valueOf())).to.deep.equal([
+        {
+          name: 'K/D Ratio'
+          arithmetic: "divide",
+          operands: [
+            {
+              name: 'Kills'
+              aggregate: "sum",
+              attribute: "kills"
+            },
+            {
+              name: 'Deaths'
+              aggregate: "sum"
+              attribute: "deaths"
+            }
+          ]
+        }
+      ])
+
+    it "works prefers existing applies (with dataset)", ->
+      applySpecs = [
+        {
+          name: 'Kills'
+          dataset: 'mydata'
+          aggregate: "sum",
+          attribute: "kills"
+        },
+        {
+          name: 'Deaths'
+          dataset: 'mydata'
+          aggregate: "sum"
+          attribute: "deaths"
+        }
+        {
+          name: 'K/D Ratio'
+          dataset: 'mydata'
+          arithmetic: "divide",
+          operands: [
+            {
+              aggregate: "sum",
+              attribute: "kills"
+            },
+            {
+              aggregate: "sum"
+              attribute: "deaths"
+            }
+          ]
+        }
+      ]
+
+      {
+        aggregates
+        arithmetics
+      } = FacetApply.breaker(applySpecs.map(FacetApply.fromSpec), true)
+
+      expect(aggregates.map((d) -> d.valueOf())).to.deep.equal([
+        {
+          name: 'Kills'
+          dataset: 'mydata'
+          aggregate: "sum",
+          attribute: "kills"
+        },
+        {
+          name: 'Deaths'
+          dataset: 'mydata'
+          aggregate: "sum"
+          attribute: "deaths"
+        }
+      ])
+      expect(arithmetics.map((d) -> d.valueOf())).to.deep.equal([
+        {
+          name: 'K/D Ratio'
+          dataset: 'mydata'
+          arithmetic: "divide",
+          operands: [
+            {
+              name: 'Kills'
+              dataset: 'mydata'
+              aggregate: "sum",
+              attribute: "kills"
+            },
+            {
+              name: 'Deaths'
+              dataset: 'mydata'
+              aggregate: "sum"
+              attribute: "deaths"
+            }
+          ]
+        }
+      ])
+
+
   describe "segregate", ->
     customPostProcessorScheme = {
       constant: ({value}) -> "CONSTANT(#{value})"
@@ -766,7 +957,7 @@ describe "FacetApply", ->
       } = FacetApply.segregate(applySpecs.map(FacetApply.fromSpec), null, customPostProcessorScheme)
       expect(trackedSegregation).to.be.null
       expect(postProcessors).to.have.length(1)
-      expect(postProcessors[0]).to.equal('count_delta_ <- ((([count] - [_N_2]) / [_N_2]) * CONSTANT(100))')
+      expect(postProcessors[0]).to.equal('count_delta_ <- ((([count] - [_S2]) / [_S2]) * CONSTANT(100))')
 
       expect(appliesByDataset).to.be.an('object')
       expect(appliesByDataset.main).to.have.length(1)
@@ -778,7 +969,7 @@ describe "FacetApply", ->
       })
       expect(appliesByDataset.prev[0].valueOf()).to.deep.equal({
         dataset: "prev"
-        name: "_N_2"
+        name: "_S2"
         aggregate: "sum"
         attribute: "count"
       })

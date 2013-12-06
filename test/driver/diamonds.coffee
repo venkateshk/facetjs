@@ -86,7 +86,7 @@ describe "Diamonds dataset", ->
       ]
     }
 
-  describe "filter applies", ->
+  describe.skip "filter applies", ->
     it "should have the same results for different drivers", testEquality {
       drivers: ['hadoop', 'simple', 'mySql']
       query: [
@@ -121,7 +121,7 @@ describe "Diamonds dataset", ->
       ]
     }
 
-  describe.only "split cut; no apply", ->
+  describe "split cut; no apply", ->
     it "should have the same results for different drivers", testEquality {
       drivers: ['hadoop', 'simple', 'mySql']
       query: [

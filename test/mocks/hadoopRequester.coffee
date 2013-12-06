@@ -46,7 +46,7 @@ module.exports = (data) ->
   return ({context, query}, callback) ->
     { datasets, split, applies, combine } = query
 
-    console.log "Q:", JSON.stringify(query, null, 2)
+    #console.log "Q:", JSON.stringify(query, null, 2)
 
     # Ignore intervals (for now)
     raws = []
@@ -59,12 +59,15 @@ module.exports = (data) ->
         }
 
 
+    splitValues = {}
     buckets = {}
     if split
       splitFn = makeFunction(split.fn)
       for raw in raws
-        hash = splitFn(raw)
+        splitValue = splitFn(raw)
+        hash = String(splitValue)
         if not buckets[hash]
+          splitValues[hash] = splitValue
           buckets[hash] = []
         buckets[hash].push(raw)
     else
@@ -75,7 +78,7 @@ module.exports = (data) ->
     appliesFn = makeFunction(applies)
     for hash, bucket of buckets
       prop = appliesFn(makeIterator(bucket))
-      prop[split.name] = hash if split
+      prop[split.name] = splitValues[hash] if split
       list.push(prop)
 
     if combine

@@ -24,15 +24,22 @@ class HadoopQueryBuilder
 
       when 'is'
         throw new Error("can not filter on specific time") if filter.attribute is @timeAttribute
-        "t.datum['#{filter.attribute}'] === '#{filter.value}'"
+        "datum['#{filter.attribute}'] === '#{filter.value}'"
 
       when 'in'
         throw new Error("can not filter on specific time") if filter.attribute is @timeAttribute
-        filter.values.map((value) -> "t.datum['#{filter.attribute}'] === '#{value}'").join('||')
+        filter.values.map((value) -> "datum['#{filter.attribute}'] === '#{value}'").join('||')
 
       when 'contains'
         throw new Error("can not filter on specific time") if filter.attribute is @timeAttribute
-        "String(t.datum['#{filter.attribute}']).indexOf('#{filter.value}') !== -1"
+        "String(datum['#{filter.attribute}']).indexOf('#{filter.value}') !== -1"
+
+      when 'within'
+        [r0, r1] = filter.range
+        if typeof r0 is 'number' and typeof r1 is 'number'
+          "#{r0} <= Number(datum['#{filter.attribute}']) && Number(datum['#{filter.attribute}']) < #{r1}"
+        else
+          throw new Error("apply within has to have a numeric range")
 
       when 'not'
         "!(#{@filterToHadoopHelper(filter.filter, context)})"
@@ -58,7 +65,7 @@ class HadoopQueryBuilder
 
 
   timelessFilterToHadoop: (filter) ->
-    return "function(t) { return #{@filterToHadoopHelper(filter)}; }"
+    return "function(datum) { return #{@filterToHadoopHelper(filter)}; }"
 
 
   addFilters: (filtersByDataset) ->
@@ -79,18 +86,24 @@ class HadoopQueryBuilder
 
 
   splitToHadoop: (split, name) ->
-    return switch split.bucket
+    switch split.bucket
       when 'identity'
-        "t.datum['#{split.attribute}']"
+        return "t.datum['#{split.attribute}']"
 
       when 'continuous'
-        "Math.floor(t.datum['#{split.attribute}'] / #{split.size}) * #{split.size}"
+        expr = "Number(t.datum['#{split.attribute}'])"
+        expr = "(#{expr} + #{split.offset})" if split.offset isnt 0
+        expr = "#{expr} / #{split.size}" if split.size isnt 1
+        expr = "Math.floor(#{expr})"
+        expr = "#{expr} * #{split.size}" if split.size isnt 1
+        expr = "#{expr} - #{split.offset}" if split.offset isnt 0
+        return expr
 
       when 'timePeriod'
         throw new Error("not implemented yet")
 
       when 'tuple'
-        "[(" + split.splits.map(@splitToHadoop, this).join('), (') + ")].join('#$#')"
+        return "[(" + split.splits.map(@splitToHadoop, this).join('), (') + ")].join('#$#')"
 
       else
         throw new Error("bucket '#{split.bucket}' unsupported by driver")
@@ -110,7 +123,7 @@ class HadoopQueryBuilder
   addApplies: (applies) ->
     hadoopProcessorScheme = {
       constant: ({value}) -> "#{value}"
-      getter: ({name}) -> "#{name}"
+      getter: ({name}) -> "prop['#{name}']"
       arithmetic: (arithmetic, lhs, rhs) ->
         hadoopOp = arithmeticToHadoopOp[arithmetic]
         throw new Error('unknown arithmetic') unless hadoopOp
@@ -219,9 +232,6 @@ class HadoopQueryBuilder
     hadoopQuery.split = @split if @split
     hadoopQuery.applies = @applies
     hadoopQuery.combine = @combine if @combine
-    console.log 'vvvvvvvvvvvvvvvvvv'
-    console.log @applies
-    console.log '^^^^^^^^^^^^^^^^^^'
     return hadoopQuery
 
 
@@ -251,21 +261,21 @@ condensedCommandToHadoop = ({requester, queryBuilder, parentSegment, condensedCo
       return
 
     if split
-      # splitAttribute = split.attribute
-      # splitProp = split.name
+      splitAttribute = split.attribute
+      splitProp = split.name
 
-      # if split.bucket is 'continuous'
-      #   splitSize = split.size
-      #   for d in ds
-      #     start = d[splitProp]
-      #     d[splitProp] = [start, start + splitSize]
-      # else if split.bucket is 'timePeriod'
-      #   timezone = split.timezone or 'Etc/UTC'
-      #   splitDuration = new Duration(split.period)
-      #   for d in ds
-      #     rangeStart = new Date(d[splitProp])
-      #     range = [rangeStart, splitDuration.move(rangeStart, timezone, 1)]
-      #     d[splitProp] = range
+      if split.bucket is 'continuous'
+        splitSize = split.size
+        for d in ds
+          start = d[splitProp]
+          d[splitProp] = [start, start + splitSize]
+      else if split.bucket is 'timePeriod'
+        timezone = split.timezone or 'Etc/UTC'
+        splitDuration = new Duration(split.period)
+        for d in ds
+          rangeStart = new Date(d[splitProp])
+          range = [rangeStart, splitDuration.move(rangeStart, timezone, 1)]
+          d[splitProp] = range
 
       splits = ds.map (prop) -> {
         prop

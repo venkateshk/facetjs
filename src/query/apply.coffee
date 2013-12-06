@@ -34,14 +34,14 @@ class FacetApply
   _parseOperands: ->
     throw new TypeError("operands must be an array of length 2") unless Array.isArray(@operands) and @operands.length is 2
     dataset = @dataset or @datasetContext
-    @operands = @operands.map((op) -> applyFromSpec(op, dataset))
+    @operands = @operands.map((op) -> applyFromSpec(op, dataset)) unless @operands[0] instanceof FacetApply
 
-  _addName: (str) ->
+  _addNameToString: (str) ->
     return str unless @name
     return "#{@name} <- #{str}"
 
   toString: ->
-    return @_addName("base apply")
+    return @_addNameToString("base apply")
 
   valueOf: ->
     apply = {}
@@ -70,6 +70,11 @@ class FacetApply
   isAdditive: ->
     return false
 
+  addName: (name) ->
+    applySpec = @valueOf()
+    applySpec.name = name
+    return FacetApply.fromSpec(applySpec)
+
   getDataset: ->
     if @operands
       return @operands[0].getDataset() or @operands[1].getDataset()
@@ -93,7 +98,7 @@ class ConstantApply extends FacetApply
     @_verifyName()
 
   toString: ->
-    return @_addName(String(@value))
+    return @_addNameToString(String(@value))
 
   valueOf: ->
     apply = super
@@ -124,7 +129,7 @@ class CountApply extends FacetApply
     @_verifyName()
 
   toString: ->
-    return @_addName("count()")
+    return @_addNameToString("count()")
 
   valueOf: ->
     apply = super
@@ -147,7 +152,7 @@ class SumApply extends FacetApply
     @_verifyAttribute()
 
   toString: ->
-    return @_addName("#{@aggregate}(#{@attribute})")
+    return @_addNameToString("#{@aggregate}(#{@attribute})")
 
   valueOf: ->
     apply = super
@@ -171,7 +176,7 @@ class AverageApply extends FacetApply
     @_verifyAttribute()
 
   toString: ->
-    return @_addName("#{@aggregate}(#{@attribute})")
+    return @_addNameToString("#{@aggregate}(#{@attribute})")
 
   valueOf: ->
     apply = super
@@ -192,7 +197,7 @@ class MinApply extends FacetApply
     @_verifyAttribute()
 
   toString: ->
-    return @_addName("#{@aggregate}(#{@attribute})")
+    return @_addNameToString("#{@aggregate}(#{@attribute})")
 
   valueOf: ->
     apply = super
@@ -213,7 +218,7 @@ class MaxApply extends FacetApply
     @_verifyAttribute()
 
   toString: ->
-    return @_addName("#{@aggregate}(#{@attribute})")
+    return @_addNameToString("#{@aggregate}(#{@attribute})")
 
   valueOf: ->
     apply = super
@@ -234,7 +239,7 @@ class UniqueCountApply extends FacetApply
     @_verifyAttribute()
 
   toString: ->
-    return @_addName("#{@aggregate}(#{@attribute})")
+    return @_addNameToString("#{@aggregate}(#{@attribute})")
 
   valueOf: ->
     apply = super
@@ -256,7 +261,7 @@ class QuantileApply extends FacetApply
     @_verifyAttribute()
 
   toString: ->
-    return @_addName("quantile(#{@attribute}, #{@quantile})")
+    return @_addNameToString("quantile(#{@attribute}, #{@quantile})")
 
   valueOf: ->
     apply = super
@@ -284,7 +289,7 @@ class AddApply extends FacetApply
   toString: (from = 'add') ->
     expr = "#{@operands[0].toString(@arithmetic)} + #{@operands[1].toString(@arithmetic)}"
     expr = "(#{expr})" if from in ['divide', 'multiply']
-    return @_addName(expr)
+    return @_addNameToString(expr)
 
   valueOf: ->
     apply = super
@@ -308,7 +313,7 @@ class SubtractApply extends FacetApply
   toString: (from = 'add') ->
     expr = "#{@operands[0].toString(@arithmetic)} - #{@operands[1].toString(@arithmetic)}"
     expr = "(#{expr})" if from in ['divide', 'multiply']
-    return @_addName(expr)
+    return @_addNameToString(expr)
 
   valueOf: ->
     apply = super
@@ -332,7 +337,7 @@ class MultiplyApply extends FacetApply
   toString: (from = 'add') ->
     expr = "#{@operands[0].toString(@arithmetic)} * #{@operands[1].toString(@arithmetic)}"
     expr = "(#{expr})" if from is 'divide'
-    return @_addName(expr)
+    return @_addNameToString(expr)
 
   valueOf: ->
     apply = super
@@ -359,7 +364,7 @@ class DivideApply extends FacetApply
   toString: (from = 'add') ->
     expr = "#{@operands[0].toString(@arithmetic)} / #{@operands[1].toString(@arithmetic)}"
     expr = "(#{expr})" if from is 'divide'
-    return @_addName(expr)
+    return @_addNameToString(expr)
 
   valueOf: ->
     apply = super
@@ -369,6 +374,84 @@ class DivideApply extends FacetApply
 
   isAdditive: ->
     return @operands[0].isAdditive() and @operands[1] instanceof ConstantApply
+
+
+# Breaker
+class ApplyBreaker
+  constructor: (@breakAverage) ->
+    @aggregates = []
+    @arithmetics = []
+    @nameIndex = 0
+
+  getNextName: ->
+    @nameIndex++
+    return "_B" + @nameIndex
+
+  addAggregateApply: (apply) ->
+    if apply.name
+      @aggregates.push(apply)
+      return apply
+    else
+      for existingApply in @aggregates when existingApply.isEqual(apply)
+        return existingApply
+
+      apply = apply.addName(@getNextName())
+      @aggregates.push(apply)
+      return apply
+
+  addArithmeticApply: (apply) ->
+    needNewApply = false
+    operands = apply.operands.map(((apply) ->
+      newApply = if apply.aggregate then @addAggregateApply(apply) else @addArithmeticApply(apply)
+      needNewApply = true if newApply isnt apply
+      return newApply
+    ), this)
+
+    if needNewApply
+      apply = applyFromSpec({
+        name: apply.name
+        arithmetic: apply.arithmetic
+        dataset: apply.dataset
+        operands
+      })
+
+    @arithmetics.push(apply)
+    return apply
+
+  addApplies: (applies) ->
+    arithmeticApplies = []
+    for apply in applies
+      if apply.aggregate is 'average' and @breakAverage
+        apply = new DivideApply({
+          name: apply.name
+          dataset: apply.dataset
+          operands: [
+            new SumApply({ attribute: apply.attribute })
+            new CountApply({})
+          ]
+        })
+
+      if apply.aggregate
+        @addAggregateApply(apply)
+      else
+        arithmeticApplies.push(apply)
+
+    for apply in arithmeticApplies
+      @addArithmeticApply(apply)
+
+    return
+
+  getParts: ->
+    return {
+      @aggregates
+      @arithmetics
+    }
+
+
+FacetApply.breaker = (applies, breakAverage = false) ->
+  applyBreaker = new ApplyBreaker(breakAverage)
+  applyBreaker.addApplies(applies)
+  return applyBreaker.getParts()
 
 
 # Segregator
@@ -396,11 +479,6 @@ jsPostProcessorScheme = {
     return
 }
 
-addApplyName = (apply, name) ->
-  applySpec = apply.valueOf()
-  applySpec.name = name
-  return FacetApply.fromSpec(applySpec)
-
 class ApplySegregator
   constructor: (@postProcessorScheme) ->
     @byDataset = {}
@@ -409,14 +487,14 @@ class ApplySegregator
 
   getNextName: ->
     @nameIndex++
-    return "_N_" + @nameIndex
+    return "_S" + @nameIndex
 
   addSingleDatasetApply: (apply, track) ->
     if apply.aggregate is 'constant'
       return @postProcessorScheme.constant(apply)
 
     dataset = apply.getDataset()
-    apply = addApplyName(apply, @getNextName()) if not apply.name
+    apply = apply.addName(@getNextName()) if not apply.name
     @byDataset[dataset] or= []
 
     existingApplyGetter = find(@byDataset[dataset], (ag) -> ag.apply.isEqual(apply))

@@ -43,14 +43,6 @@ class DruidQueryBuilder
   @ALL_DATA_CHUNKS = 10000
   @allTimeInterval = ["1000-01-01/3000-01-01"]
 
-  @dateToIntervalPart = (date) ->
-    return date.toISOString()
-      .replace('Z',    '') # remove Z
-      .replace('.000', '') # millis if 0
-      .replace(/:00$/, '') # remove seconds if 0
-      .replace(/:00$/, '') # remove minutes if 0
-      .replace(/T00$/, '') # remove hours if 0
-
   constructor: ({@dataSource, @timeAttribute, @forceInterval, @approximate, @priority}) ->
     throw new Error("must have a dataSource") unless typeof @dataSource is 'string'
     throw new Error("must have a timeAttribute") unless typeof @timeAttribute is 'string'
@@ -93,7 +85,7 @@ class DruidQueryBuilder
       when 'contains'
         throw new Error("can not filter on specific time") if filter.attribute is @timeAttribute
         varName = @addToContext(context, filter.attribute)
-        "#{varName}.indexOf('#{filter.value}') !== -1"
+        "String(#{varName}).indexOf('#{filter.value}')!==-1"
 
       when 'not'
         "!(#{@filterToJSHelper(filter.filter, context)})"
@@ -187,28 +179,21 @@ class DruidQueryBuilder
         throw new Error("filter type '#{filter.type}' not defined")
 
   timeFilterToDruid: (filter) ->
-    return null unless filter
     ors = if filter.type is 'or' then filter.filters else [filter]
     timeAttribute = @timeAttribute
     return ors.map ({type, attribute, range}) ->
       throw new Error("can only time filter with a 'within' filter") unless type is 'within'
       throw new Error("attribute has to be a time attribute") unless attribute is timeAttribute
-      return "#{DruidQueryBuilder.dateToIntervalPart(range[0])}/#{DruidQueryBuilder.dateToIntervalPart(range[1])}"
+      return driverUtil.datesToInterval(range[0], range[1])
 
 
   addFilter: (filter) ->
-    dateToIntervalPart = DruidQueryBuilder.dateToIntervalPart
-    return unless filter
     extract = filter.extractFilterByAttribute(@timeAttribute)
     throw new Error("could not separate time filter") unless extract
     [timelessFilter, timeFilter] = extract
 
-    if timelessFilter.type is 'false'
-      @filter = null
-      @intervals = ["9001-01-01/9001-01-02"] # over 9000!
-    else
-      @filter = @timelessFilterToDruid(timelessFilter)
-      @intervals = @timeFilterToDruid(timeFilter)
+    @filter = @timelessFilterToDruid(timelessFilter)
+    @intervals = @timeFilterToDruid(timeFilter)
 
     return this
 

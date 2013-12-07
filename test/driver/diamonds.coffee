@@ -294,18 +294,11 @@ describe "Diamonds dataset", ->
       ]
     }
 
-  describe "filter a && ~a; apply count", ->
+  describe "filter false; apply count", ->
     it "should have the same results for different drivers", testEquality {
       drivers: ['hadoop', 'simple', 'mySql']
       query: [
-        {
-          operation: 'filter'
-          type: 'and'
-          filters: [
-            { type: 'is', attribute: 'color', value: 'E' }
-            { type: 'not', filter: { type: 'is', attribute: 'color', value: 'E' } }
-          ]
-        }
+        { operation: 'filter', type: 'false' }
         { operation: 'apply', name: 'Count', aggregate: 'count' }
       ]
     }

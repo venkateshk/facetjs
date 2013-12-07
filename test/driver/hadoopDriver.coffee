@@ -9,8 +9,8 @@ hadoopDriver = require('../../build/hadoopDriver')
 
 verbose = false
 
-describe "Druid driver", ->
-  @timeout(40 * 60 * 1000)
+describe.skip "Hadoop driver", ->
+  @timeout(15 * 60 * 1000)
 
   describe "specific queries", ->
     hadoopPass = hadoopRequester({
@@ -24,101 +24,6 @@ describe "Druid driver", ->
       path: 's3://metamx-kafka-data/wikipedia-editstream/v4/beta'
       filters: null
     })
-
-    # it "should work with a null filter", (done) ->
-    #   query = new FacetQuery([
-    #     {
-    #       operation: 'filter'
-    #       type: 'and'
-    #       filters: [
-    #         {
-    #           type: 'within'
-    #           attribute: 'time'
-    #           range: [
-    #             new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0))
-    #             new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))
-    #           ]
-    #         },
-    #         {
-    #           type: 'is'
-    #           attribute: 'page'
-    #           value: null
-    #         }
-    #       ]
-    #     }
-    #     { operation: 'apply', name: 'Count', aggregate: 'count' }
-    #   ])
-    #   driver {query}, (err, res) ->
-    #     expect(res).to.be.an('object') # to.deep.equal({})
-    #     done()
-
-    # it "should get min/max time", (done) ->
-    #   query = new FacetQuery([
-    #     { operation: 'apply', name: 'Min', aggregate: 'min', attribute: 'time' }
-    #     { operation: 'apply', name: 'Max', aggregate: 'max', attribute: 'time' }
-    #   ])
-    #   driver {query}, (err, res) ->
-    #     expect(err).to.equal(null)
-    #     expect(res).to.be.an('object')
-    #     expect(res.prop.Min).to.be.an.instanceof(Date)
-    #     expect(res.prop.Max).to.be.an.instanceof(Date)
-    #     done()
-
-    # it "should complain if min/max time is mixed with other applies", (done) ->
-    #   query = new FacetQuery([
-    #     { operation: 'apply', name: 'Min', aggregate: 'min', attribute: 'time' }
-    #     { operation: 'apply', name: 'Max', aggregate: 'max', attribute: 'time' }
-    #     { operation: 'apply', name: 'Count', aggregate: 'count' }
-    #   ])
-    #   driver {query}, (err, res) ->
-    #     expect(err).to.not.equal(null)
-    #     expect(err.message).to.equal("can not mix and match min / max time with other aggregates (for now)")
-    #     done()
-
-    # it "should work without a combine (single split)", (done) ->
-    #   query = new FacetQuery([
-    #     {
-    #       operation: 'filter'
-    #       type: 'within'
-    #       attribute: 'time'
-    #       range: [
-    #         new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0))
-    #         new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))
-    #       ]
-    #     }
-    #     { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
-    #     { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-    #     { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
-    #   ])
-    #   driver {query}, (err, res) ->
-    #     expect(err).to.equal(null)
-    #     expect(res).to.be.an('object')
-    #     done()
-
-    # it "should work without a combine (double split)", (done) ->
-    #   query = new FacetQuery([
-    #     {
-    #       operation: 'filter'
-    #       type: 'within'
-    #       attribute: 'time'
-    #       range: [
-    #         new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0))
-    #         new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))
-    #       ]
-    #     }
-    #     { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
-    #     { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-    #     { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
-    #     { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 3 }
-
-    #     { operation: 'split', name: 'Robot', bucket: 'identity', attribute: 'robot' }
-    #     { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
-    #     { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
-    #   ])
-    #   driver {query}, (err, res) ->
-    #     expect(err).to.equal(null)
-    #     expect(res).to.be.an('object')
-    #     done()
 
     it "should work with sort-by-delta on derived apply", (done) ->
       query = new FacetQuery([

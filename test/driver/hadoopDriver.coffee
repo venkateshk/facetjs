@@ -14,14 +14,14 @@ describe "Druid driver", ->
 
   describe "specific queries", ->
     hadoopPass = hadoopRequester({
-      host: '10.17.97.87'
+      host: '10.151.42.82'
       port: '8080'
     })
 
     driver = hadoopDriver({
       requester: hadoopPass
       timeAttribute: 'timestamp'
-      path: 's3://metamx-kafka-data/wikipedia-editstream/v3/alpha'
+      path: 's3://metamx-kafka-data/wikipedia-editstream/v4/beta'
       filters: null
     })
 

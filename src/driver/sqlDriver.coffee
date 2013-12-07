@@ -207,9 +207,7 @@ class SQLQueryBuilder
       datasetPart.groupByParts.push(groupByPart)
     return this
 
-  applyToSQL: (apply, name) ->
-    throw new TypeError("apply must be a FacetApply") unless apply instanceof FacetApply
-
+  applyToSQLExpresion: (apply) ->
     if apply.aggregate
       switch apply.aggregate
         when 'constant'
@@ -228,21 +226,18 @@ class SQLQueryBuilder
         else
           throw new Error("unsupported aggregate '#{apply.aggregate}'")
 
-      if name
-        return "#{applyStr} AS `#{name}`"
-      else
-        return applyStr
+      return applyStr
 
     sqlOp = arithmeticToSqlOp[apply.arithmetic]
     throw new Error("unsupported arithmetic '#{apply.arithmetic}'") unless sqlOp
-    [op1, op2] = apply.operands
-    op1SQL = @applyToSQL(op1)
-    op2SQL = @applyToSQL(op2)
+    [op1SQL, op2SQL] = apply.operands.map(@applyToSQLExpresion, this)
     applyStr = "(#{op1SQL} #{sqlOp} #{op2SQL})"
-    if name
-      return "#{applyStr} AS `#{name}`"
-    else
-      return applyStr
+    return applyStr
+
+
+  applyToSQL: (apply) ->
+    return "#{@applyToSQLExpresion(apply)} AS `#{apply.name}`"
+
 
   addApplies: (applies) ->
     sqlProcessorScheme = {
@@ -263,7 +258,7 @@ class SQLQueryBuilder
 
     @commonApplySelectParts = postProcessors
     for dataset, datasetApplies of appliesByDataset
-      @datasetParts[dataset].applySelectParts = datasetApplies.map(((apply) -> @applyToSQL(apply, apply.name)), this)
+      @datasetParts[dataset].applySelectParts = datasetApplies.map(@applyToSQL, this)
 
     return this
 
@@ -404,14 +399,17 @@ condensedCommandToSQL = ({requester, queryBuilder, parentSegment, condensedComma
         )
       }
     else
-      if ds.length is 1
-        splits = {
-          prop: ds[0]
-          _filtersByDataset: filtersByDataset
-        }
-      else
-        callback(null, null)
+      if ds.length > 1
+        callback(new Error('unexpected result'))
         return
+
+      if ds.length is 0
+        ds.push(condensedCommand.getZeroProp())
+
+      splits = {
+        prop: ds[0]
+        _filtersByDataset: filtersByDataset
+      }
 
     callback(null, splits)
     return

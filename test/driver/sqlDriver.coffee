@@ -38,7 +38,11 @@ describe "SQL driver", ->
       it "should work with [] return", (done) ->
         emptyDriver {query}, (err, result) ->
           expect(err).to.be.null
-          expect(result).to.deep.equal({})
+          expect(result).to.deep.equal({
+            prop: {
+              "Count": 0
+            }
+          })
           done()
           return
 
@@ -52,7 +56,10 @@ describe "SQL driver", ->
       it "should work with [] return", (done) ->
         emptyDriver {query}, (err, result) ->
           expect(err).to.be.null
-          expect(result).to.deep.equal({})
+          expect(result).to.deep.equal({
+            prop: {}
+            splits: []
+          })
           done()
 
   describe "should work with driver level filter", ->
@@ -104,11 +111,11 @@ describe "SQL driver", ->
       diamondsDriver { query: new FacetQuery(querySpec) }, (err, result) ->
         expect(err).to.equal(null)
         expect(result).to.deep.equal({
-          "prop": {}
+          prop: {}
         })
         done()
 
-    it "deals well with empty results", ->
+    it "deals well with empty results", (done) ->
       querySpec = [
         { operation: 'filter', type: 'false' }
         { operation: 'apply', name: 'Count', aggregate: 'count' }
@@ -122,7 +129,7 @@ describe "SQL driver", ->
         })
         done()
 
-    it "deals well with empty results", ->
+    it "deals well with empty results", (done) ->
       querySpec = [
         { operation: 'filter', type: 'false' }
         { operation: 'apply', name: 'Count', aggregate: 'count' }

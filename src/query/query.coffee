@@ -78,6 +78,11 @@ class CondensedCommand
     return null unless combine?.sort
     return @knownProps[combine.sort.prop]
 
+  getZeroProp: ->
+    zeroProp = {}
+    zeroProp[apply.name] = 0 for apply in @applies
+    return zeroProp
+
   appendToSpec: (spec) ->
     if @split
       splitVal = @split.valueOf()

@@ -25,14 +25,6 @@ aggregateToJS = {
   max:   ['-Infinity', (a, b) -> "Math.max(#{a},#{b})"]
 }
 
-compareFns = {
-  ascending: (a, b) ->
-    return if a < b then -1 else if a > b then 1 else if a >= b then 0 else NaN
-
-  descending: (a, b) ->
-    return if b < a then -1 else if b > a then 1 else if b >= a then 0 else NaN
-}
-
 correctSingletonDruidResult = (result) ->
   return Array.isArray(result) and result.length <= 1 and (result.length is 0 or result[0].result)
 
@@ -648,12 +640,9 @@ DruidQueryBuilder.queryFns = {
         return
 
       if emptySingletonDruidResult(ds)
-        result = {}
-        result[apply.name] = 0 for apply in condensedCommand.applies
-        callback(null, [result])
+        callback(null, [condensedCommand.getZeroProp()])
       else
         callback(null, ds.map((d) -> d.result))
-
 
       return
     return
@@ -743,9 +732,7 @@ DruidQueryBuilder.queryFns = {
           if combine.sort.direction is 'descending'
             props.reverse()
         else
-          comapreFn = compareFns[combine.sort.direction]
-          sortProp = combine.sort.prop
-          props.sort((a, b) -> comapreFn(a[sortProp], b[sortProp]))
+          props.sort(combine.sort.getCompareFn())
 
       if combine.limit?
         limit = combine.limit
@@ -970,9 +957,7 @@ DruidQueryBuilder.queryFns = {
           if combine.sort.direction is 'descending'
             props.reverse()
         else
-          comapreFn = compareFns[combine.sort.direction]
-          sortProp = combine.sort.prop
-          props.sort((a, b) -> comapreFn(a[sortProp], b[sortProp]))
+          props.sort(combine.sort.getCompareFn())
 
       if combine.limit?
         limit = combine.limit
@@ -1229,8 +1214,7 @@ multiDatasetQuery = ({parentSegment, condensedCommand, builderSettings, requeste
 
     if combine
       if combine.sort
-        compareFn = combine.sort.getCompareFn()
-        result.sort(compareFn)
+        result.sort(combine.sort.getCompareFn())
 
       if combine.limit?
         driverUtil.inPlaceTrim(result, combine.limit)

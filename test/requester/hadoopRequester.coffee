@@ -5,7 +5,7 @@ utils = require('../utils')
 hadoopRequester = require('../../build/hadoopRequester')
 
 prodHadoopRequester = hadoopRequester({
-  host: '10.17.97.87'
+  host: '10.151.42.82'
   port: '8080'
 })
 

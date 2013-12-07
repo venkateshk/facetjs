@@ -111,8 +111,7 @@ class HadoopQueryBuilder
 
         timezone = split.timezone or 'Etc/UTC'
         throw new Error("unsupported timezone '#{timezone}'") unless timezone is 'Etc/UTC'
-
-        return "new Date(new Date(t.datum['#{split.attribute}']).valueOf() / #{periodLength}) * #{periodLength}).toISOString()"
+        return "new Date(Math.floor(new Date(t.datum['#{split.attribute}']).valueOf() / #{periodLength}) * #{periodLength}).toISOString()"
 
       when 'tuple'
         return "[(" + split.splits.map(@splitToHadoop, this).join('), (') + ")].join('#$#')"
@@ -140,7 +139,10 @@ class HadoopQueryBuilder
       arithmetic: (arithmetic, lhs, rhs) ->
         hadoopOp = arithmeticToHadoopOp[arithmetic]
         throw new Error('unknown arithmetic') unless hadoopOp
-        return "(#{lhs} #{hadoopOp} #{rhs})"
+        if hadoopOp is '/'
+          return "(#{rhs} === 0 ? 0 : #{lhs} / #{rhs})"
+        else
+          return "(#{lhs} #{hadoopOp} #{rhs})"
       finish: (name, getter) -> "prop['#{name}'] = #{getter}"
     }
 
@@ -151,9 +153,7 @@ class HadoopQueryBuilder
       'max': { zero: '-Infinity', update: '$ = Math.max($, x)' }
     }
 
-    if applies.length is 0
-      @applies = "function() { return {}; }"
-      return
+    return if applies.length is 0
 
     {
       appliesByDataset
@@ -165,7 +165,10 @@ class HadoopQueryBuilder
       hadoopOp = arithmeticToHadoopOp[apply.arithmetic]
       throw new Error('unknown arithmetic') unless hadoopOp
       [op1, op2] = apply.operands
-      return "(#{arithmeticToExpresion(op1)} #{hadoopOp} #{arithmeticToExpresion(op2)})"
+      if hadoopOp is '/'
+        return "(#{arithmeticToExpresion(op2)} === 0 ? 0 : #{arithmeticToExpresion(op1)} / #{arithmeticToExpresion(op2)})"
+      else
+        return "(#{arithmeticToExpresion(op1)} #{hadoopOp} #{arithmeticToExpresion(op2)})"
 
     preLines = []
     initLines = []
@@ -240,6 +243,7 @@ class HadoopQueryBuilder
     return this
 
   getQuery: ->
+    return null if not @split and not @applies
     hadoopQuery = {
       options: {
         "mapred.job.priority": "HIGH"
@@ -247,7 +251,7 @@ class HadoopQueryBuilder
     }
     hadoopQuery.datasets = @datasets
     hadoopQuery.split = @split if @split
-    hadoopQuery.applies = @applies
+    hadoopQuery.applies = @applies or "function() { return {}; }"
     hadoopQuery.combine = @combine if @combine
     return hadoopQuery
 

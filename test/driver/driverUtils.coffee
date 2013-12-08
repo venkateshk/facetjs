@@ -19,6 +19,7 @@ describe "Utility", ->
     it "should work on a normal list", ->
       expect(driverUtil.flatten([[1,3], [3,6,7]])).to.deep.equal([1,3,3,6,7])
 
+
   describe "inPlaceTrim", ->
     it "should trim down", ->
       driverUtil.inPlaceTrim(a = [1, 2, 3, 4], 2)
@@ -31,6 +32,67 @@ describe "Utility", ->
     it "should trim above length", ->
       driverUtil.inPlaceTrim(a = [1, 2, 3, 4], 10)
       expect(a).to.deep.equal([1, 2, 3, 4])
+
+
+  describe "datesToInterval", ->
+    it "should simplify round dates", ->
+      expect(driverUtil.datesToInterval(
+        new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0))
+        new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))
+      )).to.equal('2013-02-26/2013-02-27')
+
+    it "should work for general dates", ->
+      expect(driverUtil.datesToInterval(
+        new Date(Date.UTC(2013, 2 - 1, 26, 1, 1, 1))
+        new Date(Date.UTC(2013, 2 - 1, 27, 2, 2, 2))
+      )).to.equal('2013-02-26T01:01:01/2013-02-27T02:02:02')
+
+
+  describe "timeFilterToIntervals", ->
+    it "should work for simple within filter", ->
+      expect(driverUtil.timeFilterToIntervals({
+        type: 'within'
+        attribute: 'time'
+        range: [
+          new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0))
+          new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))
+        ]
+      })).to.deep.equal(["2013-02-26/2013-02-27"])
+
+
+  describe "continuousFloorExpresion", ->
+    it "should be minimalistic (no size / no offset)", ->
+      expect(driverUtil.continuousFloorExpresion({
+        variable: "x"
+        floorFn: "Math.floor"
+        size: 1
+        offset: 0
+      })).to.equal('Math.floor(x)')
+
+    it "should be minimalistic (no size)", ->
+      expect(driverUtil.continuousFloorExpresion({
+        variable: "x"
+        floorFn: "Math.floor"
+        size: 1
+        offset: 0.3
+      })).to.equal('Math.floor(x - 0.3) + 0.3')
+
+    it "should be minimalistic (no offset)", ->
+      expect(driverUtil.continuousFloorExpresion({
+        variable: "x"
+        floorFn: "Math.floor"
+        size: 5
+        offset: 0
+      })).to.equal('Math.floor(x / 5) * 5')
+
+    it "should be work in general", ->
+      expect(driverUtil.continuousFloorExpresion({
+        variable: "x"
+        floorFn: "Math.floor"
+        size: 5
+        offset: 3
+      })).to.equal('Math.floor((x - 3) / 5) * 5 + 3')
+
 
   describe "Table", ->
     describe "should produce the same result", ->

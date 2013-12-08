@@ -63,11 +63,12 @@ exports.timeFilterToIntervals = (filter, forceInterval) ->
 # Generates a string that represents the flooring expression given a flooring function (string)
 exports.continuousFloorExpresion = ({variable, floorFn, size, offset}) ->
   expr = variable
-  expr = "(#{expr} + #{offset})" if offset isnt 0
+  expr = "#{expr} - #{offset}" if offset isnt 0
+  expr = "(#{expr})" if offset isnt 0 and size isnt 1
   expr = "#{expr} / #{size}" if size isnt 1
   expr = "#{floorFn}(#{expr})"
   expr = "#{expr} * #{size}" if size isnt 1
-  expr = "#{expr} - #{offset}" if offset isnt 0
+  expr = "#{expr} + #{offset}" if offset isnt 0
   return expr
 
 

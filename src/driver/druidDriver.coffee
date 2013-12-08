@@ -6,7 +6,7 @@ driverUtil = require('./driverUtil')
 {
   FacetQuery, CondensedCommand
   FacetFilter, TrueFilter, InFilter, AndFilter
-  FacetSplit, FacetApply, FacetCombine, SliceCombine
+  FacetSplit, FacetApply, CountApply, FacetCombine, SliceCombine
 } = require('./query')
 
 # -----------------------------------------------------
@@ -33,7 +33,6 @@ emptySingletonDruidResult = (result) ->
 
 class DruidQueryBuilder
   @ALL_DATA_CHUNKS = 10000
-  @allTimeInterval = ["1000-01-01/3000-01-01"]
 
   constructor: ({@dataSource, @timeAttribute, @forceInterval, @approximate, @priority}) ->
     throw new Error("must have a dataSource") unless typeof @dataSource is 'string'
@@ -170,23 +169,14 @@ class DruidQueryBuilder
       else
         throw new Error("filter type '#{filter.type}' not defined")
 
-  timeFilterToDruid: (filter) ->
-    ors = if filter.type is 'or' then filter.filters else [filter]
-    timeAttribute = @timeAttribute
-    return ors.map ({type, attribute, range}) ->
-      throw new Error("can only time filter with a 'within' filter") unless type is 'within'
-      throw new Error("attribute has to be a time attribute") unless attribute is timeAttribute
-      return driverUtil.datesToInterval(range[0], range[1])
-
 
   addFilter: (filter) ->
     extract = filter.extractFilterByAttribute(@timeAttribute)
     throw new Error("could not separate time filter") unless extract
     [timelessFilter, timeFilter] = extract
 
+    @intervals = driverUtil.timeFilterToIntervals(timeFilter, @forceInterval)
     @filter = @timelessFilterToDruid(timelessFilter)
-    @intervals = @timeFilterToDruid(timeFilter)
-
     return this
 
 
@@ -267,200 +257,32 @@ class DruidQueryBuilder
 
     return this
 
-  throwawayName: ->
-    @nameIndex++
-    return "_f#{@nameIndex}"
-
-  isThrowawayName: (name) ->
-    return name[0] is '_'
-
-  renameAggregationInPostAgregation: (postAggregation, from, to) ->
-    switch postAggregation.type
-      when 'fieldAccess', 'hyperUniqueCardinality', 'quantile'
-        if postAggregation.fieldName is from
-          postAggregation.fieldName = to
-
-      when 'arithmetic'
-        for postAgg in postAggregation.fields
-          @renameAggregationInPostAgregation(postAgg, from, to)
-
-      when 'constant'
-        null # do nothing
-
-      else
-        throw new Error("unsupported postAggregation type '#{postAggregation.type}'")
+  addAggregation: (aggregation) ->
+    # Make sure unique by name
+    for existingAggregation in @aggregations
+      return if existingAggregation.name is aggregation.name
+    @aggregations.push(aggregation)
     return
 
-  addAggregation: (aggregation) ->
-    aggregation.name or= @throwawayName()
-
-    for existingAggregation in @aggregations
-      if existingAggregation.type is aggregation.type and
-         existingAggregation.fieldName is aggregation.fieldName and
-         String(existingAggregation.fieldNames) is String(aggregation.fieldNames) and
-         existingAggregation.fnAggregate is aggregation.fnAggregate and
-         existingAggregation.fnCombine is aggregation.fnCombine and
-         existingAggregation.fnReset is aggregation.fnReset and
-         existingAggregation.resolution is aggregation.resolution and
-         existingAggregation.lowerLimit is aggregation.lowerLimit and
-         existingAggregation.upperLimit is aggregation.upperLimit and
-         (@isThrowawayName(existingAggregation.name) or @isThrowawayName(aggregation.name))
-
-        if @isThrowawayName(aggregation.name)
-          # Use the existing aggregation
-          return existingAggregation.name
-        else
-          # We have a throwaway existing aggregation, replace it's name with my non throwaway name
-          for postAggregation in @postAggregations
-            @renameAggregationInPostAgregation(postAggregation, existingAggregation.name, aggregation.name)
-          existingAggregation.name = aggregation.name
-          return aggregation.name
-
-    @aggregations.push(aggregation)
-    return aggregation.name
-
   addPostAggregation: (postAggregation) ->
-    throw new Error("direct postAggregation must have name") unless postAggregation.name
-
-    # We need this because of an asymmetry in druid, hopefully soon we will be able to remove this.
-    if postAggregation.type is 'arithmetic' and not postAggregation.name
-      postAggregation.name = @throwawayName()
-
     @postAggregations.push(postAggregation)
     return
 
-  # This method will ether return a post aggregation or add it.
-  addApplyHelper: (apply, returnPostAggregation) ->
-    applyName = apply.name or @throwawayName()
-    if apply.aggregate
-      switch apply.aggregate
-        when 'constant'
-          postAggregation = {
-            type: "constant"
-            value: apply.value
-          }
-          if returnPostAggregation
-            return postAggregation
-          else
-            postAggregation.name = applyName
-            @addPostAggregation(postAggregation)
-            return
+  addAggregateApply: (apply) ->
+    switch apply.aggregate
+      when 'constant'
+        @addPostAggregation({
+          name: apply.name
+          type: "constant"
+          value: apply.value
+        })
 
-        when 'count', 'sum', 'min', 'max'
-          if @approximate and apply.aggregate in ['min', 'max'] and @isHistogram(apply.attribute)
+      when 'count', 'sum', 'min', 'max'
+        if @approximate and apply.aggregate in ['min', 'max'] and @isHistogram(apply.attribute)
 
-            aggregation = {
-              type: "approxHistogramFold"
-              fieldName: apply.attribute
-            }
-            options = apply.options or {}
-            aggregation.lowerLimit = options.druidLowerLimit if options.druidLowerLimit?
-            aggregation.upperLimit = options.druidUpperLimit if options.druidUpperLimit?
-            aggregation.resolution = options.druidResolution if options.druidResolution
-            histogramAggregationName = @addAggregation(aggregation)
-            postAggregation = {
-              type: apply.aggregate
-              fieldName: histogramAggregationName
-            }
-
-            if returnPostAggregation
-              return postAggregation
-            else
-              postAggregation.name = applyName
-              @addPostAggregation(postAggregation)
-              return
-          else
-            if apply.filter
-              { jsFilter, context } = @filterToJS(apply.filter)
-              fieldNames = []
-              varNames = []
-              for fieldName, varName of context
-                fieldNames.push(fieldName)
-                varNames.push(varName)
-
-              [zero, jsAgg] = aggregateToJS[apply.aggregate]
-
-              if apply.aggregate is 'count'
-                jsIf = "(#{jsFilter}?1:#{zero})"
-              else
-                fieldNames.push(apply.attribute)
-                varNames.push('a')
-                jsIf = "(#{jsFilter}?a:#{zero})"
-
-              aggregation = {
-                type: "javascript"
-                name: applyName
-                fieldNames: fieldNames
-                fnAggregate: "function(cur,#{varNames.join(',')}){return #{jsAgg('cur', jsIf)};}"
-                fnCombine: "function(pa,pb){return #{jsAgg('pa', 'pb')};}"
-                fnReset: "function(){return #{zero};}"
-              }
-            else
-              aggregation = {
-                type: if apply.aggregate is 'sum' then 'doubleSum' else apply.aggregate
-                name: applyName
-              }
-
-              if apply.aggregate isnt 'count'
-                throw new Error("#{apply.aggregate} must have an attribute") unless apply.attribute
-                aggregation.fieldName = apply.attribute
-
-            aggregationName = @addAggregation(aggregation)
-            if returnPostAggregation
-              return { type: "fieldAccess", fieldName: aggregationName }
-            else
-              return
-
-        when 'uniqueCount'
-          throw new Error("approximate queries not allowed") unless @approximate
-          throw new Error("filtering uniqueCount unsupported by driver") if apply.filter
-
-          # ToDo: add a throw here in case approximate is false
+          histogramAggregationName = "_hist_" + apply.attribute
           aggregation = {
-            type: "hyperUnique"
-            name: applyName
-            fieldName: apply.attribute
-          }
-
-          aggregationName = @addAggregation(aggregation)
-          if returnPostAggregation
-            # hyperUniqueCardinality is the fieldAccess equivalent for uniques
-            return { type: "hyperUniqueCardinality", fieldName: aggregationName }
-          else
-            return
-
-        when 'average'
-          throw new Error("can not filter an average right now") if apply.filter
-
-          sumAggregationName = @addAggregation {
-            type: 'doubleSum'
-            fieldName: apply.attribute
-          }
-
-          countAggregationName = @addAggregation {
-            type: 'count'
-          }
-
-          postAggregation = {
-            type: "arithmetic"
-            fn: "/"
-            fields: [
-              { type: "fieldAccess", fieldName: sumAggregationName }
-              { type: "fieldAccess", fieldName: countAggregationName }
-            ]
-          }
-
-          if returnPostAggregation
-            return postAggregation
-          else
-            postAggregation.name = applyName
-            @addPostAggregation(postAggregation)
-            return
-
-        when 'quantile'
-          throw new Error("approximate queries not allowed") unless @approximate
-          throw new Error("quantile apply must have quantile") unless apply.quantile
-          aggregation = {
+            name: histogramAggregationName
             type: "approxHistogramFold"
             fieldName: apply.attribute
           }
@@ -468,56 +290,126 @@ class DruidQueryBuilder
           aggregation.lowerLimit = options.druidLowerLimit if options.druidLowerLimit?
           aggregation.upperLimit = options.druidUpperLimit if options.druidUpperLimit?
           aggregation.resolution = options.druidResolution if options.druidResolution
-          histogramAggregationName = @addAggregation(aggregation)
-          postAggregation = {
-            type: "quantile"
+          @addAggregation(aggregation)
+
+          @addPostAggregation({
+            name: apply.name
+            type: apply.aggregate
             fieldName: histogramAggregationName
-            probability: apply.quantile
-          }
+          })
 
-          if returnPostAggregation
-            return postAggregation
+        else
+          if apply.filter
+            { jsFilter, context } = @filterToJS(apply.filter)
+            fieldNames = []
+            varNames = []
+            for fieldName, varName of context
+              fieldNames.push(fieldName)
+              varNames.push(varName)
+
+            [zero, jsAgg] = aggregateToJS[apply.aggregate]
+
+            if apply.aggregate is 'count'
+              jsIf = "(#{jsFilter}?1:#{zero})"
+            else
+              fieldNames.push(apply.attribute)
+              varNames.push('a')
+              jsIf = "(#{jsFilter}?a:#{zero})"
+
+            @addAggregation({
+              name: apply.name
+              type: "javascript"
+              fieldNames: fieldNames
+              fnAggregate: "function(cur,#{varNames.join(',')}){return #{jsAgg('cur', jsIf)};}"
+              fnCombine: "function(pa,pb){return #{jsAgg('pa', 'pb')};}"
+              fnReset: "function(){return #{zero};}"
+            })
           else
-            postAggregation.name = applyName
-            @addPostAggregation(postAggregation)
-            return
+            aggregation = {
+              name: apply.name
+              type: if apply.aggregate is 'sum' then 'doubleSum' else apply.aggregate
+            }
+            aggregation.fieldName = apply.attribute if apply.aggregate isnt 'count'
+            @addAggregation(aggregation)
 
-        else
-          throw new Error("unsupported aggregate '#{apply.aggregate}'")
+      when 'uniqueCount'
+        throw new Error("approximate queries not allowed") unless @approximate
+        throw new Error("filtering uniqueCount unsupported by driver") if apply.filter
 
-    else if apply.arithmetic
-      if apply.operands.length isnt 2
-        throw new Error("arithmetic apply must have 2 operands (has: #{apply.operands.length})")
-      druidFn = arithmeticToDruidFn[apply.arithmetic]
-      if druidFn
-        a = @addApplyHelper(apply.operands[0], true)
-        b = @addApplyHelper(apply.operands[1], true)
-        postAggregation = {
-          type: "arithmetic"
-          fn: druidFn
-          fields: [a, b]
+        @addAggregation({
+          name: apply.name
+          type: "hyperUnique"
+          fieldName: apply.attribute
+        })
+
+      when 'quantile'
+        throw new Error("approximate queries not allowed") unless @approximate
+
+        histogramAggregationName = "_hist_" + apply.attribute
+        aggregation = {
+          name: histogramAggregationName
+          type: "approxHistogramFold"
+          fieldName: apply.attribute
         }
+        options = apply.options or {}
+        aggregation.lowerLimit = options.druidLowerLimit if options.druidLowerLimit?
+        aggregation.upperLimit = options.druidUpperLimit if options.druidUpperLimit?
+        aggregation.resolution = options.druidResolution if options.druidResolution
+        @addAggregation(aggregation)
 
-        if returnPostAggregation
-          return postAggregation
-        else
-          postAggregation.name = applyName
-          @addPostAggregation(postAggregation)
-          return
+        @addPostAggregation({
+          name: apply.name
+          type: "quantile"
+          fieldName: histogramAggregationName
+          probability: apply.quantile
+        })
 
       else
-        throw new Error("unsupported arithmetic '#{apply.arithmetic}'")
+        throw new Error("unsupported aggregate '#{apply.aggregate}'")
 
-    else
-      throw new Error("must have an aggregate or an arithmetic")
+    return
 
-  addApply: (apply) ->
-    throw new TypeError() unless apply instanceof FacetApply
-    @addApplyHelper(apply, false)
-    return this
+  arithmeticToPostAggregator: (apply) ->
+    if apply.aggregate
+      # This is a leaf node
+      if apply.aggregate is 'constant'
+        return {
+          type: "constant"
+          value: apply.value
+        }
+      else
+        return {
+          type: if apply.aggregate is 'uniqueCount' then 'hyperUniqueCardinality' else 'fieldAccess'
+          fieldName: apply.name
+        }
 
-  addDummyApply: ->
-    @addApplyHelper({ aggregate: 'count' }, false)
+    druidFn = arithmeticToDruidFn[apply.arithmetic]
+    throw new Error("unsupported arithmetic '#{apply.arithmetic}'") unless druidFn
+
+    return {
+      type: "arithmetic"
+      fn: druidFn
+      fields: apply.operands.map(@arithmeticToPostAggregator, this)
+    }
+
+  addArithmeticApply: (apply) ->
+    postAggregator = @arithmeticToPostAggregator(apply)
+    postAggregator.name = apply.name
+    @addPostAggregation(postAggregator)
+    return
+
+  addApplies: (applies) ->
+    if applies.length is 0
+      @addAggregateApply(new CountApply({ name: '_dummy' }))
+      return
+
+    {
+      aggregates
+      arithmetics
+    } = FacetApply.breaker(applies, true)
+
+    @addAggregateApply(apply) for apply in aggregates
+    @addArithmeticApply(apply) for apply in arithmetics
     return this
 
   addCombine: (combine) ->
@@ -568,16 +460,11 @@ class DruidQueryBuilder
     return this
 
   getQuery: ->
-    intervals = @intervals
-    if not intervals
-      throw new Error("must have an interval") if @forceInterval
-      intervals = DruidQueryBuilder.allTimeInterval
-
     query = {
-      queryType: @queryType
-      dataSource: @dataSource
-      granularity: @granularity
-      intervals
+      @queryType
+      @dataSource
+      @granularity
+      @intervals
     }
 
     if not @useCache
@@ -608,15 +495,9 @@ class DruidQueryBuilder
 DruidQueryBuilder.queryFns = {
   all: ({requester, queryBuilder, filter, parentSegment, condensedCommand}, callback) ->
     try
-      # filter
-      queryBuilder.addFilter(filter)
-
-      # apply
-      if condensedCommand.applies.length
-        for apply in condensedCommand.applies
-          queryBuilder.addApply(apply)
-      else
-        queryBuilder.addDummyApply()
+      queryBuilder
+        .addFilter(filter)
+        .addApplies(condensedCommand.applies)
 
       queryObj = queryBuilder.getQuery()
     catch e
@@ -684,18 +565,10 @@ DruidQueryBuilder.queryFns = {
 
   timeseries: ({requester, queryBuilder, filter, parentSegment, condensedCommand}, callback) ->
     try
-      # filter
-      queryBuilder.addFilter(filter)
-
-      # split
-      queryBuilder.addSplit(condensedCommand.split)
-
-      # apply
-      if condensedCommand.applies.length
-        for apply in condensedCommand.applies
-          queryBuilder.addApply(apply)
-      else
-        queryBuilder.addDummyApply()
+      queryBuilder
+        .addFilter(filter)
+        .addSplit(condensedCommand.split)
+        .addApplies(condensedCommand.applies)
 
       queryObj = queryBuilder.getQuery()
     catch e
@@ -744,20 +617,11 @@ DruidQueryBuilder.queryFns = {
 
   topN: ({requester, queryBuilder, filter, parentSegment, condensedCommand}, callback) ->
     try
-      # filter
-      queryBuilder.addFilter(filter)
-
-      # split
-      queryBuilder.addSplit(condensedCommand.getSplit())
-
-      # apply
-      if condensedCommand.applies.length
-        for apply in condensedCommand.applies
-          queryBuilder.addApply(apply)
-      else
-        queryBuilder.addDummyApply()
-
-      queryBuilder.addCombine(condensedCommand.getCombine())
+      queryBuilder
+        .addFilter(filter)
+        .addSplit(condensedCommand.getSplit())
+        .addApplies(condensedCommand.applies)
+        .addCombine(condensedCommand.getCombine())
 
       queryObj = queryBuilder.getQuery()
     catch e
@@ -787,29 +651,20 @@ DruidQueryBuilder.queryFns = {
   allData: ({requester, queryBuilder, filter, parentSegment, condensedCommand}, callback) ->
     allDataChunks = DruidQueryBuilder.ALL_DATA_CHUNKS
 
+    combine = condensedCommand.getCombine()
     try
-      # filter
-      queryBuilder.addFilter(filter)
-
-      # split
-      queryBuilder.addSplit(condensedCommand.split)
-
-      # apply
-      if condensedCommand.applies.length
-        for apply in condensedCommand.applies
-          queryBuilder.addApply(apply)
-      else
-        queryBuilder.addDummyApply()
-
-      combine = condensedCommand.getCombine()
-      queryBuilder.addCombine(new SliceCombine({
-        sort: {
-          compare: 'natural'
-          prop: condensedCommand.split.name
-          direction: combine.sort.direction or 'ascending'
-        }
-        limit: allDataChunks
-      }))
+      queryBuilder
+        .addFilter(filter)
+        .addSplit(condensedCommand.split)
+        .addApplies(condensedCommand.applies)
+        .addCombine(new SliceCombine({
+          sort: {
+            compare: 'natural'
+            prop: condensedCommand.split.name
+            direction: combine.sort.direction or 'ascending'
+          }
+          limit: allDataChunks
+        }))
 
       queryObj = queryBuilder.getQuery()
     catch e
@@ -855,20 +710,11 @@ DruidQueryBuilder.queryFns = {
 
   groupBy: ({requester, queryBuilder, filter, parentSegment, condensedCommand}, callback) ->
     try
-      # filter
-      queryBuilder.addFilter(filter)
-
-      # split
-      queryBuilder.addSplit(condensedCommand.split)
-
-      # apply
-      if condensedCommand.applies.length
-        for apply in condensedCommand.applies
-          queryBuilder.addApply(apply)
-      else
-        queryBuilder.addDummyApply()
-
-      queryBuilder.addCombine(condensedCommand.getCombine())
+      queryBuilder
+        .addFilter(filter)
+        .addSplit(condensedCommand.split)
+        .addApplies(condensedCommand.applies)
+        .addCombine(condensedCommand.getCombine())
 
       queryObj = queryBuilder.getQuery()
     catch e
@@ -969,20 +815,11 @@ DruidQueryBuilder.queryFns = {
 
   heatmap: ({requester, queryBuilder, filter, parentSegment, condensedCommand}, callback) ->
     try
-      # filter
-      queryBuilder.addFilter(filter)
-
-      # split
-      queryBuilder.addSplit(condensedCommand.split)
-
-      # apply
-      if condensedCommand.applies.length
-        for apply in condensedCommand.applies
-          queryBuilder.addApply(apply)
-      else
-        queryBuilder.addDummyApply()
-
-      queryBuilder.addCombine(condensedCommand.getCombine())
+      queryBuilder
+        .addFilter(filter)
+        .addSplit(condensedCommand.split)
+        .addApplies(condensedCommand.applies)
+        .addCombine(condensedCommand.getCombine())
 
       queryObj = queryBuilder.getQuery()
     catch e

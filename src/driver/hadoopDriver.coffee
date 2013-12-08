@@ -17,6 +17,7 @@ arithmeticToHadoopOp = {
 class HadoopQueryBuilder
   constructor: ({@timeAttribute, @datasetToPath}) ->
     throw new Error("must have datasetToPath mapping") unless typeof @datasetToPath is 'object'
+    @forceInterval = false # ToDo
 
   filterToHadoopHelper: (filter) ->
     return switch filter.type
@@ -54,16 +55,6 @@ class HadoopQueryBuilder
         throw new Error("unknown JS filter type '#{filter.type}'")
 
 
-  timeFilterToHadoop: (filter) ->
-    return ["1000-01-01/3000-01-01"] if filter.type is 'true'
-    ors = if filter.type is 'or' then filter.filters else [filter]
-    timeAttribute = @timeAttribute
-    return ors.map ({type, attribute, range}) ->
-      throw new Error("can only time filter with a 'within' filter") unless type is 'within'
-      throw new Error("attribute has to be a time attribute") unless attribute is timeAttribute
-      return driverUtil.datesToInterval(range[0], range[1])
-
-
   timelessFilterToHadoop: (filter) ->
     return "function(datum) { return #{@filterToHadoopHelper(filter)}; }"
 
@@ -78,7 +69,7 @@ class HadoopQueryBuilder
       @datasets.push({
         name: datasetName
         path: @datasetToPath[datasetName]
-        intervals: @timeFilterToHadoop(timeFilter)
+        intervals: driverUtil.timeFilterToIntervals(timeFilter, @forceInterval)
         filter: @timelessFilterToHadoop(timelessFilter)
       })
 

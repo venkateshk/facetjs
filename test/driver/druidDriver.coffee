@@ -130,6 +130,7 @@ describe "Druid driver", ->
           { operation: 'apply', name: 'Count', aggregate: 'count' }
         ])
       }, (err, noFilterRes) ->
+        expect(err).to.be.null
         expect(noFilterRes).to.be.an('object')
         withFilter {
           query: new FacetQuery([

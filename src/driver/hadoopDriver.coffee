@@ -82,13 +82,12 @@ class HadoopQueryBuilder
         return "t.datum['#{split.attribute}']"
 
       when 'continuous'
-        expr = "Number(t.datum['#{split.attribute}'])"
-        expr = "(#{expr} + #{split.offset})" if split.offset isnt 0
-        expr = "#{expr} / #{split.size}" if split.size isnt 1
-        expr = "Math.floor(#{expr})"
-        expr = "#{expr} * #{split.size}" if split.size isnt 1
-        expr = "#{expr} - #{split.offset}" if split.offset isnt 0
-        return expr
+        return driverUtil.continuousFloorExpresion({
+          variable: "Number(t.datum['#{split.attribute}'])"
+          floorFn: "Math.floor"
+          size: split.size
+          offset: split.offset
+        })
 
       when 'timePeriod'
         timeBucketing = {

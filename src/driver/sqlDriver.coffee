@@ -156,12 +156,12 @@ class SQLQueryBuilder
         }
 
       when 'continuous'
-        groupByPart = @escapeAttribute(split.attribute)
-        groupByPart = "(#{groupByPart} + #{split.offset})" if split.offset isnt 0
-        groupByPart = "#{groupByPart} / #{split.size}" if split.size isnt 1
-        groupByPart = "FLOOR(#{groupByPart})"
-        groupByPart = "#{groupByPart} * #{split.size}" if split.size isnt 1
-        groupByPart = "#{groupByPart} - #{split.offset}" if split.offset isnt 0
+        groupByPart = driverUtil.continuousFloorExpresion({
+          variable: @escapeAttribute(split.attribute)
+          floorFn: "FLOOR"
+          size: split.size
+          offset: split.offset
+        })
         return {
           selectPart: "#{groupByPart} AS `#{name}`"
           groupByPart

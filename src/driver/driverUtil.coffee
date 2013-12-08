@@ -48,6 +48,7 @@ exports.datesToInterval = datesToInterval = (start, end) ->
   return "#{dateToIntervalPart(start)}/#{dateToIntervalPart(end)}"
 
 
+# Converts a time filter to an array of intervals
 exports.timeFilterToIntervals = (filter, forceInterval) ->
   if filter.type is 'true'
     throw new Error("must have an interval") if forceInterval
@@ -57,6 +58,17 @@ exports.timeFilterToIntervals = (filter, forceInterval) ->
   return ors.map ({type, attribute, range}) ->
     throw new Error("can only time filter with a 'within' filter") unless type is 'within'
     return datesToInterval(range[0], range[1])
+
+
+# Generates a string that represents the flooring expression given a flooring function (string)
+exports.continuousFloorExpresion = ({variable, floorFn, size, offset}) ->
+  expr = variable
+  expr = "(#{expr} + #{offset})" if offset isnt 0
+  expr = "#{expr} / #{size}" if size isnt 1
+  expr = "#{floorFn}(#{expr})"
+  expr = "#{expr} * #{size}" if size isnt 1
+  expr = "#{expr} - #{offset}" if offset isnt 0
+  return expr
 
 
 # Finds an element in array that matches fn

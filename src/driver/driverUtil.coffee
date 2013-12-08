@@ -44,8 +44,19 @@ dateToIntervalPart = (date) ->
     .replace(/:00$/, '') # remove minutes if 0
     .replace(/T00$/, '') # remove hours if 0
 
-exports.datesToInterval = (start, end) ->
+exports.datesToInterval = datesToInterval = (start, end) ->
   return "#{dateToIntervalPart(start)}/#{dateToIntervalPart(end)}"
+
+
+exports.timeFilterToIntervals = (filter, forceInterval) ->
+  if filter.type is 'true'
+    throw new Error("must have an interval") if forceInterval
+    return ["1000-01-01/3000-01-01"]
+
+  ors = if filter.type is 'or' then filter.filters else [filter]
+  return ors.map ({type, attribute, range}) ->
+    throw new Error("can only time filter with a 'within' filter") unless type is 'within'
+    return datesToInterval(range[0], range[1])
 
 
 # Finds an element in array that matches fn

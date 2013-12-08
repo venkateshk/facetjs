@@ -225,6 +225,22 @@ class DruidQueryBuilder
           }
           #@useCache = false
         else
+          floorExpresion = driverUtil.continuousFloorExpresion({
+            variable: "x"
+            floorFn: "Math.floor"
+            size: split.size
+            offset: split.offset
+          })
+
+          fn = """
+            function(x) {
+              x = Number(x);
+              if(isNaN(x)) return null;
+              x = #{floorExpresion};
+              return x;
+            }
+            """
+
           @queryType = 'groupBy'
           #@granularity stays 'all'
           @dimension = {
@@ -233,13 +249,7 @@ class DruidQueryBuilder
             outputName: split.name
             dimExtractionFn: {
               type: 'javascript'
-              function: """function(x){
-                x = Number(x);
-                if(isNaN(x)) return null;
-                x = Math.floor(x / #{split.size}) * #{split.size};
-                return x;
-                }
-                """
+              function: fn
             }
           }
 
@@ -721,9 +731,6 @@ DruidQueryBuilder.queryFns = {
       callback(e)
       return
 
-    # console.log '------------------------------'
-    # console.log queryObj
-
     requester {query: queryObj}, (err, ds) ->
       if err
         callback({
@@ -731,9 +738,6 @@ DruidQueryBuilder.queryFns = {
           query: queryObj
         })
         return
-
-      # console.log '------------------------------'
-      # console.log err, ds
 
       callback(null, ds.map((d) -> d.event))
       return
@@ -745,14 +749,11 @@ DruidQueryBuilder.queryFns = {
       return
 
     try
-      # filter
-      queryBuilder.addFilter(filter)
-
-      # split
-      queryBuilder.addSplit(condensedCommand.split)
-
-      # applies are constrained to count
-      # combine has to be computed in post processing
+      queryBuilder
+        .addFilter(filter)
+        .addSplit(condensedCommand.split)
+        # applies are constrained to count
+        # combine has to be computed in post processing
 
       queryObj = queryBuilder.getQuery()
     catch e

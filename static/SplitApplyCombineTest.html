@@ -21,24 +21,16 @@
 
   <body>
     <div class="test-cont">
-      <textarea id="input">[
-  {
-    "name": "Total Price",
-    "arithmetic": "multiply",
-    "aggregate": "sum",
-    "attribute": "price",
-    "operation": "apply"
-  }
-]</textarea>
+      <textarea id="input"></textarea>
       <div class="driver-selector">
         <label for="driver">Driver:</label>
         <select id="driver">
           <option selected>Druid</option>
           <option>SQL</option>
         </select>
-        <label for="host">host:</label><input id="host" type="text" value="10.209.98.48"></input> <!-- 10.108.62.62 -->
-        <label for="port">port:</label><input id="port" type="text" value="8080"></input>
-        <label for="data-source">data source:</label><input id="data-source" type="text" value="wikipedia_editstream"></input> <!-- openx -->
+        <label for="host">host:</label><input id="host" type="text"></input>
+        <label for="port">port:</label><input id="port" type="text"></input>
+        <label for="data-source">data source:</label><input id="data-source" type="text"></input>
       </div>
       <pre id="output"></pre>
       <button id="send">Send</button>
@@ -52,6 +44,18 @@
     </div>
     <script>
     (function() {
+      // Init
+      var defaultQuery = JSON.stringify([{
+        "operation": "apply",
+        "name": "Count",
+        "aggregate": "count"
+      }], null, 2);
+
+      d3.select("#host").property("value", localStorage['host'] || '10.20.30.40');
+      d3.select("#port").property("value", localStorage['port'] || '8080');
+      d3.select("#data-source").property("value", localStorage['dataSource'] || 'koalas');
+      d3.select("#input").property("value", localStorage['query'] || defaultQuery);
+
       var addObj = function(obj) {
         return function() {
           var input = d3.select("#input").property("value");
@@ -71,7 +75,6 @@
             .property("value", JSON.stringify(input, null, 2))
         }
       }
-
 
       d3.select("#add-split")
         .on('click', addObj({
@@ -120,6 +123,13 @@
           d3.select("#input")
             .property("value", JSON.stringify(input, null, 2))
         })
+
+      function saveToLocal() {
+        localStorage['host'] = d3.select("#host").property("value");
+        localStorage['port'] = d3.select("#port").property("value");
+        localStorage['dataSource'] = d3.select("#data-source").property("value");
+        localStorage['query'] = d3.select("#input").property("value");
+      }
 
       function getDriver() {
         var driverStr = d3.select("#driver").property("value")
@@ -174,6 +184,8 @@
               .text("Could not parse JSON");
             throw e;
           }
+
+          saveToLocal();
 
           try {
             input = new query.FacetQuery(input);

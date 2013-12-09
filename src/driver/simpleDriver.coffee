@@ -152,10 +152,9 @@ makeCombineFn = (combine) ->
 computeQuery = (data, query) ->
   rootRaw = {}
 
-  commonFilterFn = query.getFilter().getFilterFn()
-  for dataset in query.getDatasets()
-    datasetFilterFn = dataset.getFilter().getFilterFn()
-    rootRaw[dataset.name] = data.filter(commonFilterFn).filter(datasetFilterFn)
+  filtersByDataset = query.getFiltersByDataset()
+  for datasetName, filter of filtersByDataset
+    rootRaw[datasetName] = data.filter(datasetFilter.getFilterFn())
 
   rootSegment = {
     prop: {}

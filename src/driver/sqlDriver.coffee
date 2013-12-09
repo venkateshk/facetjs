@@ -419,7 +419,6 @@ condensedCommandToSQL = ({requester, queryBuilder, parentSegment, condensedComma
 module.exports = ({requester, table, filter}) ->
   throw new Error("must have a requester") unless typeof requester is 'function'
   throw new Error("must have table") unless typeof table is 'string'
-  filter ?= new TrueFilter()
   throw new TypeError("filter should be a FacetFilter") unless filter instanceof FacetFilter
 
   return (request, callback) ->
@@ -432,17 +431,10 @@ module.exports = ({requester, table, filter}) ->
       callback(e)
       return
 
-    commonFilter = new AndFilter([filter, query.getFilter()]).simplify()
-    datasetToTable = {}
-    filtersByDataset = {}
-    for dataset in query.getDatasets()
-      datasetToTable[dataset.name] = table or dataset.source
-      filtersByDataset[dataset.name] = new AndFilter([commonFilter, dataset.getFilter()]).simplify()
-
     init = true
     rootSegment = {
       parent: null
-      _filtersByDataset: filtersByDataset
+      _filtersByDataset: query.getFiltersByDataset(filter)
     }
     segments = [rootSegment]
 

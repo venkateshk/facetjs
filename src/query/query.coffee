@@ -222,6 +222,13 @@ class FacetQuery
   getFilter: ->
     return @filter or new TrueFilter()
 
+  getFiltersByDataset: (extraFilter) ->
+    commonFilter = new AndFilter([@getFilter(), extraFilter or new TrueFilter()]).simplify()
+    filtersByDataset = {}
+    for dataset in @datasets
+      filtersByDataset[dataset.name] = new AndFilter([commonFilter, dataset.getFilter()]).simplify()
+    return filtersByDataset
+
   getFilterComplexity: ->
     complexity = @getFilter().getComplexity()
     complexity += dataset.getFilter().getComplexity() for dataset in @datasets

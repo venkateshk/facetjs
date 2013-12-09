@@ -1164,7 +1164,6 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
   approximate ?= true
   concurrentQueryLimit or= 16
   queryLimit or= Infinity
-  throw new TypeError("filter should be a FacetFilter") unless filter instanceof FacetFilter
 
   queriesMade = 0
   return (request, callback) ->

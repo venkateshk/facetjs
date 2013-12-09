@@ -223,7 +223,9 @@ class FacetQuery
     return @filter or new TrueFilter()
 
   getFiltersByDataset: (extraFilter) ->
-    commonFilter = new AndFilter([@getFilter(), extraFilter or new TrueFilter()]).simplify()
+    extraFilter or= new TrueFilter()
+    throw new TypeError("extra filter should be a FacetFilter") unless extraFilter instanceof FacetFilter
+    commonFilter = new AndFilter([@getFilter(), extraFilter]).simplify()
     filtersByDataset = {}
     for dataset in @datasets
       filtersByDataset[dataset.name] = new AndFilter([commonFilter, dataset.getFilter()]).simplify()

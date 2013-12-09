@@ -419,7 +419,6 @@ condensedCommandToSQL = ({requester, queryBuilder, parentSegment, condensedComma
 module.exports = ({requester, table, filter}) ->
   throw new Error("must have a requester") unless typeof requester is 'function'
   throw new Error("must have table") unless typeof table is 'string'
-  throw new TypeError("filter should be a FacetFilter") unless filter instanceof FacetFilter
 
   return (request, callback) ->
     try

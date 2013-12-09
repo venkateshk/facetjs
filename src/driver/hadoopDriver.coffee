@@ -314,7 +314,6 @@ module.exports = ({requester, timeAttribute, path, filter}) ->
   throw new Error("must have a requester") unless typeof requester is 'function'
   throw new Error("must have path") unless typeof path is 'string'
   timeAttribute or= 'time'
-  throw new TypeError("filter should be a FacetFilter") unless filter instanceof FacetFilter
 
   return (request, callback) ->
     try

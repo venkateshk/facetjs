@@ -19,10 +19,10 @@ arithmeticToDruidFn = {
 }
 
 aggregateToJS = {
-  count: ['0', (a, b) -> "#{a}+#{b}"]
-  sum:   ['0', (a, b) -> "#{a}+#{b}"]
-  min:   ['Infinity',  (a, b) -> "Math.min(#{a},#{b})"]
-  max:   ['-Infinity', (a, b) -> "Math.max(#{a},#{b})"]
+  count: ['0', (a, b) -> "#{a} + #{b}"]
+  sum:   ['0', (a, b) -> "#{a} + #{b}"]
+  min:   ['Infinity',  (a, b) -> "Math.min(#{a}, #{b})"]
+  max:   ['-Infinity', (a, b) -> "Math.max(#{a}, #{b})"]
 }
 
 correctSingletonDruidResult = (result) ->
@@ -66,17 +66,17 @@ class DruidQueryBuilder
       when 'is'
         throw new Error("can not filter on specific time") if filter.attribute is @timeAttribute
         varName = @addToContext(context, filter.attribute)
-        "#{varName}==='#{filter.value}'"
+        "#{varName} === '#{filter.value}'"
 
       when 'in'
         throw new Error("can not filter on specific time") if filter.attribute is @timeAttribute
         varName = @addToContext(context, filter.attribute)
-        filter.values.map((value) -> "#{varName}==='#{value}'").join('||')
+        filter.values.map((value) -> "#{varName} === '#{value}'").join('||')
 
       when 'contains'
         throw new Error("can not filter on specific time") if filter.attribute is @timeAttribute
         varName = @addToContext(context, filter.attribute)
-        "String(#{varName}).indexOf('#{filter.value}')!==-1"
+        "String(#{varName}).indexOf('#{filter.value}') !== -1"
 
       when 'not'
         "!(#{@filterToJSHelper(filter.filter, context)})"
@@ -100,7 +100,7 @@ class DruidQueryBuilder
     }
 
   timelessFilterToDruid: (filter) ->
-    switch filter.type
+    return switch filter.type
       when 'true'
         null
 
@@ -111,7 +111,7 @@ class DruidQueryBuilder
         {
           type: 'selector'
           dimension: filter.attribute
-          value: filter.value ? '' # In Druid null == '' and null is illegal
+          value: filter.value
         }
 
       when 'in'
@@ -121,7 +121,7 @@ class DruidQueryBuilder
             return {
               type: 'selector'
               dimension: filter.attribute
-              value: value ? '' # In Druid null == '' and null is illegal
+              value
             }
           ), this)
         }
@@ -145,14 +145,18 @@ class DruidQueryBuilder
 
       when 'within'
         [r0, r1] = filter.range
-        if typeof r0 is 'number' and typeof r1 is 'number'
-          {
-            type: 'javascript'
-            dimension: filter.attribute
-            function: "function(a){return a=~~a,#{r0}<=a&&a<#{r1};}"
-          }
-        else
+        if typeof r0 isnt 'number' or typeof r1 isnt 'number'
           throw new Error("apply within has to have a numeric range")
+        {
+          type: 'javascript'
+          dimension: filter.attribute
+          function: """
+            function(a) {
+              a = Number(a);
+              return #{r0} <= a && a < #{r1};
+            }
+            """
+        }
 
       when 'not'
         {
@@ -236,8 +240,7 @@ class DruidQueryBuilder
             function(x) {
               x = Number(x);
               if(isNaN(x)) return null;
-              x = #{floorExpresion};
-              return x;
+              return #{floorExpresion};
             }
             """
 

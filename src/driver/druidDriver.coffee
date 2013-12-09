@@ -34,6 +34,10 @@ emptySingletonDruidResult = (result) ->
 class DruidQueryBuilder
   @ALL_DATA_CHUNKS = 10000
 
+  @isHistogram = (attribute) ->
+    # A hacky way to determine that this is a histogram aggregated column (it ends with _hist)
+    return /_hist$/.test(attribute)
+
   constructor: ({@dataSource, @timeAttribute, @forceInterval, @approximate, @priority}) ->
     throw new Error("must have a dataSource") unless typeof @dataSource is 'string'
     throw new Error("must have a timeAttribute") unless typeof @timeAttribute is 'string'
@@ -47,10 +51,6 @@ class DruidQueryBuilder
     @nameIndex = 0
     @intervals = null
     @useCache = true
-
-  isHistogram: (attribute) ->
-    # A hacky way to determine that this is a histogram aggregated column (it ends with _hist)
-    return /_hist$/.test(attribute)
 
   addToContext: (context, attribute) ->
     return context[attribute] if context[attribute]
@@ -207,7 +207,7 @@ class DruidQueryBuilder
         }
 
       when 'continuous'
-        if @isHistogram(split.attribute)
+        if DruidQueryBuilder.isHistogram(split.attribute)
           throw new Error("approximate queries not allowed") unless @approximate
           #@queryType stays 'timeseries'
           #@granularity stays 'all'
@@ -291,7 +291,7 @@ class DruidQueryBuilder
         })
 
       when 'count', 'sum', 'min', 'max'
-        if @approximate and apply.aggregate in ['min', 'max'] and @isHistogram(apply.attribute)
+        if @approximate and apply.aggregate in ['min', 'max'] and DruidQueryBuilder.isHistogram(apply.attribute)
 
           histogramAggregationName = "_hist_" + apply.attribute
           aggregation = {
@@ -629,10 +629,11 @@ DruidQueryBuilder.queryFns = {
     return
 
   topN: ({requester, queryBuilder, filter, parentSegment, condensedCommand}, callback) ->
+    split = condensedCommand.getSplit()
     try
       queryBuilder
         .addFilter(filter)
-        .addSplit(condensedCommand.getSplit())
+        .addSplit(split)
         .addApplies(condensedCommand.applies)
         .addCombine(condensedCommand.getCombine())
 
@@ -657,7 +658,16 @@ DruidQueryBuilder.queryFns = {
         })
         return
 
-      callback(null, if emptySingletonDruidResult(ds) then [] else ds[0].result)
+      ds = if emptySingletonDruidResult(ds) then [] else ds[0].result
+
+      if split.bucket is 'continuous'
+        splitProp = split.name
+        splitSize = split.size
+        for d in ds
+          start = d[splitProp]
+          d[splitProp] = [start, start + splitSize]
+
+      callback(null, ds)
       return
     return
 
@@ -874,8 +884,9 @@ DruidQueryBuilder.queryFns = {
 
 DruidQueryBuilder.makeSingleQuery = ({parentSegment, filter, condensedCommand, builderSettings, requester}, callback) ->
   { timeAttribute, approximate } = builderSettings
-  if condensedCommand.split
-    switch condensedCommand.split.bucket
+  split = condensedCommand.getSplit()
+  if split
+    switch split.bucket
       when 'identity'
         if approximate
           if condensedCommand.getCombine().limit?
@@ -887,9 +898,12 @@ DruidQueryBuilder.makeSingleQuery = ({parentSegment, filter, condensedCommand, b
       when 'timePeriod'
         queryFnName = 'timeseries'
       when 'continuous'
-        queryFnName = 'histogram'
+        if DruidQueryBuilder.isHistogram(split.attribute)
+          queryFnName = 'histogram'
+        else
+          queryFnName = 'topN'
       when 'tuple'
-        if approximate and condensedCommand.split.splits.length is 2
+        if approximate and split.splits.length is 2
           queryFnName = 'heatmap'
         else
           queryFnName = 'groupBy'

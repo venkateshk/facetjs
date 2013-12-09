@@ -1164,7 +1164,6 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
   approximate ?= true
   concurrentQueryLimit or= 16
   queryLimit or= Infinity
-  filter ?= new TrueFilter()
   throw new TypeError("filter should be a FacetFilter") unless filter instanceof FacetFilter
 
   queriesMade = 0
@@ -1179,15 +1178,10 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
       callback(e)
       return
 
-    commonFilter = new AndFilter([filter, query.getFilter()]).simplify()
-    filtersByDataset = {}
-    for dataset in query.getDatasets()
-      filtersByDataset[dataset.name] = new AndFilter([commonFilter, dataset.getFilter()]).simplify()
-
     init = true
     rootSegment = {
       parent: null
-      _filtersByDataset: filtersByDataset
+      _filtersByDataset: query.getFiltersByDataset(filter)
     }
     segments = [rootSegment]
 

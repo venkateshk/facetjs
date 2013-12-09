@@ -314,7 +314,6 @@ module.exports = ({requester, timeAttribute, path, filter}) ->
   throw new Error("must have a requester") unless typeof requester is 'function'
   throw new Error("must have path") unless typeof path is 'string'
   timeAttribute or= 'time'
-  filter ?= new TrueFilter()
   throw new TypeError("filter should be a FacetFilter") unless filter instanceof FacetFilter
 
   return (request, callback) ->
@@ -327,17 +326,10 @@ module.exports = ({requester, timeAttribute, path, filter}) ->
       callback(e)
       return
 
-    commonFilter = new AndFilter([filter, query.getFilter()]).simplify()
-    datasetToPath = {}
-    filtersByDataset = {}
-    for dataset in query.getDatasets()
-      datasetToPath[dataset.name] = path or dataset.source
-      filtersByDataset[dataset.name] = new AndFilter([commonFilter, dataset.getFilter()]).simplify()
-
     init = true
     rootSegment = {
       parent: null
-      _filtersByDataset: filtersByDataset
+      _filtersByDataset: query.getFiltersByDataset(filter)
     }
     segments = [rootSegment]
 

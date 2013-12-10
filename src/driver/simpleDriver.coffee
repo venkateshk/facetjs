@@ -15,7 +15,7 @@ splitFns = {
     return (d) ->
       num = Number(d[attribute])
       return null if isNaN(num)
-      b = Math.floor((num + offset) / size) * size - offset
+      b = Math.floor((num - offset) / size) * size + offset
       return [b, b + size]
 
   timePeriod: ({attribute, period, timezone}) ->
@@ -153,7 +153,7 @@ computeQuery = (data, query) ->
   rootRaw = {}
 
   filtersByDataset = query.getFiltersByDataset()
-  for datasetName, filter of filtersByDataset
+  for datasetName, datasetFilter of filtersByDataset
     rootRaw[datasetName] = data.filter(datasetFilter.getFilterFn())
 
   rootSegment = {

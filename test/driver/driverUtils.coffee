@@ -137,7 +137,7 @@ describe "Utility", ->
         expect(table.data).to.deep.equal(data.diamond[2].tabular, "Data of the table is incorrect")
         expect(table.toTabular(',')).to.deep.equal(data.diamond[2].csv, "CSV of the table is incorrect")
 
-      it "Big Data", ->
+      it.skip "Big Data", ->
         query = data.diamond[1].query
         root = {
           prop: { Count: 200000 }

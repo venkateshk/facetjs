@@ -387,22 +387,22 @@ class ApplyBreaker
     @nameIndex++
     return "_B#{@nameIndex}_#{nameContext}"
 
-  addAggregateApply: (apply, nameContext) ->
-    if apply.name
-      @aggregates.push(apply)
-      return apply
-    else
-      for existingApply in @aggregates when existingApply.isEqual(apply)
-        return existingApply
+  makeAggregateApply: (apply, nameContext) ->
+    return apply if apply.name
 
-      apply = apply.addName(@getNextName(nameContext))
-      @aggregates.push(apply)
-      return apply
+    for existingApply in @aggregates when existingApply.isEqual(apply)
+      return existingApply
 
-  addArithmeticApply: (apply, nameContext) ->
+    return apply.addName(@getNextName(nameContext))
+
+  makeArithmeticApply: (apply, nameContext) ->
     needNewApply = false
     operands = apply.operands.map(((apply) ->
-      newApply = if apply.aggregate then @addAggregateApply(apply, nameContext) else @addArithmeticApply(apply, nameContext)
+      if apply.aggregate
+        newApply = @makeAggregateApply(apply, nameContext)
+        @aggregates.push(newApply)
+      else
+        newApply = @makeArithmeticApply(apply, nameContext)
       needNewApply = true if newApply isnt apply
       return newApply
     ), this)
@@ -415,7 +415,6 @@ class ApplyBreaker
         operands
       })
 
-    @arithmetics.push(apply)
     return apply
 
   addApplies: (applies) ->
@@ -432,12 +431,12 @@ class ApplyBreaker
         })
 
       if apply.aggregate
-        @addAggregateApply(apply, apply.name)
+        @aggregates.push(@makeAggregateApply(apply, apply.name))
       else
         arithmeticApplies.push(apply)
 
     for apply in arithmeticApplies
-      @addArithmeticApply(apply, apply.name)
+      @arithmetics.push(@makeArithmeticApply(apply, apply.name))
 
     return
 

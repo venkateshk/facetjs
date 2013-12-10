@@ -85,7 +85,7 @@ describe "Hadoop requester", ->
     }
   ]
 
-  it "does a query", (done) ->
+  it.skip "does a query", (done) ->
     prodHadoopRequester {
       context: {}
       query: testQuery

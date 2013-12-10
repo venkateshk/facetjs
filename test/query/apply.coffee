@@ -550,6 +550,84 @@ describe "FacetApply", ->
         }
       ])
 
+    it.only "works splits up a nested formula", ->
+      applySpecs = [
+        {
+          name: "K/D percent",
+          arithmetic: "multiply",
+          operands: [
+            {
+              arithmetic: "divide",
+              operands: [
+                {
+                  aggregate: "sum",
+                  attribute: "kills"
+                },
+                {
+                  aggregate: "sum",
+                  attribute: "death"
+                }
+              ]
+            },
+            {
+              aggregate: "constant",
+              value: 100
+            }
+          ]
+        }
+      ]
+
+      {
+        aggregates
+        arithmetics
+      } = FacetApply.breaker(applySpecs.map(FacetApply.fromSpec), true)
+
+      expect(aggregates.map((d) -> d.valueOf())).to.deep.equal([
+        {
+          name: "_B1_K/D percent",
+          aggregate: "sum",
+          attribute: "kills"
+        },
+        {
+          name: "_B2_K/D percent",
+          aggregate: "sum",
+          attribute: "death"
+        },
+        {
+          name: "_B3_K/D percent",
+          aggregate: "constant",
+          value: 100
+        }
+      ])
+      expect(arithmetics.map((d) -> d.valueOf())).to.deep.equal([
+        {
+          name: "K/D percent",
+          arithmetic: "multiply",
+          operands: [
+            {
+              arithmetic: "divide",
+              operands: [
+                {
+                  name: "_B1_K/D percent",
+                  aggregate: "sum",
+                  attribute: "kills"
+                },
+                {
+                  name: "_B2_K/D percent",
+                  aggregate: "sum",
+                  attribute: "death"
+                }
+              ]
+            },
+            {
+              name: "_B3_K/D percent",
+              aggregate: "constant",
+              value: 100
+            }
+          ]
+        }
+      ])
+
 
   describe "segregate", ->
     customPostProcessorScheme = {

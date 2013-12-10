@@ -44,7 +44,6 @@ describe "SQL driver", ->
             }
           })
           done()
-          return
 
     describe "should return null correctly on an empty split", ->
       query = new FacetQuery([

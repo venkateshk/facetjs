@@ -139,12 +139,12 @@ describe "Wikipedia day dataset", ->
       ]
     }
 
-  describe.skip "split page; combine page", ->  # The sorting here still does not match - ask FJ
+  describe "split language; combine page", ->
     it "should have the same results for different drivers", testEquality {
       drivers: ['druid', 'mySql']
       query: [
-        { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
-        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Page', direction: 'ascending' }, limit: 20 }
+        { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
+        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Language', direction: 'ascending' }, limit: 20 }
       ]
     }
 

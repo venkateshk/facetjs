@@ -9,7 +9,7 @@ hadoopDriver = require('../../build/hadoopDriver')
 
 verbose = false
 
-describe.skip "Hadoop driver", ->
+describe "Hadoop driver", ->
   @timeout(15 * 60 * 1000)
 
   describe "specific queries", ->
@@ -25,7 +25,7 @@ describe.skip "Hadoop driver", ->
       filters: null
     })
 
-    it "should work with sort-by-delta on derived apply", (done) ->
+    it.skip "should work with sort-by-delta on derived apply", (done) ->
       query = new FacetQuery([
         {
           operation: 'dataset'

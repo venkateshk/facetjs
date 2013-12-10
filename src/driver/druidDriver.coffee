@@ -247,7 +247,7 @@ class DruidQueryBuilder
           @queryType = 'groupBy'
           #@granularity stays 'all'
           @dimension = {
-            type: 'default'
+            type: 'extraction'
             dimension: split.attribute
             outputName: split.name
             dimExtractionFn: {
@@ -382,7 +382,7 @@ class DruidQueryBuilder
 
     return
 
-  arithmeticToPostAggregator: (apply) ->
+  arithmeticToPostAggregation: (apply) ->
     if apply.aggregate
       # This is a leaf node
       if apply.aggregate is 'constant'
@@ -402,27 +402,23 @@ class DruidQueryBuilder
     return {
       type: "arithmetic"
       fn: druidFn
-      fields: apply.operands.map(@arithmeticToPostAggregator, this)
+      fields: apply.operands.map(@arithmeticToPostAggregation, this)
     }
 
   addArithmeticApply: (apply) ->
-    postAggregator = @arithmeticToPostAggregator(apply)
-    postAggregator.name = apply.name
-    @addPostAggregation(postAggregator)
+    postAggregation = @arithmeticToPostAggregation(apply)
+    postAggregation.name = apply.name
+    @addPostAggregation(postAggregation)
     return
 
   addApplies: (applies) ->
     if applies.length is 0
       @addAggregateApply(new CountApply({ name: '_dummy' }))
-      return
+    else
+      { aggregates, arithmetics } = FacetApply.breaker(applies, true)
+      @addAggregateApply(apply) for apply in aggregates
+      @addArithmeticApply(apply) for apply in arithmetics
 
-    {
-      aggregates
-      arithmetics
-    } = FacetApply.breaker(applies, true)
-
-    @addAggregateApply(apply) for apply in aggregates
-    @addArithmeticApply(apply) for apply in arithmetics
     return this
 
   addCombine: (combine) ->
@@ -664,8 +660,11 @@ DruidQueryBuilder.queryFns = {
         splitProp = split.name
         splitSize = split.size
         for d in ds
-          start = d[splitProp]
-          d[splitProp] = [start, start + splitSize]
+          if d[splitProp] in [null, 'null']
+            d[splitProp] = null
+          else
+            start = Number(d[splitProp])
+            d[splitProp] = [start, start + splitSize]
 
       callback(null, ds)
       return

@@ -430,6 +430,10 @@ module.exports = ({requester, table, filter}) ->
       callback(e)
       return
 
+    datasetToTable = {}
+    for dataset in query.getDatasets()
+      datasetToTable[dataset.name] = table
+
     init = true
     rootSegment = {
       parent: null

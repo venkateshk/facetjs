@@ -325,6 +325,10 @@ module.exports = ({requester, timeAttribute, path, filter}) ->
       callback(e)
       return
 
+    datasetToPath = {}
+    for dataset in query.getDatasets()
+      datasetToPath[dataset.name] = dataset.source
+
     init = true
     rootSegment = {
       parent: null

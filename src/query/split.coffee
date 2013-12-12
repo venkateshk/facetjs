@@ -70,7 +70,7 @@ class IdentitySplit extends FacetSplit
     @_verifyAttribute()
 
   toString: ->
-    return @_addName("#{@bucket}(#{@attribute})")
+    return @_addName("#{@bucket}(`#{@attribute}`)")
 
   valueOf: ->
     split = super
@@ -101,7 +101,7 @@ class ContinuousSplit extends FacetSplit
     @_verifyAttribute()
 
   toString: ->
-    return @_addName("#{@bucket}(#{@attribute}, #{@size}, #{@offset})")
+    return @_addName("#{@bucket}(`#{@attribute}`, #{@size}, #{@offset})")
 
   valueOf: ->
     split = super
@@ -137,7 +137,7 @@ class TimePeriodSplit extends FacetSplit
     @_verifyAttribute()
 
   toString: ->
-    return @_addName("#{@bucket}(#{@attribute}, #{@period}, #{@timezone})")
+    return @_addName("#{@bucket}(`#{@attribute}`, #{@period}, #{@timezone})")
 
   valueOf: ->
     split = super

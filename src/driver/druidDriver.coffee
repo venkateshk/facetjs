@@ -660,7 +660,7 @@ DruidQueryBuilder.queryFns = {
         splitProp = split.name
         splitSize = split.size
         for d in ds
-          if d[splitProp] in [null, 'null']
+          if d[splitProp] in [null, 'null'] # ToDo: remove 'null' when druid is fixed
             d[splitProp] = null
           else
             start = Number(d[splitProp])

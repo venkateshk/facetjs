@@ -152,7 +152,7 @@ class SumApply extends FacetApply
     @_verifyAttribute()
 
   toString: ->
-    return @_addNameToString("#{@aggregate}(#{@attribute})")
+    return @_addNameToString("#{@aggregate}(`#{@attribute}`)")
 
   valueOf: ->
     apply = super
@@ -176,7 +176,7 @@ class AverageApply extends FacetApply
     @_verifyAttribute()
 
   toString: ->
-    return @_addNameToString("#{@aggregate}(#{@attribute})")
+    return @_addNameToString("#{@aggregate}(`#{@attribute}`)")
 
   valueOf: ->
     apply = super
@@ -197,7 +197,7 @@ class MinApply extends FacetApply
     @_verifyAttribute()
 
   toString: ->
-    return @_addNameToString("#{@aggregate}(#{@attribute})")
+    return @_addNameToString("#{@aggregate}(`#{@attribute}`)")
 
   valueOf: ->
     apply = super
@@ -218,7 +218,7 @@ class MaxApply extends FacetApply
     @_verifyAttribute()
 
   toString: ->
-    return @_addNameToString("#{@aggregate}(#{@attribute})")
+    return @_addNameToString("#{@aggregate}(`#{@attribute}`)")
 
   valueOf: ->
     apply = super
@@ -239,7 +239,7 @@ class UniqueCountApply extends FacetApply
     @_verifyAttribute()
 
   toString: ->
-    return @_addNameToString("#{@aggregate}(#{@attribute})")
+    return @_addNameToString("#{@aggregate}(`#{@attribute}`)")
 
   valueOf: ->
     apply = super
@@ -388,19 +388,22 @@ class ApplyBreaker
     return "_B#{@nameIndex}_#{nameContext}"
 
   makeAggregateApply: (apply, nameContext) ->
-    return apply if apply.name
+    if apply.name
+      @aggregates.push(apply)
+      return apply
 
     for existingApply in @aggregates when existingApply.isEqual(apply)
       return existingApply
 
-    return apply.addName(@getNextName(nameContext))
+    apply = apply.addName(@getNextName(nameContext))
+    @aggregates.push(apply)
+    return apply
 
   makeArithmeticApply: (apply, nameContext) ->
     needNewApply = false
     operands = apply.operands.map(((apply) ->
       if apply.aggregate
         newApply = @makeAggregateApply(apply, nameContext)
-        @aggregates.push(newApply)
       else
         newApply = @makeArithmeticApply(apply, nameContext)
       needNewApply = true if newApply isnt apply
@@ -431,7 +434,7 @@ class ApplyBreaker
         })
 
       if apply.aggregate
-        @aggregates.push(@makeAggregateApply(apply, apply.name))
+        @makeAggregateApply(apply, apply.name)
       else
         arithmeticApplies.push(apply)
 

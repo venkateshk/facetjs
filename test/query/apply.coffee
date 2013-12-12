@@ -241,7 +241,7 @@ describe "FacetApply", ->
           }
         ]
       }
-      expect(FacetApply.fromSpec(applySpec).toString()).to.equal("lag <- (sum(value) / sum(count)) / 3600")
+      expect(FacetApply.fromSpec(applySpec).toString()).to.equal("lag <- (sum(`value`) / sum(`count`)) / 3600")
 
     it "complex multiply", ->
       applySpec = {
@@ -267,7 +267,7 @@ describe "FacetApply", ->
           }
         ]
       }
-      expect(FacetApply.fromSpec(applySpec).toString()).to.equal("lag <- sum(value) * sum(count) * 3600")
+      expect(FacetApply.fromSpec(applySpec).toString()).to.equal("lag <- sum(`value`) * sum(`count`) * 3600")
 
   describe "isEqual", ->
     it "returns false for other types", ->
@@ -550,7 +550,7 @@ describe "FacetApply", ->
         }
       ])
 
-    it.only "works splits up a nested formula", ->
+    it "works splits up a nested formula", ->
       applySpecs = [
         {
           name: "K/D percent",

@@ -187,7 +187,7 @@ computeQuery = (data, query) ->
           buckets = {}
           for d in segment._raws[dataset]
             key = parallelSplitFn(d)
-            throw new Error("bucket returned undefined") unless key? # ToDo: handle nulls
+            #throw new Error("bucket returned undefined") unless key? # ToDo: handle nulls
             keyString = String(key)
 
             if not bucketValue.hasOwnProperty(keyString)

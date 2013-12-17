@@ -1,6 +1,3 @@
-`(typeof window === 'undefined' ? {} : window)['driverUtil'] = (function(module, require){"use strict"; var exports = module.exports`
-# -----------------------------------------------------
-
 # Flatten an array of array in to a single array
 # flatten([[1,3], [3,6,7]]) => [1,3,3,6,7]
 exports.flatten = flatten = (ar) ->
@@ -33,6 +30,24 @@ exports.inPlaceFilter = (array, fn) ->
     else
       array.splice(i, 1)
   return
+
+
+exports.attributesFromApplies = (applies) ->
+  seenAttribute = {}
+
+  extractAttribute = (apply) ->
+    if apply.attribute
+      seenAttribute[apply.attribute] = true
+    else
+      apply.operands.forEach(extractAttribute)
+    return
+
+  applies.forEach(extractAttribute)
+  attributes = []
+  for attribute, v of seenAttribute
+    attributes.push(attribute)
+
+  return attributes
 
 
 # Converts dates to intervals
@@ -273,14 +288,3 @@ exports.parentify = parentify = (root, parent = null) ->
     for split in root.splits
       parentify(split, root)
   return root
-
-# -----------------------------------------------------
-# Handle commonJS crap
-`return module.exports; }).call(this,
-  (typeof module === 'undefined' ? {exports: {}} : module),
-  (typeof require === 'undefined' ? function (modulePath, altPath) {
-    if (altPath) return window[altPath];
-    var moduleParts = modulePath.split('/');
-    return window[moduleParts[moduleParts.length - 1]];
-  } : require)
-)`

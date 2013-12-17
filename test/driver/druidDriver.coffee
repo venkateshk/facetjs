@@ -2,10 +2,10 @@ chai = require("chai")
 expect = chai.expect
 utils = require('../utils')
 
-{FacetQuery, FacetFilter} = require('../../build/query')
+{FacetQuery, FacetFilter} = require('../../src/query')
 
-druidRequester = require('../../build/druidRequester')
-druidDriver = require('../../build/druidDriver')
+druidRequester = require('../../src/requester/druidRequester')
+druidDriver = require('../../src/driver/druidDriver')
 
 verbose = false
 

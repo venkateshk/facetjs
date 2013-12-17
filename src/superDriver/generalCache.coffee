@@ -1,18 +1,7 @@
-`(typeof window === 'undefined' ? {} : window)['generalCache'] = (function(module, require){"use strict"; var exports = module.exports`
-
 # -----------------------------------------------------
-driverUtil = require('./driverUtil')
-{ Duration } = require('./chronology')
-{
-  FacetQuery
-  AndFilter
-  TrueFilter
-  FacetFilter
-  FacetSplit
-  FacetApply
-  FacetCombine
-  SliceCombine
-} = require('./query')
+driverUtil = require('../driver/driverUtil')
+{ Duration } = require('../driver/chronology')
+{ FacetQuery, AndFilter, TrueFilter, FacetFilter, FacetSplit, FacetApply, FacetCombine } = require('../query')
 
 
 class LRUCache
@@ -463,16 +452,3 @@ module.exports = ({driver}) ->
     return
 
   return cachedDriver
-
-
-
-# -----------------------------------------------------
-# Handle commonJS crap
-`return module.exports; }).call(this,
-  (typeof module === 'undefined' ? {exports: {}} : module),
-  (typeof require === 'undefined' ? function (modulePath, altPath) {
-    if (altPath) return window[altPath];
-    var moduleParts = modulePath.split('/');
-    return window[moduleParts[moduleParts.length - 1]];
-  } : require)
-)`

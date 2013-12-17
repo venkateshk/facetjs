@@ -1,11 +1,11 @@
 { expect } = require("chai")
 
-WallTime = require('walltime-js')
+WallTime = require('../../lib/walltime')
 if not WallTime.rules
-  tzData = require("../../node_modules/walltime-js/client/walltime-data.js")
+  tzData = require("../../lib/walltime-data.js")
   WallTime.init(tzData.rules, tzData.zones)
 
-chronology = require('../../build/chronology')
+chronology = require('../../src/driver/chronology')
 { Duration } = chronology
 
 describe "chronology", ->

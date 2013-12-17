@@ -1,8 +1,5 @@
-`(typeof window === 'undefined' ? {} : window)['nestedCache'] = (function(module, require){"use strict"; var exports = module.exports`
-
-# -----------------------------------------------------
-driverUtil = require('./driverUtil')
-{ FacetQuery, FacetFilter, AndFilter, FacetSplit, FacetCombine } = require('./query')
+driverUtil = require('../driver/driverUtil')
+{ FacetQuery, FacetFilter, AndFilter, FacetSplit, FacetCombine } = require('../query')
 
 find = (list, fn) ->
   for d in list
@@ -325,15 +322,3 @@ module.exports = ({transport, onData}) ->
     queryChain.push(query)
     makeStep()
     return
-
-
-# -----------------------------------------------------
-# Handle commonJS crap
-`return module.exports; }).call(this,
-  (typeof module === 'undefined' ? {exports: {}} : module),
-  (typeof require === 'undefined' ? function (modulePath, altPath) {
-    if (altPath) return window[altPath];
-    var moduleParts = modulePath.split('/');
-    return window[moduleParts[moduleParts.length - 1]];
-  } : require)
-)`

@@ -1,19 +1,13 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <link rel="stylesheet" type="text/css" href="facet.css">
-    <script src="lib/underscore.js"></script>
+    <link rel="stylesheet" type="text/css" href="style/facet.css">
+
     <script src="lib/async.js"></script>
     <script src="lib/d3.v3.js"></script>
     <script src="lib/jquery-1.9.1.js"></script>
-    <script src="lib/date.js"></script>
-    <script src="lib/timezoneinfo.js"></script>
-    <script src="query.js"></script>
-    <script src="facet.js"></script>
-    <script src="driverUtil.js"></script>
-    <script src="simpleDriver.js"></script>
-    <script src="sqlDriver.js"></script>
-    <script src="druidDriver.js"></script>
+
+    <script src="package/facet.js"></script>
 
     <title>Facet Examples (0.4.3)</title>
 
@@ -54,7 +48,7 @@
       //   "z": "2.43"
       // },
 
-      var simpleDriverNode = facet.ajaxPoster({
+      var simpleDriverNode = facet.driver.proxy.ajax({
         url: '/driver/simple',
         context: { data: 'diamonds' },
         prety: true

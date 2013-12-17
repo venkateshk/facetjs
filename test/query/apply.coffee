@@ -1,7 +1,7 @@
 chai = require("chai")
 expect = chai.expect
 
-{FacetApply} = require('../../build/query')
+{FacetApply} = require('../../src/query')
 
 describe "FacetApply", ->
   describe "error", ->

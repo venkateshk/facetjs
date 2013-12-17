@@ -1,3 +1,5 @@
+{specialJoin, getValueOf, isTimezone, find, dummyObject} = require('./common')
+
 getPropFromSegment = (segment, prop) ->
   return null unless segment and segment.prop
   return segment.prop[prop] or getPropFromSegment(segment.parent, prop)

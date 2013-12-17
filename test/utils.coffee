@@ -2,7 +2,7 @@ async = require('async')
 chai = require("chai")
 expect = chai.expect
 
-{FacetQuery} = require('../build/query')
+{FacetQuery} = require('../src/query')
 
 uniformizeResults = (result) ->
   if not result?.prop

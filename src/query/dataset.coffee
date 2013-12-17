@@ -1,3 +1,6 @@
+{specialJoin, getValueOf, isTimezone, find, dummyObject} = require('./common')
+{FacetFilter, TrueFilter} = require('./filter')
+
 class FacetDataset
   constructor: ({@name, @source, filter}) ->
     throw new TypeError("dataset name must be a string") unless typeof @name is 'string'

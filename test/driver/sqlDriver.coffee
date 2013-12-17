@@ -2,10 +2,10 @@ chai = require("chai")
 expect = chai.expect
 utils = require('../utils')
 
-{FacetQuery, FacetFilter} = require('../../build/query')
+{FacetQuery, FacetFilter} = require('../../src/query')
 
-sqlRequester = require('../../build/mySqlRequester')
-sqlDriver = require('../../build/sqlDriver')
+sqlRequester = require('../../src/requester/mySqlRequester')
+sqlDriver = require('../../src/driver/sqlDriver')
 
 verbose = false
 

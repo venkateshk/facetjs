@@ -1,3 +1,16 @@
+{specialJoin, getValueOf, isTimezone, find, dummyObject} = require('./common')
+
+smaller = (a, b) -> if a < b then a else b
+
+larger  = (a, b) -> if a < b then b else a
+
+rangesIntersect = (range1, range2) ->
+  if range2[1] < range1[0] or range2[0] > range1[1]
+    return false
+  else
+    return range1[0] <= range2[1] and range2[0] <= range1[1]
+
+
 union = (sets...) ->
   ret = []
   seen = {}

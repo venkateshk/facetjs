@@ -2,14 +2,14 @@ chai = require("chai")
 expect = chai.expect
 utils = require('../utils')
 
-druidRequester = require('../../build/druidRequester')
-sqlRequester = require('../../build/mySqlRequester')
+druidRequester = require('../../src/requester/druidRequester')
+sqlRequester = require('../../src/requester/mySqlRequester')
 hadoopRequester = require('../mocks/hadoopRequester')
 
-simpleDriver = require('../../build/simpleDriver')
-sqlDriver = require('../../build/sqlDriver')
-druidDriver = require('../../build/druidDriver')
-hadoopDriver = require('../../build/hadoopDriver')
+simpleDriver = require('../../src/driver/simpleDriver')
+sqlDriver = require('../../src/driver/sqlDriver')
+druidDriver = require('../../src/driver/druidDriver')
+hadoopDriver = require('../../src/driver/hadoopDriver')
 
 # Set up drivers
 driverFns = {}

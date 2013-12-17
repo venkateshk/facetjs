@@ -2,7 +2,7 @@ chai = require("chai")
 expect = chai.expect
 utils = require('../utils')
 
-hadoopRequester = require('../../build/hadoopRequester')
+hadoopRequester = require('../../src/requester/hadoopRequester')
 
 prodHadoopRequester = hadoopRequester({
   host: '10.151.42.82'

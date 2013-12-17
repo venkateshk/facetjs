@@ -3,15 +3,15 @@ utils = require('../utils')
 
 WallTime = require('walltime-js')
 if not WallTime.rules
-  tzData = require("../../node_modules/walltime-js/client/walltime-data.js")
+  tzData = require("../../lib/walltime-data.js")
   WallTime.init(tzData.rules, tzData.zones)
 
-sqlRequester = require('../../build/mySqlRequester')
-sqlDriver = require('../../build/sqlDriver')
-simpleDriver = require('../../build/simpleDriver')
-generalCache = require('../../build/generalCache')
+sqlRequester = require('../../src/requester/mySqlRequester')
+sqlDriver = require('../../src/driver/sqlDriver')
+simpleDriver = require('../../src/driver/simpleDriver')
+generalCache = require('../../src/superDriver/generalCache')
 
-{FacetQuery} = require('../../build/query')
+{FacetQuery} = require('../../src/query')
 
 # Set up drivers
 driverFns = {}

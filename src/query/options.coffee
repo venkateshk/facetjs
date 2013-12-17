@@ -1,3 +1,5 @@
+{specialJoin, getValueOf, isTimezone, find, dummyObject} = require('./common')
+
 class FacetOptions
   constructor: (options) ->
     for own k, v of options
@@ -21,3 +23,5 @@ class FacetOptions
   isEqual: (other) ->
     return Boolean(other) and @toString() is other.toString()
 
+
+exports.FacetOptions = FacetOptions

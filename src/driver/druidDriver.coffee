@@ -1,5 +1,3 @@
-`(typeof window === 'undefined' ? {} : window)['druidDriver'] = (function(module, require){"use strict"; var exports = module.exports`
-
 async = require('async')
 { Duration } = require('./chronology')
 driverUtil = require('./driverUtil')
@@ -7,7 +5,7 @@ driverUtil = require('./driverUtil')
   FacetQuery, CondensedCommand
   FacetFilter, TrueFilter, InFilter, AndFilter
   FacetSplit, FacetApply, CountApply, FacetCombine, SliceCombine
-} = require('./query')
+} = require('../query')
 
 # -----------------------------------------------------
 
@@ -1293,14 +1291,3 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
     return
 
 module.exports.DruidQueryBuilder = DruidQueryBuilder
-
-# -----------------------------------------------------
-# Handle commonJS crap
-`return module.exports; }).call(this,
-  (typeof module === 'undefined' ? {exports: {}} : module),
-  (typeof require === 'undefined' ? function (modulePath, altPath) {
-    if (altPath) return window[altPath];
-    var moduleParts = modulePath.split('/');
-    return window[moduleParts[moduleParts.length - 1]];
-  } : require)
-)`

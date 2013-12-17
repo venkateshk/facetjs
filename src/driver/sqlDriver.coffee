@@ -1,9 +1,7 @@
-`(typeof window === 'undefined' ? {} : window)['sqlDriver'] = (function(module, require){"use strict"; var exports = module.exports`
-
 async = require('async')
 {Duration} = require('./chronology')
 driverUtil = require('./driverUtil')
-{FacetFilter, TrueFilter, FacetSplit, FacetApply, FacetCombine, FacetQuery, AndFilter} = require('./query')
+{FacetFilter, TrueFilter, FacetSplit, FacetApply, FacetCombine, FacetQuery, AndFilter} = require('../query')
 
 # -----------------------------------------------------
 
@@ -512,15 +510,3 @@ module.exports = ({requester, table, filter}) ->
         callback(null, driverUtil.cleanSegments(rootSegment or {}))
         return
     )
-
-
-# -----------------------------------------------------
-# Handle commonJS crap
-`return module.exports; }).call(this,
-  (typeof module === 'undefined' ? {exports: {}} : module),
-  (typeof require === 'undefined' ? function (modulePath, altPath) {
-    if (altPath) return window[altPath];
-    var moduleParts = modulePath.split('/');
-    return window[moduleParts[moduleParts.length - 1]];
-  } : require)
-)`

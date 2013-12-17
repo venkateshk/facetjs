@@ -2,10 +2,10 @@ chai = require("chai")
 expect = chai.expect
 utils = require('../utils')
 
-simpleDriver = require('../../build/simpleDriver')
-nestedCache = require('../../build/nestedCache')
+simpleDriver = require('../../src/driver/simpleDriver')
+nestedCache = require('../../src/superDriver/nestedCache')
 
-{FacetQuery} = require('../../build/query')
+{FacetQuery} = require('../../src/query')
 
 wikipediaData = require('../../data/wikipedia.js')
 

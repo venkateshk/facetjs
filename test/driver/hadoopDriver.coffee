@@ -2,10 +2,10 @@ chai = require("chai")
 expect = chai.expect
 utils = require('../utils')
 
-{FacetQuery, FacetFilter} = require('../../build/query')
+{FacetQuery, FacetFilter} = require('../../src/query')
 
-hadoopRequester = require('../../build/hadoopRequester')
-hadoopDriver = require('../../build/hadoopDriver')
+hadoopRequester = require('../../src/requester/hadoopRequester')
+hadoopDriver = require('../../src/driver/hadoopDriver')
 
 verbose = false
 

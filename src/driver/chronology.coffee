@@ -1,6 +1,4 @@
-`(typeof window === 'undefined' ? {} : window)['chronology'] = (function(module, require){"use strict"; var exports = module.exports`
-
-WallTime = require('walltime-js', "WallTime")
+WallTime = require('../../lib/walltime.js')
 
 exports.isTimezone = isTimezone = (tz) ->
   return typeof tz is 'string' and tz.indexOf('/') isnt -1
@@ -279,14 +277,3 @@ class Duration
     return length
 
 exports.Duration = Duration
-
-# ---------------------------------------------------------
-
-`return module.exports; }).call(this,
-  (typeof module === 'undefined' ? {exports: {}} : module),
-  (typeof require === 'undefined' ? function (modulePath, altPath) {
-    if (altPath) return window[altPath];
-    var moduleParts = modulePath.split('/');
-    return window[moduleParts[moduleParts.length - 1]];
-  } : require)
-)`

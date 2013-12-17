@@ -2,12 +2,12 @@ express = require('express')
 
 {FacetQuery} = require('./query')
 
-druidRequester = require('./druidRequester')
-sqlRequester = require('./mySqlRequester')
+druidRequester = require('./requester/druidRequester')
+sqlRequester = require('./requester/mySqlRequester')
 
-simpleDriver = require('./simpleDriver')
-druidDriver = require('./druidDriver')
-sqlDriver = require('./sqlDriver')
+simpleDriver = require('./driver/simpleDriver')
+druidDriver = require('./driver/druidDriver')
+sqlDriver = require('./driver/sqlDriver')
 
 data = {}
 data.diamonds = require('../data/diamonds.js')
@@ -23,6 +23,7 @@ app.use(express.json())
 app.use(express.directory(__dirname + '/../static'))
 app.use(express.static(__dirname + '/../static'))
 app.use(express.static(__dirname + '/../build'))
+app.use(express.static(__dirname + '/../data'))
 
 app.get '/', (req, res) ->
   res.send('Welcome to facet')

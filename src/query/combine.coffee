@@ -1,3 +1,5 @@
+{specialJoin, getValueOf, isTimezone, find, dummyObject} = require('./common')
+{FacetSort} = require('./sort')
 
 class FacetCombine
   constructor: ->

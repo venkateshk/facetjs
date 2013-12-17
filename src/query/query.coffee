@@ -1,5 +1,11 @@
-# Group the queries steps in to the logical queries that will need to be done
+{specialJoin, getValueOf, isTimezone, find, dummyObject} = require('./common')
+{FacetDataset} = require('./dataset')
+{FacetFilter, TrueFilter, AndFilter} = require('./filter')
+{FacetSplit, ParallelSplit} = require('./split')
+{FacetApply} = require('./apply')
+{FacetCombine, SliceCombine} = require('./combine')
 
+# Group the queries steps in to the logical queries that will need to be done
 addSplitName = (split, name) ->
   splitSpec = split.valueOf()
   splitSpec.name = name

@@ -1,19 +1,13 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <link rel="stylesheet" type="text/css" href="facet.css">
-    <script src="lib/underscore.js"></script>
+    <link rel="stylesheet" type="text/css" href="style/facet.css">
+
     <script src="lib/async.js"></script>
     <script src="lib/d3.v3.js"></script>
     <script src="lib/jquery-1.9.1.js"></script>
-    <script src="lib/date.js"></script>
-    <script src="lib/timezoneinfo.js"></script>
-    <script src="query.js"></script>
-    <script src="facet.js"></script>
-    <script src="driverUtil.js"></script>
-    <script src="simpleDriver.js"></script>
-    <script src="sqlDriver.js"></script>
-    <script src="druidDriver.js"></script>
+
+    <script src="package/facet.js"></script>
 
     <title>Facet Examples (0.4.3)</title>
 
@@ -48,12 +42,12 @@
       // metrics
       // ["count","added","variation","delta","delta_hist","unique_users","deleted"]}
 
-      var druidRequester = facet.ajaxPoster({
+      var druidRequester = facet.driver.proxy.ajax({
         url: '/pass/druid',
         prety: true
       });
 
-      var druidDriverClient = druidDriver({
+      var druidDriverClient = facet.driver.druid({
         requester: druidRequester,
         dataSource: "wikipedia_editstream",
         filter: FacetFilter.fromSpec({
@@ -83,7 +77,7 @@
         return dates.start.toISOString().replace('T00:00:00.000Z', '');
       }
 
-      var vis = facet.define('.example', 800, 600, facet.verboseDriver(druidDriverClient))
+      var vis = facet.define('.example', 800, 600, facet.driver.proxy.verbose(druidDriverClient))
         .transform(transform.rectangle.rectangle({left: 30, right: 10, top: 10, bottom: 10}))
         .scale('horiz', scale.linear())
         .scale('vert', scale.linear())

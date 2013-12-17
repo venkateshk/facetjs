@@ -1,9 +1,7 @@
-`(typeof window === 'undefined' ? {} : window)['simpleDriver'] = (function(module, require){"use strict"; var exports = module.exports`
-
 async = require('async')
 { Duration } = require('./chronology')
 driverUtil = require('./driverUtil')
-{FacetFilter, FacetSplit, FacetApply, FacetCombine, FacetQuery} = require('./query')
+{FacetFilter, FacetSplit, FacetApply, FacetCombine, FacetQuery} = require('../query')
 
 # -----------------------------------------------------
 
@@ -229,26 +227,50 @@ computeQuery = (data, query) ->
   return driverUtil.cleanSegments(originalSegmentGroups[0][0] or {})
 
 
-module.exports = (data) -> (request, callback) ->
-  try
-    throw new Error("request not supplied") unless request
-    {context, query} = request
-    throw new Error("query not supplied") unless query
-    throw new TypeError("query must be a FacetQuery") unless query instanceof FacetQuery
-    result = computeQuery(data, query)
-  catch e
-    callback({ message: e.message, stack: e.stack }); return
+module.exports = (dataGetter) ->
+  dataError = null
+  dataArray = null
 
-  callback(null, result)
-  return
+  if Array.isArray(dataGetter)
+    dataArray = dataGetter
+  else if typeof dataGetter is 'function'
+    waitingQueries = []
+    dataGetter (err, data) ->
+      dataError = err
+      dataArray = data
+      waitingQuery() for waitingQuery in waitingQueries
+      waitingQueries = null
+      return
+  else
+    throw new TypeError("dataGetter must be a function or raw data (array)")
 
-# -----------------------------------------------------
-# Handle commonJS crap
-`return module.exports; }).call(this,
-  (typeof module === 'undefined' ? {exports: {}} : module),
-  (typeof require === 'undefined' ? function (modulePath, altPath) {
-    if (altPath) return window[altPath];
-    var moduleParts = modulePath.split('/');
-    return window[moduleParts[moduleParts.length - 1]];
-  } : require)
-)`
+  return (request, callback) ->
+    try
+      throw new Error("request not supplied") unless request
+      {context, query} = request
+      throw new Error("query not supplied") unless query
+      throw new TypeError("query must be a FacetQuery") unless query instanceof FacetQuery
+    catch e
+      callback(e)
+      return
+
+    computeWithData = ->
+      if dataError
+        callback(dataError)
+        return
+
+      try
+        result = computeQuery(dataArray, query)
+      catch e
+        callback(e)
+        return
+
+      callback(null, result)
+      return
+
+    if waitingQueries
+      waitingQueries.push(computeWithData)
+    else
+      computeWithData()
+
+    return

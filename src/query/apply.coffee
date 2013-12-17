@@ -1,3 +1,6 @@
+{specialJoin, getValueOf, isTimezone, find, dummyObject} = require('./common')
+{FacetFilter} = require('./filter')
+{FacetOptions} = require('./options')
 
 class FacetApply
   constructor: ({dataset}, @datasetContext, dummy) ->

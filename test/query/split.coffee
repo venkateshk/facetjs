@@ -1,7 +1,7 @@
 chai = require("chai")
 expect = chai.expect
 
-{FacetSplit} = require('../../build/query')
+{FacetSplit} = require('../../src/query')
 
 describe "FacetSplit", ->
   describe "error", ->

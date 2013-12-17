@@ -2,8 +2,8 @@ chai = require("chai")
 expect = chai.expect
 utils = require('../utils')
 
-simpleDriver = require('../../build/simpleDriver')
-{ FacetQuery } = require('../../build/query')
+simpleDriver = require('../../src/driver/simpleDriver')
+{ FacetQuery } = require('../../src/query')
 
 diamondsData = require('../../data/diamonds.js')
 diamondsDriver = simpleDriver(diamondsData)

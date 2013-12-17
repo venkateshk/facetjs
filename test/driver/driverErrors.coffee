@@ -2,14 +2,14 @@ chai = require("chai")
 expect = chai.expect
 utils = require('../utils')
 
-{FacetFilter} = require('../../build/query')
+{FacetFilter} = require('../../src/query')
 
-druidRequester = require('../../build/druidRequester')
-sqlRequester = require('../../build/mySqlRequester')
+druidRequester = require('../../src/requester/druidRequester')
+sqlRequester = require('../../src/requester/mySqlRequester')
 
-simpleDriver = require('../../build/simpleDriver')
-sqlDriver = require('../../build/sqlDriver')
-druidDriver = require('../../build/druidDriver')
+simpleDriver = require('../../src/driver/simpleDriver')
+sqlDriver = require('../../src/driver/sqlDriver')
+druidDriver = require('../../src/driver/druidDriver')
 
 # Set up drivers
 driverFns = {}

@@ -244,6 +244,9 @@ class FacetQuery
     splits.shift()
     return splits
 
+  getCombines: ->
+    combines = @condensedCommands.map(({combine}) -> combine)
+    return combines
 
 # Export!
 exports.CondensedCommand = CondensedCommand

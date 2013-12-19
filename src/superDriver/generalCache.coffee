@@ -3,7 +3,16 @@
 # -----------------------------------------------------
 driverUtil = require('./driverUtil')
 { Duration } = require('./chronology')
-{ FacetQuery, AndFilter, TrueFilter, FacetFilter, FacetSplit, FacetApply, FacetCombine } = require('./query')
+{
+  FacetQuery
+  AndFilter
+  TrueFilter
+  FacetFilter
+  FacetSplit
+  FacetApply
+  FacetCombine
+  SliceCombine
+} = require('./query')
 
 
 class LRUCache
@@ -416,14 +425,12 @@ module.exports = ({driver}) ->
       callback(new Error("query must be a FacetQuery"))
       return
 
-    # Skip if:
-    # - tuple split
-    # - non slice combine
-
-    result = getQueryDataFromCache(query)
-    if result
-      callback(null, result)
-      return
+    if query.getSplits().every((split) -> split.bucket isnt 'tuple') and
+      query.getCombines().every((combine) -> (not combine?) or (combine instanceof SliceCombine))
+        result = getQueryDataFromCache(query)
+        if result
+          callback(null, result)
+          return
 
     driver request, (err, result) ->
       if err

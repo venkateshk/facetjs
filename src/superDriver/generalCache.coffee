@@ -425,21 +425,31 @@ module.exports = ({driver}) ->
       callback(new Error("query must be a FacetQuery"))
       return
 
-    if query.getSplits().every((split) -> split.bucket isnt 'tuple') and
+    useCache = query.getSplits().every((split) -> split.bucket isnt 'tuple') and
       query.getCombines().every((combine) -> (not combine?) or (combine instanceof SliceCombine))
-        result = getQueryDataFromCache(query)
-        if result
-          callback(null, result)
-          return
 
-    driver request, (err, result) ->
-      if err
-        callback(err)
+    if useCache
+      result = getQueryDataFromCache(query)
+      if result
+        callback(null, result)
         return
 
-      saveQueryDataToCache(result, query)
-      callback(null, result)
-      return
+      driver request, (err, result) ->
+        if err
+          callback(err)
+          return
+
+        saveQueryDataToCache(result, query)
+        callback(null, result)
+        return
+    else
+      driver request, (err, result) ->
+        if err
+          callback(err)
+          return
+
+        callback(null, result)
+        return
 
     return
 

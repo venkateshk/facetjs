@@ -40,3 +40,17 @@ coffee --compile --bare --output build --join build/query.js \
   src/query/combine.coffee \
   src/query/query.coffee \
   src/query/_end.coffee
+
+cat src/query/_start.coffee \
+  src/query/common.coffee \
+  src/query/options.coffee \
+  src/query/filter.coffee \
+  src/query/segmentFilter.coffee \
+  src/query/dataset.coffee \
+  src/query/split.coffee \
+  src/query/apply.coffee \
+  src/query/sort.coffee \
+  src/query/combine.coffee \
+  src/query/query.coffee \
+  src/query/_end.coffee >> build/query.coffee
+

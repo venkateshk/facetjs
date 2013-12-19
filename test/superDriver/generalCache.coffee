@@ -88,7 +88,6 @@ describe "General cache", ->
       ]
     }
 
-
   describe "No split (multi-dataset)", ->
     setUpQuery = [
       {
@@ -1883,3 +1882,19 @@ describe "General cache", ->
           expect(err).to.be.null
           expect(JSON.parse(JSON.stringify(result))).to.deep.equal(dayLightSavingsData)
           done()
+
+  describe "Matrix Cache", ->
+    it "returns the right value", (done) ->
+      driverFns.wikipediaCached({
+        query: new FacetQuery([
+          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0)), new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))] },
+          { "bucket": "tuple", "splits": [ { "bucket": "identity", "name": "user", "attribute": "user" }, { "bucket": "identity", "name": "language", "attribute": "language" } ], "operation": "split" },
+          { "name": "count", "aggregate": "sum", "attribute": "count", "operation": "apply" },
+          { "method": "matrix", "sort": { "compare": "natural", "prop": "count", "direction": "descending" }, "limits": [ 20, 20 ], "operation": "combine" }
+        ] )
+      }, (err, result) ->
+        expect(err).to.exist
+        expect(err).to.have.property('message').that.equals('matrix combine not implemented yet')
+        done()
+      )
+

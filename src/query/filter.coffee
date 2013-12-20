@@ -454,7 +454,7 @@ class AndFilter extends FacetFilter
     return filter2 if filter1SortType is 'true'
     return filter1 if filter2SortType is 'true'
 
-    return unless filter1.attribute is filter2.attribute
+    return unless filter1.attribute? and (filter1.attribute is filter2.attribute)
     attribute = filter1.attribute
 
     return filter1 if filter1.isEqual(filter2)
@@ -596,7 +596,7 @@ class OrFilter extends FacetFilter
     return filter2 if filter1SortType is 'false'
     return filter1 if filter2SortType is 'false'
 
-    return unless filter1.attribute is filter2.attribute
+    return unless filter1.attribute? and (filter1.attribute is filter2.attribute)
     attribute = filter1.attribute
 
     return filter1 if filter1.isEqual(filter2)

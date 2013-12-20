@@ -982,6 +982,49 @@ describe "FacetFilter", ->
         type: 'false'
       })
 
+    it "stops merging successfully for complicated filters", ->
+      expect(FacetFilter.fromSpec({
+        type: 'and'
+        filters: [
+          {
+            filter: {
+              attribute: 'blocked_types'
+              value: 'JavaScript Ad'
+              type: 'is'
+            }
+            type: 'not'
+          }
+          {
+            filter: {
+              attribute: 'category_name'
+              value: 'Restricted'
+              type: 'is'
+            }
+            type: 'not'
+          }
+        ]
+      }).simplify().valueOf()).to.deep.equal({
+        type: 'and'
+        filters: [
+          {
+            filter: {
+              attribute: 'blocked_types'
+              value: 'JavaScript Ad'
+              type: 'is'
+            }
+            type: 'not'
+          }
+          {
+            filter: {
+              attribute: 'category_name'
+              value: 'Restricted'
+              type: 'is'
+            }
+            type: 'not'
+          }
+        ]
+      })
+
     it "knows when something is simple", ->
       filter = FacetFilter.fromSpec({
         type: 'and'

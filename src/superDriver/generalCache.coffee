@@ -1,7 +1,13 @@
 # -----------------------------------------------------
 driverUtil = require('../driver/driverUtil')
 { Duration } = require('../driver/chronology')
-{ FacetQuery, AndFilter, TrueFilter, FacetFilter, FacetSplit, FacetApply, FacetCombine } = require('../query')
+{
+  FacetQuery,
+  AndFilter, TrueFilter, FacetFilter,
+  FacetSplit,
+  FacetApply,
+  FacetCombine, SliceCombine
+} = require('../query')
 
 
 class LRUCache

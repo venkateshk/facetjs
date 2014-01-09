@@ -46,12 +46,17 @@ Factor
   / Aggregate
 
 Aggregate "Aggregate"
-  = aggregate:AggregateFn "(" attribute:Attribute ")"
-    { return { aggregate: aggregate, attribute:attribute }; }
-  / number:Number
+  = number:Number
     { return { aggregate: "constant", value: number }; }
+  / aggregate:AggregateFn0 "(" _ ")"
+    { return { aggregate: aggregate }; }
+  / aggregate:AggregateFn1 "(" attribute:Attribute ")"
+    { return { aggregate: aggregate, attribute:attribute }; }
 
-AggregateFn "Aggregare Function"
+AggregateFn0 "Aggregare Function"
+  = "count"
+
+AggregateFn1 "Aggregare Function"
   = "sum"
   / "max"
   / "min"

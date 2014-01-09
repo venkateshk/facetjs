@@ -3,7 +3,7 @@ utils = require('../utils')
 
 WallTime = require('walltime-js')
 if not WallTime.rules
-  tzData = require("../../lib/walltime-data.js")
+  tzData = require("../../lib/walltime/walltime-data.js")
   WallTime.init(tzData.rules, tzData.zones)
 
 sqlRequester = require('../../src/requester/mySqlRequester')

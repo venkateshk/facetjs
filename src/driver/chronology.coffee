@@ -1,4 +1,4 @@
-WallTime = require('../../lib/walltime.js')
+WallTime = require('../../lib/walltime')
 
 exports.isTimezone = isTimezone = (tz) ->
   return typeof tz is 'string' and tz.indexOf('/') isnt -1

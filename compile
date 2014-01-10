@@ -1,4 +1,6 @@
 #!/bin/bash
+rm -r build/*
+
 mkdir -p build/parser
 mkdir -p build/package
 
@@ -16,23 +18,23 @@ node_modules/pegjs/bin/pegjs \
 
 # Parts
 browserify build/driver/index.js \
-  -o build/package/driver.js \
+  -o package/driver.js \
   --ignore async \
   --standalone driver
 
 browserify build/render/index.js \
-  -o build/package/render.js \
+  -o package/render.js \
   --standalone render
 
 browserify build/query/index.js \
-  -o build/package/query.js \
+  -o package/query.js \
   --standalone query
 
 # All in one
 browserify build/facet.js \
-  -o build/package/facet.js \
+  -o package/facet.js \
   --standalone facet
 
 # Web workers
 browserify build/worker/simpleDriverWorker.js \
-  -o build/package/simpleDriverWorker.js
+  -o package/simpleDriverWorker.js

@@ -27,6 +27,7 @@
   "devDependencies": {
     "chai": "~1.6.0",
     "d3": "~3.2.7",
-    "underscore": "~1.5.1"
+    "underscore": "~1.5.1",
+    "browserify": "~3.19.1"
   }
 }

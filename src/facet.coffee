@@ -6,7 +6,7 @@ copyHere(require('./query'))
 exports.driver = require('./driver')
 copyHere(require('./render'))
 
-facet.WallTime = require('../lib/walltime')
+exports.WallTime = require('../lib/walltime')
 
 # Temp hack
 exports.d3 = require('d3')

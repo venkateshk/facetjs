@@ -17,6 +17,8 @@ node_modules/pegjs/bin/pegjs \
   build/parser/apply.js
 
 # Parts
+mkdir -p package
+
 browserify build/driver/index.js \
   -o package/driver.js \
   --ignore async \

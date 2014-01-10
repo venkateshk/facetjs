@@ -3,5 +3,6 @@ node_modules/
 scratch/
 data/wiki/
 build/
+package/
 coverage/
 copy

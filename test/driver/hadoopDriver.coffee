@@ -109,7 +109,7 @@ describe "Hadoop driver", ->
       ])
       driver {query}, (err, res) ->
         console.log err
-        expect(err).to.equal(null)
+        expect(err).to.not.exist
         expect(res).to.deep.equal({
           "prop": {},
           "splits": [

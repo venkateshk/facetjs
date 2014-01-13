@@ -20,7 +20,7 @@ describe "simple driver", ->
       { operation: 'apply', name: 'Count', aggregate: 'count' }
     ]
     diamondsDriver { query: new FacetQuery(querySpec) }, (err, result) ->
-      expect(err).to.equal(null)
+      expect(err).to.not.exist
       expect(result).to.deep.equal({
         prop: {
           Count: 53940
@@ -35,7 +35,7 @@ describe "simple driver", ->
       { operation: 'combine', method: 'slice', sort: { prop: 'Count', compare: 'natural', direction: 'descending' }, limit: 2 }
     ]
     diamondsDriver { query: new FacetQuery(querySpec) }, (err, result) ->
-      expect(err).to.equal(null)
+      expect(err).to.not.exist
       expect(result).to.deep.equal({
         "prop": {},
         "splits": [
@@ -121,7 +121,7 @@ describe "simple driver", ->
       }
     ]
     diamondsDriver { query: new FacetQuery(querySpec) }, (err, result) ->
-      expect(err).to.equal(null)
+      expect(err).to.not.exist
       expect(result).to.deep.equal({
         "prop": {},
         "splits": [
@@ -172,7 +172,7 @@ describe "simple driver", ->
       { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 2 }
     ]
     diamondsDriver { query: new FacetQuery(querySpec) }, (err, result) ->
-      expect(err).to.equal(null)
+      expect(err).to.not.exist
       expect(result).to.deep.equal({
         "prop": {},
         "splits": [
@@ -211,7 +211,7 @@ describe "simple driver", ->
       { operation: 'filter', type: 'false' }
     ]
     diamondsDriver { query: new FacetQuery(querySpec) }, (err, result) ->
-      expect(err).to.equal(null)
+      expect(err).to.not.exist
       expect(result).to.deep.equal({
         "prop": {}
       })
@@ -223,7 +223,7 @@ describe "simple driver", ->
       { operation: 'apply', name: 'Count', aggregate: 'count' }
     ]
     diamondsDriver { query: new FacetQuery(querySpec) }, (err, result) ->
-      expect(err).to.equal(null)
+      expect(err).to.not.exist
       expect(result).to.deep.equal({
         "prop": {
           "Count": 0
@@ -241,7 +241,7 @@ describe "simple driver", ->
       { operation: 'combine', method: 'slice', sort: { prop: 'Count', compare: 'natural', direction: 'descending' }, limit: 2 }
     ]
     diamondsDriver { query: new FacetQuery(querySpec) }, (err, result) ->
-      expect(err).to.equal(null)
+      expect(err).to.not.exist
       expect(result).to.deep.equal({
         "prop": {
           "Count": 0
@@ -255,7 +255,7 @@ describe "simple driver", ->
       { operation: 'apply', name: 'Max', aggregate: 'max', attribute: 'time' }
     ]
     wikiDriver { query: new FacetQuery(querySpec) }, (err, result) ->
-      expect(err).to.equal(null)
+      expect(err).to.not.exist
       expect(result).to.deep.equal({
         prop: {
           Max: new Date(1361919600000)
@@ -268,7 +268,7 @@ describe "simple driver", ->
       { operation: 'apply', name: 'Min', aggregate: 'min', attribute: 'time' }
     ]
     wikiDriver { query: new FacetQuery(querySpec) }, (err, result) ->
-      expect(err).to.equal(null)
+      expect(err).to.not.exist
       expect(result).to.deep.equal({
         prop: {
           Min: new Date(1361836800000)
@@ -282,7 +282,7 @@ describe "simple driver", ->
       { operation: 'apply', name: 'Count', aggregate: 'count' }
     ]
     wikiDriver { query: new FacetQuery(querySpec) }, (err, result) ->
-      expect(err).to.equal(null)
+      expect(err).to.not.exist
       expect(result).to.deep.equal({
         "prop": {
           "Count": 19106
@@ -309,7 +309,7 @@ describe "simple driver", ->
     ]
 
     timeDriver { query: new FacetQuery(querySpec) }, (err, result) ->
-      expect(err).to.equal(null)
+      expect(err).to.not.exist
       expect(result).to.deep.equal({
         "prop": {},
         "splits": [
@@ -437,7 +437,7 @@ describe "simple driver", ->
     ]
 
     wikiDriver { query: new FacetQuery(querySpec) }, (err, result) ->
-      expect(err).to.equal(null)
+      expect(err).to.not.exist
       expect(result).to.deep.equal({
         "prop": {},
         "splits": [

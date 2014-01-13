@@ -160,7 +160,7 @@ describe "Druid driver", ->
         { operation: 'filter', type: 'false' }
       ]
       wikiDriver { query: new FacetQuery(querySpec) }, (err, result) ->
-        expect(err).to.equal(null)
+        expect(err).to.not.exist
         expect(result).to.deep.equal({
           "prop": {}
         })
@@ -247,7 +247,7 @@ describe "Druid driver", ->
         { operation: 'apply', name: 'Max', aggregate: 'max', attribute: 'time' }
       ])
       driver {query}, (err, res) ->
-        expect(err).to.equal(null)
+        expect(err).to.not.exist
         expect(res).to.be.an('object')
         expect(res.prop.Min).to.be.an.instanceof(Date)
         expect(res.prop.Max).to.be.an.instanceof(Date)
@@ -262,6 +262,38 @@ describe "Druid driver", ->
       driver {query}, (err, res) ->
         expect(err).to.not.equal(null)
         expect(err.message).to.equal("can not mix and match min / max time with other aggregates (for now)")
+        done()
+
+    it "should deal with average aggregate", (done) ->
+      query = new FacetQuery([
+        {
+          operation: 'filter'
+          type: 'within'
+          attribute: 'time'
+          range: [
+            new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0))
+            new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))
+          ]
+        }
+        { operation: 'apply', name: 'AvgAdded', aggregate: 'average', attribute: 'added' }
+        {
+          operation: 'apply'
+          name: 'AvgDelta/100'
+          arithmetic: "divide"
+          operands: [
+            { aggregate: "average", attribute: "delta" }
+            { aggregate: "constant", value: 100 }
+          ]
+        }
+      ])
+      driver {query}, (err, res) ->
+        expect(err).to.not.exist
+        expect(res).to.be.deep.equal({
+          prop: {
+             "AvgAdded": 216.43371007799223
+             "AvgDelta/100": 0.31691260511524555
+          }
+        })
         done()
 
     it "should work without a combine (single split)", (done) ->
@@ -280,7 +312,7 @@ describe "Druid driver", ->
         { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
       ])
       driver {query}, (err, res) ->
-        expect(err).to.equal(null)
+        expect(err).to.not.exist
         expect(res).to.be.an('object')
         done()
 
@@ -305,7 +337,7 @@ describe "Druid driver", ->
         { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
       ])
       driver {query}, (err, res) ->
-        expect(err).to.equal(null)
+        expect(err).to.not.exist
         expect(res).to.be.an('object')
         done()
 
@@ -392,7 +424,7 @@ describe "Druid driver", ->
         }
       ])
       driver {query}, (err, res) ->
-        expect(err).to.equal(null)
+        expect(err).to.not.exist
         expect(res).to.deep.equal({
           "prop": {},
           "splits": [

@@ -108,7 +108,7 @@ describe "SQL driver", ->
         { operation: 'filter', type: 'false' }
       ]
       diamondsDriver { query: new FacetQuery(querySpec) }, (err, result) ->
-        expect(err).to.equal(null)
+        expect(err).to.not.exist
         expect(result).to.deep.equal({
           prop: {}
         })

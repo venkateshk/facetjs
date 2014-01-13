@@ -390,6 +390,16 @@ class ApplyBreaker
     @nameIndex++
     return "_B#{@nameIndex}_#{nameContext}"
 
+  decomposeAverageApply: (apply) ->
+    return new DivideApply({
+      name: apply.name
+      dataset: apply.dataset
+      operands: [
+        new SumApply({ attribute: apply.attribute })
+        new CountApply({})
+      ]
+    })
+
   makeAggregateApply: (apply, nameContext) ->
     if apply.name
       @aggregates.push(apply)
@@ -405,6 +415,9 @@ class ApplyBreaker
   makeArithmeticApply: (apply, nameContext) ->
     needNewApply = false
     operands = apply.operands.map(((apply) ->
+      if apply.aggregate is 'average' and @breakAverage
+        apply = @decomposeAverageApply(apply)
+
       if apply.aggregate
         newApply = @makeAggregateApply(apply, nameContext)
       else
@@ -427,14 +440,7 @@ class ApplyBreaker
     arithmeticApplies = []
     for apply in applies
       if apply.aggregate is 'average' and @breakAverage
-        apply = new DivideApply({
-          name: apply.name
-          dataset: apply.dataset
-          operands: [
-            new SumApply({ attribute: apply.attribute })
-            new CountApply({})
-          ]
-        })
+        apply = @decomposeAverageApply(apply)
 
       if apply.aggregate
         @makeAggregateApply(apply, apply.name)

@@ -375,7 +375,7 @@ describe "FacetApply", ->
       expect(aggregates.map((d) -> d.valueOf())).to.deep.equal(applySpecs)
       expect(arithmetics.map((d) -> d.valueOf())).to.deep.equal([])
 
-    it "works breaks average", ->
+    it "should break average", ->
       applySpecs = [
         { name: 'Avg Count', aggregate: 'average', attribute: 'count' }
       ]
@@ -409,6 +409,67 @@ describe "FacetApply", ->
             {
               name: "_B2_Avg Count",
               aggregate: "count"
+            }
+          ]
+        }
+      ])
+
+    it "should break nested average", ->
+      applySpecs = [
+        {
+          name: 'Avg Count By 100'
+          arithmetic: "divide"
+          operands: [
+            { aggregate: 'average', attribute: 'count' },
+            { aggregate: 'constant', value: 100 }
+          ]
+        }
+      ]
+
+      {
+        aggregates
+        arithmetics
+      } = FacetApply.breaker(applySpecs.map(FacetApply.fromSpec), true)
+
+      expect(aggregates.map((d) -> d.valueOf())).to.deep.equal([
+        {
+          name: "_B1_Avg Count By 100"
+          aggregate: "sum"
+          attribute: "count"
+        }
+        {
+          name: "_B2_Avg Count By 100"
+          aggregate: "count"
+        }
+        {
+          name: "_B3_Avg Count By 100"
+          aggregate: "constant"
+          value: 100
+        }
+      ])
+      expect(arithmetics.map((d) -> d.valueOf())).to.deep.equal([
+        {
+          name: 'Avg Count By 100'
+          arithmetic: "divide",
+          operands: [
+            {
+              arithmetic: "divide",
+              operands: [
+                {
+                  name: "_B1_Avg Count By 100",
+                  aggregate: "sum",
+                  attribute: "count"
+                },
+                {
+                  name: "_B2_Avg Count By 100",
+                  aggregate: "count"
+                }
+              ]
+            },
+            {
+              name: "_B3_Avg Count By 100"
+              aggregate: 'constant'
+              value: 100
             }
           ]
         }

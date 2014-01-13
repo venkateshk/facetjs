@@ -1,4 +1,4 @@
 #!/bin/bash
-mocha --compilers coffee:coffee-script --reporter spec test/*/*
+mocha test/*/*
 
 # istanbul cover _mocha -- --compilers coffee:coffee-script --reporter spec test/query/apply.coffee

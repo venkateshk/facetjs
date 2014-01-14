@@ -69,7 +69,50 @@ filterSortTypeSubPresedence = {
   'match': 4
 }
 
+defaultStringifier = {
+  stringify: (filter) ->
+    throw new Error('stringifier needs FacetFilter') unless filter instanceof FacetFilter
+    switch filter.type
+      when 'true'
+        return "None"
+      when 'false'
+        return "Nothing"
+      when 'is'
+        return "#{filter.attribute} is #{filter.value}"
+      when 'in'
+        switch filter.values.length
+          when 0 then return "Nothing"
+          when 1 then return "#{filter.attribute} is #{filter.values[0]}"
+          when 2 then return "#{filter.attribute} is either #{filter.values[0]} or #{filter.values[1]}"
+          else return "#{filter.attribute} is one of: #{specialJoin(filter.values, ', ', ', or ')}"
+      when 'contains'
+        return "#{filter.attribute} contains '#{filter.value}'"
+      when 'match'
+        return "#{filter.attribute} matches /#{filter.expression}/"
+      when 'or'
+        if filter.filters.length > 1
+          return "(#{filter.filters.join(') or (')})"
+        else
+          return String(filter.filters[0])
+      when 'within'
+        [r0, r1] = filter.range
+        r0 = r0.toISOString() if r0 instanceof Date
+        r1 = r1.toISOString() if r1 instanceof Date
+        return "#{filter.attribute} is within #{r0} and #{r1}"
+      when 'not'
+        return "not (#{filter.filter})"
+      when 'and'
+        if filter.filters.length > 1
+          return "(#{filter.filters.join(') and (')})"
+        else
+          return String(filter.filters[0])
+      else
+        throw new Error("unknown filter type #{filter.type}")
+}
+
 class FacetFilter
+  @defaultStringifier = defaultStringifier
+
   @compare = (filter1, filter2) ->
     filter1SortType = filter1._getSortType()
     filter2SortType = filter2._getSortType()
@@ -103,6 +146,35 @@ class FacetFilter
         return compare(filter1.expression, filter2.expression)
 
     return 0
+
+
+  # set Stringifier strategy for FacetFilter class
+  # Interface Stringifier
+  #   #
+  #   # @param {FacetFilter} filter
+  #   # @return {String} string representation of the given filter
+  #   #
+  #   stringify: (filter) ->
+  #     <some function>
+  #
+  # @param {Stringifier}
+  # @return {FacetFilter} this
+  #
+  @setStringifier = (@defaultStringifier) -> return this
+
+  # set Stringifier strategy for instances of FacetFilter
+  # Interface Stringifier
+  #   #
+  #   # @param {FacetFilter} filter
+  #   # @return {String} string representation of the given filter
+  #   #
+  #   stringify: (filter) ->
+  #     <some function>
+  #
+  # @param {Stringifier}
+  # @return {FacetFilter} this
+  #
+  setStringifier: (@stringifier) -> return this
 
   constructor: ({@type, @dataset}, dummy) ->
     throw new TypeError("can not call `new FacetFilter` directly use FacetFilter.fromSpec instead") unless dummy is dummyObject
@@ -159,15 +231,15 @@ class FacetFilter
   getDataset: ->
     return @dataset or 'main'
 
+  toString: ->
+    stringifier = @stringifier or FacetFilter.defaultStringifier
+    return stringifier.stringify(this)
 
 
 class TrueFilter extends FacetFilter
   constructor: ->
     super(arguments[0] or {}, dummyObject)
     @_ensureType('true')
-
-  toString: ->
-    return "None"
 
   getFilterFn: ->
     return -> true
@@ -178,9 +250,6 @@ class FalseFilter extends FacetFilter
   constructor: ->
     super(arguments[0] or {}, dummyObject)
     @_ensureType('false')
-
-  toString: ->
-    return "Nothing"
 
   getFilterFn: ->
     return -> false
@@ -198,9 +267,6 @@ class IsFilter extends FacetFilter
 
   _getInValues: ->
     return [@value]
-
-  toString: ->
-    return "#{@attribute} is #{@value}"
 
   valueOf: ->
     filter = super
@@ -227,13 +293,6 @@ class InFilter extends FacetFilter
 
   _getInValues: ->
     return @values
-
-  toString: ->
-    switch @values.length
-      when 0 then return "Nothing"
-      when 1 then return "#{@attribute} is #{@values[0]}"
-      when 2 then return "#{@attribute} is either #{@values[0]} or #{@values[1]}"
-      else return "#{@attribute} is one of: #{specialJoin(@values, ', ', ', or ')}"
 
   valueOf: ->
     filter = super
@@ -275,9 +334,6 @@ class ContainsFilter extends FacetFilter
     @_validateAttribute()
     throw new TypeError('contains must be a string') unless typeof @value is 'string'
 
-  toString: ->
-    return "#{@attribute} contains '#{@value}'"
-
   valueOf: ->
     filter = super
     filter.attribute = @attribute
@@ -304,9 +360,6 @@ class MatchFilter extends FacetFilter
       new RegExp(@expression)
     catch e
       throw new Error('expression must be a valid regular expression')
-
-  toString: ->
-    return "#{@attribute} matches /#{@expression}/"
 
   valueOf: ->
     filter = super
@@ -335,12 +388,6 @@ class WithinFilter extends FacetFilter
       @range = [new Date(r0), new Date(r1)]
 
     throw new Error('invalid range') if isNaN(@range[0]) or isNaN(@range[1])
-
-  toString: ->
-    [r0, r1] = @range
-    r0 = r0.toISOString() if r0 instanceof Date
-    r1 = r1.toISOString() if r1 instanceof Date
-    return "#{@attribute} is within #{r0} and #{r1}"
 
   valueOf: ->
     filter = super
@@ -376,9 +423,6 @@ class NotFilter extends FacetFilter
 
   _getInValues: ->
     return @filter._getInValues()
-
-  toString: ->
-    return "not (#{@filter})"
 
   valueOf: ->
     filter = super
@@ -436,12 +480,6 @@ class AndFilter extends FacetFilter
       @filters = arg
 
     @_ensureType('and')
-
-  toString: ->
-    if @filters.length > 1
-      return "(#{@filters.join(') and (')})"
-    else
-      return String(@filters[0])
 
   valueOf: ->
     filter = super
@@ -578,12 +616,6 @@ class OrFilter extends FacetFilter
       @filters = arg
 
     @_ensureType('or')
-
-  toString: ->
-    if @filters.length > 1
-      return "(#{@filters.join(') or (')})"
-    else
-      return String(@filters[0])
 
   valueOf: ->
     filter = super

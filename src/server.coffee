@@ -22,7 +22,7 @@ app.use(express.json())
 
 app.use(express.directory(__dirname + '/../static'))
 app.use(express.static(__dirname + '/../static'))
-app.use(express.static(__dirname + '/../build'))
+app.use(express.static(__dirname + '/../package'))
 app.use(express.static(__dirname + '/../data'))
 
 app.get '/', (req, res) ->

@@ -4,10 +4,9 @@
     <link rel="stylesheet" type="text/css" href="style/facet.css">
 
     <script src="lib/async.js"></script>
-    <script src="lib/d3.v3.js"></script>
     <script src="lib/jquery-1.9.1.js"></script>
 
-    <script src="package/facet.js"></script>
+    <script src="/facet.js"></script>
 
     <title>Split-Apply-Combine Test</title>
   </head>
@@ -37,6 +36,8 @@
     </div>
     <script>
     (function() {
+      var d3 = facet.d3;
+
       // Init
       var defaultQuery = JSON.stringify([{
         "operation": "apply",
@@ -134,7 +135,7 @@
             prety: true
           });
 
-          return sqlDriver({
+          return facet.driver.sql({
             requester: sqlRequester,
             table: "diamonds"
           });
@@ -151,7 +152,7 @@
             }
           });
 
-          return druidDriver({
+          return facet.driver.druid({
             requester: druidRequester,
             dataSource: d3.select("#data-source").property("value"),
             timeAttribute: 'timestamp',
@@ -181,7 +182,7 @@
           saveToLocal();
 
           try {
-            input = new query.FacetQuery(input);
+            input = new facet.FacetQuery(input);
           } catch (e) {
             d3.select("#output")
               .text("Error in query: " + e.message);

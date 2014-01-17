@@ -5,7 +5,7 @@ mkdir -p build/parser
 mkdir -p build/package
 
 # Style
-compass compile --sass-dir src/style/ --css-dir build/style/
+compass compile --sass-dir src/style/ --css-dir package/style/
 
 # All files
 coffee --compile --bare --output build src

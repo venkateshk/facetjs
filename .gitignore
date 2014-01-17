@@ -6,3 +6,4 @@ build/
 package/
 coverage/
 copy
+copy-*

@@ -1,40 +1,8 @@
 #!/bin/bash
+
+# Style
 compass watch --sass-dir src/style/ --css-dir build/ &
-coffee --compile --watch --bare --output build src/server.coffee src/requester/* &
-coffee --compile --watch --bare --output build src/driver/* &
-coffee --compile --watch --bare --output build src/superDriver/* &
 
-coffee --compile --watch --bare --output build --join build/facet.js \
-  src/facet/_start.coffee \
-  src/facet/init.coffee \
-  src/facet/utils.coffee \
-  src/facet/interval.coffee \
-  src/facet/segment.coffee \
-  src/facet/filter.coffee \
-  src/facet/split.coffee \
-  src/facet/apply.coffee \
-  src/facet/combine.coffee \
-  src/facet/use.coffee \
-  src/facet/scale.coffee \
-  src/facet/space.coffee \
-  src/facet/layout.coffee \
-  src/facet/transform.coffee \
-  src/facet/plot.coffee \
-  src/facet/connector.coffee \
-  src/facet/facet.coffee \
-  src/facet/proxy.coffee \
-  src/facet/_end.coffee &
+# All files
+coffee --compile --watch --bare --output build src &
 
-coffee --compile --watch --bare --output build --join build/query.js \
-  src/query/_start.coffee \
-  src/query/common.coffee \
-  src/query/options.coffee \
-  src/query/filter.coffee \
-  src/query/segmentFilter.coffee \
-  src/query/dataset.coffee \
-  src/query/split.coffee \
-  src/query/apply.coffee \
-  src/query/sort.coffee \
-  src/query/combine.coffee \
-  src/query/query.coffee \
-  src/query/_end.coffee &

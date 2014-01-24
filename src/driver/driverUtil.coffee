@@ -1,18 +1,15 @@
+{ FacetQuery } = require('../query')
+
 # Flatten an array of array in to a single array
 # flatten([[1,3], [3,6,7]]) => [1,3,3,6,7]
-exports.flatten = flatten = (ar) ->
-  flatAr = []
-  ar.forEach((item) ->
-    if Array.isArray(item)
-      arrayExists = true
-      item.forEach((subItem) ->
-        flatAr.push subItem
-      )
-      return
-    flatAr.push item
-  )
+exports.flatten = flatten = (xss) ->
+  flat = []
+  for xs in xss
+    throw new TypeError('bad value in list') unless Array.isArray(xs)
+    for x in xs
+      flat.push(x)
 
-  return flatAr
+  return flat
 
 # Trims the array in place
 exports.inPlaceTrim = (array, n) ->
@@ -166,116 +163,6 @@ exports.cleanSegments = cleanSegments = (segment) ->
   return segment
 
 
-createTabularHelper = (node, rangeFn, history) ->
-  newHistory = {}
-  for k, v of history
-    newHistory[k] = v
-  # Base case
-  for k, v of node.prop
-    v = rangeFn(v, k) if Array.isArray(v)
-    newHistory[k] = v
-
-  if node.splits?
-    return flatten(node.splits.map((split) -> createTabularHelper(split, rangeFn, newHistory)))
-  else
-    return [newHistory]
-
-
-exports.createTabular = createTabular = (node, rangeFn) ->
-  rangeFn ?= (range) -> range
-  return [] unless node?.prop
-  return createTabularHelper(node, rangeFn, {})
-
-class exports.Table
-  constructor: ({root, query}) ->
-    @query = query.valueOf()
-    @columns = createColumns(@query)
-    @data = createTabular(root)
-    @dimensionSize = @query.filter((op) -> op.operation is 'split').length
-    @metricSize = @query.filter((op) -> op.operation is 'apply').length
-
-  toTabular: (separator, rangeFn) ->
-    _this = this
-    header = @columns.map((column) -> return '\"' + column + '\"').join(separator)
-
-    rangeFn or= (range) ->
-      if range[0] instanceof Date
-        range = range.map((range) -> range.toISOString())
-      return range.join('-')
-
-    content = @data.map((row) ->
-      ret = []
-      _this.columns.forEach((column, i) ->
-        datum = row[column]
-        if i < _this.dimensionSize
-          if datum?
-            if Array.isArray(datum)
-              ret.push('\"' + rangeFn(datum).replace(/\"/, '\"\"') + '\"')
-            else
-              ret.push('\"' + datum.replace(/\"/, '\"\"') + '\"')
-          else
-            ret.push('\"\"')
-        else
-          if datum?
-            ret.push('\"' + datum + '\"')
-          else
-            ret.push('\"0\"')
-      )
-      return ret.join(separator)
-    ).join('\r\n')
-    return header + '\r\n' + content
-
-  columnMap: (mappingFunction) ->
-    @data = @data.map((row) ->
-      convertedRow = {}
-      for k, v of row
-        convertedRow[mappingFunction(k)] = row[k]
-
-      return convertedRow
-    )
-
-    @columns = @columns.map(mappingFunction)
-    return
-
-exports.createColumns = createColumns = (query) ->
-  split = flatten(query.filter((op) -> op.operation is 'split').map((op) ->
-    if op.bucket is 'tuple'
-      return op.splits.map((o) -> o.name)
-    else
-      return [op.name]
-  ))
-  tempApply = query.filter((op) -> op.operation is 'apply').map((op) -> op.name)
-  apply = []
-  for applyName in tempApply
-    if apply.indexOf(applyName) >= 0
-      apply.splice(apply.indexOf(applyName), 1)
-    apply.push applyName
-  return split.concat(apply)
-
-
-# Flattens the split tree into an array
-#
-# @param {SplitTree} root - the root of the split tree
-# @param {prepend,append,none} order - what to do with the root of the tree
-# @return {Array(SplitTree)} the tree nodes in the order specified
-
-exports.flattenTree = (root, order) ->
-  throw new TypeError('must have a tree') unless root
-  throw new TypeError('order must be on of prepend, append, or none') unless order in ['prepend', 'append', 'none']
-  flattenTreeHelper(root, order, result = [])
-  return result
-
-flattenTreeHelper = (root, order, result) ->
-  result.push(root) if order is 'prepend'
-
-  if root.splits
-    for split in root.splits
-      flattenTreeHelper(split, order, result)
-
-  result.push(root) if order is 'append'
-  return
-
-
 # Adds parents to a split tree in place
 #
 # @param {SplitTree} root - the root of the split tree
@@ -288,3 +175,103 @@ exports.parentify = parentify = (root, parent = null) ->
     for split in root.splits
       parentify(split, root)
   return root
+
+
+# Flattens the split tree into an array
+#
+# @param {SplitTree} root - the root of the split tree
+# @param {prepend,append,none} order - what to do with the root of the tree
+# @return {Array(SplitTree)} the tree nodes in the order specified
+
+exports.flattenTree = flattenTree = (root, order) ->
+  throw new TypeError('must have a tree') unless root
+  throw new TypeError('order must be on of prepend, append, or none') unless order in ['prepend', 'append', 'none']
+  flattenTreeHelper(root, order, result = [])
+  return result
+
+flattenTreeHelper = (root, order, result) ->
+  result.push(root) if order is 'prepend' or not root.splits
+
+  if root.splits
+    for split in root.splits
+      flattenTreeHelper(split, order, result)
+
+  result.push(root) if order is 'append'
+  return
+
+
+# Creates a flat list of props
+
+exports.createTabular = createTabular = (root, order, rangeFn) ->
+  throw new TypeError('must have a tree') unless root
+  order ?= 'none'
+  throw new TypeError('order must be on of prepend, append, or none') unless order in ['prepend', 'append', 'none']
+  rangeFn ?= (range) -> range
+  return [] unless root?.prop
+  createTabularHelper(root, order, rangeFn, {}, result = [])
+  return result
+
+createTabularHelper = (root, order, rangeFn, context, result) ->
+  myProp = {}
+  for k, v of context
+    myProp[k] = v
+
+  for k, v of root.prop
+    v = rangeFn(v) if Array.isArray(v)
+    myProp[k] = v
+
+  result.push(myProp) if order is 'prepend' or not root.splits
+
+  if root.splits
+    for split in root.splits
+      createTabularHelper(split, order, rangeFn, myProp, result)
+
+  result.push(myProp) if order is 'append'
+  return
+
+
+csvEscape = (str) -> '"' + String(str).replace(/\"/g, '\"\"') + '"'
+
+class exports.Table
+  constructor: ({root, query, columnName}) ->
+    throw new TypeError('query must be a FacetQuery') unless query instanceof FacetQuery
+    @query = query
+    @columnName = columnName or (op) -> op.name
+    @splitColumns = flatten(query.getSplits().map((split) ->
+      return if split.bucket is 'tuple' then split.splits else [split]
+    ))
+    @applyColumns = query.getApplies()
+    @data = createTabular(root)
+
+  toTabular: (separator, lineBreak, rangeFn) ->
+    header = []
+    header.push(csvEscape(@columnName(column))) for column in @splitColumns
+    header.push(csvEscape(@columnName(column))) for column in @applyColumns
+    header = header.join(separator)
+
+    rangeFn or= (range) ->
+      if range[0] instanceof Date
+        range = range.map((range) -> range.toISOString())
+      return range.join('-')
+
+    lines = @data.map(((row) ->
+      line = []
+      for column in @splitColumns
+        datum = row[column.name] or ''
+        line.push(if Array.isArray(datum) then csvEscape(rangeFn(datum)) else csvEscape(datum))
+
+      for column in @applyColumns
+        datum = row[column.name] or 0
+        line.push(csvEscape(datum))
+
+      return line.join(separator)
+
+    ), this)
+
+    return header + lineBreak + lines.join(lineBreak)
+
+  columnMap: (columnName) ->
+    @columnName = columnName
+    return
+
+

@@ -250,8 +250,20 @@ class FacetQuery
     splits.shift()
     return splits
 
+  getApplies: ->
+    applies = []
+    for condensedCommand in @condensedCommands
+      for apply in condensedCommand.applies
+        alreadyListed = find(applies, (existingApply) ->
+          return existingApply.name is apply.name and existingApply.isEqual(apply)
+        )
+        continue if alreadyListed
+        applies.push(apply)
+    return applies
+
   getCombines: ->
     combines = @condensedCommands.map(({combine}) -> combine)
+    combines.shift()
     return combines
 
 # Export!

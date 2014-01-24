@@ -1,6 +1,7 @@
 chai = require("chai")
 expect = chai.expect
 
+{ FacetQuery } = require('../../src/query')
 driverUtil = require('../../src/driver/driverUtil')
 { Table } = driverUtil
 data = require('../data')
@@ -18,6 +19,9 @@ describe "Utility", ->
 
     it "should work on a normal list", ->
       expect(driverUtil.flatten([[1,3], [3,6,7]])).to.deep.equal([1,3,3,6,7])
+
+    it "should throw on a mixed list", ->
+      expect(-> driverUtil.flatten([[1,3], 0, [3,6,7]])).to.throw()
 
 
   describe "inPlaceTrim", ->
@@ -95,129 +99,109 @@ describe "Utility", ->
 
 
   describe "Table", ->
-    describe "should produce the same result", ->
-      it "Basic Rectangular Table", ->
-        query = data.diamond[1].query
-        root = data.diamond[1].data
-        table = new Table({
-          root
-          query
-        })
+    query = new FacetQuery([
+      { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
+      { operation: 'apply', name: 'Count', aggregate: 'count' }
+      { operation: 'combine', method: 'slice', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
+    ])
 
-        expect(["Cut", "Count"]).to.deep.equal(table.columns, "Columns of the table is incorrect")
+    responce = {
+      prop: { Count: 21 }
+      splits: [
+        { prop: { Cut: 'A', Count: 1 } }
+        { prop: { Cut: 'B', Count: 2 } }
+        { prop: { Cut: 'C', Count: 3 } }
+        { prop: { Cut: 'D', Count: 4 } }
+        { prop: { Cut: 'E', Count: 5 } }
+        { prop: { Cut: 'J "F" L', Count: 6 } }
+      ]
+    }
 
-        expect(table.data).to.deep.equal([
-          { Count: 1, Cut: 'A' }
-          { Count: 2, Cut: 'B' }
-          { Count: 3, Cut: 'C' }
-          { Count: 4, Cut: 'D' }
-          { Count: 5, Cut: 'E' }
-          { Count: 6, Cut: 'F"' }
-        ], "Data of the table is incorrect")
+    it "basically works", ->
+      table = new Table({
+        query
+        root: responce
+      })
 
-        expect(table.toTabular(',')).to.deep.equal(
-          '"Cut","Count"\r\n"A","1"\r\n"B","2"\r\n"C","3"\r\n"D","4"\r\n"E","5"\r\n"F\"\"","6"'
-          "CSV of the table is incorrect"
-        )
+      expect(table.data).to.deep.equal([
+        { Count: 1, Cut: 'A' }
+        { Count: 2, Cut: 'B' }
+        { Count: 3, Cut: 'C' }
+        { Count: 4, Cut: 'D' }
+        { Count: 5, Cut: 'E' }
+        { Count: 6, Cut: 'J "F" L' }
+      ])
 
-        expect(table.toTabular('\t')).to.deep.equal(
-          '"Cut"\t"Count"\r\n"A"\t"1"\r\n"B"\t"2"\r\n"C"\t"3"\r\n"D"\t"4"\r\n"E"\t"5"\r\n"F\"\""\t"6"'
-          "TSV of the table is incorrect"
-        )
+      expect(table.toTabular(',', '\n')).to.deep.equal(
+        """
+        "Cut","Count"
+        "A","1"
+        "B","2"
+        "C","3"
+        "D","4"
+        "E","5"
+        "J ""F"" L","6"
+        """
+      )
 
-      it "Inheriting properties", ->
-        query = data.diamond[2].query
-        root = data.diamond[2].data
-        table = new Table({
-          root
-          query
-        })
+      expect(table.toTabular('\t', '\n')).to.deep.equal(
+        """
+        "Cut"\t"Count"
+        "A"\t"1"
+        "B"\t"2"
+        "C"\t"3"
+        "D"\t"4"
+        "E"\t"5"
+        "J ""F"" L"\t"6"
+        """
+      )
 
-        expect(table.columns).to.deep.equal(["Carat", "Cut", "Count"], "Columns of the table is incorrect")
-        expect(table.data).to.deep.equal(data.diamond[2].tabular, "Data of the table is incorrect")
-        expect(table.toTabular(',')).to.deep.equal(data.diamond[2].csv, "CSV of the table is incorrect")
+    it "inherits properties", ->
+      table = new Table({
+        query: new FacetQuery(data.diamond.query)
+        root: data.diamond.data
+      })
 
-      it.skip "Big Data", ->
-        query = data.diamond[1].query
-        root = {
-          prop: { Count: 200000 }
-          splits: []
+      expect(table.data).to.deep.equal(data.diamond.tabular)
+      expect(table.toTabular(',', '\n')).to.deep.equal(data.diamond.csv)
+
+    it "maps column names", ->
+      table = new Table({
+        query
+        root: responce
+      })
+
+      table.columnMap ({name}) ->
+        map = {
+          "Cut": "Cut_Test"
+          "Count": 'Count_"Test"_'
         }
-        num = 5000001
-        while num -= 1
-          root.splits.push { prop: { Cut: 'A', Count: 1 } }
+        return map[name] or name
 
+      expect(table.toTabular('\t', '\n')).to.deep.equal(
+        """
+        "Cut_Test"\t"Count_""Test""_"
+        "A"\t"1"
+        "B"\t"2"
+        "C"\t"3"
+        "D"\t"4"
+        "E"\t"5"
+        "J ""F"" L"\t"6"
+        """
+      )
+
+    it.skip "works with 'big data'", ->
+      root = {
+        prop: { Count: 200000 }
+        splits: []
+      }
+      num = 5000001
+      while num -= 1
+        root.splits.push { prop: { Cut: 'A', Count: 1 } }
+
+      expect(->
         table = new Table({
           root
           query
         })
-
-
-    describe "should map the columns correctly", ->
-      it "Full Mapping", ->
-        query = data.diamond[1].query
-        root = data.diamond[1].data
-        table = new Table({
-          root
-          query
-        })
-
-        table.columnMap (name) ->
-          map = {
-            "Cut": "Cut_Test"
-            "Count": "Count_Test"
-          }
-          return map[name] or name
-
-        expect(["Cut_Test", "Count_Test"]).to.deep.equal(table.columns, "Columns of the table is incorrect")
-
-        expect(table.toTabular('\t')).to.deep.equal(
-          '"Cut_Test"\t"Count_Test"\r\n"A"\t"1"\r\n"B"\t"2"\r\n"C"\t"3"\r\n"D"\t"4"\r\n"E"\t"5"\r\n"F\"\""\t"6"'
-          "TSV of the table is incorrect"
-        )
-
-      it "Partial Mapping", ->
-        query = data.diamond[1].query
-        root = data.diamond[1].data
-        table = new Table({
-          root
-          query
-        })
-
-        table.columnMap (name) ->
-          map = {
-            "Cut": "Cut_Test"
-          }
-          return map[name] or name
-
-        expect(["Cut_Test", "Count"]).to.deep.equal(table.columns, "Columns of the table is incorrect")
-
-        expect(table.toTabular('\t')).to.deep.equal(
-          '"Cut_Test"\t"Count"\r\n"A"\t"1"\r\n"B"\t"2"\r\n"C"\t"3"\r\n"D"\t"4"\r\n"E"\t"5"\r\n"F\"\""\t"6"'
-          "TSV of the table is incorrect"
-        )
-
-      it "Over Mapping", ->
-        query = data.diamond[1].query
-        root = data.diamond[1].data
-        table = new Table({
-          root
-          query
-        })
-
-        table.columnMap (name) ->
-          map = {
-            "Cut": "Cut_Test"
-            "Count": "Count_Test"
-            "Clarity": "Clarity_Test"
-          }
-          return map[name] or name
-
-        expect(["Cut_Test", "Count_Test"]).to.deep.equal(table.columns, "Columns of the table is incorrect")
-
-        expect(table.toTabular('\t')).to.deep.equal(
-          '"Cut_Test"\t"Count_Test"\r\n"A"\t"1"\r\n"B"\t"2"\r\n"C"\t"3"\r\n"D"\t"4"\r\n"E"\t"5"\r\n"F\"\""\t"6"'
-          "TSV of the table is incorrect"
-        )
-
-
+      ).not.to.throw()

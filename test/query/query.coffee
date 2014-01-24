@@ -62,6 +62,58 @@ describe "FacetQuery", ->
       expect(-> new FacetQuery(querySpec)).to.throw(Error, "sort on unknown prop 'Count'")
 
 
+  describe "get*", ->
+    query = new FacetQuery([
+      { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
+      { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+      { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+      { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 3 }
+
+      { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
+      { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+      { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+      { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 3 }
+    ])
+
+    it "gets the correct splits", ->
+      expect(query.getSplits().map((x) -> x.valueOf())).to.deep.equal([
+        { name: 'Language', bucket: 'identity', attribute: 'language' }
+        { name: 'Page', bucket: 'identity', attribute: 'page' }
+      ])
+
+    it "gets the correct applies", ->
+      expect(query.getApplies().map((x) -> x.valueOf())).to.deep.equal([
+        { name: 'Count', aggregate: 'sum', attribute: 'count' }
+        { name: 'Added', aggregate: 'sum', attribute: 'added' }
+      ])
+
+    it "gets the correct combines", ->
+      expect(query.getCombines().map((x) -> x.valueOf())).to.deep.equal([
+        { method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 3 }
+        { method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 3 }
+      ])
+
+    it "gets the correct applies in a complex case", ->
+      query = new FacetQuery([
+        { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
+        { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+        { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 3 }
+
+        { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
+        { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count1' }
+        { operation: 'apply', name: 'Addeded', aggregate: 'sum', attribute: 'added' }
+        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 3 }
+      ])
+
+      expect(query.getApplies().map((x) -> x.valueOf())).to.deep.equal([
+        { name: 'Count', aggregate: 'sum', attribute: 'count' }
+        { name: 'Added', aggregate: 'sum', attribute: 'added' }
+        { name: 'Count', aggregate: 'sum', attribute: 'count1' }
+        { name: 'Addeded', aggregate: 'sum', attribute: 'added' }
+      ])
+
+
   describe "preserves", ->
     it "empty", ->
       querySpec = []

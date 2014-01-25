@@ -4,6 +4,8 @@ utils = require('../utils')
 
 {FacetQuery, FacetFilter} = require('../../src/query')
 
+simpleLocator = require('../../src/locator/simpleLocator')
+
 druidRequester = require('../../src/requester/druidRequester')
 druidDriver = require('../../src/driver/druidDriver')
 
@@ -82,8 +84,7 @@ describe "Druid driver", ->
 
   describe "should work with driver level filter", ->
     druidPass = druidRequester({
-      host: '10.209.98.48'
-      port: 8080
+      locator: simpleLocator('10.209.98.48')
     })
 
     noFilter = druidDriver({
@@ -143,8 +144,7 @@ describe "Druid driver", ->
 
   describe "should work with nothingness", ->
     druidPass = druidRequester({
-      host: '10.209.98.48'
-      port: 8080
+      locator: simpleLocator('10.209.98.48')
     })
 
     wikiDriver = druidDriver({
@@ -202,8 +202,7 @@ describe "Druid driver", ->
 
   describe "specific queries", ->
     druidPass = druidRequester({
-      host: '10.209.98.48'
-      port: 8080
+      locator: simpleLocator('10.209.98.48')
     })
 
     driver = druidDriver({

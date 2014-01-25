@@ -295,10 +295,10 @@ condensedCommandToHadoop = ({requester, queryBuilder, parentSegment, condensedCo
       }
     else
       if ds.length is 1
-        splits = {
+        splits = [{
           prop: ds[0]
           _filtersByDataset: filtersByDataset
-        }
+        }]
       else
         callback(null, null)
         return

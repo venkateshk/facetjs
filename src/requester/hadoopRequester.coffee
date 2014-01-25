@@ -157,40 +157,50 @@ checkJobStatus = ({host, port, job, timeout}, callback) ->
   return
 
 
-module.exports = ({host, port, timeout, refresh}) ->
+module.exports = ({locator, timeout, refresh}) ->
   refresh or= 5000
 
   return ({context, query}, callback) ->
-    postQuery {
-      host
-      port
-      query
-      timeout
-    }, (err, job) ->
+    locator (err, location) ->
       if err
         callback(err)
         return
 
-      pinger = setInterval((->
-        checkJobStatus {
-          host
-          port
-          job
-          timeout
-        }, (err, results) ->
-          if err
-            clearInterval(pinger)
-            callback(err)
-            return
+      { host, port } = location
+      port ?= 8080
 
-          if results
-            clearInterval(pinger)
-            callback(null, results)
+      postQuery {
+        host
+        port
+        query
+        timeout
+      }, (err, job) ->
+        if err
+          callback(err)
+          return
+
+        pinger = setInterval((->
+          checkJobStatus {
+            host
+            port
+            job
+            timeout
+          }, (err, results) ->
+            if err
+              clearInterval(pinger)
+              callback(err)
+              return
+
+            if results
+              clearInterval(pinger)
+              callback(null, results)
+              return
+
             return
 
           return
+        ), refresh)
 
         return
-      ), refresh)
 
-      return
+    return

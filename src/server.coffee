@@ -2,6 +2,8 @@ express = require('express')
 
 {FacetQuery} = require('./query')
 
+simpleLocator = require('./locator/simpleLocator')
+
 druidRequester = require('./requester/druidRequester')
 sqlRequester = require('./requester/mySqlRequester')
 
@@ -50,7 +52,7 @@ app.post '/driver/simple', (req, res) ->
 
 # SQL
 sqlPass = sqlRequester({
-  host: 'localhost'
+  locator: simpleLocator('localhost')
   database: 'facet'
   user: 'facet_user'
   password: 'HadleyWickham'
@@ -78,10 +80,10 @@ app.post '/driver/sql', (req, res) ->
 app.post '/pass/druid', (req, res) ->
   {context, query} = req.body
 
-  {host, port} = context or {}
+  {resource} = context or {}
+  resource or= '10.209.98.48'
   druidPass = druidRequester({
-    host: host or '10.209.98.48'
-    port: port or 8080
+    locator: simpleLocator(resource)
   })
 
   druidPass({context, query}, respondWithResult(res))
@@ -95,10 +97,10 @@ app.post '/driver/druid', (req, res) ->
     res.send(501, "Bad query: #{e.message}")
     return
 
-  { host, port } = context or {}
+  {resource} = context or {}
+  resource or= '10.209.98.48'
   druidPass = druidRequester({
-    host: host or '10.209.98.48'
-    port: port or 8080
+    locator: simpleLocator(resource)
   })
 
   druidDriver({

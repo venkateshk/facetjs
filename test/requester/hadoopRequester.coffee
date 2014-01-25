@@ -2,11 +2,12 @@ chai = require("chai")
 expect = chai.expect
 utils = require('../utils')
 
+simpleLocator = require('../../src/locator/simpleLocator')
+
 hadoopRequester = require('../../src/requester/hadoopRequester')
 
 prodHadoopRequester = hadoopRequester({
-  host: '10.151.42.82'
-  port: '8080'
+  locator: simpleLocator('10.151.42.82')
 })
 
 describe "Hadoop requester", ->

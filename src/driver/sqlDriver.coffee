@@ -404,10 +404,10 @@ condensedCommandToSQL = ({requester, queryBuilder, parentSegment, condensedComma
       if ds.length is 0
         ds.push(condensedCommand.getZeroProp())
 
-      splits = {
+      splits = [{
         prop: ds[0]
         _filtersByDataset: filtersByDataset
-      }
+      }]
 
     callback(null, splits)
     return

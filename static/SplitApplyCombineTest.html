@@ -20,8 +20,7 @@
           <option selected>Druid</option>
           <option>SQL</option>
         </select>
-        <label for="host">host:</label><input id="host" type="text"></input>
-        <label for="port">port:</label><input id="port" type="text"></input>
+        <label for="resource">resource:</label><input id="resource" type="text"></input>
         <label for="data-source">data source:</label><input id="data-source" type="text"></input>
       </div>
       <pre id="output"></pre>
@@ -45,8 +44,7 @@
         "aggregate": "count"
       }], null, 2);
 
-      d3.select("#host").property("value", localStorage['host'] || '10.20.30.40');
-      d3.select("#port").property("value", localStorage['port'] || '8080');
+      d3.select("#resource").property("value", localStorage['resource'] || '10.20.30.40');
       d3.select("#data-source").property("value", localStorage['dataSource'] || 'koalas');
       d3.select("#input").property("value", localStorage['query'] || defaultQuery);
 
@@ -119,8 +117,7 @@
         })
 
       function saveToLocal() {
-        localStorage['host'] = d3.select("#host").property("value");
-        localStorage['port'] = d3.select("#port").property("value");
+        localStorage['resource'] = d3.select("#resource").property("value");
         localStorage['dataSource'] = d3.select("#data-source").property("value");
         localStorage['query'] = d3.select("#input").property("value");
       }
@@ -147,8 +144,7 @@
             url: '/pass/druid',
             prety: true,
             context: {
-              host: d3.select("#host").property("value"),
-              port: d3.select("#port").property("value")
+              resource: d3.select("#resource").property("value")
             }
           });
 

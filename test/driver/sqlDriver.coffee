@@ -4,13 +4,15 @@ utils = require('../utils')
 
 {FacetQuery, FacetFilter} = require('../../src/query')
 
+simpleLocator = require('../../src/locator/simpleLocator')
+
 sqlRequester = require('../../src/requester/mySqlRequester')
 sqlDriver = require('../../src/driver/sqlDriver')
 
 verbose = false
 
 sqlPass = sqlRequester({
-  host: 'localhost'
+  locator: simpleLocator('localhost')
   database: 'facet'
   user: 'facet_user'
   password: 'HadleyWickham'

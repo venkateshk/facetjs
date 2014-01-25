@@ -4,6 +4,8 @@ utils = require('../utils')
 
 {FacetQuery, FacetFilter} = require('../../src/query')
 
+simpleLocator = require('../../src/locator/simpleLocator')
+
 hadoopRequester = require('../../src/requester/hadoopRequester')
 hadoopDriver = require('../../src/driver/hadoopDriver')
 
@@ -14,8 +16,7 @@ describe "Hadoop driver", ->
 
   describe "specific queries", ->
     hadoopPass = hadoopRequester({
-      host: '10.151.42.82'
-      port: '8080'
+      locator: simpleLocator('10.209.98.48')
     })
 
     driver = hadoopDriver({

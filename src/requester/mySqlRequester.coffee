@@ -1,14 +1,24 @@
 mysql = require('mysql')
 
-module.exports = ({host, user, password, database}) ->
-  connection = mysql.createConnection({
-    host
-    user
-    password
-    database
-  })
-
-  connection.connect()
+module.exports = ({locator, user, password, database}) ->
   return ({context, query}, callback) ->
-    connection.query(query, callback)
+    locator (err, location) ->
+      if err
+        callback(err)
+        return
+
+      connection = mysql.createConnection({
+        host: location.host
+        port: location.port ? 3306
+        user
+        password
+        database
+        charset: 'UTF8_BIN'
+      })
+
+      connection.connect()
+      connection.query(query, callback)
+      connection.end()
+      return
+
     return

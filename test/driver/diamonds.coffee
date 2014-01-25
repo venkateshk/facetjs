@@ -2,6 +2,8 @@ chai = require("chai")
 expect = chai.expect
 utils = require('../utils')
 
+simpleLocator = require('../../src/locator/simpleLocator')
+
 druidRequester = require('../../src/requester/druidRequester')
 sqlRequester = require('../../src/requester/mySqlRequester')
 hadoopRequester = require('../mocks/hadoopRequester')
@@ -21,7 +23,7 @@ driverFns.simple = simpleDriver(diamondsData)
 
 # MySQL
 sqlPass = sqlRequester({
-  host: 'localhost'
+  locator: simpleLocator('localhost')
   database: 'facet'
   user: 'facet_user'
   password: 'HadleyWickham'
@@ -37,7 +39,7 @@ driverFns.mySql = sqlDriver({
 
 # # Druid
 # druidPass = druidRequester({
-#   host: '10.209.98.48'
+#   locator: simpleLocator('10.209.98.48')
 #   port: 8080
 # })
 

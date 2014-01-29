@@ -36,6 +36,10 @@ class DruidQueryBuilder
     # A hacky way to determine that this is a histogram aggregated column (it ends with _hist)
     return /_hist$/.test(attribute)
 
+  @isUnique = (attribute) ->
+    # A hacky way to determine that this is a uniquely aggregated column (it starts with unique_)
+    return /^unique_/.test(attribute)
+
   constructor: ({@dataSource, @timeAttribute, @forceInterval, @approximate, @priority}) ->
     throw new Error("must have a dataSource") unless typeof @dataSource is 'string'
     throw new Error("must have a timeAttribute") unless typeof @timeAttribute is 'string'
@@ -347,11 +351,18 @@ class DruidQueryBuilder
         throw new Error("approximate queries not allowed") unless @approximate
         throw new Error("filtering uniqueCount unsupported by driver") if apply.filter
 
-        @addAggregation({
-          name: apply.name
-          type: "hyperUnique"
-          fieldName: apply.attribute
-        })
+        if DruidQueryBuilder.isUnique(apply.attribute)
+          @addAggregation({
+            name: apply.name
+            type: "hyperUnique"
+            fieldName: apply.attribute
+          })
+        else
+          @addAggregation({
+            name: apply.name
+            type: "dimensionality"
+            fieldNames: [apply.attribute]
+          })
 
       when 'quantile'
         throw new Error("approximate queries not allowed") unless @approximate

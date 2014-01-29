@@ -5,6 +5,9 @@ utils = require('../utils')
 {FacetQuery, FacetFilter} = require('../../src/query')
 
 simpleLocator = require('../../src/locator/simpleLocator')
+zookeeperLocator = require('../../src/locator/zookeeperLocator')({
+  servers: '10.140.17.215,10.6.134.41,10.4.214.175/prod/discovery'
+})
 
 druidRequester = require('../../src/requester/druidRequester')
 druidDriver = require('../../src/driver/druidDriver')

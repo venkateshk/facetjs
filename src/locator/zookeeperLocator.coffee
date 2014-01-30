@@ -2,6 +2,8 @@ async = require('async')
 zookeeper = require('node-zookeeper-client')
 {Exception} = zookeeper
 
+debug = false
+
 defaultDataExtractor = (data) ->
   try
     data = JSON.parse(data)
@@ -22,10 +24,10 @@ makeManagerForPath = (client, path, dataExtractor) ->
 
   onGetChildren = (err, children) ->
     if err
-      console.log('Failed to list children of %s due to: %s.', path, err)
+      console.log('Failed to list children of %s due to: %s.', path, err) if debug
       return
 
-    console.log('Children of %s are: %j.', path, children)
+    console.log('Children of %s are: %j.', path, children) if debug
     async.parallel(
       children.map((child) ->
         return (callback) ->
@@ -34,7 +36,7 @@ makeManagerForPath = (client, path, dataExtractor) ->
               if err.getCode() is Exception.NO_NODE
                 callback(null, null)
               else
-                console.log(err.stack)
+                console.log(err.stack) if debug
                 callback(null, null) #?
               return
 
@@ -50,7 +52,7 @@ makeManagerForPath = (client, path, dataExtractor) ->
     return
 
   onChange = (event) ->
-    console.log('Got watcher event: %s', event)
+    console.log('Got watcher event: %s', event) if debug
     client.getChildren(path, onChange, onGetChildren)
     return
 
@@ -67,7 +69,7 @@ makeManagerForPath = (client, path, dataExtractor) ->
     return
 
   return (callback) ->
-    console.log 'pool is:', pool
+    console.log('pool is:', pool) if debug
     if pool is null
       queue.push(callback)
     else if pool.length is 0
@@ -90,7 +92,7 @@ module.exports = ({servers, dataExtractor}) ->
 
     if not active
       client.on('connected', ->
-        console.log('Connected to ZooKeeper.')
+        console.log('Connected to ZooKeeper.') if debug
         return
       )
       client.connect()

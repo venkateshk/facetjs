@@ -284,6 +284,9 @@ class DruidQueryBuilder
     return
 
   addAggregateApply: (apply) ->
+    if apply.attribute is @timeAttribute
+      throw new Error("can not aggregate apply on time attribute")
+
     switch apply.aggregate
       when 'constant'
         @addPostAggregation({

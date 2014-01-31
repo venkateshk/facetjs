@@ -25,25 +25,27 @@ makeManagerForPath = (client, path, dataExtractor) ->
   onGetChildren = (err, children) ->
     if err
       console.log('Failed to list children of %s due to: %s.', path, err) if debug
+      pool = []
+      processQueue()
       return
 
     console.log('Children of %s are: %j.', path, children) if debug
-    async.parallel(
-      children.map((child) ->
-        return (callback) ->
-          client.getData(path + '/' + child, (err, data) ->
-            if err
-              if err.getCode() is Exception.NO_NODE
-                callback(null, null)
-              else
-                console.log(err.stack) if debug
-                callback(null, null) #?
-              return
-
-            callback(null, dataExtractor(data.toString('utf8')))
+    async.map(
+      children
+      (child, callback) ->
+        client.getData(path + '/' + child, (err, data) ->
+          if err
+            if err.getCode() is Exception.NO_NODE
+              callback(null, null)
+            else
+              console.log(err.stack) if debug
+              callback(null, null) #?
             return
-          )
-      )
+
+          callback(null, dataExtractor(data.toString('utf8')))
+          return
+        )
+
       (err, newPool) ->
         pool = newPool.filter(Boolean)
         processQueue()
@@ -58,30 +60,36 @@ makeManagerForPath = (client, path, dataExtractor) ->
 
   client.getChildren(path, onChange, onGetChildren)
 
-  getNext = ->
-    throw new Error('get next called on empty pool') unless pool?.length
-    next++
-    return pool[next % pool.length]
+  dispatch = (callback) ->
+    throw new Error('get next called on loading pool') unless pool
+    if pool.length
+      next++
+      callback(null, pool[next % pool.length])
+    else
+      callback(new Error('empty pool'))
 
   processQueue = ->
-    return unless pool.length
-    queue.shift()(null, getNext()) while queue.length
+    dispatch(queue.shift()) while queue.length
     return
 
   return (callback) ->
-    console.log('pool is:', pool) if debug
     if pool is null
       queue.push(callback)
-    else if pool.length is 0
-      callback(new Error('empty pool'))
     else
-      callback(null, getNext())
+      dispatch(callback)
     return
 
 
-module.exports = ({servers, dataExtractor}) ->
+# sessionTimeout, Session timeout in milliseconds, defaults to 30 seconds.
+# spinDelay, The delay (in milliseconds) between each connection attempts.
+# retries, The number of retry attempts for connection loss exception.
+module.exports = ({servers, dataExtractor, sessionTimeout, spinDelay, retries}) ->
   dataExtractor or= defaultDataExtractor
-  client = zookeeper.createClient(servers)
+  client = zookeeper.createClient(servers, {
+    sessionTimeout
+    spinDelay
+    retries
+  })
   active = false
 
   pathManager = {}
@@ -93,6 +101,10 @@ module.exports = ({servers, dataExtractor}) ->
     if not active
       client.on('connected', ->
         console.log('Connected to ZooKeeper.') if debug
+        return
+      )
+      client.on('disconnected', ->
+        console.log('Dosconnected from ZooKeeper.') if debug
         return
       )
       client.connect()

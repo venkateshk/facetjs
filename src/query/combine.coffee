@@ -33,7 +33,9 @@ class SliceCombine extends FacetCombine
   constructor: ({@method, @sort, limit}) ->
     @sort = FacetSort.fromSpec(@sort)
     @_ensureMethod('slice')
-    @limit = limit if limit?
+    if limit?
+      throw new TypeError('limit must be a number') if isNaN(limit)
+      @limit = Number(limit)
 
   toString: ->
     return "SliceCombine"

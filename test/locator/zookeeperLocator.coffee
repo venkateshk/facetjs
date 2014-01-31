@@ -61,7 +61,7 @@ getN = (n, locator, callback) ->
   )
 
 describe 'Zookeeper locator', ->
-  @timeout 100000
+  @timeout 60000
   myServiceLocator = null
   otherServiceLocator = null
 

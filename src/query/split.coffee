@@ -134,7 +134,7 @@ class TimePeriodSplit extends FacetSplit
     @segmentFilter = FacetSegmentFilter.fromSpec(segmentFilter) if segmentFilter
     @options = new FacetOptions(options) if options
     @timezone ?= 'Etc/UTC'
-    throw new TypeError("period must be in ['PT1S', 'PT1M', 'PT1H', 'P1D']") unless @period in ['PT1S', 'PT1M', 'PT1H', 'P1D']
+    throw new TypeError("period must be in ['PT1S', 'PT1M', 'PT1H', 'P1D', 'P1W']") unless @period in ['PT1S', 'PT1M', 'PT1H', 'P1D', 'P1W']
     throw new TypeError("invalid timezone '#{@timezone}'") unless isTimezone(@timezone)
     @_ensureBucket('timePeriod')
     @_verifyName()

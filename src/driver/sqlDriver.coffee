@@ -134,6 +134,10 @@ class SQLQueryBuilder
       select: '%Y-%m-%dT00:00:00Z'
       group: '%Y-%m-%d'
     }
+    'P1W': {
+      select: '%Y-%m-%dT00:00:00Z' # wrong
+      group: '%Y-%m/%u'
+    }
     'P1M': {
       select: '%Y-%m-00T00:00:00Z'
       group: '%Y-%m'

@@ -88,11 +88,12 @@ class HadoopQueryBuilder
         })
 
       when 'timePeriod'
-        timeBucketing = {
+        timeBucketing = { # Fix me
           'PT1S': 1000
           'PT1M': 60 * 1000
           'PT1H': 60 * 60 * 1000
           'P1D':  24 * 60 * 60 * 1000
+          'P1W':  7 * 24 * 60 * 60 * 1000
         }
         periodLength = timeBucketing[split.period]
         throw new Error("unsupported timePeriod period '#{split.period}'") unless periodLength

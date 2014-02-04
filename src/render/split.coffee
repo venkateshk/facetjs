@@ -17,7 +17,7 @@ module.exports = {
     }
 
   timePeriod: (attribute, period, timezone) ->
-    throw new Error("invalid period '#{period}'") unless period in ['PT1S', 'PT1M', 'PT1H', 'P1D']
+    throw new Error("invalid period '#{period}'") unless period in ['PT1S', 'PT1M', 'PT1H', 'P1D', 'P1W']
     return {
       bucket: 'timePeriod'
       attribute

@@ -1,8 +1,10 @@
 {specialJoin, getValueOf, isTimezone, find, dummyObject} = require('./common')
 
-getPropFromSegment = (segment, prop) ->
-  return null unless segment and segment.prop
-  return segment.prop[prop] or getPropFromSegment(segment.parent, prop)
+getPropFromSegment = (segment, propName) ->
+  return null unless segment
+  segmentProp = segment.prop
+  return null unless segmentProp
+  return if segmentProp.hasOwnProperty(propName) then segmentProp[propName] else getPropFromSegment(segment.parent, propName)
 
 
 class FacetSegmentFilter

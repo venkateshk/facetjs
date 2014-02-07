@@ -119,6 +119,97 @@ describe "FacetSplit", ->
       expect(split.getDataset()).to.equal('main')
       expect(split.valueOf()).to.deep.equal(splitSpec)
 
+    it "parallel", ->
+      splitSpec = {
+        bucket: 'parallel'
+        name: "MySplit"
+        splits: [
+          {
+            bucket: "identity"
+            attribute: "attr1"
+            dataset: 'd1'
+          }
+          {
+            bucket: "identity"
+            attribute: "attr2"
+            dataset: 'd2'
+          }
+        ]
+      }
+      split = FacetSplit.fromSpec(splitSpec)
+      expect(split.valueOf()).to.deep.equal(splitSpec)
+
+
+  describe "getAttributes", ->
+    it "works for simple split", ->
+      splitSpec = {
+        attribute: "timestamp"
+        bucket: "timePeriod"
+        name: "time_hour"
+        period: "PT1H"
+        timezone: "Etc/UTC"
+        segmentFilter: {
+          type: 'false'
+        }
+      }
+      expect(FacetSplit.fromSpec(splitSpec).getAttributes()).to.deep.equal(["timestamp"])
+
+    it "works for tuple split", ->
+      splitSpec = {
+        bucket: 'tuple'
+        splits: [
+          {
+            name: "Attr1"
+            bucket: "identity"
+            attribute: "attr1"
+          }
+          {
+            name: "Attr2"
+            bucket: "identity"
+            attribute: "attr2"
+          }
+        ]
+      }
+      expect(FacetSplit.fromSpec(splitSpec).getAttributes()).to.deep.equal(["attr1", "attr2"])
+
+    it "works for parallel split (different attributes)", ->
+      splitSpec = {
+        bucket: 'parallel'
+        name: "MySplit"
+        splits: [
+          {
+            bucket: "identity"
+            attribute: "attr1"
+            dataset: 'd1'
+          }
+          {
+            bucket: "identity"
+            attribute: "attr2"
+            dataset: 'd2'
+          }
+        ]
+      }
+      expect(FacetSplit.fromSpec(splitSpec).getAttributes()).to.deep.equal(["attr1", "attr2"])
+
+    it "works for parallel split (same attributes)", ->
+      splitSpec = {
+        bucket: 'parallel'
+        name: "MySplit"
+        splits: [
+          {
+            bucket: "identity"
+            attribute: "attr1"
+            dataset: 'd1'
+          }
+          {
+            bucket: "identity"
+            attribute: "attr1"
+            dataset: 'd2'
+          }
+        ]
+      }
+      expect(FacetSplit.fromSpec(splitSpec).getAttributes()).to.deep.equal(["attr1"])
+
 
   describe "getFilterFor", ->
     it "identity", ->

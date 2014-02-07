@@ -61,6 +61,8 @@ class FacetSplit
       (not @options or @options.isEqual(other.options)) and
       (not compareSegmentFilter or (Boolean(@segmentFilter) is Boolean(other.segmentFilter and @segmentFilter.isEqual(other.segmentFilter))))
 
+  getAttributes: ->
+    return [@attribute]
 
 
 class IdentitySplit extends FacetSplit
@@ -190,6 +192,8 @@ class TupleSplit extends FacetSplit
     otherSplits = other.splits
     return super and @splits.length is otherSplits.length and @splits.every((split, i) -> split.isEqual(otherSplits[i], true))
 
+  getAttributes: ->
+    return @splits.map(({attribute}) -> attribute).sort()
 
 
 class ParallelSplit extends FacetSplit
@@ -247,6 +251,13 @@ class ParallelSplit extends FacetSplit
 
   getDatasets: ->
     return @splits.map((split) -> split.getDataset())
+
+  getAttributes: ->
+    attributes = []
+    for split in @splits
+      for attribute in split.getAttributes()
+        attributes.push(attribute) unless attribute in attributes
+    return attributes.sort()
 
 
 # Make lookup

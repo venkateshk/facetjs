@@ -276,6 +276,10 @@ describe "FacetApply", ->
     it "each pair is only equal to itself", ->
       applySpecs = [
         {
+          aggregate: "constant"
+          value: 3600
+        }
+        {
           aggregate: "count"
         }
         {
@@ -358,6 +362,85 @@ describe "FacetApply", ->
             console.log 'applySpec2', applySpec2
             console.log 'res', FacetApply.fromSpec(applySpec1).isEqual(FacetApply.fromSpec(applySpec2))
             throw new Error("expected apply to be #{if i is j then 'equal' else 'unequal'}")
+
+
+  describe "getAttributes", ->
+    it "works on constant", ->
+      applySpec = {
+        aggregate: "constant"
+        value: 3600
+      }
+      expect(FacetApply.fromSpec(applySpec).getAttributes()).to.deep.equal([])
+
+    it "works on count", ->
+      applySpec = {
+        aggregate: "count"
+      }
+      expect(FacetApply.fromSpec(applySpec).getAttributes()).to.deep.equal([])
+
+    it "works on basic example", ->
+      applySpec = {
+        aggregate: "sum"
+        attribute: "count"
+      }
+      expect(FacetApply.fromSpec(applySpec).getAttributes()).to.deep.equal(["count"])
+
+    it "works on a complex example", ->
+      applySpec = {
+        arithmetic: "multiply"
+        operands: [
+          {
+            aggregate: "max"
+            attribute: "value"
+          }
+          {
+            aggregate: "min"
+            attribute: "count"
+          }
+        ]
+      }
+      expect(FacetApply.fromSpec(applySpec).getAttributes()).to.deep.equal(["count", "value"])
+
+    it "works on an overlapping complex example", ->
+      applySpec = {
+        arithmetic: "multiply"
+        operands: [
+          {
+            aggregate: "max"
+            attribute: "value"
+          }
+          {
+            aggregate: "min"
+            attribute: "value"
+          }
+        ]
+      }
+      expect(FacetApply.fromSpec(applySpec).getAttributes()).to.deep.equal(["value"])
+
+    it "works in a deep nested example", ->
+      applySpec = {
+        arithmetic: "divide"
+        operands: [
+          {
+            arithmetic: "divide"
+            operands: [
+              {
+                aggregate: "sum"
+                attribute: "value"
+              }
+              {
+                aggregate: "sum"
+                attribute: "count"
+              }
+            ]
+          }
+          {
+            aggregate: "constant"
+            value: 3600
+          }
+        ]
+      }
+      expect(FacetApply.fromSpec(applySpec).getAttributes()).to.deep.equal(["count", "value"])
 
 
   describe "breaker", ->

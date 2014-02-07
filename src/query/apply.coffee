@@ -91,6 +91,22 @@ class FacetApply
       datasets.push(dataset) unless dataset in datasets
     return datasets
 
+  getAttributes: ->
+    attributeCollection = {}
+    @_collectAttributes(attributeCollection)
+    attributes = []
+    attributes.push(k) for k, v of attributeCollection
+    attributes.sort()
+    return attributes
+
+  _collectAttributes: (attributes) ->
+    if @operands
+      @operands[0]._collectAttributes(attributes)
+      @operands[1]._collectAttributes(attributes)
+    else
+      attributes[@attribute] = 1 if @attribute
+    return
+
 
 class ConstantApply extends FacetApply
   constructor: ({name, @aggregate, @value, options}, datasetContext) ->

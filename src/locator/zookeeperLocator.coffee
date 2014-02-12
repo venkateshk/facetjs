@@ -17,7 +17,7 @@ defaultDataExtractor = (data) ->
     port: data.port
   }
 
-makeManagerForPath = (client, path, dataExtractor) ->
+makeManagerForPath = (client, path, dataExtractor, locatorTimeout) ->
   next = -1
   pool = null
   queue = []
@@ -73,18 +73,28 @@ makeManagerForPath = (client, path, dataExtractor) ->
     return
 
   return (callback) ->
-    if pool is null
-      queue.push(callback)
-    else
+    if pool
       dispatch(callback)
+      return
+
+    queue.push(callback)
+
+    if locatorTimeout
+      setTimeout((->
+        return unless callback in queue
+        queue = queue.filter((c) -> c isnt callback)
+        callback(new Error('timeout'))
+      ), locatorTimeout)
     return
 
 
+# connectionTimeout, The timeout for individual locators
 # sessionTimeout, Session timeout in milliseconds, defaults to 30 seconds.
 # spinDelay, The delay (in milliseconds) between each connection attempts.
 # retries, The number of retry attempts for connection loss exception.
-module.exports = ({servers, dataExtractor, sessionTimeout, spinDelay, retries}) ->
+module.exports = ({servers, dataExtractor, locatorTimeout, sessionTimeout, spinDelay, retries}) ->
   dataExtractor or= defaultDataExtractor
+  locatorTimeout or= 2000
   client = zookeeper.createClient(servers, {
     sessionTimeout
     spinDelay
@@ -93,7 +103,6 @@ module.exports = ({servers, dataExtractor, sessionTimeout, spinDelay, retries}) 
   active = false
 
   pathManager = {}
-
   return (path) ->
     throw new TypeError('path must be a string') unless typeof path is 'string'
     path = '/' + path if path[0] isnt '/'
@@ -110,6 +119,6 @@ module.exports = ({servers, dataExtractor, sessionTimeout, spinDelay, retries}) 
       client.connect()
       active = true
 
-    pathManager[path] or= makeManagerForPath(client, path, dataExtractor)
+    pathManager[path] or= makeManagerForPath(client, path, dataExtractor, locatorTimeout)
     return pathManager[path]
 

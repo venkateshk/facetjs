@@ -1,6 +1,7 @@
 async = require('async')
 {Duration} = require('./chronology')
 driverUtil = require('./driverUtil')
+SegmentTree = require('./segmentTree')
 {FacetFilter, TrueFilter, FacetSplit, FacetApply, FacetCombine, FacetQuery, AndFilter} = require('../query')
 
 # -----------------------------------------------------
@@ -368,7 +369,9 @@ condensedCommandToSQL = ({requester, queryBuilder, parentSegment, condensedComma
 
   queryToRun = queryBuilder.getQuery()
   if not queryToRun
-    callback(null, [{ prop: {}, _filtersByDataset: filtersByDataset }])
+    newSegmentTree = new SegmentTree({prop: {}})
+    newSegmentTree._filtersByDataset = filtersByDataset
+    callback(null, [newSegmentTree])
     return
 
   requester {query: queryToRun}, (err, ds) ->
@@ -393,13 +396,13 @@ condensedCommandToSQL = ({requester, queryBuilder, parentSegment, condensedComma
           range = [rangeStart, splitDuration.move(rangeStart, timezone, 1)]
           d[splitProp] = range
 
-      splits = ds.map (prop) -> {
-        prop
-        _filtersByDataset: FacetFilter.andFiltersByDataset(
+      splits = ds.map (prop) ->
+        newSegmentTree = new SegmentTree({prop})
+        newSegmentTree._filtersByDataset = FacetFilter.andFiltersByDataset(
           filtersByDataset
           split.getFilterByDatasetFor(prop)
         )
-      }
+        return newSegmentTree
     else
       if ds.length > 1
         callback(new Error('unexpected result'))
@@ -408,10 +411,9 @@ condensedCommandToSQL = ({requester, queryBuilder, parentSegment, condensedComma
       if ds.length is 0
         ds.push(condensedCommand.getZeroProp())
 
-      splits = [{
-        prop: ds[0]
-        _filtersByDataset: filtersByDataset
-      }]
+      newSegmentTree = new SegmentTree({prop: ds[0]})
+      newSegmentTree._filtersByDataset = filtersByDataset
+      splits = [newSegmentTree]
 
     callback(null, splits)
     return
@@ -437,10 +439,8 @@ module.exports = ({requester, table, filter}) ->
       datasetToTable[dataset.name] = table
 
     init = true
-    rootSegment = {
-      parent: null
-      _filtersByDataset: query.getFiltersByDataset(filter)
-    }
+    rootSegment = new SegmentTree({prop: {}})
+    rootSegment._filtersByDataset = query.getFiltersByDataset(filter)
     segments = [rootSegment]
 
     condensedGroups = query.getCondensedCommands()
@@ -472,12 +472,8 @@ module.exports = ({requester, table, filter}) ->
               return
 
             # Make the results into segments and build the tree
-            parentSegment.splits = splits
-
-            for split in splits
-              split.parent = parentSegment
-
-            callback(null, splits)
+            parentSegment.setSplits(splits)
+            callback(null, parentSegment.splits)
             return
           )
         (err, results) ->
@@ -511,6 +507,6 @@ module.exports = ({requester, table, filter}) ->
           callback(err)
           return
 
-        callback(null, driverUtil.cleanSegments(rootSegment or {}))
+        callback(null, (rootSegment or new SegmentTree({})).selfClean())
         return
     )

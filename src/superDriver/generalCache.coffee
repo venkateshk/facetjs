@@ -1,5 +1,5 @@
-# -----------------------------------------------------
 driverUtil = require('../driver/driverUtil')
+SegmentTree = require('../driver/segmentTree')
 { Duration } = require('../driver/chronology')
 {
   FacetQuery,
@@ -305,13 +305,12 @@ module.exports = ({driver}) ->
         return null unless prop
         postProcessor(prop) for postProcessor in postProcessors
         prop[split.name] = splitValue
-        driverUtil.cleanProp(prop)
-        segment = { prop }
+        segment = new SegmentTree({prop})
 
         if idx < condensedCommands.length
           childSegments = getCondensedCommandFromCache(datasetMap, splitValueFilter, condensedCommands, idx)
           return null unless childSegments
-          segment.splits = childSegments
+          segment.setSplits(childSegments)
 
         segments.push(segment)
 
@@ -324,13 +323,12 @@ module.exports = ({driver}) ->
       prop = propFromCache(filter, applyHashes)
       return null unless prop
       postProcessor(prop) for postProcessor in postProcessors
-      driverUtil.cleanProp(prop)
-      segment = { prop }
+      segment = new SegmentTree({prop})
 
       if idx < condensedCommands.length
         childSegments = getCondensedCommandFromCache(datasetMap, filter, condensedCommands, idx)
         return null unless childSegments
-        segment.splits = childSegments
+        segment.setSplits(childSegments)
 
       return [segment]
 
@@ -438,13 +436,7 @@ module.exports = ({driver}) ->
         callback(null, result)
         return
     else
-      driver request, (err, result) ->
-        if err
-          callback(err)
-          return
-
-        callback(null, result)
-        return
+      driver(request, callback)
 
     return
 

@@ -1,6 +1,7 @@
 async = require('async')
 { Duration } = require('./chronology')
 driverUtil = require('./driverUtil')
+SegmentTree = require('./segmentTree')
 {FacetFilter, FacetSplit, FacetApply, FacetCombine, FacetQuery} = require('../query')
 
 # -----------------------------------------------------
@@ -154,11 +155,8 @@ computeQuery = (data, query) ->
   for datasetName, datasetFilter of filtersByDataset
     rootRaw[datasetName] = data.filter(datasetFilter.getFilterFn())
 
-  rootSegment = {
-    prop: {}
-    parent: null
-    _raws: rootRaw
-  }
+  rootSegment = new SegmentTree({prop: {}})
+  rootSegment._raws = rootRaw
   originalSegmentGroups = segmentGroups = [[rootSegment]]
 
   groups = query.getCondensedCommands()
@@ -196,7 +194,7 @@ computeQuery = (data, query) ->
             buckets[keyString].push(d)
           bucketsByDataset[dataset] = buckets
 
-        segment.splits = keys.map((keyString) ->
+        segment.setSplits(keys.map((keyString) ->
           prop = {}
           prop[propName] = bucketValue[keyString]
 
@@ -204,12 +202,10 @@ computeQuery = (data, query) ->
           for dataset, buckets of bucketsByDataset
             raws[dataset] = buckets[keyString] or []
 
-          return {
-            _raws: raws
-            prop
-            parent: segment
-          }
-        )
+          newSplit = new SegmentTree({prop})
+          newSplit._raws = raws
+          return newSplit
+        ))
         return segment.splits
 
     for apply in applies
@@ -224,7 +220,7 @@ computeQuery = (data, query) ->
       for segmentGroup in segmentGroups
         combineFn(segmentGroup) # In place
 
-  return driverUtil.cleanSegments(originalSegmentGroups[0][0] or {})
+  return (originalSegmentGroups[0][0] or new SegmentTree({})).selfClean()
 
 
 module.exports = (dataGetter) ->

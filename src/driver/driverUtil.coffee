@@ -29,24 +29,6 @@ exports.inPlaceFilter = (array, fn) ->
   return
 
 
-exports.attributesFromApplies = (applies) ->
-  seenAttribute = {}
-
-  extractAttribute = (apply) ->
-    if apply.attribute
-      seenAttribute[apply.attribute] = true
-    else
-      apply.operands.forEach(extractAttribute)
-    return
-
-  applies.forEach(extractAttribute)
-  attributes = []
-  for attribute, v of seenAttribute
-    attributes.push(attribute)
-
-  return attributes
-
-
 # Converts dates to intervals
 dateToIntervalPart = (date) ->
   return date.toISOString()
@@ -137,46 +119,6 @@ exports.joinResults = (splitNames, applyNames, results) ->
   return joinResult
 
 
-# Clean segment - remove everything in the segment that starts with and underscore
-exports.cleanProp = (prop) ->
-  for key of prop
-    if key[0] is '_'
-      delete prop[key]
-  return
-
-
-exports.cleanSegments = cleanSegments = (segment) ->
-  delete segment.parent
-  delete segment._filtersByDataset
-  delete segment._raws
-
-  prop = segment.prop
-  for key of prop
-    if key[0] is '_'
-      delete prop[key]
-
-  splits = segment.splits
-  if splits
-    for split in splits
-      cleanSegments(split)
-
-  return segment
-
-
-# Adds parents to a split tree in place
-#
-# @param {SplitTree} root - the root of the split tree
-# @param {SplitTree} parent [null] - the parent for the initial node
-# @return {SplitTree} the input tree (with parent pointers)
-
-exports.parentify = parentify = (root, parent = null) ->
-  root.parent = parent
-  if root.splits
-    for split in root.splits
-      parentify(split, root)
-  return root
-
-
 # Flattens the split tree into an array
 #
 # @param {SplitTree} root - the root of the split tree
@@ -258,7 +200,7 @@ class exports.Table
       line = []
       for column in @splitColumns
         datum = row[column.name] or ''
-        line.push(if Array.isArray(datum) then csvEscape(rangeFn(datum)) else csvEscape(datum))
+        line.push(csvEscape(if Array.isArray(datum) then rangeFn(datum) else datum))
 
       for column in @applyColumns
         datum = row[column.name] or 0

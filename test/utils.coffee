@@ -3,6 +3,8 @@ chai = require("chai")
 expect = chai.expect
 
 {FacetQuery} = require('../src/query')
+SegmentTree = require('../src/driver/segmentTree')
+
 
 uniformizeResults = (result) ->
   if not result?.prop
@@ -13,8 +15,13 @@ uniformizeResults = (result) ->
     continue unless result.hasOwnProperty(k)
     continue if k is 'split'
     if k is 'prop'
+      propNames = []
+      propNames.push(name) for name, value of p
+      propNames.sort()
+
       prop = {}
-      for name, value of p
+      for name in propNames
+        value = p[name]
         continue unless p.hasOwnProperty(name)
         if typeof value is 'number' and value isnt Math.floor(value)
           prop[name] = Number(value.toPrecision(5))
@@ -81,7 +88,10 @@ exports.makeEqualityTest = (driverFns) ->
           console.log err
           throw err
 
-        results = results.map(uniformizeResults)
+        results = results.map((result) ->
+          expect(result).to.be.instanceof(SegmentTree)
+          return uniformizeResults(result.valueOf())
+        )
 
         if verbose
           console.log('vvvvvvvvvvvvvvvvvvvvvvv')

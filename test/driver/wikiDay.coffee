@@ -285,7 +285,7 @@ describe "Wikipedia day dataset", ->
         }
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
         { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
-        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 3 }
+        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Added', direction: 'descending' }, limit: 3 }
       ]
     }
 
@@ -307,7 +307,7 @@ describe "Wikipedia day dataset", ->
         }
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
         { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
-        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 3 }
+        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Added', direction: 'descending' }, limit: 3 }
       ]
     }
 

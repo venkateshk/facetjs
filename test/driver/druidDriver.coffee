@@ -46,7 +46,7 @@ describe "Druid driver", ->
       it "should work with [] return", (done) ->
         nullDriver {query}, (err, result) ->
           expect(err).to.be.null
-          expect(result).to.deep.equal({
+          expect(result.valueOf()).to.deep.equal({
             prop: {
               Count: 0
             }
@@ -57,7 +57,7 @@ describe "Druid driver", ->
       it "should work with [{result:[]}] return", (done) ->
         emptyDriver {query}, (err, result) ->
           expect(err).to.be.null
-          expect(result).to.deep.equal({
+          expect(result.valueOf()).to.deep.equal({
             prop: {
               Count: 0
             }
@@ -75,14 +75,14 @@ describe "Druid driver", ->
       it "should work with [] return", (done) ->
         nullDriver {query}, (err, result) ->
           expect(err).to.be.null
-          expect(result).to.deep.equal({})
+          expect(result.valueOf()).to.deep.equal({})
           done()
           return
 
       it "should work with [{result:[]}] return", (done) ->
         emptyDriver {query}, (err, result) ->
           expect(err).to.be.null
-          expect(result).to.deep.equal({})
+          expect(result.valueOf()).to.deep.equal({})
           done()
 
   describe "should work with driver level filter", ->
@@ -135,14 +135,12 @@ describe "Druid driver", ->
         ])
       }, (err, noFilterRes) ->
         expect(err).to.be.null
-        expect(noFilterRes).to.be.an('object')
         withFilter {
           query: new FacetQuery([
             { operation: 'apply', name: 'Count', aggregate: 'count' }
           ])
         }, (err, withFilterRes) ->
-          expect(withFilterRes).to.be.an('object')
-          expect(noFilterRes).to.deep.equal(withFilterRes)
+          expect(noFilterRes.valueOf()).to.deep.equal(withFilterRes.valueOf())
           done()
 
   describe "should work with nothingness", ->
@@ -164,7 +162,7 @@ describe "Druid driver", ->
       ]
       wikiDriver { query: new FacetQuery(querySpec) }, (err, result) ->
         expect(err).to.not.exist
-        expect(result).to.deep.equal({
+        expect(result.valueOf()).to.deep.equal({
           "prop": {}
         })
         done()
@@ -176,7 +174,7 @@ describe "Druid driver", ->
       ]
       wikiDriver { query: new FacetQuery(querySpec) }, (err, result) ->
         expect(err).to.be.null
-        expect(result).to.deep.equal({
+        expect(result.valueOf()).to.deep.equal({
           prop: {
             Count: 0
           }
@@ -194,7 +192,7 @@ describe "Druid driver", ->
       ]
       wikiDriver { query: new FacetQuery(querySpec) }, (err, result) ->
         expect(err).to.be.null
-        expect(result).to.deep.equal({
+        expect(result.valueOf()).to.deep.equal({
           prop: {
             Count: 0
           }
@@ -239,8 +237,8 @@ describe "Druid driver", ->
         }
         { operation: 'apply', name: 'Count', aggregate: 'count' }
       ])
-      driver {query}, (err, res) ->
-        expect(res).to.be.an('object') # to.deep.equal({})
+      driver {query}, (err, result) ->
+        expect(result).to.be.an('object') # to.deep.equal({})
         done()
 
     it "should get min/max time", (done) ->
@@ -248,11 +246,10 @@ describe "Druid driver", ->
         { operation: 'apply', name: 'Min', aggregate: 'min', attribute: 'time' }
         { operation: 'apply', name: 'Max', aggregate: 'max', attribute: 'time' }
       ])
-      driver {query}, (err, res) ->
+      driver {query}, (err, result) ->
         expect(err).to.not.exist
-        expect(res).to.be.an('object')
-        expect(res.prop.Min).to.be.an.instanceof(Date)
-        expect(res.prop.Max).to.be.an.instanceof(Date)
+        expect(result.prop.Min).to.be.an.instanceof(Date)
+        expect(result.prop.Max).to.be.an.instanceof(Date)
         done()
 
     it "should complain if min/max time is mixed with other applies", (done) ->
@@ -261,7 +258,7 @@ describe "Druid driver", ->
         { operation: 'apply', name: 'Max', aggregate: 'max', attribute: 'time' }
         { operation: 'apply', name: 'Count', aggregate: 'count' }
       ])
-      driver {query}, (err, res) ->
+      driver {query}, (err, result) ->
         expect(err).to.not.equal(null)
         expect(err.message).to.equal("can not mix and match min / max time with other aggregates (for now)")
         done()
@@ -288,12 +285,12 @@ describe "Druid driver", ->
           ]
         }
       ])
-      driver {query}, (err, res) ->
+      driver {query}, (err, result) ->
         expect(err).to.not.exist
-        expect(res).to.be.deep.equal({
+        expect(result.valueOf()).to.be.deep.equal({
           prop: {
-             "AvgAdded": 216.43371007799223
-             "AvgDelta/100": 0.31691260511524555
+            "AvgAdded": 216.43371007799223
+            "AvgDelta/100": 0.31691260511524555
           }
         })
         done()
@@ -313,9 +310,9 @@ describe "Druid driver", ->
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
         { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
       ])
-      driver {query}, (err, res) ->
+      driver {query}, (err, result) ->
         expect(err).to.not.exist
-        expect(res).to.be.an('object')
+        expect(result).to.be.an('object')
         done()
 
     it "should work without a combine (double split)", (done) ->
@@ -338,9 +335,9 @@ describe "Druid driver", ->
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
         { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
       ])
-      driver {query}, (err, res) ->
+      driver {query}, (err, result) ->
         expect(err).to.not.exist
-        expect(res).to.be.an('object')
+        expect(result).to.be.an('object')
         done()
 
     it "should work with sort-by-delta on derived apply", (done) ->
@@ -425,9 +422,9 @@ describe "Druid driver", ->
           limit: 3
         }
       ])
-      driver {query}, (err, res) ->
+      driver {query}, (err, result) ->
         expect(err).to.not.exist
-        expect(res).to.deep.equal({
+        expect(result.valueOf()).to.deep.equal({
           "prop": {},
           "splits": [
             {

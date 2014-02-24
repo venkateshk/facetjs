@@ -40,7 +40,7 @@ describe "SQL driver", ->
       it "should work with [] return", (done) ->
         emptyDriver {query}, (err, result) ->
           expect(err).to.be.null
-          expect(result).to.deep.equal({
+          expect(result.valueOf()).to.deep.equal({
             prop: {
               "Count": 0
             }
@@ -57,7 +57,7 @@ describe "SQL driver", ->
       it "should work with [] return", (done) ->
         emptyDriver {query}, (err, result) ->
           expect(err).to.be.null
-          expect(result).to.deep.equal({
+          expect(result.valueOf()).to.deep.equal({
             prop: {}
             splits: []
           })
@@ -88,14 +88,12 @@ describe "SQL driver", ->
         ])
       }, (err, noFilterRes) ->
         expect(err).to.be.null
-        expect(noFilterRes).to.be.an('object')
         withFilter {
           query: new FacetQuery([
             { operation: 'apply', name: 'Count', aggregate: 'count' }
           ])
         }, (err, withFilterRes) ->
-          expect(withFilterRes).to.be.an('object')
-          expect(noFilterRes).to.deep.equal(withFilterRes)
+          expect(noFilterRes.valueOf()).to.deep.equal(withFilterRes.valueOf())
           done()
 
   describe "should work with nothingness", ->
@@ -111,7 +109,7 @@ describe "SQL driver", ->
       ]
       diamondsDriver { query: new FacetQuery(querySpec) }, (err, result) ->
         expect(err).to.not.exist
-        expect(result).to.deep.equal({
+        expect(result.valueOf()).to.deep.equal({
           prop: {}
         })
         done()
@@ -123,7 +121,7 @@ describe "SQL driver", ->
       ]
       diamondsDriver { query: new FacetQuery(querySpec) }, (err, result) ->
         expect(err).to.be.null
-        expect(result).to.deep.equal({
+        expect(result.valueOf()).to.deep.equal({
           prop: {
             Count: 0
           }
@@ -141,7 +139,7 @@ describe "SQL driver", ->
       ]
       diamondsDriver { query: new FacetQuery(querySpec) }, (err, result) ->
         expect(err).to.be.null
-        expect(result).to.deep.equal({
+        expect(result.valueOf()).to.deep.equal({
           prop: {
             Count: 0
           }

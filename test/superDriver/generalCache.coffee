@@ -1405,7 +1405,7 @@ describe "General cache", ->
         ])
       }, (err, result) ->
         expect(err).to.be.null
-        expect(result).to.deep.equal({})
+        expect(result.valueOf()).to.deep.equal({})
         done()
 
   describe "zero checker", ->
@@ -1425,7 +1425,7 @@ describe "General cache", ->
         ])
       }, (err, result) ->
         expect(err).to.be.null
-        expect(result).to.deep.equal({ prop: { Count: 0 } })
+        expect(result.valueOf()).to.deep.equal({ prop: { Count: 0 } })
         done()
 
   describe "dayLightSavings checker", ->

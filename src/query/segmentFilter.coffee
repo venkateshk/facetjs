@@ -1,12 +1,5 @@
 {specialJoin, getValueOf, isTimezone, find, dummyObject} = require('./common')
 
-getPropFromSegment = (segment, propName) ->
-  return null unless segment
-  segmentProp = segment.prop
-  return null unless segmentProp
-  return if segmentProp.hasOwnProperty(propName) then segmentProp[propName] else getPropFromSegment(segment.parent, propName)
-
-
 class FacetSegmentFilter
   constructor: ->
     @type = 'base'
@@ -76,12 +69,12 @@ class IsSegmentFilter extends FacetSegmentFilter
       start = Date.parse(start) if typeof start is 'string'
       end = Date.parse(end) if typeof end is 'string'
       return (segment) ->
-        [segStart, segEnd] = getPropFromSegment(segment, myProp)
+        [segStart, segEnd] = segment.getProp(myProp)
         return segStart.valueOf() is start and segEnd.valueOf() is end
     else
       myProp = @prop
       myValue = @value
-      return (segment) -> getPropFromSegment(segment, myProp) is myValue
+      return (segment) -> segment.getProp(myProp) is myValue
 
 
 class InSegmentFilter extends FacetSegmentFilter
@@ -106,7 +99,7 @@ class InSegmentFilter extends FacetSegmentFilter
   getFilterFn: ->
     myProp = @prop
     myValues = @values
-    return (segment) -> getPropFromSegment(segment, myProp) in myValues
+    return (segment) -> segment.getProp(myProp) in myValues
 
 
 

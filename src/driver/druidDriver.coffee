@@ -1,6 +1,7 @@
 async = require('async')
 { Duration } = require('./chronology')
 driverUtil = require('./driverUtil')
+SegmentTree = require('./segmentTree')
 {
   FacetQuery, CondensedCommand
   FacetFilter, TrueFilter, InFilter, AndFilter
@@ -1189,10 +1190,8 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
       return
 
     init = true
-    rootSegment = {
-      parent: null
-      _filtersByDataset: query.getFiltersByDataset(filter)
-    }
+    rootSegment = new SegmentTree({prop:{}})
+    rootSegment._filtersByDataset = query.getFiltersByDataset(filter)
     segments = [rootSegment]
 
     condensedGroups = query.getCondensedCommands()
@@ -1235,35 +1234,23 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
             # Make the results into segments and build the tree
             if condensedCommand.split
               propToSplit = if lastCmd
-                (prop) ->
-                  driverUtil.cleanProp(prop)
-                  return {
-                    parent: parentSegment
-                    prop
-                  }
+                (prop) -> new SegmentTree({prop})
               else
                 (prop) ->
-                  driverUtil.cleanProp(prop)
-                  return {
-                    parent: parentSegment
-                    prop
-                    _filtersByDataset: FacetFilter.andFiltersByDataset(
-                      parentSegment._filtersByDataset
-                      condensedCommand.split.getFilterByDatasetFor(prop)
-                    )
-                  }
+                  newSegmentTree = new SegmentTree({prop})
+                  newSegmentTree._filtersByDataset = FacetFilter.andFiltersByDataset(
+                    parentSegment._filtersByDataset
+                    condensedCommand.split.getFilterByDatasetFor(prop)
+                  )
+                  return newSegmentTree
 
-              parentSegment.splits = splits = props.map(propToSplit)
+              parentSegment.setSplits(props.map(propToSplit))
             else
-              prop = props[0]
-              driverUtil.cleanProp(prop)
-              splits = [{
-                parent: parentSegment
-                prop
-                _filtersByDataset: parentSegment._filtersByDataset
-              }]
+              newSegmentTree = new SegmentTree({ prop: props[0] })
+              newSegmentTree._filtersByDataset = parentSegment._filtersByDataset
+              parentSegment.setSplits([newSegmentTree])
 
-            callback(null, splits)
+            callback(null, parentSegment.splits)
             return
           )
           return
@@ -1299,7 +1286,7 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
           callback(err)
           return
 
-        callback(null, driverUtil.cleanSegments(rootSegment or {}))
+        callback(null, (rootSegment or new SegmentTree({})).selfClean())
         return
     )
     return

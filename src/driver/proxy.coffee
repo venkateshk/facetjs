@@ -1,3 +1,5 @@
+SegmentTree = require('./segmentTree')
+
 exports.ajax = ({url, context, prety}) ->
   posterContext = context
   return (request, callback) ->
@@ -15,7 +17,7 @@ exports.ajax = ({url, context, prety}) ->
         query: query.valueOf()
       }, null, if prety then 2 else null)
       success: (res) ->
-        callback(null, res)
+        callback(null, new SegmentTree(res))
         return
       error: (xhr) ->
         text = xhr.responseText
@@ -48,7 +50,7 @@ exports.worker = ({url, params, numWorkers}) ->
     if type is 'error'
       @__callback__(e.data.error)
     else if type is 'result'
-      @__callback__(null, e.data.result)
+      @__callback__(null, new SegmentTree(e.data.result))
     else
       throw new Error("unexpected message type '#{type}' from worker")
 

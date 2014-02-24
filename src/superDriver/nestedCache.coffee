@@ -1,4 +1,5 @@
 driverUtil = require('../driver/driverUtil')
+SegmentTree = require('../driver/segmentTree')
 { FacetQuery, FacetFilter, AndFilter, FacetSplit, FacetCombine } = require('../query')
 
 find = (list, fn) ->
@@ -126,7 +127,6 @@ module.exports = ({transport, onData}) ->
 
       myQuery = newQuery
       myData = newData
-      driverUtil.parentify(myData)
       myOnData(myData, 'final')
       return
 
@@ -301,8 +301,12 @@ module.exports = ({transport, onData}) ->
             driverLog 'failed to load query'
             return
 
-          attachSplit.splits = partialData.splits
-          driverUtil.parentify(myData)
+          if partialData not instanceof SegmentTree
+            myOnData(myData, 'final')
+            driverLog 'expected a SegmentTree'
+            return
+
+          attachSplit.setSplits(partialData.splits)
           myOnData(myData, 'final')
           driverLog 'Finally a win (with addition)'
           return

@@ -170,9 +170,13 @@
           try {
             input = JSON.parse(input);
           } catch (e) {
-            d3.select("#output")
-              .text("Could not parse JSON");
-            throw e;
+            try {
+              input = eval('(' + input + ')');
+            } catch (e) {
+              d3.select("#output")
+                .text("Could not parse JSON");
+              throw e;
+            }
           }
 
           saveToLocal();

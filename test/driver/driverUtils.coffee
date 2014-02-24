@@ -1,5 +1,4 @@
-chai = require("chai")
-expect = chai.expect
+{ expect } = require("chai")
 
 { FacetQuery } = require('../../src/query')
 driverUtil = require('../../src/driver/driverUtil')

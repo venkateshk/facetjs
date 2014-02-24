@@ -16,12 +16,6 @@ expectedQuery = null
 driverFns = {}
 driverFns.wikipediaSimple = wikipediaSimple = simpleDriver(wikipediaData)
 
-disown = (root) ->
-  newRoot = {}
-  newRoot.prop = root.prop if root.prop
-  newRoot.splits = root.splits.map(disown) if root.splits
-  return newRoot
-
 nestedCacheCallback = null
 nestedCacheInstance = nestedCache({
   transport: (request, callback) ->
@@ -36,7 +30,7 @@ nestedCacheInstance = nestedCache({
     return
   onData: (data, state) ->
     return unless state is 'final'
-    nestedCacheCallback(null, disown(data))
+    nestedCacheCallback(null, data)
     nestedCacheCallback = null
     return
 })

@@ -125,6 +125,10 @@ module.exports = ({transport, onData}) ->
         myOnData(null, 'final')
         return
 
+      if newData not instanceof SegmentTree
+        myOnData(null, 'final')
+        return
+
       myQuery = newQuery
       myData = newData
       myOnData(myData, 'final')

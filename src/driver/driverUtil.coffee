@@ -119,29 +119,6 @@ exports.joinResults = (splitNames, applyNames, results) ->
   return joinResult
 
 
-# Flattens the split tree into an array
-#
-# @param {SplitTree} root - the root of the split tree
-# @param {prepend,append,none} order - what to do with the root of the tree
-# @return {Array(SplitTree)} the tree nodes in the order specified
-
-exports.flattenTree = flattenTree = (root, order) ->
-  throw new TypeError('must have a tree') unless root
-  throw new TypeError('order must be on of prepend, append, or none') unless order in ['prepend', 'append', 'none']
-  flattenTreeHelper(root, order, result = [])
-  return result
-
-flattenTreeHelper = (root, order, result) ->
-  result.push(root) if order is 'prepend' or not root.splits
-
-  if root.splits
-    for split in root.splits
-      flattenTreeHelper(split, order, result)
-
-  result.push(root) if order is 'append'
-  return
-
-
 # Creates a flat list of props
 
 exports.createTabular = createTabular = (root, order, rangeFn) ->

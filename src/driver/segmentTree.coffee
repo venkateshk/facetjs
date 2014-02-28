@@ -1,6 +1,10 @@
 cleanProp = (prop) ->
-  for key of prop
-    delete prop[key] if key[0] is '_'
+  for key, value of prop
+    if key[0] is '_'
+      delete prop[key]
+    else if Array.isArray(value) and typeof value[0] is 'string'
+      value[0] = new Date(value[0])
+      value[1] = new Date(value[1])
   return
 
 
@@ -58,6 +62,9 @@ class SegmentTree
       return true if @prop is subTree.prop
       subTree = subTree.parent
     return false
+
+  computeTags: (baseFilter) ->
+    return
 
   # Flattens the segment tree into an array
   #

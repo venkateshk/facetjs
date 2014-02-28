@@ -10,7 +10,6 @@ class FacetApply
       if @datasetContext and dataset isnt @datasetContext
         throw new Error("dataset conflict between '#{@datasetContext}' and '#{dataset}'")
 
-
   _ensureAggregate: (aggregate) ->
     if not @aggregate
       @aggregate = aggregate # Set the aggregate if it is so far undefined
@@ -45,6 +44,9 @@ class FacetApply
 
   toString: ->
     return @_addNameToString("base apply")
+
+  toHash: ->
+    throw new Error('can not call this directly')
 
   valueOf: ->
     apply = {}
@@ -119,6 +121,11 @@ class ConstantApply extends FacetApply
   toString: ->
     return @_addNameToString(String(@value))
 
+  toHash: ->
+    hashStr = "C:#{@value}"
+    hashStr += '/' + @filter.toHash() if @filter
+    return hashStr
+
   valueOf: ->
     apply = super
     apply.aggregate = @aggregate
@@ -150,6 +157,11 @@ class CountApply extends FacetApply
   toString: ->
     return @_addNameToString("count()")
 
+  toHash: ->
+    hashStr = "CT"
+    hashStr += '/' + @filter.toHash() if @filter
+    return hashStr
+
   valueOf: ->
     apply = super
     apply.aggregate = @aggregate
@@ -172,6 +184,11 @@ class SumApply extends FacetApply
 
   toString: ->
     return @_addNameToString("#{@aggregate}(`#{@attribute}`)")
+
+  toHash: ->
+    hashStr = "SM:#{@attribute}"
+    hashStr += '/' + @filter.toHash() if @filter
+    return hashStr
 
   valueOf: ->
     apply = super
@@ -197,6 +214,11 @@ class AverageApply extends FacetApply
   toString: ->
     return @_addNameToString("#{@aggregate}(`#{@attribute}`)")
 
+  toHash: ->
+    hashStr = "AV:#{@attribute}"
+    hashStr += '/' + @filter.toHash() if @filter
+    return hashStr
+
   valueOf: ->
     apply = super
     apply.aggregate = @aggregate
@@ -217,6 +239,11 @@ class MinApply extends FacetApply
 
   toString: ->
     return @_addNameToString("#{@aggregate}(`#{@attribute}`)")
+
+  toHash: ->
+    hashStr = "MN:#{@attribute}"
+    hashStr += '/' + @filter.toHash() if @filter
+    return hashStr
 
   valueOf: ->
     apply = super
@@ -239,6 +266,11 @@ class MaxApply extends FacetApply
   toString: ->
     return @_addNameToString("#{@aggregate}(`#{@attribute}`)")
 
+  toHash: ->
+    hashStr = "MX:#{@attribute}"
+    hashStr += '/' + @filter.toHash() if @filter
+    return hashStr
+
   valueOf: ->
     apply = super
     apply.aggregate = @aggregate
@@ -259,6 +291,11 @@ class UniqueCountApply extends FacetApply
 
   toString: ->
     return @_addNameToString("#{@aggregate}(`#{@attribute}`)")
+
+  toHash: ->
+    hashStr = "UC:#{@attribute}"
+    hashStr += '/' + @filter.toHash() if @filter
+    return hashStr
 
   valueOf: ->
     apply = super
@@ -281,6 +318,11 @@ class QuantileApply extends FacetApply
 
   toString: ->
     return @_addNameToString("quantile(#{@attribute}, #{@quantile})")
+
+  toHash: ->
+    hashStr = "QT:#{@attribute}:#{@quantile}"
+    hashStr += '/' + @filter.toHash() if @filter
+    return hashStr
 
   valueOf: ->
     apply = super
@@ -310,6 +352,9 @@ class AddApply extends FacetApply
     expr = "(#{expr})" if from in ['divide', 'multiply']
     return @_addNameToString(expr)
 
+  toHash: ->
+    return "#{@operands[0].toHash()}+#{@operands[1].toHash()}"
+
   valueOf: ->
     apply = super
     apply.arithmetic = @arithmetic
@@ -334,6 +379,9 @@ class SubtractApply extends FacetApply
     expr = "(#{expr})" if from in ['divide', 'multiply']
     return @_addNameToString(expr)
 
+  toHash: ->
+    return "#{@operands[0].toHash()}-#{@operands[1].toHash()}"
+
   valueOf: ->
     apply = super
     apply.arithmetic = @arithmetic
@@ -357,6 +405,9 @@ class MultiplyApply extends FacetApply
     expr = "#{@operands[0].toString(@arithmetic)} * #{@operands[1].toString(@arithmetic)}"
     expr = "(#{expr})" if from is 'divide'
     return @_addNameToString(expr)
+
+  toHash: ->
+    return "#{@operands[0].toHash()}*#{@operands[1].toHash()}"
 
   valueOf: ->
     apply = super
@@ -384,6 +435,9 @@ class DivideApply extends FacetApply
     expr = "#{@operands[0].toString(@arithmetic)} / #{@operands[1].toString(@arithmetic)}"
     expr = "(#{expr})" if from is 'divide'
     return @_addNameToString(expr)
+
+  toHash: ->
+    return "#{@operands[0].toHash()}/#{@operands[1].toHash()}"
 
   valueOf: ->
     apply = super

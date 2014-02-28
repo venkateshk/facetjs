@@ -50,60 +50,8 @@ class LRUCache
 
 # -------------------------
 
-# converts a filter to a string
-filterToHash = do ->
-  filterToHashHelper = (filter) ->
-    return switch filter.type
-      when 'true'     then "T"
-      when 'false'    then "F"
-      when 'is'       then "IS:#{filter.attribute}:#{filter.value}"
-      when 'in'       then "IN:#{filter.attribute}:#{filter.values.join(';')}"
-      when 'contains' then "C:#{filter.attribute}:#{filter.value}"
-      when 'match'    then "F:#{filter.attribute}:#{filter.expression}"
-      when 'within'   then "W:#{filter.attribute}:#{filter.range[0].valueOf()}:#{filter.range[1].valueOf()}"
-      when 'not'      then "N(#{filterToHashHelper(filter.filter)})"
-      when 'and'      then "(#{filter.filters.map(filterToHashHelper).join(')^(')})"
-      when 'or'       then "(#{filter.filters.map(filterToHashHelper).join(')v(')})"
-      else throw new Error("filter type unsupported by driver")
-
-  return (filter) -> filterToHashHelper(filter.simplify())
-
-
-# converts a single dataset apply to a string
-applyToHash = (apply) ->
-  if apply.aggregate
-    applyStr = switch apply.aggregate
-      when 'constant'    then "C:#{apply.value}"
-      when 'count'       then "CT"
-      when 'sum'         then "SM:#{apply.attribute}"
-      when 'average'     then "AV:#{apply.attribute}"
-      when 'min'         then "MN:#{apply.attribute}"
-      when 'max'         then "MX:#{apply.attribute}"
-      when 'uniqueCount' then "UC:#{apply.attribute}"
-      when 'quantile'    then "QT:#{apply.attribute}:#{apply.quantile}"
-      else throw new Error("apply aggregate unsupported by driver")
-
-    if apply.filter
-      applyStr += '/' + filterToHash(apply.filter)
-
-  else if apply.arithmetic
-    [op1, op2] = apply.operands
-    applyStr = switch apply.arithmetic
-      when 'add'      then "#{applyToHash(op1)}+#{applyToHash(op2)}"
-      when 'subtract' then "#{applyToHash(op1)}-#{applyToHash(op2)}"
-      when 'multiply' then "#{applyToHash(op1)}*#{applyToHash(op2)}"
-      when 'divide'   then "#{applyToHash(op1)}/#{applyToHash(op2)}"
-      else throw new Error("apply arithmetic unsupported by driver")
-
-  return applyStr
-
-
-splitToHash = (split) ->
-  return switch split.bucket
-    when 'identity'   then "ID:#{split.attribute}"
-    when 'continuous' then "CT:#{split.attribute}:#{split.offset}:#{split.size}"
-    when 'timePeriod' then "TP:#{split.attribute}" # :#{split.period}:#{split.timezone}
-    else throw new Error("bucket '#{split.bucket}' unsupported by driver")
+filterToHash = (filter) ->
+  return filter.simplify().toHash()
 
 
 filterSplitToHash = (datasetMap, filter, split) ->
@@ -112,7 +60,7 @@ filterSplitToHash = (datasetMap, filter, split) ->
     dataset = datasetMap[split.getDataset()]
     andFilter = new AndFilter([dataset.getFilter(), filter])
     extract = andFilter.extractFilterByAttribute(split.attribute)
-    return dataset.source + '#' + filterToHash(extract[0]) + '//' + splitToHash(split)
+    return dataset.source + '#' + filterToHash(extract[0]) + '//' + split.toHash()
   ).sort().join('*')
 
 
@@ -126,7 +74,7 @@ appliesToHashes = (appliesByDataset, datasetMap) ->
       datasetFilter = dataset.getFilter()
       applyHashes.push({
         name: apply.name
-        hash: dataset.source + '#' + applyToHash(apply)
+        hash: dataset.source + '#' + apply.toHash()
         datasetFilter
         datasetFilterHash: filterToHash(datasetFilter)
       })

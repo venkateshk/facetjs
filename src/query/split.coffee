@@ -29,6 +29,9 @@ class FacetSplit
   toString: ->
     return @_addName("base split")
 
+  toHash: ->
+    throw new Error('can not call this directly')
+
   valueOf: ->
     split = { bucket: @bucket }
     split.name = @name if @name
@@ -78,6 +81,9 @@ class IdentitySplit extends FacetSplit
   toString: ->
     return @_addName("#{@bucket}(`#{@attribute}`)")
 
+  toHash: ->
+    return "ID:#{@attribute}"
+
   valueOf: ->
     split = super
     split.attribute = @attribute
@@ -108,6 +114,9 @@ class ContinuousSplit extends FacetSplit
 
   toString: ->
     return @_addName("#{@bucket}(`#{@attribute}`, #{@size}, #{@offset})")
+
+  toHash: ->
+    return "CT:#{@attribute}:#{@size}:#{@offset}"
 
   valueOf: ->
     split = super
@@ -145,6 +154,9 @@ class TimePeriodSplit extends FacetSplit
   toString: ->
     return @_addName("#{@bucket}(`#{@attribute}`, #{@period}, #{@timezone})")
 
+  toHash: ->
+    return "TP:#{@attribute}:#{@period}:#{@timezone}"
+
   valueOf: ->
     split = super
     split.attribute = @attribute
@@ -180,6 +192,9 @@ class TupleSplit extends FacetSplit
   toString: ->
     return @_addName("(#{@splits.join(' x ')})")
 
+  toHash: ->
+    return '(' + @splits.map((split) -> split.toHash()).join(')*(') + ')'
+
   valueOf: ->
     split = super
     split.splits = @splits.map(getValueOf)
@@ -211,6 +226,9 @@ class ParallelSplit extends FacetSplit
 
   toString: ->
     return @_addName("#{@splits.join(' | ')}")
+
+  toHash: ->
+    return '(' + @splits.map((split) -> split.toHash()).join(')|(') + ')'
 
   valueOf: ->
     split = super

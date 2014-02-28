@@ -235,6 +235,9 @@ class FacetFilter
     stringifier = @stringifier or FacetFilter.defaultStringifier
     return stringifier.stringify(this)
 
+  toHash: ->
+    throw new Error('can not call this directly')
+
 
 class TrueFilter extends FacetFilter
   constructor: ->
@@ -243,6 +246,9 @@ class TrueFilter extends FacetFilter
 
   getFilterFn: ->
     return -> true
+
+  toHash: ->
+    return 'T'
 
 
 
@@ -254,6 +260,8 @@ class FalseFilter extends FacetFilter
   getFilterFn: ->
     return -> false
 
+  toHash: ->
+    return 'F'
 
 
 class IsFilter extends FacetFilter
@@ -281,6 +289,9 @@ class IsFilter extends FacetFilter
     attribute = @attribute
     value = @value
     return (d) -> d[attribute] is value
+
+  toHash: ->
+    return "IS:#{@attribute}:#{@value}"
 
 
 
@@ -325,6 +336,9 @@ class InFilter extends FacetFilter
     values = @values
     return (d) -> d[attribute] in values
 
+  toHash: ->
+    return "IN:#{@attribute}:#{@values.join(';')}"
+
 
 
 class ContainsFilter extends FacetFilter
@@ -347,6 +361,9 @@ class ContainsFilter extends FacetFilter
     attribute = @attribute
     value = @value
     return (d) -> String(d[attribute]).indexOf(value) isnt -1
+
+  toHash: ->
+    return "C:#{@attribute}:#{@value}"
 
 
 
@@ -374,6 +391,9 @@ class MatchFilter extends FacetFilter
     attribute = @attribute
     expression = new RegExp(@expression)
     return (d) -> expression.test(d[attribute])
+
+  toHash: ->
+    return "F:#{@attribute}:#{@expression}"
 
 
 
@@ -405,6 +425,9 @@ class WithinFilter extends FacetFilter
       return (d) -> r0 <= new Date(d[attribute]) < r1
     else
       return (d) -> r0 <= Number(d[attribute]) < r1
+
+  toHash: ->
+    return "W:#{@attribute}:#{@range[0].valueOf()}:#{@range[1].valueOf()}"
 
 
 
@@ -467,6 +490,9 @@ class NotFilter extends FacetFilter
   getFilterFn: ->
     filter = @filter.getFilterFn()
     return (d) -> not filter(d)
+
+  toHash: ->
+    return "N(#{@filter.toHash()})"
 
 
 
@@ -603,6 +629,9 @@ class AndFilter extends FacetFilter
       for filter in filters
         return false unless filter(d)
       return true
+
+  toHash: ->
+    return "(#{@filters.map((filter) -> filter.toHash()).join(')^(')})"
 
 
 
@@ -753,6 +782,10 @@ class OrFilter extends FacetFilter
       for filter in filters
         return true if filter(d)
       return false
+
+  toHash: ->
+    return "(#{@filters.map((filter) -> filter.toHash()).join(')v(')})"
+
 
 
 # Class methods ------------------------

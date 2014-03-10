@@ -5,13 +5,13 @@ start
 NamedApply
   = _ name:Name _ "<-" _ apply:AdditiveArithmetic _
     {
-      var namedApply = {name: name.join('') };
+      var namedApply = { name: name };
       for (var k in apply) { namedApply[k] = apply[k] }
       return namedApply;
     }
 
 Name "Name"
-  = [a-z0-9A-Z_]+
+  = $([a-z0-9A-Z_]+)
 
 AdditiveArithmetic
   = head:MultiplicativeArithmetic tail:(_ [+-] _ MultiplicativeArithmetic)*
@@ -64,40 +64,29 @@ AggregateFn1 "Aggregare Function"
   / "uniqueCount"
 
 Attribute "Attribute"
-  = "`" chars:Name "`" { return chars.join(""); }
+  = "`" chars:Name "`" { return chars; }
 
 
 /* Numbers */
 
 Number "Number"
-  = int:Int frac:Frac exp:Exp { return parseFloat(int + frac + exp); }
-  / int:Int frac:Frac         { return parseFloat(int + frac);       }
-  / int:Int exp:Exp           { return parseFloat(int + exp);        }
-  / int:Int                   { return parseFloat(int);              }
+  = n: $(Int Frac? Exp?) { return parseFloat(n); }
 
 Int
-  = digit19:Digit19 digits:Digits     { return digit19 + digits;       }
-  / digit:Digit
-  / "-" digit19:Digit19 digits:Digits { return "-" + digit19 + digits; }
-  / "-" digit:Digit                   { return "-" + digit;            }
+  = $("-"? [1-9] Digits)
+  / $("-"? Digit)
 
 Frac
-  = "." digits:Digits { return "." + digits; }
+  = $("." Digits)
 
 Exp
-  = e:E digits:Digits { return e + digits; }
+  = $([eE] [+-]? Digits)
 
 Digits
-  = digits:Digit+ { return digits.join(""); }
-
-E
-  = e:[eE] sign:[+-]? { return e + sign; }
+  = $ Digit+
 
 Digit
   = [0-9]
-
-Digit19
-  = [1-9]
 
 
 _ "Whitespace"

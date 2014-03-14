@@ -36,7 +36,7 @@ driverFns.mySql = sqlDriver({
 
 # # Druid
 druidPass = druidRequester({
-  locator: simpleLocator('10.209.98.48')
+  locator: simpleLocator('10.225.137.202')
 })
 
 driverFns.druid = druidDriver({
@@ -48,8 +48,8 @@ driverFns.druid = druidDriver({
     type: 'within'
     attribute: 'time'
     range: [
-      new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0))
-      new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))
+      new Date("2013-02-26T00:00:00Z")
+      new Date("2013-02-27T00:00:00Z")
     ]
   })
 })

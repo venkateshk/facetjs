@@ -16,7 +16,7 @@ describe "Hadoop driver", ->
 
   describe "specific queries", ->
     hadoopPass = hadoopRequester({
-      locator: simpleLocator('10.209.98.48')
+      locator: simpleLocator('10.225.137.202')
     })
 
     driver = hadoopDriver({
@@ -57,8 +57,8 @@ describe "Hadoop driver", ->
           type: 'within'
           attribute: 'timestamp'
           range: [
-            new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0))
-            new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))
+            new Date("2013-02-26T00:00:00Z")
+            new Date("2013-02-27T00:00:00Z")
           ]
         }
         {

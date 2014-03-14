@@ -5,9 +5,6 @@ utils = require('../utils')
 {FacetQuery, FacetFilter} = require('../../src/query')
 
 simpleLocator = require('../../src/locator/simpleLocator')
-zookeeperLocator = require('../../src/locator/zookeeperLocator')({
-  servers: '10.140.17.215,10.6.134.41,10.4.214.175/prod/discovery'
-})
 
 druidRequester = require('../../src/requester/druidRequester')
 druidDriver = require('../../src/driver/druidDriver')
@@ -87,7 +84,7 @@ describe "Druid driver", ->
 
   describe "should work with driver level filter", ->
     druidPass = druidRequester({
-      locator: simpleLocator('10.209.98.48')
+      locator: simpleLocator('10.225.137.202')
     })
 
     noFilter = druidDriver({
@@ -106,8 +103,8 @@ describe "Druid driver", ->
           type: 'within'
           attribute: 'time'
           range: [
-            new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0))
-            new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))
+            new Date("2013-02-26T00:00:00Z")
+            new Date("2013-02-27T00:00:00Z")
           ]
         },
         {
@@ -145,7 +142,7 @@ describe "Druid driver", ->
 
   describe "should work with nothingness", ->
     druidPass = druidRequester({
-      locator: simpleLocator('10.209.98.48')
+      locator: simpleLocator('10.225.137.202')
     })
 
     wikiDriver = druidDriver({
@@ -203,7 +200,7 @@ describe "Druid driver", ->
 
   describe "specific queries", ->
     druidPass = druidRequester({
-      locator: simpleLocator('10.209.98.48')
+      locator: simpleLocator('10.225.137.202')
     })
 
     driver = druidDriver({
@@ -224,8 +221,8 @@ describe "Druid driver", ->
               type: 'within'
               attribute: 'time'
               range: [
-                new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0))
-                new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))
+                new Date("2013-02-26T00:00:00Z")
+                new Date("2013-02-27T00:00:00Z")
               ]
             },
             {
@@ -243,6 +240,12 @@ describe "Druid driver", ->
 
     it "should get min/max time", (done) ->
       query = new FacetQuery([
+        {
+          operation: "filter"
+          type: "within"
+          attribute: "timestamp"
+          range: [new Date("2010-01-01T00:00:00"), new Date("2045-01-01T00:00:00")]
+        }
         { operation: 'apply', name: 'Min', aggregate: 'min', attribute: 'time' }
         { operation: 'apply', name: 'Max', aggregate: 'max', attribute: 'time' }
       ])
@@ -270,8 +273,8 @@ describe "Druid driver", ->
           type: 'within'
           attribute: 'time'
           range: [
-            new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0))
-            new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))
+            new Date("2013-02-26T00:00:00Z")
+            new Date("2013-02-27T00:00:00Z")
           ]
         }
         { operation: 'apply', name: 'AvgAdded', aggregate: 'average', attribute: 'added' }
@@ -302,8 +305,8 @@ describe "Druid driver", ->
           type: 'within'
           attribute: 'time'
           range: [
-            new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0))
-            new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))
+            new Date("2013-02-26T00:00:00Z")
+            new Date("2013-02-27T00:00:00Z")
           ]
         }
         { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
@@ -322,8 +325,8 @@ describe "Druid driver", ->
           type: 'within'
           attribute: 'time'
           range: [
-            new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0))
-            new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))
+            new Date("2013-02-26T00:00:00Z")
+            new Date("2013-02-27T00:00:00Z")
           ]
         }
         { operation: 'split', name: 'Language', bucket: 'identity', attribute: 'language' }
@@ -371,8 +374,8 @@ describe "Druid driver", ->
           type: 'within'
           attribute: 'time'
           range: [
-            new Date(Date.UTC(2013, 2 - 1, 26, 0, 0, 0))
-            new Date(Date.UTC(2013, 2 - 1, 27, 0, 0, 0))
+            new Date("2013-02-26T00:00:00Z")
+            new Date("2013-02-27T00:00:00Z")
           ]
         }
         {
@@ -448,3 +451,90 @@ describe "Druid driver", ->
           ]
         })
         done()
+
+
+  describe "propagates context", ->
+    querySpy = null
+    requesterSpy = (request, callback) ->
+      querySpy(request.query)
+      callback(null, [])
+      return
+
+    driver = druidDriver({
+      requester: requesterSpy
+      dataSource: 'wikipedia_editstream'
+      timeAttribute: 'time'
+      approximate: true
+    })
+
+    it "does not send empty context", (done) ->
+      context = {}
+      query = new FacetQuery([
+        { operation: 'apply', name: 'Count', aggregate: 'count' }
+      ])
+
+      count = 0
+      querySpy = (query) ->
+        count++
+        expect(query).to.deep.equal({
+          "queryType": "timeseries",
+          "dataSource": "wikipedia_editstream",
+          "granularity": "all",
+          "intervals": [
+            "1000-01-01/3000-01-01"
+          ],
+          "aggregations": [
+            { "name": "Count", "type": "count" }
+          ]
+        })
+        return
+
+      driver {
+        context
+        query
+      }, (err, result) ->
+        expect(count).to.equal(1)
+        done()
+
+    it "propagates existing context", (done) ->
+      context = {
+        metadata: {
+          a: 1
+          b: 2
+        }
+        priority: 5
+      }
+      query = new FacetQuery([
+        { operation: 'apply', name: 'Count', aggregate: 'count' }
+      ])
+
+      count = 0
+      querySpy = (query) ->
+        count++
+        expect(query).to.deep.equal({
+          "queryType": "timeseries",
+          "dataSource": "wikipedia_editstream",
+          "granularity": "all",
+          "intervals": [
+            "1000-01-01/3000-01-01"
+          ],
+          "context": {
+            "metadata": {
+              "a": 1,
+              "b": 2
+            },
+            "priority": 5
+          },
+          "aggregations": [
+            { "name": "Count", "type": "count" }
+          ]
+        })
+        return
+
+      driver {
+        context
+        query
+      }, (err, result) ->
+        expect(count).to.equal(1)
+        done()
+

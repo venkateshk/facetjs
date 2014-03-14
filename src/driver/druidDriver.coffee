@@ -41,11 +41,9 @@ class DruidQueryBuilder
     # A hacky way to determine that this is a uniquely aggregated column (it starts with unique_)
     return /^unique_/.test(attribute)
 
-  constructor: ({@dataSource, @timeAttribute, @forceInterval, @approximate, @priority}) ->
+  constructor: ({@dataSource, @timeAttribute, @forceInterval, @approximate, @context}) ->
     throw new Error("must have a dataSource") unless typeof @dataSource is 'string'
     throw new Error("must have a timeAttribute") unless typeof @timeAttribute is 'string'
-    @priority ?= 'default'
-    throw new TypeError("invalid priority") if @priority isnt 'default' and isNaN(@priority)
     @queryType = 'timeseries'
     @granularity = 'all'
     @filter = null
@@ -55,51 +53,51 @@ class DruidQueryBuilder
     @intervals = null
     @useCache = true
 
-  addToContext: (context, attribute) ->
-    return context[attribute] if context[attribute]
-    context[attribute] = "v#{@jsCount}"
+  addToNamespace: (namespace, attribute) ->
+    return namespace[attribute] if namespace[attribute]
+    namespace[attribute] = "v#{@jsCount}"
     @jsCount++
-    return context[attribute]
+    return namespace[attribute]
 
-  # return { jsFilter, context }
-  filterToJSHelper: (filter, context) ->
+  # return { jsFilter, namespace }
+  filterToJSHelper: (filter, namespace) ->
     switch filter.type
       when 'true', 'false' then filter.type
 
       when 'is'
         throw new Error("can not filter on specific time") if filter.attribute is @timeAttribute
-        varName = @addToContext(context, filter.attribute)
+        varName = @addToNamespace(namespace, filter.attribute)
         "#{varName} === '#{filter.value}'"
 
       when 'in'
         throw new Error("can not filter on specific time") if filter.attribute is @timeAttribute
-        varName = @addToContext(context, filter.attribute)
+        varName = @addToNamespace(namespace, filter.attribute)
         filter.values.map((value) -> "#{varName} === '#{value}'").join('||')
 
       when 'contains'
         throw new Error("can not filter on specific time") if filter.attribute is @timeAttribute
-        varName = @addToContext(context, filter.attribute)
+        varName = @addToNamespace(namespace, filter.attribute)
         "String(#{varName}).indexOf('#{filter.value}') !== -1"
 
       when 'not'
-        "!(#{@filterToJSHelper(filter.filter, context)})"
+        "!(#{@filterToJSHelper(filter.filter, namespace)})"
 
       when 'and'
-        filter.filters.map(((filter) -> "(#{@filterToJSHelper(filter, context)})"), this).join('&&')
+        filter.filters.map(((filter) -> "(#{@filterToJSHelper(filter, namespace)})"), this).join('&&')
 
       when 'or'
-        filter.filters.map(((filter) -> "(#{@filterToJSHelper(filter, context)})"), this).join('||')
+        filter.filters.map(((filter) -> "(#{@filterToJSHelper(filter, namespace)})"), this).join('||')
 
       else
         throw new Error("unknown JS filter type '#{filter.type}'")
 
   filterToJS: (filter) ->
-    context = {}
+    namespace = {}
     @jsCount = 0
-    jsFilter = @filterToJSHelper(filter, context)
+    jsFilter = @filterToJSHelper(filter, namespace)
     return {
       jsFilter
-      context
+      namespace
     }
 
   timelessFilterToDruid: (filter) ->
@@ -298,7 +296,6 @@ class DruidQueryBuilder
 
       when 'count', 'sum', 'min', 'max'
         if @approximate and apply.aggregate in ['min', 'max'] and DruidQueryBuilder.isHistogram(apply.attribute)
-
           histogramAggregationName = "_hist_" + apply.attribute
           aggregation = {
             name: histogramAggregationName
@@ -319,10 +316,10 @@ class DruidQueryBuilder
 
         else
           if apply.filter
-            { jsFilter, context } = @filterToJS(apply.filter)
+            { jsFilter, namespace } = @filterToJS(apply.filter)
             fieldNames = []
             varNames = []
-            for fieldName, varName of context
+            for fieldName, varName of namespace
               fieldNames.push(fieldName)
               varNames.push(varName)
 
@@ -482,6 +479,17 @@ class DruidQueryBuilder
     return this
 
   getQuery: ->
+    emptyContext = true
+    queryContext = {}
+    for k, v of @context
+      emptyContext = false
+      queryContext[k] = v
+
+    if not @useCache
+      emptyContext = false
+      queryContext.useCache = false
+      queryContext.populateCache = false
+
     query = {
       @queryType
       @dataSource
@@ -489,15 +497,7 @@ class DruidQueryBuilder
       @intervals
     }
 
-    if not @useCache
-      query.context or= {}
-      query.context.useCache = false
-      query.context.populateCache = false
-
-    if @priority isnt 'default'
-      query.context or= {}
-      query.context.priority = @priority
-
+    query.context = queryContext unless emptyContext
     query.filter = @filter if @filter
 
     if @dimension
@@ -1218,7 +1218,7 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
               timeAttribute
               forceInterval
               approximate
-              priority: context.priority
+              context
             }
             parentSegment
             condensedCommand

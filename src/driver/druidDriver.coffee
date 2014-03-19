@@ -551,14 +551,19 @@ DruidQueryBuilder.queryFns = {
     return
 
   timeBoundry: ({requester, queryBuilder, filter, parentSegment, condensedCommand}, callback) ->
-    if not condensedCommand.applies.every((apply) -> apply.attribute is queryBuilder.timeAttribute and apply.aggregate in ['min', 'max'])
+    applies = condensedCommand.applies
+    if not applies.every((apply) -> apply.attribute is queryBuilder.timeAttribute and apply.aggregate in ['min', 'max'])
       callback(new Error("can not mix and match min / max time with other aggregates (for now)"))
       return
 
     queryObj = {
-      queryType: "timeBoundary"
+      queryType: 'timeBoundary'
       dataSource: queryBuilder.dataSource
     }
+
+    if applies.length is 1 and applies[0].aggregate is 'max'
+      # If there is only a max apply then use maxTime instead
+      queryObj.queryType = 'maxTime'
 
     requester {query: queryObj}, (err, ds) ->
       if err
@@ -577,7 +582,7 @@ DruidQueryBuilder.queryFns = {
         return
 
       prop = {}
-      for {name, aggregate} in condensedCommand.applies
+      for {name, aggregate} in applies
         prop[name] = new Date(ds[0].result[aggregate + 'Time'])
 
       callback(null, [prop])

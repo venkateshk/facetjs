@@ -255,6 +255,21 @@ describe "Druid driver", ->
         expect(result.prop.Max).to.be.an.instanceof(Date)
         done()
 
+    it "should get max time only", (done) ->
+      query = new FacetQuery([
+        {
+          operation: "filter"
+          type: "within"
+          attribute: "timestamp"
+          range: [new Date("2010-01-01T00:00:00"), new Date("2045-01-01T00:00:00")]
+        }
+        { operation: 'apply', name: 'Max', aggregate: 'max', attribute: 'time' }
+      ])
+      driver {query}, (err, result) ->
+        expect(err).to.not.exist
+        expect(result.prop.Max).to.be.an.instanceof(Date)
+        done()
+
     it "should complain if min/max time is mixed with other applies", (done) ->
       query = new FacetQuery([
         { operation: 'apply', name: 'Min', aggregate: 'min', attribute: 'time' }
@@ -294,6 +309,32 @@ describe "Druid driver", ->
           prop: {
             "AvgAdded": 216.43371007799223
             "AvgDelta/100": 0.31691260511524555
+          }
+        })
+        done()
+
+    it.skip "should deal with arbitrary context", (done) ->
+      query = new FacetQuery([
+        {
+          operation: 'filter'
+          type: 'within'
+          attribute: 'time'
+          range: [
+            new Date("2013-02-26T00:00:00Z")
+            new Date("2013-02-27T00:00:00Z")
+          ]
+        }
+        { operation: 'apply', name: 'AvgAdded', aggregate: 'average', attribute: 'added' }
+      ])
+      context = {
+        userData: { hello: "world" }
+        youngIsCool: true
+      }
+      driver {context, query}, (err, result) ->
+        expect(err).to.not.exist
+        expect(result.valueOf()).to.be.deep.equal({
+          prop: {
+            "AvgAdded": 216.43371007799223
           }
         })
         done()
@@ -498,7 +539,7 @@ describe "Druid driver", ->
 
     it "propagates existing context", (done) ->
       context = {
-        metadata: {
+        userData: {
           a: 1
           b: 2
         }
@@ -519,7 +560,7 @@ describe "Druid driver", ->
             "1000-01-01/3000-01-01"
           ],
           "context": {
-            "metadata": {
+            "userData": {
               "a": 1,
               "b": 2
             },

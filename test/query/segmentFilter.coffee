@@ -1,6 +1,7 @@
 chai = require("chai")
 expect = chai.expect
 
+SegmentTree = require('../../src/driver/segmentTree')
 {FacetSegmentFilter} = require('../../src/query')
 
 describe "FacetSegmentFilter", ->
@@ -18,32 +19,28 @@ describe "FacetSegmentFilter", ->
       expect(-> FacetSegmentFilter.fromSpec(segmentSilterSpec)).to.throw(Error, "unsupported segment filter type 'poo'")
 
   describe "filterFunction", ->
-    parentSegment = {
+    segment = new SegmentTree({
       prop: {
         'Country': 'USA'
       }
-    }
-    segments = [
-      {
-        parent: parentSegment
-        prop: {
-          'City': 'San Francisco'
+      splits: [
+        {
+          prop: {
+            'City': 'San Francisco'
+          }
         }
-      }
-      {
-        parent: parentSegment
-        prop: {
-          'City': ''
+        {
+          prop: {
+            'City': ''
+          }
         }
-      }
-      {
-        parent: parentSegment
-        prop: {
-          'City': 'San Jose'
+        {
+          prop: {
+            'City': 'San Jose'
+          }
         }
-      }
-    ]
-    parentSegment.splits = segments
+      ]
+    })
 
     it "works with 'San Francisco'", ->
       segmentSilterSpec = {
@@ -52,7 +49,7 @@ describe "FacetSegmentFilter", ->
         value: 'San Francisco'
       }
       filterFn = FacetSegmentFilter.fromSpec(segmentSilterSpec).getFilterFn()
-      expect(segments.filter(filterFn).length).to.equal(1)
+      expect(segment.splits.filter(filterFn).length).to.equal(1)
 
     it "works with 'London'", ->
       segmentSilterSpec = {
@@ -61,7 +58,7 @@ describe "FacetSegmentFilter", ->
         value: 'London'
       }
       filterFn = FacetSegmentFilter.fromSpec(segmentSilterSpec).getFilterFn()
-      expect(segments.filter(filterFn).length).to.equal(0)
+      expect(segment.splits.filter(filterFn).length).to.equal(0)
 
     it "works with ''", ->
       segmentSilterSpec = {
@@ -70,12 +67,72 @@ describe "FacetSegmentFilter", ->
         value: ""
       }
       filterFn = FacetSegmentFilter.fromSpec(segmentSilterSpec).getFilterFn()
-      expect(segments.filter(filterFn).length).to.equal(1)
+      expect(segment.splits.filter(filterFn).length).to.equal(1)
+
+    it "works with parent", ->
+      segmentSilterSpec = {
+        type: "is",
+        prop: "Country",
+        value: "USA"
+      }
+      filterFn = FacetSegmentFilter.fromSpec(segmentSilterSpec).getFilterFn()
+      expect(segment.splits.filter(filterFn).length).to.equal(3)
 
 
+  describe "filterFunction (works with time)", ->
+    segment = new SegmentTree({
+      prop: {
+        'Country': 'USA'
+      }
+      splits: [
+        {
+          prop: {
+            Time: [
+              "2013-02-26T16:00:00.000Z",
+              "2013-02-26T17:00:00.000Z"
+            ]
+          }
+        }
+        {
+          prop: {
+            Time: [
+              "2013-02-26T01:00:00.000Z",
+              "2013-02-26T02:00:00.000Z"
+            ]
+          }
+        }
+        {
+          prop: {
+            Time: [
+              "2013-02-26T15:00:00.000Z",
+              "2013-02-26T16:00:00.000Z"
+            ]
+          }
+        }
+      ]
+    })
 
+    it "works with IS time", ->
+      segmentSilterSpec = {
+        type: "is",
+        prop: "Time",
+        value: [
+          "2013-02-26T15:00:00.000Z",
+          "2013-02-26T16:00:00.000Z"
+        ]
+      }
+      filterFn = FacetSegmentFilter.fromSpec(segmentSilterSpec).getFilterFn()
+      expect(segment.splits.filter(filterFn).length).to.equal(1)
 
-
-
-
+    it "works with bad time", ->
+      segmentSilterSpec = {
+        type: "is",
+        prop: "Time",
+        value: [
+          "2013-02-26T15:00:00.000Z",
+          "2013-02-26T16:00:01.000Z"
+        ]
+      }
+      filterFn = FacetSegmentFilter.fromSpec(segmentSilterSpec).getFilterFn()
+      expect(segment.splits.filter(filterFn).length).to.equal(0)
 

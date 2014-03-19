@@ -1,5 +1,14 @@
 {specialJoin, getValueOf, isTimezone, find, dummyObject} = require('./common')
 
+parseValue = (value) ->
+  return value unless Array.isArray(value)
+  throw new Error("bad range has length of #{value.length}") unless value.length is 2
+  [start, end] = value
+  start = new Date(start) if typeof start is 'string'
+  end = new Date(end) if typeof end is 'string'
+  return [start, end]
+
+
 class FacetSegmentFilter
   constructor: ->
     @type = 'base'
@@ -48,9 +57,10 @@ class FalseSegmentFilter extends FacetSegmentFilter
 
 
 class IsSegmentFilter extends FacetSegmentFilter
-  constructor: ({@type, @prop, @value}) ->
+  constructor: ({@type, @prop, value}) ->
     @_ensureType('is')
     @_validateProp()
+    @value = parseValue(value)
 
   toString: ->
     return "seg##{@prop} is #{@value}"
@@ -59,18 +69,15 @@ class IsSegmentFilter extends FacetSegmentFilter
     return { type: @type, prop: @prop, value: @value }
 
   isEqual: (other) ->
-    return super(other) and other.value is @value
+    return super(other) and other.value is @value # ToDo: make this work for time
 
   getFilterFn: ->
     if Array.isArray(@value)
-      # value can also be a range for direct interval comparisons
       myProp = @prop
       [start, end] = @value
-      start = Date.parse(start) if typeof start is 'string'
-      end = Date.parse(end) if typeof end is 'string'
       return (segment) ->
         [segStart, segEnd] = segment.getProp(myProp)
-        return segStart.valueOf() is start and segEnd.valueOf() is end
+        return segStart.valueOf() is start.valueOf() and segEnd.valueOf() is end.valueOf()
     else
       myProp = @prop
       myValue = @value
@@ -78,10 +85,11 @@ class IsSegmentFilter extends FacetSegmentFilter
 
 
 class InSegmentFilter extends FacetSegmentFilter
-  constructor: ({@type, @prop, @values}) ->
+  constructor: ({@type, @prop, values}) ->
     @_ensureType('in')
     @_validateProp()
-    throw new TypeError('values must be an array') unless Array.isArray(@values)
+    throw new TypeError('values must be an array') unless Array.isArray(values)
+    @values = values.map(parseValue)
 
   toString: ->
     switch @values.length

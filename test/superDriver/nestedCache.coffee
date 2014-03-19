@@ -155,7 +155,7 @@ describe "Nested cache", ->
     }
 
 
-  describe 'caches adding a split and expansions', ->
+  describe 'caches adding a split and expansions (identity)', ->
     setUpQuery = [
       { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
       { operation: "split", name: "Language", bucket: "identity", attribute: "language" }
@@ -299,3 +299,160 @@ describe "Nested cache", ->
           { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
         ]
       })(done)
+
+
+  describe.only 'caches adding a split and expansions (time)', ->
+    setUpQuery = [
+      { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
+      { operation: "split", name: "Time", bucket: "timePeriod", attribute: "time", period: 'PT1H' }
+      { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
+      { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
+    ]
+
+    before (done) ->
+      allowQuery = true
+      driverFns.wikipediaCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
+        throw err if err?
+        allowQuery = false
+        done()
+        return
+      )
+
+    after -> allowQuery = true
+
+    it "adds an empty split (without querying)", testEquality {
+      drivers: ['wikipediaCached', 'wikipediaSimple']
+      query: [
+        { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
+        { operation: "split", name: "Time", bucket: "timePeriod", attribute: "time", period: 'PT1H' }
+        { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
+        { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
+        {
+          operation: "split", name: "Page", bucket: "identity", attribute: "page",
+          segmentFilter: {
+            type: "false"
+          }
+        }
+        { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
+        { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
+      ]
+    }
+
+    it "adds an expansion", (done) ->
+      allowQuery = true
+      checkEquality = true
+      expectedQuery = [
+        { operation: "filter", type: "within", attribute: "time", range: [new Date("2013-02-26T01:00:00.000Z"), new Date("2013-02-26T02:00:00.000Z")] }
+        { operation: "split", name: "Page", bucket: "identity", attribute: "page" }
+        { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
+        { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
+      ]
+      testEquality({
+        drivers: ['wikipediaCached', 'wikipediaSimple']
+        query: [
+          { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
+          { operation: "split", name: "Time", bucket: "timePeriod", attribute: "time", period: 'PT1H' }
+          { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
+          { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
+          {
+            operation: "split", name: "Page", bucket: "identity", attribute: "page",
+            segmentFilter: {
+              type: "or"
+              filters: [
+                { type: "is", prop: "Time", value: [new Date("2013-02-26T01:00:00.000Z"), new Date("2013-02-26T02:00:00.000Z")] }
+              ]
+            }
+          }
+          { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
+          { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
+        ]
+      })((err, result) ->
+        expect(result.splits[1])
+          .to.have.property('splits')
+          .that.is.an('array')
+        done()
+      )
+
+    it "adds another expansion", (done) ->
+      allowQuery = true
+      checkEquality = true
+      expectedQuery = [
+        { operation: "filter", type: "within", attribute: "time", range: [new Date("2013-02-26T15:00:00.000Z"), new Date("2013-02-26T16:00:00.000Z")] }
+        { operation: "split", name: "Page", bucket: "identity", attribute: "page" }
+        { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
+        { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
+      ]
+      testEquality({
+        drivers: ['wikipediaCached', 'wikipediaSimple']
+        query: [
+          { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
+          { operation: "split", name: "Time", bucket: "timePeriod", attribute: "time", period: 'PT1H' }
+          { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
+          { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
+          {
+            operation: "split", name: "Page", bucket: "identity", attribute: "page",
+            segmentFilter: {
+              type: "or"
+              filters: [
+                { type: "is", prop: "Time", value: [new Date("2013-02-26T01:00:00.000Z"), new Date("2013-02-26T02:00:00.000Z")] }
+                { type: "is", prop: "Time", value: [new Date("2013-02-26T15:00:00.000Z"), new Date("2013-02-26T16:00:00.000Z")] }
+              ]
+            }
+          }
+          { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
+          { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
+        ]
+      })((err, result) ->
+        expect(result.splits[2])
+          .to.have.property('splits')
+          .that.is.an('array')
+        done()
+      )
+
+    it "adds an expansion that does not exist", (done) ->
+      allowQuery = true
+      checkEquality = true
+      expectedQuery = [
+        { operation: "filter", type: "within", attribute: "time", range: [new Date("2010-02-26T15:00:00.000Z"), new Date("2010-02-26T16:00:00.000Z")] }
+        { operation: "split", name: "Page", bucket: "identity", attribute: "page" }
+        { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
+        { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
+      ]
+      testEquality({
+        drivers: ['wikipediaCached', 'wikipediaSimple']
+        query: [
+          { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
+          { operation: "split", name: "Time", bucket: "timePeriod", attribute: "time", period: 'PT1H' }
+          { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
+          { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
+          {
+            operation: "split", name: "Page", bucket: "identity", attribute: "page",
+            segmentFilter: {
+              type: "or"
+              filters: [
+                { type: "is", prop: "Time", value: [new Date("2013-02-26T01:00:00.000Z"), new Date("2013-02-26T02:00:00.000Z")] }
+                { type: "is", prop: "Time", value: [new Date("2013-02-26T15:00:00.000Z"), new Date("2013-02-26T16:00:00.000Z")] }
+                { type: "is", prop: "Time", value: [new Date("2010-02-26T15:00:00.000Z"), new Date("2010-02-26T16:00:00.000Z")] }
+              ]
+            }
+          }
+          { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
+          { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
+        ]
+      })(done)
+
+    it "filters", (done) ->
+      allowQuery = false
+      checkEquality = false
+      expectedQuery = null
+      testEquality({
+        drivers: ['wikipediaCached', 'wikipediaSimple']
+        query: [
+          { operation: "filter", type: "within", attribute: "time", range: [new Date("2013-02-26T01:00:00.000Z"), new Date("2013-02-26T02:00:00.000Z")] }
+          { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
+          { operation: "split", name: "Page", bucket: "identity", attribute: "page" }
+          { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
+          { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
+        ]
+      })(done)
+

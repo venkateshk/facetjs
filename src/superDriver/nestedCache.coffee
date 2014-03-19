@@ -24,13 +24,12 @@ getSplitCombines = (query) ->
 getApplies = (query) ->
   return query.getCondensedCommands()[0].applies
 
-isPropEqual = (prop1, prop2) ->
-  type = typeof prop1
-  return false if type isnt typeof prop2
-  if type is 'string'
-    return prop1 is prop2
+isPropValueEqual = (pv1, pv2) ->
+  if Array.isArray(pv1)
+    return false unless Array.isArray(pv2)
+    return pv1[0].valueOf() is pv2[0].valueOf() and pv1[1].valueOf() is pv2[1].valueOf()
   else
-    return prop1[0] is prop2[0] and prop1[1] is prop2[1]
+    return pv1 is pv2
 
 # Compares that the split combines are the same ignoring the bucket filters
 isSplitCombineEqual = (splitCombine1, splitCombine2, compareSegmentFilter = false) ->
@@ -74,12 +73,24 @@ getCanonicalSplitTreePaths = (query) ->
 
   return paths
 
-rangeSep = ' }woop_woop{ '
+
+timeSep = ' }woop_TIME_woop{ '
+numericSep = ' }woop_NUMERIC_woop{ '
 condenseRange = (v) ->
-  return if Array.isArray(v) then v.join(rangeSep) else v
+  return v unless Array.isArray(v)
+  [start, end] = v
+  if start instanceof Date
+    return start.valueOf() + timeSep + end.valueOf()
+  else
+    return start.valueOf() + numericSep + end.valueOf()
 
 expandRange = (v) ->
-  return if v.indexOf(rangeSep) isnt -1 then v.split(rangeSep) else v
+  if v.indexOf(timeSep) isnt -1
+    return v.split(timeSep, 2).map((d) -> new Date(+d))
+  else if v.indexOf(numericSep) isnt -1
+    return v.split(numericSep, 2).map((d) -> parseFloat(d))
+  else
+    return v
 
 getPathDiff = (oldQuery, newQuery) ->
   sep = ' >#>#> ' # Sort of hacky as it assumes that 'sep' is never in the data
@@ -94,7 +105,7 @@ findInData = (data, path, splitCombines) ->
   for part, i in path
     splitName = splitCombines[i].split.name
     return unless data.splits
-    found = find(data.splits, (split) -> isPropEqual(split.prop?[splitName], part))
+    found = find(data.splits, (split) -> isPropValueEqual(split.prop?[splitName], part))
     return unless found
     data = found
   return data
@@ -182,14 +193,14 @@ module.exports = ({transport, onData}) ->
       while splitIdx < splitCombineOffset
         mySplit = mySplitCombines[splitIdx].split
         propsToRemove.push(mySplit.name)
-        splitFilter = find(diff, (d) -> d.type is 'is' and d.attribute is mySplit.attribute)
+        splitFilter = find(diff, (d) -> d.type in ['is', 'within'] and d.attribute is mySplit.attribute)
         if not splitFilter
           driverLog 'filter change does not make sense, give up'
           makeFullQuery(newQuery)
           return
 
-        # ToDo: revisit 'is' with time filters
-        myDataRef = find(myDataRef.splits, (split) -> split.prop[mySplit.name] is splitFilter.value)
+        splitFilterValue = if splitFilter.type is 'in' then splitFilter.value else splitFilter.range
+        myDataRef = find(myDataRef.splits, (split) -> isPropValueEqual(split.prop[mySplit.name], splitFilterValue))
         if not myDataRef
           driverLog 'filter change does not work out, give up'
           makeFullQuery(newQuery)
@@ -262,8 +273,6 @@ module.exports = ({transport, onData}) ->
         return
 
       { added, removed } = getPathDiff(myQuery, newQuery)
-      #console.log 'added', added
-      #console.log 'removed', removed
 
       for removePath in removed
         collapseBucket = findInData(myData, removePath, newSplitCombines)

@@ -107,7 +107,7 @@ exports.makeEqualityTest = (driverFns) ->
             throw e
           i++
 
-        done()
+        done(null, results[0])
         return
 
 exports.makeErrorTest = (driverFns) ->

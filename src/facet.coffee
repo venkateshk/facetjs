@@ -4,6 +4,9 @@ copyHere = (subModule) ->
 
 copyHere(require('./query'))
 exports.driver = require('./driver')
+exports.requester = {
+  proxy: require('./requester/proxy')
+}
 copyHere(require('./render'))
 
 exports.WallTime = require('../lib/walltime')

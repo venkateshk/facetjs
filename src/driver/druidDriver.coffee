@@ -1153,9 +1153,6 @@ multiDatasetQuery = ({parentSegment, condensedCommand, builderSettings, requeste
         return
     else
       performApplyCombine(driverResult)
-      # console.log driverResults
-      # console.log '-----------------------'
-      # console.log driverResult
       callback(null, driverResult)
     return
 

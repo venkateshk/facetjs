@@ -384,6 +384,8 @@ describe "Druid driver", ->
         expect(result).to.be.an('object')
         done()
 
+    it "should work with numeric IS filters"
+
     it "should work with sort-by-delta on derived apply", (done) ->
       query = new FacetQuery([
         {

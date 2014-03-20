@@ -127,7 +127,7 @@
 
         if (driverStr === "SQL") {
           // SQL
-          var sqlRequester = facet.driver.proxy.ajax({
+          var sqlRequester = facet.requester.proxy.ajax({
             url: '/pass/sql',
             prety: true
           });
@@ -140,7 +140,7 @@
 
         if (driverStr === "Druid") {
           // DRUID
-          var druidRequester = facet.driver.proxy.ajax({
+          var druidRequester = facet.requester.proxy.ajax({
             url: '/pass/druid',
             prety: true,
             context: {

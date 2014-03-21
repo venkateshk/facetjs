@@ -1,6 +1,6 @@
 {
   "name": "facet",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "description": "split-apply-combine; unify data and vis; with single language",
   "keywords": [
     "split",
@@ -17,6 +17,9 @@
     "url": "http://github.com/vogievetsky/facet.git"
   },
   "main": "target/facet.js",
+  "scripts": {
+    "install": "./compile"
+  },
   "dependencies": {
     "async": "0.2.5",
     "walltime-js": "0.1.2",

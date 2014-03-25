@@ -268,6 +268,7 @@ describe "Druid driver", ->
       driver {query}, (err, result) ->
         expect(err).to.not.exist
         expect(result.prop.Max).to.be.an.instanceof(Date)
+        expect(isNaN(result.prop.Max.getTime())).to.be.false
         done()
 
     it "should complain if min/max time is mixed with other applies", (done) ->

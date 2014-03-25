@@ -561,7 +561,8 @@ DruidQueryBuilder.queryFns = {
       dataSource: queryBuilder.dataSource
     }
 
-    if applies.length is 1 and applies[0].aggregate is 'max'
+    maxTimeOnly = applies.length is 1 and applies[0].aggregate is 'max'
+    if maxTimeOnly
       # If there is only a max apply then use maxTime instead
       queryObj.queryType = 'maxTime'
 
@@ -575,15 +576,16 @@ DruidQueryBuilder.queryFns = {
 
       if not correctSingletonDruidResult(ds) or ds.length isnt 1
         callback({
-          message: "unexpected result from Druid (timeBoundry)"
+          message: "unexpected result from Druid (#{queryObj.queryType})"
           query: queryObj
           result: ds
         })
         return
 
+      result = ds[0].result
       prop = {}
       for {name, aggregate} in applies
-        prop[name] = new Date(ds[0].result[aggregate + 'Time'])
+        prop[name] = new Date(if maxTimeOnly then result else result[aggregate + 'Time'])
 
       callback(null, [prop])
       return

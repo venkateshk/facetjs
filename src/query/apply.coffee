@@ -117,6 +117,7 @@ class ConstantApply extends FacetApply
     @options = new FacetOptions(options) if options
     @_ensureAggregate('constant')
     @_verifyName()
+    throw new Error("constant apply must have a numeric value") unless typeof @value is 'number'
 
   toString: ->
     return @_addNameToString(String(@value))

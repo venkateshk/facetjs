@@ -37,6 +37,10 @@ describe "FacetApply", ->
       applySpec = { aggregate: 'sum', attribute: ["wtf?"] }
       expect(-> FacetApply.fromSpec(applySpec)).to.throw(Error, "attribute must be a string")
 
+    it "throws on constant without value", ->
+      applySpec = { name: "Const", aggregate: 'constant' }
+      expect(-> FacetApply.fromSpec(applySpec)).to.throw(Error, "constant apply must have a numeric value")
+
     it "throws on on dataset conflict", ->
       applySpec = {
         name: "lag"

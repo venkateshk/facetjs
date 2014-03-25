@@ -41,6 +41,16 @@ describe "FacetApply", ->
       applySpec = { name: "Const", aggregate: 'constant' }
       expect(-> FacetApply.fromSpec(applySpec)).to.throw(Error, "constant apply must have a numeric value")
 
+    it "throws on constant with bad value", ->
+      applySpec = { name: "Const", aggregate: 'constant', value: null }
+      expect(-> FacetApply.fromSpec(applySpec)).to.throw(Error, "constant apply must have a numeric value")
+
+      applySpec = { name: "Const", aggregate: 'constant', value: NaN }
+      expect(-> FacetApply.fromSpec(applySpec)).to.throw(Error, "constant apply must have a numeric value")
+
+      applySpec = { name: "Const", aggregate: 'constant', value: "wtf?" }
+      expect(-> FacetApply.fromSpec(applySpec)).to.throw(Error, "constant apply must have a numeric value")
+
     it "throws on on dataset conflict", ->
       applySpec = {
         name: "lag"

@@ -111,13 +111,15 @@ class FacetApply
 
 
 class ConstantApply extends FacetApply
-  constructor: ({name, @aggregate, @value, options}, datasetContext) ->
+  constructor: ({name, @aggregate, value, options}, datasetContext) ->
     super(arguments[0], '', dummyObject)
     @name = name if name
     @options = new FacetOptions(options) if options
     @_ensureAggregate('constant')
     @_verifyName()
-    throw new Error("constant apply must have a numeric value") unless typeof @value is 'number'
+    value = Number(value) if typeof value is 'string'
+    throw new Error("constant apply must have a numeric value") if typeof value isnt 'number' or isNaN(value)
+    @value = value
 
   toString: ->
     return @_addNameToString(String(@value))

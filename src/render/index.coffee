@@ -1,6 +1,6 @@
 FacetVis = require('./facetVis')
 
-exports.version = '0.5.3'
+exports.version = require('../version')
 
 exports.filter = require('./filter')
 exports.split = require('./split')

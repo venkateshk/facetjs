@@ -1,6 +1,6 @@
 {
   "name": "facet",
-  "version": "0.5.8",
+  "version": "0.6.0",
   "description": "split-apply-combine; unify data and vis; with single language",
   "keywords": [
     "split",

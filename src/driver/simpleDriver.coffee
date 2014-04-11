@@ -223,6 +223,51 @@ computeQuery = (data, query) ->
   return (originalSegmentGroups[0][0] or new SegmentTree({})).selfClean()
 
 
+introspectData = ({data, maxSample}) ->
+  return null unless data.length
+  sample = data.slice(0, maxSample)
+
+  attributeNames = []
+  for k of sample[0]
+    continue if k is ''
+    attributeNames.push(k)
+  attributeNames.sort()
+
+  maxYear = new Date().getUTCFullYear() + 5
+  isDate = (dt) ->
+    return false if not isNaN(dt) and Number(dt) < 3000
+    dt = new Date(dt)
+    return not isNaN(dt) and 1987 <= dt.getUTCFullYear() < maxYear
+
+  isNumber = (n) ->
+    return not isNaN(Number(n))
+
+  isInteger = (n) ->
+    return Number(n) is parseInt(n, 10)
+
+  isString = (str) ->
+    return typeof str is 'string'
+
+  return attributeNames.map (attributeName) ->
+    attribute = {
+      name: attributeName
+    }
+    column = sample.map((d) -> d[attributeName]).filter((x) -> x not in [null, ''])
+    if column.length
+      if column.every(isDate)
+        attribute.time = true
+
+      if column.every(isNumber)
+        attribute.numeric = true
+        if column.every(isInteger)
+          attribute.integer = true
+      else
+        if column.every(isString)
+          attribute.categorical = true
+
+    return attribute
+
+
 module.exports = (dataGetter) ->
   dataError = null
   dataArray = null
@@ -240,7 +285,7 @@ module.exports = (dataGetter) ->
   else
     throw new TypeError("dataGetter must be a function or raw data (array)")
 
-  return (request, callback) ->
+  driver = (request, callback) ->
     try
       throw new Error("request not supplied") unless request
       {context, query} = request
@@ -270,3 +315,30 @@ module.exports = (dataGetter) ->
       computeWithData()
 
     return
+
+  driver.introspect = (opts, callback) ->
+    {
+      maxSample
+    } = opts or {}
+
+    doIntrospect = ->
+      if dataError
+        callback(dataError)
+        return
+
+      attributes = introspectData({
+        data: dataArray
+        maxSample: maxSample or 1000
+      })
+
+      callback(null, attributes)
+      return
+
+    if waitingQueries
+      waitingQueries.push(doIntrospect)
+    else
+      doIntrospect()
+
+    return
+
+  return driver

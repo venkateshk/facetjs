@@ -7,22 +7,29 @@ module.exports = ({locator, timeout}) ->
         callback(err)
         return
 
-      path = '/druid/v2/' + (if query.queryType is 'heatmap' then 'heatmap' else '') # Druid is f-ed
-      path += '?pretty' if context?.pretty
-
-      queryBuffer = new Buffer(JSON.stringify(query), 'utf-8')
-
-      opts = {
-        host: location.host
-        port: location.port ? 8080
-        path
-        method: 'POST'
-        headers: {
+      if query.queryType is 'introspect'
+        path = "/druid/v2/datasources/#{query.dataSource}"
+        method = 'GET'
+        headers = null
+      else
+        path = '/druid/v2/'
+        path += 'heatmap' if query.queryType is 'heatmap' # Druid is f-ed
+        path += '?pretty' if context?.pretty
+        method = 'POST'
+        headers = {
           'Content-Type': 'application/json'
           'Content-Length': queryBuffer.length
         }
-      }
-      req = http.request(opts, (response) ->
+
+      queryBuffer = new Buffer(JSON.stringify(query), 'utf-8')
+
+      req = http.request({
+        host: location.host
+        port: location.port ? 8080
+        path
+        method
+        headers
+      }, (response) ->
         hasEnded = false
         # response.statusCode
         # response.headers
@@ -76,7 +83,7 @@ module.exports = ({locator, timeout}) ->
         callback(e)
         return
 
-      req.write(queryBuffer.toString('utf-8'))
+      req.write(queryBuffer.toString('utf-8')) if query.queryType isnt 'introspect'
       req.end()
       return
 

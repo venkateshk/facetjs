@@ -21,6 +21,80 @@ sqlPass = sqlRequester({
 describe "SQL driver", ->
   #@timeout(40 * 1000)
 
+  describe "introspects", ->
+    diamondsDriver = sqlDriver({
+      requester: sqlPass
+      table: 'wiki_day_agg'
+    })
+
+    it "works", (done) ->
+      diamondsDriver.introspect null, (err, attributes) ->
+        expect(attributes).to.deep.equal([
+          {
+            "name": "time",
+            "time": true
+          },
+          {
+            "name": "page",
+            "categorical": true
+          },
+          {
+            "name": "language",
+            "categorical": true
+          },
+          {
+            "name": "namespace",
+            "categorical": true
+          },
+          {
+            "name": "user",
+            "categorical": true
+          },
+          {
+            "name": "robot",
+            "numeric": true,
+            "integer": true
+          },
+          {
+            "name": "newPage",
+            "numeric": true,
+            "integer": true
+          },
+          {
+            "name": "geo",
+            "categorical": true
+          },
+          {
+            "name": "anonymous",
+            "numeric": true,
+            "integer": true
+          },
+          {
+            "name": "unpatrolled",
+            "numeric": true,
+            "integer": true
+          },
+          {
+            "name": "count",
+            "numeric": true,
+            "integer": true
+          },
+          {
+            "name": "delta",
+            "numeric": true
+          },
+          {
+            "name": "added",
+            "numeric": true
+          },
+          {
+            "name": "deleted",
+            "numeric": true
+          }
+        ])
+        done()
+
+
   describe "should work when getting back []", ->
     emptyRequester = (query, callback) ->
       callback(null, [])

@@ -1182,7 +1182,7 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
   queryLimit or= Infinity
 
   queriesMade = 0
-  return (request, callback) ->
+  driver = (request, callback) ->
     try
       throw new Error("request not supplied") unless request
       {context, query} = request
@@ -1294,5 +1294,40 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
         return
     )
     return
+
+  driver.introspect = (opts, callback) ->
+    requester {
+      query: {
+        queryType: 'introspect'
+        dataSource
+      }
+    }, (err, ret) ->
+      if err
+        callback(err)
+        return
+
+      attributes = [{
+        name: timeAttribute
+        time: true
+      }]
+
+      for dimension in ret.dimensions
+        attributes.push({
+          name: dimension
+          categorical: true
+        })
+
+      for metric in ret.metrics
+        continue if metric.indexOf('_hist') isnt -1 or metric.indexOf('unique_') is 0
+        attributes.push({
+          name: metric
+          numeric: true
+        })
+
+      callback(null, attributes)
+      return
+    return
+
+  return driver
 
 module.exports.DruidQueryBuilder = DruidQueryBuilder

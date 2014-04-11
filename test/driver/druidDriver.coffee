@@ -14,6 +14,117 @@ verbose = false
 describe "Druid driver", ->
   @timeout(5 * 1000)
 
+  describe "introspects", ->
+    druidPass = druidRequester({
+      locator: simpleLocator('10.225.137.202')
+    })
+
+    wikiDriver = druidDriver({
+      requester: druidPass
+      dataSource: 'wikipedia_editstream'
+      timeAttribute: 'time'
+      approximate: true
+    })
+
+    it "works", (done) ->
+      wikiDriver.introspect null, (err, attributes) ->
+        expect(attributes).to.deep.equal([
+          {
+            "name": "time",
+            "time": true
+          },
+          {
+            "name": "dma_code",
+            "categorical": true
+          },
+          {
+            "name": "continent_code",
+            "categorical": true
+          },
+          {
+            "name": "geo",
+            "categorical": true
+          },
+          {
+            "name": "area_code",
+            "categorical": true
+          },
+          {
+            "name": "robot",
+            "categorical": true
+          },
+          {
+            "name": "country_name",
+            "categorical": true
+          },
+          {
+            "name": "network",
+            "categorical": true
+          },
+          {
+            "name": "city",
+            "categorical": true
+          },
+          {
+            "name": "namespace",
+            "categorical": true
+          },
+          {
+            "name": "anonymous",
+            "categorical": true
+          },
+          {
+            "name": "unpatrolled",
+            "categorical": true
+          },
+          {
+            "name": "page",
+            "categorical": true
+          },
+          {
+            "name": "postal_code",
+            "categorical": true
+          },
+          {
+            "name": "language",
+            "categorical": true
+          },
+          {
+            "name": "newpage",
+            "categorical": true
+          },
+          {
+            "name": "user",
+            "categorical": true
+          },
+          {
+            "name": "region_lookup",
+            "categorical": true
+          },
+          {
+            "name": "count",
+            "numeric": true
+          },
+          {
+            "name": "added",
+            "numeric": true
+          },
+          {
+            "name": "variation",
+            "numeric": true
+          },
+          {
+            "name": "delta",
+            "numeric": true
+          },
+          {
+            "name": "deleted",
+            "numeric": true
+          }
+        ])
+        done()
+        return
+
   describe "should work when getting back [] and [{result:[]}]", ->
     nullRequester = (query, callback) ->
       callback(null, [])

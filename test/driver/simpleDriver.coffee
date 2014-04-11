@@ -15,6 +15,77 @@ wikiDriver = simpleDriver(wikiData)
 verbose = false
 
 describe "simple driver", ->
+  it "introspects", (done) ->
+    wikiDriver.introspect null, (err, attributes) ->
+      expect(attributes).to.deep.equal([
+        {
+          "name": "added",
+          "numeric": true,
+          "integer": true
+        },
+        {
+          "name": "anonymous",
+          "numeric": true,
+          "integer": true
+        },
+        {
+          "name": "count",
+          "numeric": true,
+          "integer": true
+        },
+        {
+          "name": "deleted",
+          "numeric": true,
+          "integer": true
+        },
+        {
+          "name": "delta",
+          "numeric": true,
+          "integer": true
+        },
+        {
+          "name": "geo",
+          "categorical": true
+        },
+        {
+          "name": "language",
+          "categorical": true
+        },
+        {
+          "name": "namespace",
+          "categorical": true
+        },
+        {
+          "name": "newPage",
+          "numeric": true,
+          "integer": true
+        },
+        {
+          "name": "page",
+          "categorical": true
+        },
+        {
+          "name": "robot",
+          "numeric": true,
+          "integer": true
+        },
+        {
+          "name": "time",
+          "time": true,
+          "categorical": true
+        },
+        {
+          "name": "unpatrolled",
+          "numeric": true,
+          "integer": true
+        },
+        {
+          "name": "user",
+          "categorical": true
+        }
+      ])
+      done()
+
   it "computes the correct count", (done) ->
     querySpec = [
       { operation: 'apply', name: 'Count', aggregate: 'count' }

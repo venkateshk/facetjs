@@ -424,7 +424,7 @@ module.exports = ({requester, table, filter}) ->
   throw new Error("must have a requester") unless typeof requester is 'function'
   throw new Error("must have table") unless typeof table is 'string'
 
-  return (request, callback) ->
+  driver = (request, callback) ->
     try
       throw new Error("request not supplied") unless request
       {context, query} = request
@@ -510,3 +510,31 @@ module.exports = ({requester, table, filter}) ->
         callback(null, (rootSegment or new SegmentTree({})).selfClean())
         return
     )
+
+  driver.introspect = (opt, callback) ->
+    requester {
+      query: "DESCRIBE `#{table}`"
+    }, (err, columns) ->
+      if err
+        callback(err)
+        return
+
+      # Field, Type, Null, Key, Default, Extra,
+      attributes = columns.map ({Field, Type}) ->
+        attribute = { name: Field }
+        if Type is 'datetime'
+          attribute.time = true
+        else if Type.indexOf('varchar(') is 0
+          attribute.categorical = true
+        else if Type.indexOf('int(') is 0 or Type.indexOf('bigint(') is 0
+          attribute.numeric = true
+          attribute.integer = true
+        else if Type.indexOf('decimal(') is 0
+          attribute.numeric = true
+        return attribute
+
+      callback(null, attributes)
+      return
+    return
+
+  return driver

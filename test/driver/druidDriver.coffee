@@ -34,15 +34,7 @@ describe "Druid driver", ->
             "time": true
           },
           {
-            "name": "dma_code",
-            "categorical": true
-          },
-          {
-            "name": "continent_code",
-            "categorical": true
-          },
-          {
-            "name": "geo",
+            "name": "anonymous",
             "categorical": true
           },
           {
@@ -50,7 +42,11 @@ describe "Druid driver", ->
             "categorical": true
           },
           {
-            "name": "robot",
+            "name": "city",
+            "categorical": true
+          },
+          {
+            "name": "continent_code",
             "categorical": true
           },
           {
@@ -58,11 +54,15 @@ describe "Druid driver", ->
             "categorical": true
           },
           {
-            "name": "network",
+            "name": "dma_code",
             "categorical": true
           },
           {
-            "name": "city",
+            "name": "geo",
+            "categorical": true
+          },
+          {
+            "name": "language",
             "categorical": true
           },
           {
@@ -70,11 +70,11 @@ describe "Druid driver", ->
             "categorical": true
           },
           {
-            "name": "anonymous",
+            "name": "network",
             "categorical": true
           },
           {
-            "name": "unpatrolled",
+            "name": "newpage",
             "categorical": true
           },
           {
@@ -86,11 +86,15 @@ describe "Druid driver", ->
             "categorical": true
           },
           {
-            "name": "language",
+            "name": "region_lookup",
             "categorical": true
           },
           {
-            "name": "newpage",
+            "name": "robot",
+            "categorical": true
+          },
+          {
+            "name": "unpatrolled",
             "categorical": true
           },
           {
@@ -98,19 +102,15 @@ describe "Druid driver", ->
             "categorical": true
           },
           {
-            "name": "region_lookup",
-            "categorical": true
+            "name": "added",
+            "numeric": true
           },
           {
             "name": "count",
             "numeric": true
           },
           {
-            "name": "added",
-            "numeric": true
-          },
-          {
-            "name": "variation",
+            "name": "deleted",
             "numeric": true
           },
           {
@@ -118,7 +118,7 @@ describe "Druid driver", ->
             "numeric": true
           },
           {
-            "name": "deleted",
+            "name": "variation",
             "numeric": true
           }
         ])

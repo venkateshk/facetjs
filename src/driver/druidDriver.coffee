@@ -1311,13 +1311,13 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
         time: true
       }]
 
-      for dimension in ret.dimensions
+      for dimension in ret.dimensions.sort()
         attributes.push({
           name: dimension
           categorical: true
         })
 
-      for metric in ret.metrics
+      for metric in ret.metrics.sort()
         continue if metric.indexOf('_hist') isnt -1 or metric.indexOf('unique_') is 0
         attributes.push({
           name: metric

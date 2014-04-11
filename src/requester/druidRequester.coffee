@@ -16,12 +16,11 @@ module.exports = ({locator, timeout}) ->
         path += 'heatmap' if query.queryType is 'heatmap' # Druid is f-ed
         path += '?pretty' if context?.pretty
         method = 'POST'
+        queryBuffer = new Buffer(JSON.stringify(query), 'utf-8')
         headers = {
           'Content-Type': 'application/json'
           'Content-Length': queryBuffer.length
         }
-
-      queryBuffer = new Buffer(JSON.stringify(query), 'utf-8')
 
       req = http.request({
         host: location.host

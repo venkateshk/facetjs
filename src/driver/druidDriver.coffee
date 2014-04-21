@@ -33,15 +33,7 @@ emptySingletonDruidResult = (result) ->
 class DruidQueryBuilder
   @ALL_DATA_CHUNKS = 10000
 
-  @isHistogram = (attribute) ->
-    # A hacky way to determine that this is a histogram aggregated column (it ends with _hist)
-    return /_hist$/.test(attribute)
-
-  @isUnique = (attribute) ->
-    # A hacky way to determine that this is a uniquely aggregated column (it starts with unique_)
-    return /^unique_/.test(attribute)
-
-  constructor: ({@dataSource, @timeAttribute, @forceInterval, @approximate, @context}) ->
+  constructor: ({@dataSource, @timeAttribute, @attributeMetas, @forceInterval, @approximate, @context}) ->
     throw new Error("must have a dataSource") unless typeof @dataSource is 'string'
     throw new Error("must have a timeAttribute") unless typeof @timeAttribute is 'string'
     @queryType = 'timeseries'
@@ -52,6 +44,14 @@ class DruidQueryBuilder
     @nameIndex = 0
     @intervals = null
     @useCache = true
+
+  getAttributeMeta: (attribute) ->
+    return @attributeMetas[attribute] if @attributeMetas[attribute]
+    if /_hist$/.test(attribute)
+      return { type: 'histogram' }
+    if /^unique_/.test(attribute)
+      return { type: 'unique' }
+    return {}
 
   addToNamespace: (namespace, attribute) ->
     return namespace[attribute] if namespace[attribute]
@@ -191,11 +191,31 @@ class DruidQueryBuilder
       when 'identity'
         @queryType = 'groupBy'
         #@granularity stays 'all'
-        @dimension = {
-          type: 'default'
-          dimension: split.attribute
-          outputName: split.name
-        }
+        attributeMeta = @getAttributeMeta(split.attribute)
+        if attributeMeta.type is 'range'
+          separator = JSON.stringify(attributeMeta.separator or ';')
+          @dimension = {
+            type: 'extraction'
+            dimension: split.attribute
+            outputName: split.name
+            dimExtractionFn: {
+              type: 'javascript'
+              function: """function(d) {
+                var start = d.split(#{separator})[0];
+                if(isNaN(start)) return 'null';
+                var parts = start.split('.');
+                d = ('000000000' + parts[0]).substr(-10);
+                if(parts.length > 1) d += '.' + parts[1];
+                return d;
+                }"""
+            }
+          }
+        else
+          @dimension = {
+            type: 'default'
+            dimension: split.attribute
+            outputName: split.name
+          }
 
       when 'timePeriod'
         throw new Error("timePeriod split can only work on '#{@timeAttribute}'") if split.attribute isnt @timeAttribute
@@ -208,7 +228,8 @@ class DruidQueryBuilder
         }
 
       when 'continuous'
-        if DruidQueryBuilder.isHistogram(split.attribute)
+        attributeMeta = @getAttributeMeta(split.attribute)
+        if attributeMeta.type is 'histogram'
           throw new Error("approximate queries not allowed") unless @approximate
           #@queryType stays 'timeseries'
           #@granularity stays 'all'
@@ -229,21 +250,15 @@ class DruidQueryBuilder
             offset: split.offset
           }
           #@useCache = false
+        else if attributeMeta.type is 'range'
+          throw new Error("not implemented yet")
         else
           floorExpresion = driverUtil.continuousFloorExpresion({
-            variable: "x"
+            variable: "d"
             floorFn: "Math.floor"
             size: split.size
             offset: split.offset
           })
-
-          fn = """
-            function(x) {
-              x = Number(x);
-              if(isNaN(x)) return null;
-              return #{floorExpresion};
-            }
-            """
 
           @queryType = 'groupBy'
           #@granularity stays 'all'
@@ -253,7 +268,12 @@ class DruidQueryBuilder
             outputName: split.name
             dimExtractionFn: {
               type: 'javascript'
-              function: fn
+              function: """
+                function(d) {
+                d = Number(d);
+                if(isNaN(d)) return 'null';
+                return #{floorExpresion};
+                }"""
             }
           }
 
@@ -286,6 +306,7 @@ class DruidQueryBuilder
     if apply.attribute is @timeAttribute
       throw new Error("can not aggregate apply on time attribute")
 
+    attributeMeta = @getAttributeMeta(apply.attribute)
     switch apply.aggregate
       when 'constant'
         @addPostAggregation({
@@ -295,7 +316,7 @@ class DruidQueryBuilder
         })
 
       when 'count', 'sum', 'min', 'max'
-        if @approximate and apply.aggregate in ['min', 'max'] and DruidQueryBuilder.isHistogram(apply.attribute)
+        if @approximate and apply.aggregate in ['min', 'max'] and attributeMeta.type is 'histogram'
           histogramAggregationName = "_hist_" + apply.attribute
           aggregation = {
             name: histogramAggregationName
@@ -352,7 +373,7 @@ class DruidQueryBuilder
         throw new Error("approximate queries not allowed") unless @approximate
         throw new Error("filtering uniqueCount unsupported by driver") if apply.filter
 
-        if DruidQueryBuilder.isUnique(apply.attribute)
+        if attributeMeta.type is 'unique'
           @addAggregation({
             name: apply.name
             type: "hyperUnique"
@@ -676,7 +697,18 @@ DruidQueryBuilder.queryFns = {
 
       ds = if emptySingletonDruidResult(ds) then [] else ds[0].result
 
-      if split.bucket is 'continuous'
+      attributeMeta = queryBuilder.getAttributeMeta(split.attribute)
+      if attributeMeta.type is 'range'
+        splitProp = split.name
+        rangeSize = attributeMeta.size
+        for d in ds
+          if d[splitProp] in [null, 'null'] # ToDo: remove 'null' when druid is fixed
+            d[splitProp] = null
+          else
+            start = Number(d[splitProp])
+            d[splitProp] = [start, start + rangeSize]
+
+      else if split.bucket is 'continuous'
         splitProp = split.name
         splitSize = split.size
         for d in ds
@@ -903,6 +935,7 @@ DruidQueryBuilder.queryFns = {
 
 DruidQueryBuilder.makeSingleQuery = ({parentSegment, filter, condensedCommand, builderSettings, requester}, callback) ->
   { timeAttribute, approximate } = builderSettings
+  queryBuilder = new DruidQueryBuilder(builderSettings)
   split = condensedCommand.getSplit()
   if split
     switch split.bucket
@@ -917,7 +950,8 @@ DruidQueryBuilder.makeSingleQuery = ({parentSegment, filter, condensedCommand, b
       when 'timePeriod'
         queryFnName = 'timeseries'
       when 'continuous'
-        if DruidQueryBuilder.isHistogram(split.attribute)
+        attributeMeta = queryBuilder.getAttributeMeta(split.attribute)
+        if attributeMeta.type is 'histogram'
           queryFnName = 'histogram'
         else
           queryFnName = 'topN'
@@ -938,7 +972,7 @@ DruidQueryBuilder.makeSingleQuery = ({parentSegment, filter, condensedCommand, b
 
   queryFn({
     requester
-    queryBuilder: new DruidQueryBuilder(builderSettings)
+    queryBuilder
     filter
     parentSegment
     condensedCommand
@@ -1166,6 +1200,7 @@ multiDatasetQuery = ({parentSegment, condensedCommand, builderSettings, requeste
 # @param {Requester} requester, a function to make requests to Druid
 # @param {string} dataSource, name of the datasource in Druid
 # @param {string} timeAttribute [optional, default="time"], name by which the time attribute will be referred to
+# @param {Object} attributeMetas, meta attribute information
 # @param {boolean} approximate [optional, default=false], allow use of approximate queries
 # @param {Filter} filter [optional, default=null], the filter that should be applied to the data
 # @param {boolean} forceInterval [optional, default=false], if true will not execute queries without a time constraint
@@ -1174,9 +1209,10 @@ multiDatasetQuery = ({parentSegment, condensedCommand, builderSettings, requeste
 #
 # @return {FacetDriver} the driver that does the requests
 
-module.exports = ({requester, dataSource, timeAttribute, approximate, filter, forceInterval, concurrentQueryLimit, queryLimit}) ->
+module.exports = ({requester, dataSource, timeAttribute, attributeMetas, approximate, filter, forceInterval, concurrentQueryLimit, queryLimit}) ->
   throw new Error("must have a requester") unless typeof requester is 'function'
   timeAttribute or= 'time'
+  attributeMetas or= {}
   approximate ?= true
   concurrentQueryLimit or= 16
   queryLimit or= Infinity
@@ -1220,6 +1256,7 @@ module.exports = ({requester, dataSource, timeAttribute, approximate, filter, fo
             builderSettings: {
               dataSource
               timeAttribute
+              attributeMetas
               forceInterval
               approximate
               context

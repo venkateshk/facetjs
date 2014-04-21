@@ -73,6 +73,7 @@ module.exports = ({locator, timeout}) ->
         return
       )
 
+      # ToDo: verify this with tests!
       if timeout
         req.on 'socket', (socket) ->
           socket.setTimeout(timeout)

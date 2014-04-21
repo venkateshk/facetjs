@@ -148,11 +148,20 @@
             }
           });
 
+          // These are there for testing
+          var attributeMetas = {
+            'pricefloor_bucket': {
+              type: 'range',
+              separator: '-',
+              size: 0.05
+            }
+          };
+
           return facet.driver.druid({
             requester: druidRequester,
             dataSource: d3.select("#data-source").property("value"),
             timeAttribute: 'timestamp',
-
+            attributeMetas: attributeMetas,
             forceInterval: true,
             concurrentQueryLimit: 7,
             queryLimit: 70

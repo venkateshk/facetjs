@@ -98,6 +98,7 @@ describe 'Zookeeper locator', ->
     @timeout 5000
     zookeeperLocator = null
     myServiceLocator = null
+    lastSeenPool = null
 
     before (done) ->
       async.series([
@@ -110,7 +111,13 @@ describe 'Zookeeper locator', ->
           zookeeperLocator = zookeeperLocatorMaker({
             servers: 'localhost:2181/discovery'
           })
-          myServiceLocator = zookeeperLocator('my:service')
+
+          zookeeperLocator.on 'newPool', (path, pool) ->
+            expect(path).to.equal('/my:service')
+            lastSeenPool = pool
+            return
+
+          myServiceLocator = zookeeperLocator.manager('my:service')
           callback()
       ], done)
 
@@ -121,12 +128,21 @@ describe 'Zookeeper locator', ->
       ], done)
 
     it "is memoized by path", ->
-      expect(myServiceLocator).to.equal(zookeeperLocator('/my:service'))
+      expect(myServiceLocator).to.equal(zookeeperLocator.manager('/my:service'))
 
     it "fails on fake service", (done) ->
-      myFakeServiceLocator = zookeeperLocator('my:fake:service')
+      eventSeen = false
+      zookeeperLocator.once 'childListFail', (path, err) ->
+        eventSeen = true
+        expect(path).to.equal('/my:fake:service')
+        expect(err.message).to.equal('Exception: NO_NODE[-101]')
+        return
+
+      myFakeServiceLocator = zookeeperLocator.manager('my:fake:service')
       myFakeServiceLocator (err, location) ->
         expect(err).to.exist
+        expect(err.message).to.equal('Empty pool')
+        expect(eventSeen).to.be.true
         done()
 
     it "correct init run", (done) ->
@@ -137,6 +153,7 @@ describe 'Zookeeper locator', ->
           '10.10.10.20:8080'
           '10.10.10.30:8080'
         ])
+        expect(lastSeenPool.length).to.equal(3)
         done()
 
     it "works after removing a node", (done) ->
@@ -151,6 +168,7 @@ describe 'Zookeeper locator', ->
             '10.10.10.20:8080'
             '10.10.10.30:8080'
           ])
+          expect(lastSeenPool.length).to.equal(2)
           done()
       )
 
@@ -167,6 +185,7 @@ describe 'Zookeeper locator', ->
             '10.10.10.30:8080'
             '10.10.10.40:8080'
           ])
+          expect(lastSeenPool.length).to.equal(3)
           done()
       )
 
@@ -179,6 +198,8 @@ describe 'Zookeeper locator', ->
       ], (err) ->
         myServiceLocator (err, location) ->
           expect(err).to.exist
+          expect(err.message).to.equal('Empty pool')
+          expect(lastSeenPool.length).to.equal(0)
           done()
       )
 
@@ -199,6 +220,11 @@ describe 'Zookeeper locator', ->
       )
 
     it "works after ZK disconnects serving the remainder from cache", (done) ->
+      disconnectEventSeen = false
+      zookeeperLocator.once 'disconnected', ->
+        disconnectEventSeen = true
+        return
+
       async.series([
         (callback) -> simpleExec('zkServer stop', callback)
         (callback) -> setTimeout(callback, 100) # delay a little bit
@@ -210,10 +236,16 @@ describe 'Zookeeper locator', ->
             '10.10.10.50:8080'
             '10.10.10.60:8080'
           ])
+          expect(disconnectEventSeen).to.be.true
           done()
       )
 
     it "reconnects when ZK comes back online", (done) ->
+      connectEventSeen = false
+      zookeeperLocator.once 'connected', ->
+        connectEventSeen = true
+        return
+
       async.series([
         (callback) -> simpleExec('zkServer start', callback)
         (callback) -> createNode('my:service', 'fake-guid-1-7', { address: '10.10.10.70', port: 8080 }, callback)
@@ -227,6 +259,7 @@ describe 'Zookeeper locator', ->
             '10.10.10.60:8080'
             '10.10.10.70:8080'
           ])
+          expect(connectEventSeen).to.be.true
           done()
       )
 
@@ -240,7 +273,7 @@ describe 'Zookeeper locator', ->
         servers: 'localhost:2181/discovery'
         locatorTimeout: 2000
       })
-      myServiceLocator = zookeeperLocator('my:service')
+      myServiceLocator = zookeeperLocator.manager('my:service')
       done()
 
     after (done) ->
@@ -252,13 +285,13 @@ describe 'Zookeeper locator', ->
     it "times out", (done) ->
       myServiceLocator (err, location) ->
         expect(err).to.exist
-        expect(err.message).to.equal('timeout')
+        expect(err.message).to.equal('Timeout')
         done()
 
     it "still times out", (done) ->
       myServiceLocator (err, location) ->
         expect(err).to.exist
-        expect(err.message).to.equal('timeout')
+        expect(err.message).to.equal('Timeout')
         done()
 
     it "picks up after server start", (done) ->
@@ -275,6 +308,3 @@ describe 'Zookeeper locator', ->
             '10.10.10.10:8080'
           ])
           done()
-
-
-

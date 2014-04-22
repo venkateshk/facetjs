@@ -1,3 +1,4 @@
+{EventEmitter} = require('events')
 async = require('async')
 zookeeper = require('node-zookeeper-client')
 {Exception} = zookeeper
@@ -17,7 +18,7 @@ defaultDataExtractor = (data) ->
     port: data.port
   }
 
-makeManagerForPath = (client, path, dataExtractor, locatorTimeout) ->
+makeManagerForPath = (client, path, emitter, dataExtractor, locatorTimeout) ->
   next = -1
   pool = null
   queue = []
@@ -25,11 +26,13 @@ makeManagerForPath = (client, path, dataExtractor, locatorTimeout) ->
   onGetChildren = (err, children) ->
     if err
       console.log('Failed to list children of %s due to: %s.', path, err) if debug
+      emitter.emit('childListFail', path, err)
       pool = []
       processQueue()
       return
 
     console.log('Children of %s are: %j.', path, children) if debug
+
     async.map(
       children
       (child, callback) ->
@@ -38,8 +41,8 @@ makeManagerForPath = (client, path, dataExtractor, locatorTimeout) ->
             if err.getCode() is Exception.NO_NODE
               callback(null, null)
             else
-              console.log(err.stack) if debug
-              callback(null, null) #?
+              emitter.emit('nodeDataFail', path, err)
+              callback(null, null)
             return
 
           callback(null, dataExtractor(data.toString('utf8')))
@@ -48,6 +51,7 @@ makeManagerForPath = (client, path, dataExtractor, locatorTimeout) ->
 
       (err, newPool) ->
         pool = newPool.filter(Boolean)
+        emitter.emit('newPool', path, pool)
         processQueue()
         return
     )
@@ -55,6 +59,7 @@ makeManagerForPath = (client, path, dataExtractor, locatorTimeout) ->
 
   onChange = (event) ->
     console.log('Got watcher event: %s', event) if debug
+    emitter.emit('change', path, event)
     client.getChildren(path, onChange, onGetChildren)
     return
 
@@ -66,7 +71,7 @@ makeManagerForPath = (client, path, dataExtractor, locatorTimeout) ->
       next++
       callback(null, pool[next % pool.length])
     else
-      callback(new Error('empty pool'))
+      callback(new Error('Empty pool'))
 
   processQueue = ->
     dispatch(queue.shift()) while queue.length
@@ -83,7 +88,7 @@ makeManagerForPath = (client, path, dataExtractor, locatorTimeout) ->
       setTimeout((->
         return unless callback in queue
         queue = queue.filter((c) -> c isnt callback)
-        callback(new Error('timeout'))
+        callback(new Error('Timeout'))
       ), locatorTimeout)
     return
 
@@ -100,25 +105,29 @@ module.exports = ({servers, dataExtractor, locatorTimeout, sessionTimeout, spinD
     spinDelay
     retries
   })
+
+  emitter = new EventEmitter()
   active = false
+  activate = ->
+    return if active
+    client.on('connected', ->
+      emitter.emit('connected')
+      return
+    )
+    client.on('disconnected', ->
+      emitter.emit('disconnected')
+      return
+    )
+    client.connect()
+    active = true
+    return
 
   pathManager = {}
-  return (path) ->
+  emitter.manager = (path) ->
     throw new TypeError('path must be a string') unless typeof path is 'string'
     path = '/' + path if path[0] isnt '/'
-
-    if not active
-      client.on('connected', ->
-        console.log('Connected to ZooKeeper.') if debug
-        return
-      )
-      client.on('disconnected', ->
-        console.log('Dosconnected from ZooKeeper.') if debug
-        return
-      )
-      client.connect()
-      active = true
-
-    pathManager[path] or= makeManagerForPath(client, path, dataExtractor, locatorTimeout)
+    activate()
+    pathManager[path] or= makeManagerForPath(client, path, emitter, dataExtractor, locatorTimeout)
     return pathManager[path]
 
+  return emitter

@@ -42,30 +42,23 @@ module.exports = ({locator, timeout}) ->
 
         response.on 'close', (err) ->
           return if hasEnded
-          callback({
-            error: 'close'
-            message: err
-          })
+          callback(err)
           return
 
         response.on 'end', ->
           hasEnded = true
           chunks = chunks.join('')
           if response.statusCode isnt 200
-            callback({
-              error: 'bad status code'
-              detail: response.statusCode
-              message: chunks
-            })
+            err = new Error('bad status code')
+            err.statusCode = response.statusCode
+            err.body = chunks
+            callback(err)
             return
 
           try
             chunks = JSON.parse(chunks)
           catch e
-            callback({
-              error: 'json parse'
-              message: e.message
-            })
+            callback(e)
             return
 
           callback(null, chunks)

@@ -549,10 +549,7 @@ DruidQueryBuilder.queryFns = {
 
     requester {query: queryObj}, (err, ds) ->
       if err
-        callback({
-          message: err
-          query: queryObj
-        })
+        callback(err)
         return
 
       if not correctSingletonDruidResult(ds)

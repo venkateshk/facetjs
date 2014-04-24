@@ -38,6 +38,7 @@ class DruidQueryBuilder
     throw new Error("must have a timeAttribute") unless typeof @timeAttribute is 'string'
     @queryType = 'timeseries'
     @granularity = 'all'
+    @attributeMetas or= {}
     @filter = null
     @aggregations = []
     @postAggregations = []
@@ -553,11 +554,9 @@ DruidQueryBuilder.queryFns = {
         return
 
       if not correctSingletonDruidResult(ds)
-        callback({
-          message: "unexpected result from Druid (all)"
-          query: queryObj
-          result: ds
-        })
+        err = new Error("unexpected result from Druid (all)")
+        err.result = ds
+        callback(err)
         return
 
       if emptySingletonDruidResult(ds)
@@ -586,18 +585,13 @@ DruidQueryBuilder.queryFns = {
 
     requester {query: queryObj}, (err, ds) ->
       if err
-        callback({
-          message: err
-          query: queryObj
-        })
+        callback(err)
         return
 
       if not correctSingletonDruidResult(ds) or ds.length isnt 1
-        callback({
-          message: "unexpected result from Druid (#{queryObj.queryType})"
-          query: queryObj
-          result: ds
-        })
+        err = new Error("unexpected result from Druid (#{queryObj.queryType})")
+        err.result = ds
+        callback(err)
         return
 
       result = ds[0].result
@@ -678,18 +672,13 @@ DruidQueryBuilder.queryFns = {
 
     requester {query: queryObj}, (err, ds) ->
       if err
-        callback({
-          message: err
-          query: queryObj
-        })
+        callback(err)
         return
 
       if not correctSingletonDruidResult(ds)
-        callback({
-          message: "unexpected result from Druid (topN)"
-          query: queryObj
-          result: ds
-        })
+        err = new Error("unexpected result from Druid (topN)")
+        err.result = ds
+        callback(err)
         return
 
       ds = if emptySingletonDruidResult(ds) then [] else ds[0].result
@@ -754,11 +743,9 @@ DruidQueryBuilder.queryFns = {
             return
 
           if not correctSingletonDruidResult(ds)
-            callback({
-              message: "unexpected result from Druid (topN/allData)"
-              query: queryObj
-              result: ds
-            })
+            err = new Error("unexpected result from Druid (topN/allData)")
+            err.result = ds
+            callback(err)
             return
 
           myProps = if emptySingletonDruidResult(ds) then [] else ds[0].result
@@ -794,10 +781,7 @@ DruidQueryBuilder.queryFns = {
 
     requester {query: queryObj}, (err, ds) ->
       if err
-        callback({
-          message: err
-          query: queryObj
-        })
+        callback(err)
         return
 
       callback(null, ds.map((d) -> d.event))
@@ -823,18 +807,13 @@ DruidQueryBuilder.queryFns = {
 
     requester {query: queryObj}, (err, ds) ->
       if err
-        callback({
-          message: err
-          query: queryObj
-        })
+        callback(err)
         return
 
       if not correctSingletonDruidResult(ds)
-        callback({
-          message: "unexpected result from Druid (histogram)"
-          query: queryObj
-          result: ds
-        })
+        err = new Error("unexpected result from Druid (histogram)")
+        err.result = ds
+        callback(err)
         return
 
       if emptySingletonDruidResult(ds)
@@ -890,18 +869,13 @@ DruidQueryBuilder.queryFns = {
 
     requester {query: queryObj}, (err, ds) ->
       if err
-        callback({
-          message: err
-          query: queryObj
-        })
+        callback(err)
         return
 
       if not correctSingletonDruidResult(ds)
-        callback({
-          message: "unexpected result from Druid (heatmap)"
-          query: queryObj
-          result: ds
-        })
+        err = new Error("unexpected result from Druid (heatmap)")
+        err.result = ds
+        callback(err)
         return
 
       if emptySingletonDruidResult(ds)
@@ -958,7 +932,10 @@ DruidQueryBuilder.makeSingleQuery = ({parentSegment, filter, condensedCommand, b
         else
           queryFnName = 'groupBy'
       else
-        callback({ message: 'unsupported split bucket' }); return
+        err = new Error('unsupported split bucket')
+        err.split = split.valueOf()
+        callback(err)
+        return
   else
     if condensedCommand.applies.some((apply) -> apply.attribute is timeAttribute and apply.aggregate in ['min', 'max'])
       queryFnName = 'timeBoundry'
@@ -1209,7 +1186,6 @@ multiDatasetQuery = ({parentSegment, condensedCommand, builderSettings, requeste
 module.exports = ({requester, dataSource, timeAttribute, attributeMetas, approximate, filter, forceInterval, concurrentQueryLimit, queryLimit}) ->
   throw new Error("must have a requester") unless typeof requester is 'function'
   timeAttribute or= 'time'
-  attributeMetas or= {}
   approximate ?= true
   concurrentQueryLimit or= 16
   queryLimit or= Infinity
@@ -1245,7 +1221,9 @@ module.exports = ({requester, dataSource, timeAttribute, attributeMetas, approxi
         (parentSegment, callback) ->
           queriesMade++
           if queryLimit < queriesMade
-            callback({ message: 'query limit exceeded' })
+            err = new Error('query limit exceeded')
+            err.limit = queryLimit
+            callback(err)
             return
 
           multiDatasetQuery({

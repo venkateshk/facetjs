@@ -1,164 +1,66 @@
-http = require('http')
+request = require('request')
 
-postQuery = ({host, port, query, timeout}, callback) ->
-  queryBuffer = new Buffer(JSON.stringify(query), 'utf-8')
-  opts = {
-    host
-    port
-    path: '/job'
+postQuery = ({url, query, timeout}, callback) ->
+  request({
     method: 'POST'
-    headers: {
-      'Content-Type': 'application/json'
-      'Content-Length': queryBuffer.length
-    }
-  }
-  req = http.request(opts, (response) ->
-    hasEnded = false
-    # response.statusCode
-    # response.headers
-    # response.statusCode
-
-    response.setEncoding('utf8')
-    chunks = []
-    response.on 'data', (chunk) ->
-      chunks.push(chunk)
+    url: url + '/job'
+    query
+    timeout
+  }, (err, response, body) ->
+    if err
+      callback(err)
       return
 
-    response.on 'close', (err) ->
-      return if hasEnded
-      callback({
-        error: 'close'
-        message: err
-      })
+    if response.statusCode isnt 200
+      callback(new Error("Bad status code"))
       return
 
-    response.on 'end', ->
-      hasEnded = true
-      chunks = chunks.join('')
-      if response.statusCode isnt 200
-        callback({
-          error: 'bad status code'
-          detail: response.statusCode
-          message: chunks
-        })
-        return
-
-      try
-        chunks = JSON.parse(chunks)
-      catch e
-        callback({
-          error: 'json parse'
-          message: e.message
-        })
-        return
-
-      console.log "GOT (POST)", chunks
-
-      job = chunks.job
-      if typeof job isnt 'string'
-        callback(new Error('no job id'))
-        return
-
-      callback(null, job)
+    job = body.job
+    if typeof job isnt 'string'
+      callback(new Error('Bad job ID'))
       return
+
+    callback(null, job)
     return
   )
-
-  if timeout
-    req.on 'socket', (socket) ->
-      socket.setTimeout(timeout)
-      socket.on 'timeout', -> req.abort()
-
-  req.on 'error', (e) ->
-    callback(e)
-    return
-
-  console.log('Sending', JSON.stringify(query, null, 2))
-  req.write(queryBuffer.toString('utf-8'))
-  req.end()
   return
 
 
-checkJobStatus = ({host, port, job, timeout}, callback) ->
-  opts = {
-    host
-    port
-    path: "/job/#{job}"
+checkJobStatus = ({url, job, timeout}, callback) ->
+  request({
     method: 'GET'
-  }
-  req = http.request(opts, (response) ->
-    hasEnded = false
-    # response.statusCode
-    # response.headers
-    # response.statusCode
-
-    response.setEncoding('utf8')
-    chunks = []
-    response.on 'data', (chunk) ->
-      chunks.push(chunk)
+    url: url + "/job/#{job}"
+    json: true
+    timeout
+  }, (err, response, body) ->
+    if err
+      callback(err)
       return
 
-    response.on 'close', (err) ->
-      return if hasEnded
-      callback({
-        error: 'close'
-        message: err
-      })
+    if response.statusCode isnt 200
+      callback(new Error("Bad status code"))
       return
 
-    response.on 'end', ->
-      hasEnded = true
-      chunks = chunks.join('')
-      if response.statusCode isnt 200
-        callback({
-          error: 'bad status code'
-          detail: response.statusCode
-          message: chunks
-        })
-        return
-
-      try
-        chunks = JSON.parse(chunks)
-      catch e
-        callback({
-          error: 'json parse'
-          message: e.message
-        })
-        return
-
-      console.log "GOT (GET)", chunks
-
-      if typeof chunks.job is 'undefined'
-        callback(null, null)
-        return
-
-      if typeof chunks.exceptionMessage is 'string'
-        callback(new Error(chunks.exceptionMessage))
-        return
-
-      if not Array.isArray(chunks.results)
-        callback(new Error("unexpected result"))
-
-      callback(null, chunks.results)
+    if typeof body.job is 'undefined'
+      callback(null, null)
       return
+
+    if typeof body.exceptionMessage is 'string'
+      callback(new Error(body.exceptionMessage))
+      return
+
+    if not Array.isArray(body.results)
+      callback(new Error("unexpected result"))
+
+    callback(null, body.results)
     return
   )
-
-  if timeout
-    req.on 'socket', (socket) ->
-      socket.setTimeout(timeout)
-      socket.on 'timeout', -> req.abort()
-
-  req.on 'error', (e) ->
-    callback(e)
-    return
-
-  req.end()
   return
 
 
 module.exports = ({locator, timeout, refresh}) ->
   refresh or= 5000
+  timeout or= 60000
 
   return ({context, query}, callback) ->
     locator (err, location) ->
@@ -166,12 +68,10 @@ module.exports = ({locator, timeout, refresh}) ->
         callback(err)
         return
 
-      { host, port } = location
-      port ?= 8080
+      url = "http://#{location.host}:#{location.port ? 8080}"
 
       postQuery {
-        host
-        port
+        url
         query
         timeout
       }, (err, job) ->
@@ -181,8 +81,7 @@ module.exports = ({locator, timeout, refresh}) ->
 
         pinger = setInterval((->
           checkJobStatus {
-            host
-            port
+            url
             job
             timeout
           }, (err, results) ->

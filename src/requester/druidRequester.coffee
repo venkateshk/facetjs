@@ -1,84 +1,66 @@
-http = require('http')
+request = require('request')
 
 module.exports = ({locator, timeout}) ->
+  timeout or= 60000
   return ({context, query}, callback) ->
     locator (err, location) ->
       if err
         callback(err)
         return
 
+      url = "http://#{location.host}:#{location.port ? 8080}/druid/v2/"
       if query.queryType is 'introspect'
-        path = "/druid/v2/datasources/#{query.dataSource}"
-        method = 'GET'
-        headers = null
+        param = {
+          method: 'GET'
+          url: url + "datasources/#{query.dataSource}"
+          json: true
+          timeout
+        }
       else
-        path = '/druid/v2/'
-        path += 'heatmap' if query.queryType is 'heatmap' # Druid is f-ed
-        path += '?pretty' if context?.pretty
-        method = 'POST'
-        queryBuffer = new Buffer(JSON.stringify(query), 'utf-8')
-        headers = {
-          'Content-Type': 'application/json'
-          'Content-Length': queryBuffer.length
+        postfix = ''
+        postfix += 'heatmap' if query.queryType is 'heatmap' # Druid is f-ed
+        postfix += '?pretty' if context?.pretty
+        param = {
+          method: 'POST'
+          url: url + postfix
+          json: query
+          timeout
         }
 
-      req = http.request({
-        host: location.host
-        port: location.port ? 8080
-        path
-        method
-        headers
-      }, (response) ->
-        hasEnded = false
-        # response.statusCode
-        # response.headers
-        # response.statusCode
-
-        response.setEncoding('utf8')
-        chunks = []
-        response.on 'data', (chunk) ->
-          chunks.push(chunk)
-          return
-
-        response.on 'close', (err) ->
-          return if hasEnded
+      request(param, (err, response, body) ->
+        if err
+          err.query = query
           callback(err)
           return
 
-        response.on 'end', ->
-          hasEnded = true
-          chunks = chunks.join('')
-          if response.statusCode isnt 200
-            err = new Error('bad status code')
-            err.statusCode = response.statusCode
-            err.body = chunks
-            callback(err)
-            return
-
-          try
-            chunks = JSON.parse(chunks)
-          catch e
-            callback(e)
-            return
-
-          callback(null, chunks)
+        if response.statusCode isnt 200
+          err = new Error("Bad status code")
+          err.query = query
+          callback(err)
           return
+
+        if Array.isArray(body) and not body.length
+          # response is [] which can mean 'no data matches filters' or 'no data source' lets find out which!
+          request.get(url + "datasources/#{query.dataSource}", (err, response) ->
+            if err
+              err.dataSource = query.dataSource
+              callback(err)
+              return
+
+            if response.statusCode isnt 200
+              err = new Error("No such datasource")
+              err.dataSource = query.dataSource
+              callback(err)
+              return
+
+            callback(null, []) # Wow actual [] !
+            return
+          )
+          return
+
+        callback(null, body)
         return
       )
-
-      # ToDo: verify this with tests!
-      if timeout
-        req.on 'socket', (socket) ->
-          socket.setTimeout(timeout)
-          socket.on 'timeout', -> req.abort()
-
-      req.on 'error', (e) ->
-        callback(e)
-        return
-
-      req.write(queryBuffer.toString('utf-8')) if query.queryType isnt 'introspect'
-      req.end()
-      return
 
     return
 

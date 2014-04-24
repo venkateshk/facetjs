@@ -1,5 +1,4 @@
-chai = require("chai")
-expect = chai.expect
+{ expect } = require("chai")
 utils = require('../utils')
 
 simpleLocator = require('../../src/locator/simpleLocator')

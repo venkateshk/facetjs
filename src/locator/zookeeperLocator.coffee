@@ -31,8 +31,6 @@ makeManagerForPath = (client, path, emitter, dataExtractor, locatorTimeout) ->
       processQueue()
       return
 
-    console.log('Children of %s are: %j.', path, children) if debug
-
     async.map(
       children
       (child, callback) ->
@@ -110,14 +108,9 @@ module.exports = ({servers, dataExtractor, locatorTimeout, sessionTimeout, spinD
   active = false
   activate = ->
     return if active
-    client.on('connected', ->
-      emitter.emit('connected')
-      return
-    )
-    client.on('disconnected', ->
-      emitter.emit('disconnected')
-      return
-    )
+    client.on('connected', ->    emitter.emit('connected'))
+    client.on('disconnected', -> emitter.emit('disconnected'))
+    client.on('expired', ->      emitter.emit('expired'))
     client.connect()
     active = true
     return

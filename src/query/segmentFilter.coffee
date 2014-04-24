@@ -76,7 +76,9 @@ class IsSegmentFilter extends FacetSegmentFilter
       myProp = @prop
       [start, end] = @value
       return (segment) ->
-        [segStart, segEnd] = segment.getProp(myProp)
+        propValue = segment.getProp(myProp)
+        return false unless propValue?.length is 2
+        [segStart, segEnd] = propValue
         return segStart.valueOf() is start.valueOf() and segEnd.valueOf() is end.valueOf()
     else
       myProp = @prop

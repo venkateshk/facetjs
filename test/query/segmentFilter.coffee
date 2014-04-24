@@ -18,27 +18,15 @@ describe "FacetSegmentFilter", ->
       segmentSilterSpec = { type: 'poo' }
       expect(-> FacetSegmentFilter.fromSpec(segmentSilterSpec)).to.throw(Error, "unsupported segment filter type 'poo'")
 
+
   describe "filterFunction", ->
     segment = new SegmentTree({
-      prop: {
-        'Country': 'USA'
-      }
+      prop: { 'Country': 'USA' }
       splits: [
-        {
-          prop: {
-            'City': 'San Francisco'
-          }
-        }
-        {
-          prop: {
-            'City': ''
-          }
-        }
-        {
-          prop: {
-            'City': 'San Jose'
-          }
-        }
+        { prop: { 'City': 'San Francisco' } }
+        { prop: { 'City': '' } }
+        { prop: { 'City': 'San Jose' } }
+        { prop: { 'City': null } }
       ]
     })
 
@@ -69,6 +57,15 @@ describe "FacetSegmentFilter", ->
       filterFn = FacetSegmentFilter.fromSpec(segmentSilterSpec).getFilterFn()
       expect(segment.splits.filter(filterFn).length).to.equal(1)
 
+    it "works with null", ->
+      segmentSilterSpec = {
+        type: "is",
+        prop: "City",
+        value: null
+      }
+      filterFn = FacetSegmentFilter.fromSpec(segmentSilterSpec).getFilterFn()
+      expect(segment.splits.filter(filterFn).length).to.equal(1)
+
     it "works with parent", ->
       segmentSilterSpec = {
         type: "is",
@@ -76,7 +73,7 @@ describe "FacetSegmentFilter", ->
         value: "USA"
       }
       filterFn = FacetSegmentFilter.fromSpec(segmentSilterSpec).getFilterFn()
-      expect(segment.splits.filter(filterFn).length).to.equal(3)
+      expect(segment.splits.filter(filterFn).length).to.equal(4)
 
 
   describe "filterFunction (works with time)", ->
@@ -109,6 +106,11 @@ describe "FacetSegmentFilter", ->
             ]
           }
         }
+        {
+          prop: {
+            Time: null
+          }
+        }
       ]
     })
 
@@ -135,4 +137,13 @@ describe "FacetSegmentFilter", ->
       }
       filterFn = FacetSegmentFilter.fromSpec(segmentSilterSpec).getFilterFn()
       expect(segment.splits.filter(filterFn).length).to.equal(0)
+
+    it "works with null", ->
+      segmentSilterSpec = {
+        type: "is",
+        prop: "Time",
+        value: null
+      }
+      filterFn = FacetSegmentFilter.fromSpec(segmentSilterSpec).getFilterFn()
+      expect(segment.splits.filter(filterFn).length).to.equal(1)
 

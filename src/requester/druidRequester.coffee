@@ -41,13 +41,24 @@ module.exports = ({locator, timeout}) ->
 
         if Array.isArray(body) and not body.length
           # response is [] which can mean 'no data matches filters' or 'no data source' lets find out which!
-          request.get(url + "datasources/#{query.dataSource}", (err, response) ->
+          request({
+            method: 'GET'
+            url: url + "datasources"
+            json: true
+            timeout
+          }, (err, response, body) ->
             if err
               err.dataSource = query.dataSource
               callback(err)
               return
 
-            if response.statusCode isnt 200
+            if response.statusCode isnt 200 or not Array.isArray(body)
+              err = new Error("Bad response")
+              err.dataSource = query.dataSource
+              callback(err)
+              return
+
+            if query.dataSource not in body
               err = new Error("No such datasource")
               err.dataSource = query.dataSource
               callback(err)

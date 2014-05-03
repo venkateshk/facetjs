@@ -277,7 +277,7 @@ class IsFilter extends FacetFilter
     return [@value]
 
   valueOf: ->
-    filter = super
+    filter = super()
     filter.attribute = @attribute
     filter.value = @value
     return filter
@@ -300,13 +300,13 @@ class InFilter extends FacetFilter
     super(arguments[0], dummyObject)
     @_ensureType('in')
     @_validateAttribute()
-    throw new TypeError('values must be an array') unless Array.isArray(@values)
+    throw new TypeError('`values` must be an array') unless Array.isArray(@values)
 
   _getInValues: ->
     return @values
 
   valueOf: ->
-    filter = super
+    filter = super()
     filter.attribute = @attribute
     filter.values = @values
     return filter
@@ -349,7 +349,7 @@ class ContainsFilter extends FacetFilter
     throw new TypeError('contains must be a string') unless typeof @value is 'string'
 
   valueOf: ->
-    filter = super
+    filter = super()
     filter.attribute = @attribute
     filter.value = @value
     return filter
@@ -379,7 +379,7 @@ class MatchFilter extends FacetFilter
       throw new Error('expression must be a valid regular expression')
 
   valueOf: ->
-    filter = super
+    filter = super()
     filter.attribute = @attribute
     filter.expression = @expression
     return filter
@@ -410,10 +410,10 @@ class WithinFilter extends FacetFilter
     throw new Error('invalid range') if isNaN(@range[0]) or isNaN(@range[1])
 
   valueOf: ->
-    filter = super
-    filter.attribute = @attribute
-    filter.range = @range
-    return filter
+    filterSpec = super()
+    filterSpec.attribute = @attribute
+    filterSpec.range = @range
+    return filterSpec
 
   isEqual: (other) ->
     return super(other) and other.range[0] is @range[0] and other.range[1] is @range[1]
@@ -448,7 +448,7 @@ class NotFilter extends FacetFilter
     return @filter._getInValues()
 
   valueOf: ->
-    filter = super
+    filter = super()
     filter.filter = @filter.valueOf()
     return filter
 
@@ -508,7 +508,7 @@ class AndFilter extends FacetFilter
     @_ensureType('and')
 
   valueOf: ->
-    filter = super
+    filter = super()
     filter.filters = @filters.map(getValueOf)
     return filter
 
@@ -647,7 +647,7 @@ class OrFilter extends FacetFilter
     @_ensureType('or')
 
   valueOf: ->
-    filter = super
+    filter = super()
     filter.filters = @filters.map(getValueOf)
     return filter
 

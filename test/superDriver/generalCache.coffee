@@ -854,7 +854,7 @@ describe "General cache", ->
     }
 
 
-  describe "timeseries cache", ->
+  describe "time split cache", ->
     describe "without filters", ->
       setUpQuery = [
         { operation: 'filter', type: 'within', attribute: 'time', range: [new Date("2013-02-26T00:00:00Z"), new Date("2013-02-27T00:00:00Z")] }
@@ -887,7 +887,7 @@ describe "General cache", ->
       it "split time; apply count; filter within another time filter", testEquality {
         drivers: ['wikipediaCached', 'wikipedia']
         query: [
-          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date("2013-02-26T00:00:00Z"), new Date(Date.UTC(2013, 2 - 1, 26, 12, 0, 0))] }
+          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date("2013-02-26T00:00:00Z"), new Date("2013-02-26T12:00:00Z")] }
           { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
           { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
           { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
@@ -950,6 +950,19 @@ describe "General cache", ->
           ]}
           { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
           { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+          { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'descending' } }
+        ]
+      }
+
+      it "filter; split time; apply added; combine time descending", testEquality {
+        drivers: ['wikipediaCached', 'wikipedia']
+        query: [
+          { operation: 'filter', type: 'and', filters: [
+            { operation: 'filter', attribute: 'language', type: 'is', value: 'en' }
+            { operation: 'filter', type: 'within', attribute: 'time', range: [new Date("2013-02-26T00:00:00Z"), new Date("2013-02-27T00:00:00Z")] }
+          ]}
+          { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
           { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
           { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'descending' } }
         ]
@@ -1061,6 +1074,65 @@ describe "General cache", ->
           { name: "count","aggregate": "sum",attribute: "count",operation: "apply" }
           { name: "deleted","aggregate": "sum",attribute: "deleted",operation: "apply" }
           { operation: "combine", combine: "slice", sort: { compare:"natural", prop: "count", direction: "descending" }, "limit": 5 }
+        ]
+      }
+
+    describe.skip "cache known unknowns (query more than there is data)", ->
+      setUpQuery = [
+        { operation: 'filter', type: 'within', attribute: 'time', range: [new Date("2013-02-26T00:00:00Z"), new Date("2013-02-28T00:00:00Z")] }
+        { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
+        { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+        { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
+      ]
+
+      before (done) ->
+        driverFns.wikipediaCached.clear()
+        driverFns.wikipediaCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
+          throw err if err
+          allowQuery = false
+          done()
+        )
+
+      after -> allowQuery = true
+
+      it "split time; apply count", testEquality {
+        drivers: ['wikipediaCached', 'wikipedia']
+        query: [
+          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date("2013-02-26T00:00:00Z"), new Date("2013-02-28T00:00:00Z")] }
+          { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
+          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
+        ]
+      }
+
+      it "split time; apply count; filter within existing range", testEquality {
+        drivers: ['wikipediaCached', 'wikipedia']
+        query: [
+          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date("2013-02-26T00:00:00Z"), new Date("2013-02-27T00:00:00Z")] }
+          { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
+          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
+        ]
+      }
+
+      it "split time; apply count; ascending limit", testEquality {
+        drivers: ['wikipediaCached', 'wikipedia']
+        query: [
+          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date("2013-02-26T00:00:00Z"), new Date("2013-02-29T00:00:00Z")] }
+          { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
+          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' }, limit: 5 }
+        ]
+      }
+
+      it "split time; apply count; descending limit", testEquality {
+        drivers: ['wikipediaCached', 'wikipedia']
+        query: [
+          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date("2013-02-26T00:00:00Z"), new Date("2013-02-29T00:00:00Z")] }
+          { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
+          { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'descending' }, limit: 5 }
         ]
       }
 

@@ -10,6 +10,11 @@ SegmentTree = require('./segmentTree')
 
 # -----------------------------------------------------
 
+isString = (str) ->
+  return typeof str is 'string'
+
+# -----------------------------------------------------
+
 arithmeticToDruidFn = {
   add: '+'
   subtract: '-'
@@ -33,9 +38,9 @@ emptySingletonDruidResult = (result) ->
 class DruidQueryBuilder
   @ALL_DATA_CHUNKS = 10000
 
-  constructor: ({@dataSource, @timeAttribute, @attributeMetas, @forceInterval, @approximate, @context}) ->
-    throw new Error("must have a dataSource") unless typeof @dataSource is 'string'
-    throw new Error("must have a timeAttribute") unless typeof @timeAttribute is 'string'
+  constructor: ({dataSource, @timeAttribute, @attributeMetas, @forceInterval, @approximate, @context}) ->
+    @setDataSource(dataSource)
+    throw new Error("must have a timeAttribute") unless isString(@timeAttribute)
     @queryType = 'timeseries'
     @granularity = 'all'
     @attributeMetas or= {}
@@ -45,6 +50,16 @@ class DruidQueryBuilder
     @nameIndex = 0
     @intervals = null
     @useCache = true
+
+  setDataSource: (dataSource) ->
+    if not (isString(dataSource) or (Array.isArray(dataSource) and dataSource.length and dataSource.every(isString)))
+      throw new Error("`dataSource` must be a string or union array")
+
+    if isString(dataSource)
+      @dataSource = dataSource
+    else
+      @dataSource = dataSource[0] # ToDo: fill in the real logic here!
+    return
 
   getAttributeMeta: (attribute) ->
     return @attributeMetas[attribute] if @attributeMetas[attribute]
@@ -686,7 +701,7 @@ DruidQueryBuilder.queryFns = {
       attributeMeta = queryBuilder.getAttributeMeta(split.attribute)
       if attributeMeta.type is 'range'
         splitProp = split.name
-        rangeSize = attributeMeta.size
+        rangeSize = attributeMeta.rangeSize
         for d in ds
           if d[splitProp] in [null, 'null'] # ToDo: remove 'null' when druid is fixed
             d[splitProp] = null
@@ -1172,7 +1187,7 @@ multiDatasetQuery = ({parentSegment, condensedCommand, builderSettings, requeste
 # This is the Druid driver. It translates facet queries to Druid
 #
 # @param {Requester} requester, a function to make requests to Druid
-# @param {string} dataSource, name of the datasource in Druid
+# @param {string} dataSource, name of the datasource in Druid or the union spec
 # @param {string} timeAttribute [optional, default="time"], name by which the time attribute will be referred to
 # @param {Object} attributeMetas, meta attribute information
 # @param {boolean} approximate [optional, default=false], allow use of approximate queries
@@ -1311,7 +1326,7 @@ module.exports = ({requester, dataSource, timeAttribute, attributeMetas, approxi
     requester {
       query: {
         queryType: 'introspect'
-        dataSource
+        dataSource: if Array.isArray(dataSource) then dataSource[0] else dataSource
       }
     }, (err, ret) ->
       if err

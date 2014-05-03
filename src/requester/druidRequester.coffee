@@ -1,7 +1,6 @@
 request = require('request')
 
 module.exports = ({locator, timeout}) ->
-  timeout or= 60000
   return ({context, query}, callback) ->
     locator (err, location) ->
       if err

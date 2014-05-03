@@ -85,7 +85,7 @@ class IdentitySplit extends FacetSplit
     return "ID:#{@attribute}"
 
   valueOf: ->
-    split = super
+    split = super()
     split.attribute = @attribute
     return split
 
@@ -119,7 +119,7 @@ class ContinuousSplit extends FacetSplit
     return "CT:#{@attribute}:#{@size}:#{@offset}"
 
   valueOf: ->
-    split = super
+    split = super()
     split.attribute = @attribute
     split.size = @size
     split.offset = @offset
@@ -158,7 +158,7 @@ class TimePeriodSplit extends FacetSplit
     return "TP:#{@attribute}:#{@period}:#{@timezone}"
 
   valueOf: ->
-    split = super
+    split = super()
     split.attribute = @attribute
     split.period = @period
     split.timezone = @timezone
@@ -196,7 +196,7 @@ class TupleSplit extends FacetSplit
     return '(' + @splits.map((split) -> split.toHash()).join(')*(') + ')'
 
   valueOf: ->
-    split = super
+    split = super()
     split.splits = @splits.map(getValueOf)
     return split
 
@@ -231,7 +231,7 @@ class ParallelSplit extends FacetSplit
     return '(' + @splits.map((split) -> split.toHash()).join(')|(') + ')'
 
   valueOf: ->
-    split = super
+    split = super()
     split.splits = @splits.map(getValueOf)
     return split
 

@@ -93,7 +93,6 @@ getRealSplit = (split) ->
 
 class IdentityCombineToSplitValues
   constructor: ->
-    null
 
   get: (filter, split, combine) ->
     return null unless @splitValues
@@ -186,7 +185,6 @@ class TimePeriodCombineToSplitValues
 
 class ContinuousCombineToSplitValues
   constructor: ->
-    null
 
   get: (filter, split, combine) ->
     throw new Error('not implemented yet')

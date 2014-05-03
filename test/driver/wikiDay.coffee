@@ -239,8 +239,8 @@ describe "Wikipedia day dataset", ->
           type: 'within'
           attribute: 'time'
           range: [
-            new Date(Date.UTC(2013, 2 - 1, 26, 3, 0, 0))
-            new Date(Date.UTC(2013, 2 - 1, 26, 5, 0, 0))
+            new Date("2013-02-26T03:00:00")
+            new Date("2013-02-26T05:00:00")
           ]
         }
         { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
@@ -380,8 +380,8 @@ describe "Wikipedia day dataset", ->
               type: "within"
               attribute: "time"
               range: [
-                new Date(Date.UTC(2013, 2 - 1, 26, 10, 0, 0))
-                new Date(Date.UTC(2013, 2 - 1, 26, 15, 0, 0))
+                new Date("2013-02-26T10:00:00")
+                new Date("2013-02-26T15:00:00")
               ]
             }
             {

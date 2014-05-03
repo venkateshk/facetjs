@@ -46,8 +46,8 @@ describe "Utility", ->
 
     it "should work for general dates", ->
       expect(driverUtil.datesToInterval(
-        new Date(Date.UTC(2013, 2 - 1, 26, 1, 1, 1))
-        new Date(Date.UTC(2013, 2 - 1, 27, 2, 2, 2))
+        new Date("2013-02-26T01:01:01"))
+        new Date("2013-02-27T02:02:02"))
       )).to.equal('2013-02-26T01:01:01/2013-02-27T02:02:02')
 
 

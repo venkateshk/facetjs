@@ -103,9 +103,20 @@ describe "AttributeMeta", ->
       expect(attributeMeta.serialize([null, 0])).to.equal('/0000.000')
       expect(attributeMeta.serialize([100, null])).to.equal('0100.000/')
 
+    it "throws error for unique", ->
+      attributeMetaSpec = {
+        type: 'unique'
+      }
+      attributeMeta = AttributeMeta.fromSpec(attributeMetaSpec)
+      expect(-> attributeMeta.serialize('lol')).to.throw(Error, 'can not serialize an approximate unique value')
 
-
-
-
-
-
+  describe "back compat.", ->
+    it "range size", ->
+      attributeMetaSpec = {
+        type: 'range'
+        size: 0.05
+      }
+      expect(AttributeMeta.fromSpec(attributeMetaSpec).valueOf()).to.deep.equal({
+        type: 'range'
+        rangeSize: 0.05
+      })

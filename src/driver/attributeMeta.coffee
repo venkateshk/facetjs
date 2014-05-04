@@ -83,7 +83,7 @@ class UniqueAttributeMeta extends AttributeMeta
     @_ensureType('unique')
 
   serialize: ->
-    throw new Error("can not serialize a historgram value")
+    throw new Error("can not serialize an approximate unique value")
 
 
 class HistogramAttributeMeta extends AttributeMeta

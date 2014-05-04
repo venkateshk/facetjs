@@ -157,7 +157,7 @@ class IdentityCombineToSplitValues
 class TimePeriodCombineToSplitValues
   constructor: ->
 
-  get: (filter, split, combine) ->
+  _getAllPossibleSplitValues: (filter, split) ->
     split = getRealSplit(split)
     duration = new Duration(split.period)
     timezone = split.timezone
@@ -172,6 +172,16 @@ class TimePeriodCombineToSplitValues
       iter = next
       next = duration.move(iter, timezone, 1)
 
+    return splitValues
+
+  get: (filter, split, combine) ->
+    splitValues = @_getAllPossibleSplitValues(filter, split)
+    return null unless splitValues
+
+    if @knownUnknowns
+      knownUnknowns = @knownUnknowns
+      driverUtil.inPlaceFilter(splitValues, (splitValue) -> not knownUnknowns[splitValue[0].toISOString()])
+
     sort = combine.sort
     if sort.prop is split.name
       splitValues.reverse() if sort.direction is 'descending'
@@ -179,7 +189,25 @@ class TimePeriodCombineToSplitValues
 
     return splitValues
 
-  set: ->
+  set: (filter, split, combine, splitValues) ->
+    return if combine.limit?
+    possibleSplitValues = @_getAllPossibleSplitValues(filter, split)
+    return unless possibleSplitValues
+    return unless splitValues.length < possibleSplitValues.length
+    hasSplitValue = {}
+    for splitValue in splitValues
+      return unless splitValue # ToDo: figure out null
+      hasSplitValue[splitValue[0].toISOString()] = 1
+
+    # The known unknown keys are the ISO interval starts of intervals we know for a fact are blank
+    # We only need to store the start because they are all implicitly the same length.
+    knownUnknowns = {}
+    for possibleSplitValue in possibleSplitValues
+      possibleSplitValueKey = possibleSplitValue[0].toISOString()
+      if not hasSplitValue[possibleSplitValueKey]
+        knownUnknowns[possibleSplitValueKey] = 1
+
+    @knownUnknowns = knownUnknowns
     return
 
 

@@ -1,7 +1,7 @@
 { expect } = require("chai")
 utils = require('../utils')
 
-WallTime = require('walltime-js')
+WallTime = require('../../lib/walltime')
 if not WallTime.rules
   tzData = require("../../lib/walltime/walltime-data.js")
   WallTime.init(tzData.rules, tzData.zones)
@@ -1077,7 +1077,7 @@ describe "General cache", ->
         ]
       }
 
-    describe.skip "cache known unknowns (query more than there is data)", ->
+    describe "cache known unknowns (query more than there is data)", ->
       setUpQuery = [
         { operation: 'filter', type: 'within', attribute: 'time', range: [new Date("2013-02-26T00:00:00Z"), new Date("2013-02-28T00:00:00Z")] }
         { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
@@ -1119,7 +1119,7 @@ describe "General cache", ->
       it "split time; apply count; ascending limit", testEquality {
         drivers: ['wikipediaCached', 'wikipedia']
         query: [
-          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date("2013-02-26T00:00:00Z"), new Date("2013-02-29T00:00:00Z")] }
+          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date("2013-02-26T00:00:00Z"), new Date("2013-02-28T00:00:00Z")] }
           { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
           { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
           { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' }, limit: 5 }
@@ -1129,7 +1129,7 @@ describe "General cache", ->
       it "split time; apply count; descending limit", testEquality {
         drivers: ['wikipediaCached', 'wikipedia']
         query: [
-          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date("2013-02-26T00:00:00Z"), new Date("2013-02-29T00:00:00Z")] }
+          { operation: 'filter', type: 'within', attribute: 'time', range: [new Date("2013-02-26T00:00:00Z"), new Date("2013-02-28T00:00:00Z")] }
           { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
           { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
           { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'descending' }, limit: 5 }

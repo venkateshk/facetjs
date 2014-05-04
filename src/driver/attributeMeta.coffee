@@ -7,7 +7,6 @@ repeatString = (string, times) ->
   return '' unless times > 0
   return new Array(times + 1).join(string)
 
-# Ok really need to test this class
 class AttributeMeta
   constructor: ({@type}, dummy) ->
     throw new TypeError("can not call `new AttributeMeta` directly use AttributeMeta.fromSpec instead") unless dummy is dummyObject
@@ -65,7 +64,8 @@ class RangeAttributeMeta extends AttributeMeta
     if @digitsBeforeDecimal?
       before = repeatString('0', @digitsBeforeDecimal - before.length) + before
 
-    if after and @digitsAfterDecimal?
+    if @digitsAfterDecimal?
+      after or= ''
       after += repeatString('0', @digitsAfterDecimal - after.length)
 
     value = before

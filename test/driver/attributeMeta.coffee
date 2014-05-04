@@ -1,0 +1,111 @@
+{expect} = require("chai")
+
+{AttributeMeta} = require('../../src/driver/attributeMeta')
+
+describe "AttributeMeta", ->
+  describe "errors", ->
+    it "missing type", ->
+      attributeMetaSpec = {}
+      expect(-> AttributeMeta.fromSpec(attributeMetaSpec)).to.throw(Error, "type must be defined")
+
+    it "invalid type", ->
+      attributeMetaSpec = { type: ['wtf?'] }
+      expect(-> AttributeMeta.fromSpec(attributeMetaSpec)).to.throw(Error, "type must be a string")
+
+    it "unknown type", ->
+      attributeMetaSpec = { type: 'poo' }
+      expect(-> AttributeMeta.fromSpec(attributeMetaSpec)).to.throw(Error, "unsupported attributeMeta type 'poo'")
+
+    it "non-numeric range size", ->
+      attributeMetaSpec = {
+        type: 'range'
+        rangeSize: 'hello'
+      }
+      expect(-> AttributeMeta.fromSpec(attributeMetaSpec)).to.throw(Error, "`rangeSize` must be a number")
+
+    it "bad range size (<1)", ->
+      attributeMetaSpec = {
+        type: 'range'
+        rangeSize: 0.03
+      }
+      expect(-> AttributeMeta.fromSpec(attributeMetaSpec)).to.throw(Error, "`rangeSize` less than 1 must divide 1")
+
+    it "bad range size (>1)", ->
+      attributeMetaSpec = {
+        type: 'range'
+        rangeSize: 1.5
+      }
+      expect(-> AttributeMeta.fromSpec(attributeMetaSpec)).to.throw(Error, "`rangeSize` greater than 1 must be an integer")
+
+
+  describe "preserves", ->
+    it "default", ->
+      attributeMetaSpec = {
+        type: 'default'
+      }
+      expect(AttributeMeta.fromSpec(attributeMetaSpec).valueOf()).to.deep.equal(attributeMetaSpec)
+
+    it "unique", ->
+      attributeMetaSpec = {
+        type: 'unique'
+      }
+      expect(AttributeMeta.fromSpec(attributeMetaSpec).valueOf()).to.deep.equal(attributeMetaSpec)
+
+    it "range (simple)", ->
+      attributeMetaSpec = {
+        type: 'range'
+        rangeSize: 0.05
+      }
+      expect(AttributeMeta.fromSpec(attributeMetaSpec).valueOf()).to.deep.equal(attributeMetaSpec)
+
+    it "range with digitsAfterDecima", ->
+      attributeMetaSpec = {
+        type: 'range'
+        rangeSize: 3
+        separator: ' - '
+        digitsAfterDecimal: 2
+      }
+      expect(AttributeMeta.fromSpec(attributeMetaSpec).valueOf()).to.deep.equal(attributeMetaSpec)
+
+  describe "serialize", ->
+    it "works with a simple range", ->
+      attributeMetaSpec = {
+        type: 'range'
+        rangeSize: 0.05
+      }
+      attributeMeta = AttributeMeta.fromSpec(attributeMetaSpec)
+      expect(attributeMeta.serialize([0.05, 0.1])).to.equal('0.05;0.1')
+      expect(attributeMeta.serialize([null, 0])).to.equal(';0')
+      expect(attributeMeta.serialize([100, null])).to.equal('100;')
+
+    it "works with a range with digitsAfterDecimal", ->
+      attributeMetaSpec = {
+        type: 'range'
+        rangeSize: 0.05
+        separator: '::'
+        digitsAfterDecimal: 2
+      }
+      attributeMeta = AttributeMeta.fromSpec(attributeMetaSpec)
+      expect(attributeMeta.serialize([0.05, 0.1])).to.equal('0.05::0.10')
+      expect(attributeMeta.serialize([null, 0])).to.equal('::0.00')
+      expect(attributeMeta.serialize([100, null])).to.equal('100.00::')
+
+    it "works with a range with digitsBeforeDecimal + digitsAfterDecimal", ->
+      attributeMetaSpec = {
+        type: 'range'
+        rangeSize: 0.05
+        separator: '/'
+        digitsBeforeDecimal: 4
+        digitsAfterDecimal: 3
+      }
+      attributeMeta = AttributeMeta.fromSpec(attributeMetaSpec)
+      expect(attributeMeta.serialize([0.05, 0.1])).to.equal('0000.050/0000.100')
+      expect(attributeMeta.serialize([null, 0])).to.equal('/0000.000')
+      expect(attributeMeta.serialize([100, null])).to.equal('0100.000/')
+
+
+
+
+
+
+

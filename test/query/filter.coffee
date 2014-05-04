@@ -1,5 +1,4 @@
-chai = require("chai")
-expect = chai.expect
+{expect} = require("chai")
 
 {FacetFilter} = require('../../src/query')
 

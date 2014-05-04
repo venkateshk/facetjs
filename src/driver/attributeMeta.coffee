@@ -1,3 +1,5 @@
+dummyObject = {}
+
 isInterger = (n) ->
   return n % 1 is 0
 
@@ -6,8 +8,8 @@ repeatString = (string, times) ->
   return new Array(times + 1).join(string)
 
 class AttributeMeta
-  constructor: ({@type}) ->
-    throw new TypeError("can not call `new AttributeMeta` directly use AttributeMeta.fromSpec instead")
+  constructor: ({@type}, dummy) ->
+    throw new TypeError("can not call `new AttributeMeta` directly use AttributeMeta.fromSpec instead") unless dummy is dummyObject
 
   _ensureType: (attributeMetaType) ->
     if not @type
@@ -22,10 +24,19 @@ class AttributeMeta
       @type
     }
 
+  serialize: (value) ->
+    return value
+
+
+class DefaultAttributeMeta extends AttributeMeta
+  constructor: ->
+    super(arguments[0] or {}, dummyObject)
+    @_ensureType('default')
+
 
 class RangeAttributeMeta extends AttributeMeta
   constructor: ({@separator, @rangeSize, @digitsBeforeDecimal, @digitsAfterDecimal}) ->
-    super(arguments[0])
+    super(arguments[0], dummyObject)
     @_ensureType('range')
     @separator or= ';'
     throw new TypeError('`separator` must be a non-empty string') unless typeof @separator is 'string' and @separator.length
@@ -45,7 +56,7 @@ class RangeAttributeMeta extends AttributeMeta
     attributeMetaSpec.digitsAfterDecimal = @digitsAfterDecimal unless @digitsAfterDecimal is false
     return attributeMetaSpec
 
-  _valueToDatabase: (value) ->
+  _serializeNumber: (value) ->
     return '' if value is null
     value = String(value)
     return value unless @digitsBeforeDecimal? or @digitsAfterDecimal?
@@ -60,18 +71,39 @@ class RangeAttributeMeta extends AttributeMeta
     value += ".#{after}" if after
     return value
 
-  rangeToDatabase: (range) ->
+  serialize: (range) ->
     return null unless Array.isArray(range) and range.length is 2
-    return @_valueToDatabase(range[0]) + @separator + @_valueToDatabase(range[1])
+    return @_serializeNumber(range[0]) + @separator + @_serializeNumber(range[1])
+
+
+class UniqueAttributeMeta extends AttributeMeta
+  constructor: ->
+    super(arguments[0] or {}, dummyObject)
+    @_ensureType('unique')
+
+  serialize: ->
+    throw new Error("can not serialize a historgram value")
+
+
+class HistogramAttributeMeta extends AttributeMeta
+  constructor: ->
+    super(arguments[0] or {}, dummyObject)
+    @_ensureType('histogram')
+
+  serialize: ->
+    throw new Error("can not serialize a historgram value")
 
 
 # Make lookup
 attributeMetaConstructorMap = {
+  default: DefaultAttributeMeta
   range: RangeAttributeMeta
+  unique: UniqueAttributeMeta
+  historgram: HistogramAttributeMeta
 }
 
 AttributeMeta.fromSpec = (attributeMetaSpec) ->
-  if attributeMetaSpec.size # Back compat.
+  if attributeMetaSpec.type is 'range' and attributeMetaSpec.size # Back compat.
     attributeMetaSpec.rangeSize = attributeMetaSpec.size
 
   throw new Error("unrecognizable attributeMeta") unless typeof attributeMetaSpec is 'object'
@@ -81,7 +113,13 @@ AttributeMeta.fromSpec = (attributeMetaSpec) ->
   throw new Error("unsupported attributeMeta type '#{attributeMetaSpec.type}'") unless FilterConstructor
   return new FilterConstructor(attributeMetaSpec)
 
+AttributeMeta.default = new DefaultAttributeMeta()
 
 # Export!
-exports.AttributeMeta = AttributeMeta
-exports.RangeAttributeMeta = RangeAttributeMeta
+module.exports = {
+  AttributeMeta
+  DefaultAttributeMeta
+  RangeAttributeMeta
+  UniqueAttributeMeta
+  HistogramAttributeMeta
+}

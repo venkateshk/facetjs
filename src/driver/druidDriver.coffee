@@ -3,10 +3,19 @@ async = require('async')
 driverUtil = require('./driverUtil')
 SegmentTree = require('./segmentTree')
 {
+  AttributeMeta
+  UniqueAttributeMeta
+  HistogramAttributeMeta
+} = require('./attributeMeta')
+{
   FacetQuery, CondensedCommand
   FacetFilter, TrueFilter, InFilter, AndFilter
   FacetSplit, FacetApply, CountApply, FacetCombine, SliceCombine
 } = require('../query')
+
+defaultAttributeMeta = AttributeMeta.default
+uniqueAttributeMeta = new UniqueAttributeMeta()
+histogramAttributeMeta = new HistogramAttributeMeta()
 
 # -----------------------------------------------------
 
@@ -64,10 +73,10 @@ class DruidQueryBuilder
   getAttributeMeta: (attribute) ->
     return @attributeMetas[attribute] if @attributeMetas[attribute]
     if /_hist$/.test(attribute)
-      return { type: 'histogram' }
+      return histogramAttributeMeta
     if /^unique_/.test(attribute)
-      return { type: 'unique' }
-    return {}
+      return uniqueAttributeMeta
+    return defaultAttributeMeta
 
   addToNamespace: (namespace, attribute) ->
     return namespace[attribute] if namespace[attribute]
@@ -82,13 +91,15 @@ class DruidQueryBuilder
 
       when 'is'
         throw new Error("can not filter on specific time") if filter.attribute is @timeAttribute
+        attributeMeta = @getAttributeMeta(filter.attribute)
         varName = @addToNamespace(namespace, filter.attribute)
-        "#{varName} === '#{filter.value}'"
+        "#{varName} === '#{attributeMeta.serialize(filter.value)}'"
 
       when 'in'
         throw new Error("can not filter on specific time") if filter.attribute is @timeAttribute
+        attributeMeta = @getAttributeMeta(filter.attribute)
         varName = @addToNamespace(namespace, filter.attribute)
-        filter.values.map((value) -> "#{varName} === '#{value}'").join('||')
+        filter.values.map((value) -> "#{varName} === '#{attributeMeta.serialize(value)}'").join('||')
 
       when 'contains'
         throw new Error("can not filter on specific time") if filter.attribute is @timeAttribute
@@ -125,20 +136,22 @@ class DruidQueryBuilder
         throw new Error("should never get here")
 
       when 'is'
+        attributeMeta = @getAttributeMeta(filter.attribute)
         {
           type: 'selector'
           dimension: filter.attribute
-          value: filter.value
+          value: attributeMeta.serialize(filter.value)
         }
 
       when 'in'
+        attributeMeta = @getAttributeMeta(filter.attribute)
         {
           type: 'or'
           fields: filter.values.map(((value) ->
             return {
               type: 'selector'
               dimension: filter.attribute
-              value
+              value: attributeMeta.serialize(value)
             }
           ), this)
         }
@@ -1204,6 +1217,9 @@ module.exports = ({requester, dataSource, timeAttribute, attributeMetas, approxi
   approximate ?= true
   concurrentQueryLimit or= 16
   queryLimit or= Infinity
+  attributeMetas or= {}
+  for k, v of attributeMetas
+    throw new TypeError("`attributeMeta` for attribute '#{k}' must be an AttributeMeta") unless v instanceof AttributeMeta
 
   queriesMade = 0
   driver = (request, callback) ->

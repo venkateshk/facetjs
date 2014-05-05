@@ -37,6 +37,56 @@ describe "Utility", ->
       expect(a).to.deep.equal([1, 2, 3, 4])
 
 
+  describe "isPropValueEqual", ->
+    it "should work on strings", ->
+      pv1 = "Facet"
+      pv2 = "Facet"
+      expect(driverUtil.isPropValueEqual(pv1, pv2)).to.equal(true)
+
+      pv1 = "Facet"
+      pv2 = "Bacet"
+      expect(driverUtil.isPropValueEqual(pv1, pv2)).to.equal(false)
+
+    it "should work on numbers", ->
+      pv1 = 5
+      pv2 = 5.0
+      expect(driverUtil.isPropValueEqual(pv1, pv2)).to.equal(true)
+
+      pv1 = 1.2
+      pv2 = 7
+      expect(driverUtil.isPropValueEqual(pv1, pv2)).to.equal(false)
+
+    it "should work on number ranges", ->
+      pv1 = [1, 1.5]
+      pv2 = [1, 1.5]
+      expect(driverUtil.isPropValueEqual(pv1, pv2)).to.equal(true)
+
+      pv1 = [1, 1.5]
+      pv2 = 3
+      expect(driverUtil.isPropValueEqual(pv1, pv2)).to.equal(false)
+
+      pv1 = 3
+      pv2 = [1, 1.5]
+      expect(driverUtil.isPropValueEqual(pv1, pv2)).to.equal(false)
+
+      pv1 = [1, 1.5, 'blah']
+      pv2 = [1, 1.5]
+      expect(driverUtil.isPropValueEqual(pv1, pv2)).to.equal(false)
+
+      pv1 = [1, 1.5]
+      pv2 = ['1', '1.5']
+      expect(driverUtil.isPropValueEqual(pv1, pv2)).to.equal(false)
+
+    it "should work on date ranges", ->
+      pv1 = [new Date("2013-02-26T00:00:00Z"), new Date("2013-02-27T00:00:00Z")]
+      pv2 = [new Date("2013-02-26T00:00:00Z"), new Date("2013-02-27T00:00:00Z")]
+      expect(driverUtil.isPropValueEqual(pv1, pv2)).to.equal(true)
+
+      pv1 = [new Date("2013-02-26T00:00:00Z"), new Date("2013-02-27T00:00:00Z")]
+      pv2 = [new Date("2013-02-26T00:00:00Z"), new Date("2013-02-27T00:00:01Z")]
+      expect(driverUtil.isPropValueEqual(pv1, pv2)).to.equal(false)
+
+
   describe "datesToInterval", ->
     it "should simplify round dates", ->
       expect(driverUtil.datesToInterval(
@@ -46,8 +96,8 @@ describe "Utility", ->
 
     it "should work for general dates", ->
       expect(driverUtil.datesToInterval(
-        new Date("2013-02-26T01:01:01"))
-        new Date("2013-02-27T02:02:02"))
+        new Date("2013-02-26T01:01:01")
+        new Date("2013-02-27T02:02:02")
       )).to.equal('2013-02-26T01:01:01/2013-02-27T02:02:02')
 
 

@@ -67,7 +67,11 @@ class DruidQueryBuilder
     if isString(dataSource)
       @dataSource = dataSource
     else
-      @dataSource = dataSource[0] # ToDo: fill in the real logic here!
+      @dataSource = {
+        type: "union"
+        dataSources: dataSource
+      }
+
     return
 
   getAttributeMeta: (attribute) ->

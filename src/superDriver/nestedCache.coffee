@@ -1,4 +1,4 @@
-driverUtil = require('../driver/driverUtil')
+{ isPropValueEqual } = require('../driver/driverUtil')
 SegmentTree = require('../driver/segmentTree')
 { FacetQuery, FacetFilter, AndFilter, FacetSplit, FacetCombine } = require('../query')
 
@@ -23,13 +23,6 @@ getSplitCombines = (query) ->
 # Get a single set of applies, this assumes that the same applies are executer on each split
 getApplies = (query) ->
   return query.getCondensedCommands()[0].applies
-
-isPropValueEqual = (pv1, pv2) ->
-  if Array.isArray(pv1)
-    return false unless Array.isArray(pv2)
-    return pv1[0].valueOf() is pv2[0].valueOf() and pv1[1].valueOf() is pv2[1].valueOf()
-  else
-    return pv1 is pv2
 
 # Compares that the split combines are the same ignoring the bucket filters
 isSplitCombineEqual = (splitCombine1, splitCombine2, compareSegmentFilter = false) ->

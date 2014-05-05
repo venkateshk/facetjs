@@ -100,6 +100,20 @@ exports.joinRows = joinRows = (rows) ->
   return newRow
 
 
+# Compare two prop values for equality
+# Takes care of the fact that propValues may be ranges represented by [start, end]
+#
+# @param {Object} pv1, first prop value
+# @param {Object} pv2, second prop value
+# @return {Boolean} are they equal
+exports.isPropValueEqual = (pv1, pv2) ->
+  if Array.isArray(pv1) and pv1.length is 2
+    return false unless Array.isArray(pv2) and pv2.length is 2
+    return pv1[0].valueOf() is pv2[0].valueOf() and pv1[1].valueOf() is pv2[1].valueOf()
+  else
+    return pv1 is pv2
+
+
 # Join several arrays of results
 exports.joinResults = (splitNames, applyNames, results) ->
   return results[0] if results.length <= 1

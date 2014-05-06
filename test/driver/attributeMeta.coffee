@@ -37,6 +37,30 @@ describe "AttributeMeta", ->
       }
       expect(-> AttributeMeta.fromSpec(attributeMetaSpec)).to.throw(Error, "`rangeSize` greater than 1 must be an integer")
 
+    it "bad digitsBeforeDecimal", ->
+      attributeMetaSpec = {
+        type: 'range'
+        rangeSize: 0.05
+        digitsBeforeDecimal: 0
+      }
+      expect(-> AttributeMeta.fromSpec(attributeMetaSpec)).to.throw(Error, "`digitsBeforeDecimal` must be a positive integer")
+
+    it "bad digitsAfterDecimal", ->
+      attributeMetaSpec = {
+        type: 'range'
+        rangeSize: 0.05
+        digitsAfterDecimal: 1.5
+      }
+      expect(-> AttributeMeta.fromSpec(attributeMetaSpec)).to.throw(Error, "`digitsAfterDecimal` must be a positive integer")
+
+    it "digitsAfterDecimal too small", ->
+      attributeMetaSpec = {
+        type: 'range'
+        rangeSize: 0.05
+        digitsAfterDecimal: 1
+      }
+      expect(-> AttributeMeta.fromSpec(attributeMetaSpec)).to.throw(Error, "`digitsAfterDecimal` must be at least 2 to accommodate for a `rangeSize` of 0.05")
+
 
   describe "preserves", ->
     it "default", ->
@@ -66,6 +90,7 @@ describe "AttributeMeta", ->
         digitsAfterDecimal: 2
       }
       expect(AttributeMeta.fromSpec(attributeMetaSpec).valueOf()).to.deep.equal(attributeMetaSpec)
+
 
   describe "serialize", ->
     it "works with a simple range", ->
@@ -109,6 +134,7 @@ describe "AttributeMeta", ->
       }
       attributeMeta = AttributeMeta.fromSpec(attributeMetaSpec)
       expect(-> attributeMeta.serialize('lol')).to.throw(Error, 'can not serialize an approximate unique value')
+
 
   describe "back compat.", ->
     it "range size", ->

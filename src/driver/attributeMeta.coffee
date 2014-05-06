@@ -1,7 +1,10 @@
 dummyObject = {}
 
 isInterger = (n) ->
-  return n % 1 is 0
+  return not isNaN(n) and n % 1 is 0
+
+isPositiveInterger = (n) ->
+  return isInterger(n) and 0 < n
 
 repeatString = (string, times) ->
   return '' unless times > 0
@@ -45,8 +48,19 @@ class RangeAttributeMeta extends AttributeMeta
       throw new Error("`rangeSize` greater than 1 must be an integer") unless isInterger(@rangeSize)
     else
       throw new Error("`rangeSize` less than 1 must divide 1") unless isInterger(1 / @rangeSize)
-    @digitsBeforeDecimal ?= false
-    @digitsAfterDecimal ?= false
+
+    if @digitsBeforeDecimal?
+      throw new Error("`digitsBeforeDecimal` must be a positive integer") unless isPositiveInterger(@digitsBeforeDecimal)
+    else
+      @digitsBeforeDecimal = false
+
+    if @digitsAfterDecimal?
+      throw new Error("`digitsAfterDecimal` must be a positive integer") unless isPositiveInterger(@digitsAfterDecimal)
+      digitsInSize = (String(@rangeSize).split('.')[1] or '').length
+      if @digitsAfterDecimal < digitsInSize
+        throw new Error("`digitsAfterDecimal` must be at least #{digitsInSize} to accommodate for a `rangeSize` of #{@rangeSize}")
+    else
+      @digitsAfterDecimal = false
 
   valueOf: ->
     attributeMetaSpec = super()
@@ -59,12 +73,12 @@ class RangeAttributeMeta extends AttributeMeta
   _serializeNumber: (value) ->
     return '' if value is null
     value = String(value)
-    return value unless @digitsBeforeDecimal? or @digitsAfterDecimal?
+    return value unless @digitsBeforeDecimal or @digitsAfterDecimal
     [before, after] = value.split('.')
-    if @digitsBeforeDecimal?
+    if @digitsBeforeDecimal
       before = repeatString('0', @digitsBeforeDecimal - before.length) + before
 
-    if @digitsAfterDecimal?
+    if @digitsAfterDecimal
       after or= ''
       after += repeatString('0', @digitsAfterDecimal - after.length)
 

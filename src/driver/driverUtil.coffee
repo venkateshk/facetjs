@@ -106,7 +106,7 @@ exports.joinRows = joinRows = (rows) ->
 # @param {Object} pv1, first prop value
 # @param {Object} pv2, second prop value
 # @return {Boolean} are they equal?
-exports.isPropValueEqual = (pv1, pv2) ->
+exports.isPropValueEqual = isPropValueEqual = (pv1, pv2) ->
   if Array.isArray(pv1) and pv1.length is 2
     return false unless Array.isArray(pv2) and pv2.length is 2
     return pv1[0].valueOf() is pv2[0].valueOf() and pv1[1].valueOf() is pv2[1].valueOf()

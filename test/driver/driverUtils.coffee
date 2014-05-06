@@ -87,6 +87,43 @@ describe "Utility", ->
       expect(driverUtil.isPropValueEqual(pv1, pv2)).to.equal(false)
 
 
+  describe "isPropValueIn", ->
+    it "should work on strings", ->
+      propValue = "Facet"
+      propValueList = ["Facet"]
+      expect(driverUtil.isPropValueIn(propValue, propValueList)).to.equal(true)
+
+      propValue = "Facet"
+      propValueList = []
+      expect(driverUtil.isPropValueIn(propValue, propValueList)).to.equal(false)
+
+      propValue = "Facet"
+      propValueList = [1, null, [1, 1.05], "Facet"]
+      expect(driverUtil.isPropValueIn(propValue, propValueList)).to.equal(true)
+
+      propValue = "Bacet"
+      propValueList = [1, null, [1, 1.05], "Facet"]
+      expect(driverUtil.isPropValueIn(propValue, propValueList)).to.equal(false)
+
+    it "should work on null", ->
+      propValue = null
+      propValueList = [1, null, [1, 1.05], "Facet"]
+      expect(driverUtil.isPropValueIn(propValue, propValueList)).to.equal(true)
+
+    it "should work on ranges", ->
+      propValue = [1, 1.05]
+      propValueList = [1, null, [1, 1.05], "Facet"]
+      expect(driverUtil.isPropValueIn(propValue, propValueList)).to.equal(true)
+
+      propValue = [1.05, 1.1]
+      propValueList = [1, null, [1, 1.05], "Facet"]
+      expect(driverUtil.isPropValueIn(propValue, propValueList)).to.equal(false)
+
+      propValue = [1, 1.1]
+      propValueList = [1, null, [1, 1.05], "Facet"]
+      expect(driverUtil.isPropValueIn(propValue, propValueList)).to.equal(false)
+
+
   describe "datesToInterval", ->
     it "should simplify round dates", ->
       expect(driverUtil.datesToInterval(

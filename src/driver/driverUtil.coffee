@@ -105,13 +105,22 @@ exports.joinRows = joinRows = (rows) ->
 #
 # @param {Object} pv1, first prop value
 # @param {Object} pv2, second prop value
-# @return {Boolean} are they equal
+# @return {Boolean} are they equal?
 exports.isPropValueEqual = (pv1, pv2) ->
   if Array.isArray(pv1) and pv1.length is 2
     return false unless Array.isArray(pv2) and pv2.length is 2
     return pv1[0].valueOf() is pv2[0].valueOf() and pv1[1].valueOf() is pv2[1].valueOf()
   else
     return pv1 is pv2
+
+
+# Checks for the presence of prop value in the given list
+#
+# @param {Object} propValue, the prop value to search
+# @param {Array} propValueList, the list to examine
+# @return {Boolean} is it in?
+exports.isPropValueIn = (propValue, propValueList) ->
+  return propValueList.some((pv) -> isPropValueEqual(propValue, pv))
 
 
 # Join several arrays of results

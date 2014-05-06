@@ -106,7 +106,7 @@ class HistogramAttributeMeta extends AttributeMeta
     @_ensureType('histogram')
 
   serialize: ->
-    throw new Error("can not serialize a historgram value")
+    throw new Error("can not serialize a histogram value")
 
 
 # Make lookup

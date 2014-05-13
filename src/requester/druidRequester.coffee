@@ -17,7 +17,6 @@ module.exports = ({locator, timeout}) ->
         }
       else
         postfix = ''
-        postfix += 'heatmap' if query.queryType is 'heatmap' # Druid is f-ed
         postfix += '?pretty' if context?.pretty
         param = {
           method: 'POST'

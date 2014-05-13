@@ -149,13 +149,7 @@
           });
 
           // These are there for testing
-          var attributeMetas = {
-            'pricefloor_bucket': {
-              type: 'range',
-              separator: '-',
-              size: 0.05
-            }
-          };
+          var attributeMetas = {};
 
           return facet.driver.druid({
             requester: druidRequester,

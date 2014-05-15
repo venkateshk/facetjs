@@ -22,10 +22,47 @@ describe "Druid requester", ->
       expect(isNaN(new Date(res[0].result))).to.be.false
       done()
 
+  it "introspects single dataSource", (done) ->
+    druidPass {
+      query: {
+        "queryType": "introspect",
+        "dataSource": 'wikipedia_editstream'
+      }
+    }, (err, res) ->
+      expect(err).to.not.exist
+      expect(res.dimensions).be.an('Array')
+      expect(res.metrics).be.an('Array')
+      done()
+
+  it "introspects multi dataSource", (done) ->
+    druidPass {
+      query: {
+        "queryType": "introspect",
+        "dataSource": {
+          "type": "union"
+          "dataSources": ['wikipedia_editstream', 'wikipedia_editstream']
+        }
+      }
+    }, (err, res) ->
+      expect(err).to.not.exist
+      expect(res.dimensions).be.an('Array')
+      expect(res.metrics).be.an('Array')
+      done()
+
   it "correct error for bad datasource", (done) ->
     druidPass {
       query: {
         "queryType": "maxTime",
+        "dataSource": 'wikipedia_editstream_borat'
+      }
+    }, (err, res) ->
+      expect(err.message).to.equal("No such datasource")
+      done()
+
+  it "correct error for bad datasource (on introspect)", (done) ->
+    druidPass {
+      query: {
+        "queryType": "introspect",
         "dataSource": 'wikipedia_editstream_borat'
       }
     }, (err, res) ->

@@ -124,6 +124,19 @@ describe "Utility", ->
       expect(driverUtil.isPropValueIn(propValue, propValueList)).to.equal(false)
 
 
+  describe "safeAdd", ->
+    it "works on 0.2 + 0.1", ->
+      expect(driverUtil.safeAdd(0.2, 0.1)).to.equal(0.3)
+      expect(driverUtil.safeAdd(0.2, 0.1)).to.not.equal(0.2 + 0.1)
+
+    it "works on 0.7 + 0.1", ->
+      expect(driverUtil.safeAdd(0.7, 0.1)).to.equal(0.8)
+      expect(driverUtil.safeAdd(0.7, 0.1)).to.not.equal(0.7 + 0.1)
+
+    it "works on unrepresentable", ->
+      expect(driverUtil.safeAdd(1, 1/3)).to.equal(1 + 1/3)
+
+
   describe "datesToInterval", ->
     it "should simplify round dates", ->
       expect(driverUtil.datesToInterval(

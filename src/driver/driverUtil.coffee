@@ -29,6 +29,18 @@ exports.inPlaceFilter = (array, fn) ->
   return
 
 
+# Adds a delta to a number safely
+exports.safeAdd = (number, delta) ->
+  stringDelta = String(delta)
+  dotIndex = stringDelta.indexOf('.')
+  if dotIndex is -1 or stringDelta.length is 18
+    # delta is an integer or unrepresentable
+    return number + delta
+  else
+    scale = Math.pow(10, stringDelta.length - dotIndex - 1)
+    return (number * scale + delta * scale) / scale
+
+
 # Converts dates to intervals
 dateToIntervalPart = (date) ->
   return date.toISOString()

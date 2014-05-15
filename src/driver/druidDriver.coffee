@@ -724,7 +724,7 @@ DruidQueryBuilder.queryFns = {
             d[splitProp] = null
           else
             start = Number(d[splitProp])
-            d[splitProp] = [start, start + rangeSize]
+            d[splitProp] = [start, driverUtil.safeAdd(start, rangeSize)]
 
       else if split.bucket is 'continuous'
         splitProp = split.name
@@ -734,7 +734,7 @@ DruidQueryBuilder.queryFns = {
             d[splitProp] = null
           else
             start = Number(d[splitProp])
-            d[splitProp] = [start, start + splitSize]
+            d[splitProp] = [start, driverUtil.safeAdd(start, splitSize)]
 
       callback(null, ds)
       return

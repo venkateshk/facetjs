@@ -9,18 +9,17 @@ module.exports = ({locator, timeout}) ->
 
       url = "http://#{location.host}:#{location.port ? 8080}/druid/v2/"
       if query.queryType is 'introspect'
+        dataSourceString = if query.dataSource.type is 'union' then query.dataSource.dataSources[0] else query.dataSource
         param = {
           method: 'GET'
-          url: url + "datasources/#{query.dataSource}"
+          url: url + "datasources/#{dataSourceString}"
           json: true
           timeout
         }
       else
-        postfix = ''
-        postfix += '?pretty' if context?.pretty
         param = {
           method: 'POST'
-          url: url + postfix
+          url: url + if context?.pretty then '?pretty' else ''
           json: query
           timeout
         }
@@ -34,6 +33,13 @@ module.exports = ({locator, timeout}) ->
         if response.statusCode isnt 200
           err = new Error("Bad status code")
           err.query = query
+          callback(err)
+          return
+
+        # Druid returns {"dimensions":[],"metrics":[]} for data sources it does not know
+        if query.queryType is 'introspect' and body.dimensions?.length is 0 and body.metrics?.length is 0
+          err = new Error("No such datasource")
+          err.dataSource = query.dataSource
           callback(err)
           return
 
@@ -56,7 +62,8 @@ module.exports = ({locator, timeout}) ->
               callback(err)
               return
 
-            if query.dataSource not in body
+            queryDataSources = if query.dataSource.type is 'union' then query.dataSource.dataSources else [query.dataSource]
+            if queryDataSources.every((dataSource) -> dataSource not in body)
               err = new Error("No such datasource")
               err.dataSource = query.dataSource
               callback(err)

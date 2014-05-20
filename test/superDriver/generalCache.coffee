@@ -1300,6 +1300,59 @@ describe "General cache", ->
       ]
     }
 
+
+  describe "multiple splits with seg filter", ->
+    setUpQuery = [
+      {
+        operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color'
+        segmentFilter: { type: 'false' }
+      }
+      { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+      { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
+      { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+    ]
+
+    before (done) ->
+      driverFns.diamondsCached.clear()
+      driverFns.diamondsCached({query: new FacetQuery(setUpQuery)}, (err, result) ->
+        throw err if err
+        # Uncomment this when segmentFilters are supported.
+        #allowQuery = false
+        done()
+      )
+
+    after -> allowQuery = true
+
+    it "filter; split time; apply count; split time; apply count; combine count descending", testEquality {
+      drivers: ['diamondsCached', 'diamonds']
+      query: [
+        { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+        { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+        { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
+        { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+      ]
+    }
+
+    it "filter; split time (+seg filter: false); apply count; split time; apply count; combine count descending", testEquality {
+      drivers: ['diamondsCached', 'diamonds']
+      query: [
+        {
+          operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color'
+          segmentFilter: { type: 'false' }
+        }
+        { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+        { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
+        { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+      ]
+    }
+
+
   describe "filtered splits cache", ->
     setUpQuery = [
       { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
@@ -1380,6 +1433,7 @@ describe "General cache", ->
           { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
         ]
       }
+
 
     describe "only with a new element", ->
       before ->

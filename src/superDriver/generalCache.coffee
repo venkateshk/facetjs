@@ -330,6 +330,7 @@ module.exports = ({driver}) ->
     return
 
   saveCondensedCommandToCache = (segments, datasetMap, filter, condensedCommands, idx) ->
+    return unless segments
     condensedCommand = condensedCommands[idx]
     idx++
 
@@ -392,7 +393,7 @@ module.exports = ({driver}) ->
       callback(new Error("query must be a FacetQuery"))
       return
 
-    useCache = query.getSplits().every((split) -> split.bucket isnt 'tuple') and
+    useCache = query.getSplits().every((split) -> split.bucket isnt 'tuple' and not split.segmentFilter) and
       query.getCombines().every((combine) -> (not combine?) or (combine instanceof SliceCombine))
 
     if useCache

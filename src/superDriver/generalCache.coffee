@@ -1,6 +1,6 @@
+{ Duration } = require('chronology')
 driverUtil = require('../driver/driverUtil')
 SegmentTree = require('../driver/segmentTree')
-{ Duration } = require('../driver/chronology')
 {
   FacetQuery,
   AndFilter, TrueFilter, FacetFilter,

@@ -1,4 +1,4 @@
-{specialJoin, getValueOf, isTimezone, find, dummyObject} = require('./common')
+{specialJoin, getValueOf, find, dummyObject} = require('./common')
 
 class FacetOptions
   constructor: (options) ->

@@ -1,4 +1,5 @@
-{specialJoin, getValueOf, isTimezone, find, dummyObject} = require('./common')
+{isTimezone} = require('chronology')
+{specialJoin, getValueOf, find, dummyObject} = require('./common')
 {FacetOptions} = require('./options')
 {FacetSegmentFilter} = require('./segmentFilter')
 {FacetFilter, IsFilter, WithinFilter} = require('./filter')

@@ -9,7 +9,7 @@ exports.requester = {
 }
 copyHere(require('./render'))
 
-exports.WallTime = require('../lib/walltime')
+exports.WallTime = require('chronology').WallTime
 
 # Temp hack
 exports.d3 = require('d3')

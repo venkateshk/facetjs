@@ -1,9 +1,9 @@
 { expect } = require("chai")
 utils = require('../utils')
 
-WallTime = require('../../lib/walltime')
+{ WallTime } = require('chronology')
 if not WallTime.rules
-  tzData = require("../../lib/walltime/walltime-data.js")
+  tzData = require("chronology/lib/walltime/walltime-data.js")
   WallTime.init(tzData.rules, tzData.zones)
 
 sqlRequester = require('../../src/requester/mySqlRequester')

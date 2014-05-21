@@ -1,5 +1,5 @@
 async = require('async')
-{Duration} = require('./chronology')
+{Duration} = require('chronology')
 driverUtil = require('./driverUtil')
 SegmentTree = require('./segmentTree')
 {FacetFilter, TrueFilter, FacetSplit, FacetApply, FacetCombine, FacetQuery, AndFilter} = require('../query')

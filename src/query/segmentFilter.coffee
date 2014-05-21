@@ -1,4 +1,4 @@
-{specialJoin, getValueOf, isTimezone, find, dummyObject} = require('./common')
+{specialJoin, getValueOf, find, dummyObject} = require('./common')
 
 parseValue = (value) ->
   return value unless Array.isArray(value)

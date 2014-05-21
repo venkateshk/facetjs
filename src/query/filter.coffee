@@ -1,4 +1,4 @@
-{specialJoin, getValueOf, isTimezone, find, dummyObject} = require('./common')
+{specialJoin, getValueOf, find, dummyObject} = require('./common')
 
 smaller = (a, b) -> if a < b then a else b
 

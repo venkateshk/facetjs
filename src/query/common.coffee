@@ -6,12 +6,6 @@ exports.specialJoin = (array, sep, lastSep) ->
 exports.getValueOf = (d) -> d.valueOf()
 
 
-# This is copy pasted from chronology
-# ToDo: remove this after properly resolving dependency
-exports.isTimezone = (tz) ->
-  return typeof tz is 'string' and tz.indexOf('/') isnt -1
-
-
 exports.find = (array, fn) ->
   for a, i in array
     return a if fn.call(array, a, i)

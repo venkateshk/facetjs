@@ -2,6 +2,10 @@ request = require('request')
 
 module.exports = ({locator, timeout}) ->
   return ({context, query}, callback) ->
+    if Array.isArray(query.intervals) and query.intervals.length is 1 and query.intervals[0] is "1000-01-01/1000-01-02"
+      callback(null, [])
+      return
+
     locator (err, location) ->
       if err
         callback(err)

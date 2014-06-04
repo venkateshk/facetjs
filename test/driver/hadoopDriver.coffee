@@ -16,7 +16,7 @@ describe "Hadoop driver", ->
 
   describe "specific queries", ->
     hadoopPass = hadoopRequester({
-      locator: simpleLocator('10.225.137.202')
+      locator: simpleLocator('10.136.50.119')
     })
 
     driver = hadoopDriver({

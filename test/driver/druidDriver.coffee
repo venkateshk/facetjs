@@ -16,7 +16,7 @@ describe "Druid driver", ->
 
   describe "introspects", ->
     druidPass = druidRequester({
-      locator: simpleLocator('10.225.137.202')
+      locator: simpleLocator('10.136.50.119')
     })
 
     wikiDriver = druidDriver({
@@ -195,7 +195,7 @@ describe "Druid driver", ->
 
   describe "should work with driver level filter", ->
     druidPass = druidRequester({
-      locator: simpleLocator('10.225.137.202')
+      locator: simpleLocator('10.136.50.119')
     })
 
     noFilter = druidDriver({
@@ -253,7 +253,7 @@ describe "Druid driver", ->
 
   describe "should work with nothingness", ->
     druidPass = druidRequester({
-      locator: simpleLocator('10.225.137.202')
+      locator: simpleLocator('10.136.50.119')
     })
 
     wikiDriver = druidDriver({
@@ -308,10 +308,52 @@ describe "Druid driver", ->
         })
         done()
 
+  describe "should work with inferred nothingness", ->
+    druidPass = druidRequester({
+      locator: simpleLocator('10.136.50.119')
+    })
+
+    wikiDriver = druidDriver({
+      requester: druidPass
+      dataSource: 'wikipedia_editstream'
+      timeAttribute: 'time'
+      approximate: true
+      forceInterval: true
+      filter: FacetFilter.fromSpec({
+        type: 'within'
+        attribute: 'time'
+        range: [
+          new Date("2013-02-26T00:00:00Z")
+          new Date("2013-02-27T00:00:00Z")
+        ]
+      })
+    })
+
+    it "deals well with empty results", (done) ->
+      querySpec = [
+        {
+          operation: 'filter'
+          type: 'within'
+          attribute: 'time'
+          range: [
+            new Date("2013-02-28T00:00:00Z")
+            new Date("2013-02-29T00:00:00Z")
+          ]
+        }
+        { operation: 'apply', name: 'Count', aggregate: 'count' }
+      ]
+      wikiDriver { query: new FacetQuery(querySpec) }, (err, result) ->
+        expect(err).to.be.null
+        expect(result.valueOf()).to.deep.equal({
+          prop: {
+            Count: 0
+          }
+        })
+        done()
 
   describe "specific queries", ->
     druidPass = druidRequester({
-      locator: simpleLocator('10.225.137.202')
+      locator: simpleLocator('10.136.50.119')
     })
 
     driver = druidDriver({

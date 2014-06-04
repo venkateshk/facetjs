@@ -47,6 +47,8 @@ emptySingletonDruidResult = (result) ->
 class DruidQueryBuilder
   @ALL_DATA_CHUNKS = 10000
 
+  @FALSE_INTERVALS = ["1000-01-01/1000-01-02"]
+
   constructor: ({dataSource, @timeAttribute, @attributeMetas, @forceInterval, @approximate, @context}) ->
     @setDataSource(dataSource)
     throw new Error("must have a timeAttribute") unless isString(@timeAttribute)
@@ -209,12 +211,18 @@ class DruidQueryBuilder
 
 
   addFilter: (filter) ->
-    extract = filter.extractFilterByAttribute(@timeAttribute)
-    throw new Error("could not separate time filter") unless extract
-    [timelessFilter, timeFilter] = extract
+    if filter.type is 'false'
+      @intervals = DruidQueryBuilder.FALSE_INTERVALS
+      @filter = null
 
-    @intervals = driverUtil.timeFilterToIntervals(timeFilter, @forceInterval)
-    @filter = @timelessFilterToDruid(timelessFilter)
+    else
+      extract = filter.extractFilterByAttribute(@timeAttribute)
+      throw new Error("could not separate time filter") unless extract
+      [timelessFilter, timeFilter] = extract
+
+      @intervals = driverUtil.timeFilterToIntervals(timeFilter, @forceInterval)
+      @filter = @timelessFilterToDruid(timelessFilter)
+
     return this
 
 

@@ -543,13 +543,17 @@ class AndFilter extends FacetFilter
 
     switch filter1SortType
       when 'within'
-        return unless rangesIntersect(filter1.range, filter2.range)
         [start1, end1] = filter1.range
         [start2, end2] = filter2.range
-        return new WithinFilter({
-          attribute
-          range: [larger(start1, start2), smaller(end1, end2)]
-        })
+        newStart = larger(start1, start2)
+        newEnd = smaller(end1, end2)
+        if newStart <= newEnd
+          return new WithinFilter({
+            attribute
+            range: [newStart, newEnd]
+          })
+        else
+          return new FalseFilter()
 
       when 'in'
         return new InFilter({
@@ -693,15 +697,13 @@ class OrFilter extends FacetFilter
 
     switch filter1SortType
       when 'within'
-        if rangesIntersect(filter1.range, filter2.range)
-          [start1, end1] = filter1.range
-          [start2, end2] = filter2.range
-          return new WithinFilter({
-            attribute: filter1.attribute
-            range: [smaller(start1, start2), larger(end1, end2)]
-          })
-        else
-          return new FalseFilter()
+        return unless rangesIntersect(filter1.range, filter2.range)
+        [start1, end1] = filter1.range
+        [start2, end2] = filter2.range
+        return new WithinFilter({
+          attribute: filter1.attribute
+          range: [smaller(start1, start2), larger(end1, end2)]
+        })
 
       when 'in'
         return new InFilter({

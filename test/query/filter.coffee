@@ -887,23 +887,11 @@ describe "FacetFilter", ->
           }
         ]
       }).simplify().valueOf()).to.deep.equal({
-        type: 'and'
-        filters: [
-          {
-            type: 'within'
-            attribute: 'age'
-            range: [20, 25]
-          }
-          {
-            type: 'within'
-            attribute: 'age'
-            range: [30, 50]
-          }
-        ]
+        type: 'false'
       })
 
       expect(FacetFilter.fromSpec({
-        type: 'or'
+        type: 'and'
         filters: [
           {
             type: 'within'
@@ -919,7 +907,25 @@ describe "FacetFilter", ->
       }).simplify().valueOf()).to.deep.equal({
         type: 'within'
         attribute: 'time'
-        range: [new Date('2013/01/05'), new Date('2013/01/20')]
+        range: [new Date('2013/01/08'), new Date('2013/01/10')]
+      })
+
+      expect(FacetFilter.fromSpec({
+        type: 'and'
+        filters: [
+          {
+            type: 'within'
+            attribute: 'time'
+            range: [new Date('2013/01/05'), new Date('2013/01/08')]
+          }
+          {
+            type: 'within'
+            attribute: 'time'
+            range: [new Date('2013/01/10'), new Date('2013/01/20')]
+          }
+        ]
+      }).simplify().valueOf()).to.deep.equal({
+        type: 'false'
       })
 
     it "merges WITHIN filters in OR", ->
@@ -978,7 +984,69 @@ describe "FacetFilter", ->
           }
         ]
       }).simplify().valueOf()).to.deep.equal({
-        type: 'false'
+        type: 'or'
+        filters: [
+          {
+            type: 'within'
+            attribute: 'age'
+            range: [20, 25]
+          }
+          {
+            type: 'within'
+            attribute: 'age'
+            range: [30, 50]
+          }
+        ]
+      })
+
+      expect(FacetFilter.fromSpec({
+        type: 'or'
+        filters: [
+          {
+            type: 'within'
+            attribute: 'time'
+            range: [new Date('2013/01/05'), new Date('2013/01/10')]
+          }
+          {
+            type: 'within'
+            attribute: 'time'
+            range: [new Date('2013/01/08'), new Date('2013/01/20')]
+          }
+        ]
+      }).simplify().valueOf()).to.deep.equal({
+        type: 'within'
+        attribute: 'time'
+        range: [new Date('2013/01/05'), new Date('2013/01/20')]
+      })
+
+      expect(FacetFilter.fromSpec({
+        type: 'or'
+        filters: [
+          {
+            type: 'within'
+            attribute: 'time'
+            range: [new Date('2013/01/05'), new Date('2013/01/08')]
+          }
+          {
+            type: 'within'
+            attribute: 'time'
+            range: [new Date('2013/01/10'), new Date('2013/01/20')]
+          }
+        ]
+      }).simplify().valueOf()).to.deep.equal({
+        type: 'or'
+        filters: [
+          {
+            type: 'within'
+            attribute: 'time'
+            range: [new Date('2013/01/05'), new Date('2013/01/08')]
+          }
+          {
+            type: 'within'
+            attribute: 'time'
+            range: [new Date('2013/01/10'), new Date('2013/01/20')]
+          }
+        ]
       })
 
     it "stops merging successfully for complicated filters", ->

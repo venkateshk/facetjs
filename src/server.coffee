@@ -33,7 +33,11 @@ app.get '/', (req, res) ->
 
 respondWithResult = (res) -> (err, result) ->
   if err
-    res.json(500, err)
+    res.json(500, {
+      message: err.message
+      stack: err.stack
+      err: err
+    })
     return
   res.json(result)
   return

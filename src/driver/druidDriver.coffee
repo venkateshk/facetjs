@@ -236,9 +236,10 @@ class DruidQueryBuilder
               function: """function(d) {
                 var start = d.split(#{separator})[0];
                 if(isNaN(start)) return 'null';
-                var parts = start.split('.');
+                var parts = Math.abs(start).split('.');
                 d = ('000000000' + parts[0]).substr(-10);
                 if(parts.length > 1) d += '.' + parts[1];
+                if(start < 0) d = '-' + d;
                 return d;
                 }"""
             }
@@ -500,7 +501,35 @@ class DruidQueryBuilder
               if sort.direction is 'ascending'
                 @metric = { type: "lexicographic" }
               else
-                @metric = { type: "inverted", metric: { type: "lexicographic" } }
+                # Due to a bug in druid the line bellow does not actually work.
+                # @metric = { type: "inverted", metric: { type: "lexicographic" } }
+
+                # Fuck it, let's invert the string instead.
+                # 32 <-> 126
+                # y = 158 - x
+                @metric = { type: "lexicographic" }
+                if @dimension.type is 'default'
+                  @dimension.type = 'extraction'
+                  @dimension.dimExtractionFn = {
+                    type: 'javascript'
+                    function: """function(d) {
+                      return String.fromCharCode.apply(String, d.split('').map(function(c) {
+                      c = c.charCodeAt(0);
+                      return (32 <= c && c <= 126) ? 158 - c : c;
+                      }))
+                      }"""
+                  }
+                else
+                  # Yo Dawg, I herd you like JS strings so
+                  # I put a JS string inside your JS string so
+                  # you can evaluate while you evaluate.
+                  @dimension.dimExtractionFn.function = @dimension.dimExtractionFn.function
+                    .replace('return d;', """
+                    return String.fromCharCode.apply(String, d.split('').map(function(c) {
+                    c = c.charCodeAt(0);
+                    return (32 <= c && c <= 126) ? 158 - c : c;
+                    }))
+                    """)
             else
               if sort.direction is 'descending'
                 @metric = sort.prop
@@ -714,6 +743,16 @@ DruidQueryBuilder.queryFns = {
         return
 
       ds = if emptySingletonDruidResult(ds) then [] else ds[0].result
+
+      # Unhack
+      sort = condensedCommand.getCombine().sort
+      if split.name is sort.prop and sort.direction is 'descending'
+        splitProp = split.name
+        flip = (d) -> String.fromCharCode.apply(String, d.split('').map((c) ->
+          c = c.charCodeAt(0)
+          return if 32 <= c <= 126 then 158 - c else c
+        ))
+        d[splitProp] = flip(d[splitProp]) for d in ds
 
       attributeMeta = queryBuilder.getAttributeMeta(split.attribute)
       if attributeMeta.type is 'range'

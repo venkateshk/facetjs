@@ -1,3 +1,5 @@
+"use strict"
+
 mysql = require('mysql')
 
 module.exports = ({locator, user, password, database}) ->

@@ -424,8 +424,9 @@ class DruidQueryBuilder
         else
           @addAggregation({
             name: apply.name
-            type: "dimensionality"
+            type: "cardinality"
             fieldNames: [apply.attribute]
+            byRow: true
           })
 
       when 'quantile'

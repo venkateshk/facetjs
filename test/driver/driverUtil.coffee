@@ -270,12 +270,12 @@ describe "Utility", ->
         root: responce
       })
 
-      table.columnMap ({name}) ->
+      table.columnTitle ({name}) ->
         map = {
           "Cut": "Cut_Test"
           "Count": 'Count_"Test"_'
         }
-        return map[name] or name
+        return map[name]
 
       expect(table.toTabular('\t', '\n')).to.deep.equal(
         """
@@ -286,6 +286,30 @@ describe "Utility", ->
         "D"\t"4"
         "E"\t"5"
         "J ""F"" L"\t"6"
+        """
+      )
+
+    it "skips columns", ->
+      table = new Table({
+        query
+        root: responce
+      })
+
+      table.columnTitle ({name}) ->
+        map = {
+          "Cut": "Cut_Test"
+        }
+        return map[name]
+
+      expect(table.toTabular('\t', '\n')).to.deep.equal(
+        """
+        "Cut_Test"
+        "A"
+        "B"
+        "C"
+        "D"
+        "E"
+        "J ""F"" L"
         """
       )
 

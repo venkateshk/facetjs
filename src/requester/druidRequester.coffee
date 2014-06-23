@@ -1,3 +1,5 @@
+"use strict"
+
 request = require('request')
 
 module.exports = ({locator, timeout}) ->
@@ -10,6 +12,11 @@ module.exports = ({locator, timeout}) ->
       if err
         callback(err)
         return
+
+      if timeout?
+        # Shallow copy here?
+        query.context or= {}
+        query.context.timeout = timeout
 
       url = "http://#{location.host}:#{location.port ? 8080}/druid/v2/"
       if query.queryType is 'introspect'
@@ -30,13 +37,17 @@ module.exports = ({locator, timeout}) ->
 
       request(param, (err, response, body) ->
         if err
+          err = new Error("timeout") if err.message is 'ETIMEDOUT'
           err.query = query
           callback(err)
           return
 
         if response.statusCode isnt 200
-          err = new Error("Bad status code")
-          err.query = query
+          if body?.error is 'Query timeout'
+            err = new Error("timeout")
+          else
+            err = new Error("Bad status code")
+            err.query = query
           callback(err)
           return
 

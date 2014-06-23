@@ -187,10 +187,10 @@ createTabularHelper = (root, order, rangeFn, context, result) ->
 csvEscape = (str) -> '"' + String(str).replace(/\"/g, '\"\"') + '"'
 
 class exports.Table
-  constructor: ({root, query, columnName}) ->
+  constructor: ({root, query}) ->
     throw new TypeError('query must be a FacetQuery') unless query instanceof FacetQuery
     @query = query
-    @columnName = columnName or (op) -> op.name
+    @titleFn = (op) -> op.name
     @splitColumns = flatten(query.getSplits().map((split) ->
       return if split.bucket is 'tuple' then split.splits else [split]
     ))
@@ -198,34 +198,40 @@ class exports.Table
     @data = createTabular(root)
 
   toTabular: (separator, lineBreak, rangeFn) ->
+    columnNames = []
     header = []
-    header.push(csvEscape(@columnName(column))) for column in @splitColumns
-    header.push(csvEscape(@columnName(column))) for column in @applyColumns
-    header = header.join(separator)
+    for column in @splitColumns
+      columnTitle = @titleFn(column)
+      continue unless columnTitle
+      columnNames.push(column.name)
+      header.push(csvEscape(columnTitle))
+
+    for column in @applyColumns
+      columnTitle = @titleFn(column)
+      continue unless columnTitle
+      columnNames.push(column.name)
+      header.push(csvEscape(columnTitle))
 
     rangeFn or= (range) ->
       if range[0] instanceof Date
         range = range.map((range) -> range.toISOString())
       return range.join('-')
 
-    lines = @data.map(((row) ->
-      line = []
-      for column in @splitColumns
-        datum = row[column.name] or ''
-        line.push(csvEscape(if Array.isArray(datum) then rangeFn(datum) else datum))
+    lines = [header.join(separator)]
+    for row in @data
+      lines.push columnNames
+        .map((columnName) ->
+          datum = row[columnName] or ''
+          return csvEscape(if Array.isArray(datum) then rangeFn(datum) else datum)
+        )
+        .join(separator)
 
-      for column in @applyColumns
-        datum = row[column.name] or 0
-        line.push(csvEscape(datum))
+    return lines.join(lineBreak)
 
-      return line.join(separator)
-
-    ), this)
-
-    return header + lineBreak + lines.join(lineBreak)
-
-  columnMap: (columnName) ->
-    @columnName = columnName
-    return
+  columnTitle: (v) ->
+    if arguments.length
+      @titleFn = v
+      return
+    return @titleFn
 
 

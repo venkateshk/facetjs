@@ -29,7 +29,8 @@
     "pegjs": "0.8.0",
     "browserify": "~3.19.1",
     "request": "~2.34.0",
-    "chronology": "0.1.1"
+    "chronology": "0.1.1",
+    "backoff": "~2.3.0"
   },
   "devDependencies": {
     "chai": "~1.6.0",

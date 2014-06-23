@@ -1,3 +1,5 @@
+"use strict"
+
 request = require('request')
 
 postQuery = ({url, query, timeout}, callback) ->

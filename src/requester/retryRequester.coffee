@@ -15,7 +15,8 @@ module.exports = ({requester, retry, retryOnTimout}) ->
         query
       }, (err, res) ->
         if err
-          if err.message is 'timeout'
+          if err.message is 'timeout' and not retryOnTimout
+            requestBackoff.reset()
             callback(err)
           else
             requestBackoff.backoff(err)

@@ -216,6 +216,26 @@ describe "Utility", ->
       ]
     }
 
+    it "works with no split", ->
+      table = new Table({
+        query: new FacetQuery([
+          {"operation":"apply","name":"Count","aggregate":"sum","attribute":"count"}
+          {"operation":"apply","name":"Added","aggregate":"sum","attribute":"added"}
+        ])
+        root: { prop: { Count: 300223, Added: 125714717 } }
+      })
+
+      expect(table.data).to.deep.equal([
+        { Count: 300223, Added: 125714717 }
+      ])
+
+      expect(table.toTabular(',', '\n')).to.equal(
+        """
+        "Count","Added"
+        "300223","125714717"
+        """
+      )
+
     it "basically works", ->
       table = new Table({
         query
@@ -231,7 +251,7 @@ describe "Utility", ->
         { Count: 6, Cut: 'J "F" L' }
       ])
 
-      expect(table.toTabular(',', '\n')).to.deep.equal(
+      expect(table.toTabular(',', '\n')).to.equal(
         """
         "Cut","Count"
         "A","1"
@@ -243,7 +263,7 @@ describe "Utility", ->
         """
       )
 
-      expect(table.toTabular('\t', '\n')).to.deep.equal(
+      expect(table.toTabular('\t', '\n')).to.equal(
         """
         "Cut"\t"Count"
         "A"\t"1"
@@ -262,7 +282,7 @@ describe "Utility", ->
       })
 
       expect(table.data).to.deep.equal(data.diamond.tabular)
-      expect(table.toTabular(',', '\n')).to.deep.equal(data.diamond.csv)
+      expect(table.toTabular(',', '\n')).to.equal(data.diamond.csv)
 
     it "maps column names", ->
       table = new Table({

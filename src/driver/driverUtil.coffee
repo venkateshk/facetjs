@@ -186,7 +186,7 @@ createTabularHelper = (root, order, rangeFn, context, result) ->
 
 csvEscape = (str) -> '"' + String(str).replace(/\"/g, '\"\"') + '"'
 
-class exports.Table
+class Table
   constructor: ({root, query}) ->
     throw new TypeError('query must be a FacetQuery') unless query instanceof FacetQuery
     @query = query
@@ -202,29 +202,30 @@ class exports.Table
     header = []
     for column in @splitColumns
       columnTitle = @titleFn(column)
-      continue unless columnTitle
+      continue unless columnTitle?
       columnNames.push(column.name)
       header.push(csvEscape(columnTitle))
 
     for column in @applyColumns
       columnTitle = @titleFn(column)
-      continue unless columnTitle
+      continue unless columnTitle?
       columnNames.push(column.name)
       header.push(csvEscape(columnTitle))
 
     rangeFn or= (range) ->
       if range[0] instanceof Date
-        range = range.map((range) -> range.toISOString())
+        range = range.map((r) -> r.toISOString())
       return range.join('-')
 
     lines = [header.join(separator)]
     for row in @data
-      lines.push columnNames
-        .map((columnName) ->
+      lines.push(
+        columnNames.map((columnName) ->
           datum = row[columnName] or ''
-          return csvEscape(if Array.isArray(datum) then rangeFn(datum) else datum)
-        )
-        .join(separator)
+          datum = rangeFn(datum) if Array.isArray(datum)
+          return csvEscape(datum)
+        ).join(separator)
+      )
 
     return lines.join(lineBreak)
 
@@ -234,4 +235,6 @@ class exports.Table
       return
     return @titleFn
 
+
+exports.Table = Table
 

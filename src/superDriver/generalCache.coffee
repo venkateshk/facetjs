@@ -11,7 +11,7 @@ SegmentTree = require('../driver/segmentTree')
 
 
 class LRUCache
-  constructor: (@hashFn = String, @name = 'cache') ->
+  constructor: (@name = 'cache') ->
     @clear()
 
   clear: ->
@@ -19,13 +19,10 @@ class LRUCache
     @size = 0
     return
 
-  getWithHash: (hash) ->
+  get: (hash) ->
     return @store[hash] #?.value
 
-  get: (key) ->
-    return @getWithHash(@hashFn(key))
-
-  setWithHash: (hash, value) ->
+  set: (hash, value) ->
     @size++ unless @store.hasOwnProperty(hash)
     @store[hash] = value
     # {
@@ -34,19 +31,12 @@ class LRUCache
     # }
     return
 
-  set: (key, value) ->
-    @setWithHash(@hashFn(key), value)
-    return
-
-  getOrCreateWithHash: (hash, createFn) ->
-    ret = @getWithHash(hash)
+  getOrCreate: (hash, createFn) ->
+    ret = @get(hash)
     if not ret
       ret = createFn()
-      @setWithHash(hash, ret)
+      @set(hash, ret)
     return ret
-
-  getOrCreate: (key, createFn) ->
-    return @getOrCreateWithHash(@hashFn(key), createFn)
 
 # -------------------------
 
@@ -64,20 +54,23 @@ filterSplitToHash = (datasetMap, filter, split) ->
   ).sort().join('*')
 
 
-appliesToHashes = (appliesByDataset, datasetMap) ->
+applyToHash = (apply, filter, datasetMap) ->
+  dataset = datasetMap[apply.getDataset()]
+  throw new Error("Something went wrong: could not find apply dataset") unless dataset
+  datasetFilter = dataset.getFilter()
+  return {
+    name: apply.name
+    apply
+    applyHash: apply.toHash()
+    segmentHash: dataset.source + '#' + filterToHash(new AndFilter([filter, datasetFilter]))
+  }
+
+
+appliesToHashes = (appliesByDataset, filter, datasetMap) ->
   applyHashes = []
   for datasetName, applies of appliesByDataset
     for apply in applies
-      dataset = datasetMap[datasetName]
-      throw new Error("something went wrong") unless dataset
-
-      datasetFilter = dataset.getFilter()
-      applyHashes.push({
-        name: apply.name
-        hash: dataset.source + '#' + apply.toHash()
-        datasetFilter
-        datasetFilterHash: filterToHash(datasetFilter)
-      })
+      applyHashes.push(applyToHash(apply, filter, datasetMap))
 
   return applyHashes
 
@@ -223,27 +216,21 @@ class ContinuousCombineToSplitValues
 
 module.exports = ({driver}) ->
   # Filter -> (Apply -> Number)
-  applyCache = new LRUCache(filterToHash, 'apply')
+  applyCache = new LRUCache('apply')
 
   # (Filter, Split) -> CombineToSplitValues
   #              where CombineToSplitValues :: Combine -> [SplitValue]
-  combineToSplitCache = new LRUCache(String, 'splitCombine')
+  combineToSplitCache = new LRUCache('splitCombine')
 
   # ---------------------------------------------
 
-  propFromCache = (filter, applyHashes) ->
-    return {} unless applyHashes.length
-    cacheCache = {}
-
+  propFromCache = (applyHashes) ->
     prop = {}
-    for { name, hash, datasetFilter, datasetFilterHash } in applyHashes
-      applyCacheSlot = cacheCache[datasetFilterHash]
-      if not applyCacheSlot
-        combinedFilter = new AndFilter([filter, datasetFilter])
-        applyCacheSlot = cacheCache[datasetFilterHash] = applyCache.get(combinedFilter)
-        return null unless applyCacheSlot
+    for { name, applyHash, segmentHash } in applyHashes
+      applyCacheSlot = applyCache.get(segmentHash)
+      return null unless applyCacheSlot
 
-      value = applyCacheSlot[hash]
+      value = applyCacheSlot[applyHash]
       return null unless value?
       prop[name] = value
 
@@ -260,13 +247,11 @@ module.exports = ({driver}) ->
       #trackedSegregation: sortApplySegregation
     } = FacetApply.segregate(condensedCommand.applies) #, combine?.sort?.prop)
 
-    applyHashes = appliesToHashes(appliesByDataset, datasetMap)
-
     split = condensedCommand.getEffectiveSplit()
     if split
       combine = condensedCommand.getCombine()
       filterSplitHash = filterSplitToHash(datasetMap, filter, split)
-      combineToSplitsCacheSlot = combineToSplitCache.getWithHash(filterSplitHash)
+      combineToSplitsCacheSlot = combineToSplitCache.get(filterSplitHash)
       return null unless combineToSplitsCacheSlot
       splitValues = combineToSplitsCacheSlot.get(filter, split, combine)
       return null unless splitValues
@@ -275,7 +260,8 @@ module.exports = ({driver}) ->
         splitValueProp = {}
         splitValueProp[split.name] = splitValue
         splitValueFilter = new AndFilter([filter, split.getFilterFor(splitValueProp)]).simplify()
-        prop = propFromCache(splitValueFilter, applyHashes)
+        applyHashes = appliesToHashes(appliesByDataset, splitValueFilter, datasetMap)
+        prop = propFromCache(applyHashes)
         return null unless prop
         postProcessor(prop) for postProcessor in postProcessors
         prop[split.name] = splitValue
@@ -294,7 +280,8 @@ module.exports = ({driver}) ->
       return segments
 
     else
-      prop = propFromCache(filter, applyHashes)
+      applyHashes = appliesToHashes(appliesByDataset, filter, datasetMap)
+      prop = propFromCache(applyHashes)
       return null unless prop
       postProcessor(prop) for postProcessor in postProcessors
       segment = new SegmentTree({prop})
@@ -318,15 +305,11 @@ module.exports = ({driver}) ->
 
   # ------------------------
 
-  propToCache = (prop, filter, applyHashes) ->
+  propToCache = (prop, applyHashes) ->
     return unless applyHashes.length
-    cacheCache = {}
-    for { name, hash, datasetFilter, datasetFilterHash } in applyHashes
-      applyCacheSlot = cacheCache[datasetFilterHash]
-      if not applyCacheSlot
-        combinedFilter = new AndFilter([filter, datasetFilter])
-        applyCacheSlot = cacheCache[datasetFilterHash] = applyCache.getOrCreate(combinedFilter, -> {})
-      applyCacheSlot[hash] = prop[name]
+    for { name, applyHash, segmentHash } in applyHashes
+      applyCacheSlot = applyCache.getOrCreate(segmentHash, -> {})
+      applyCacheSlot[applyHash] = prop[name]
     return
 
   saveCondensedCommandToCache = (segments, datasetMap, filter, condensedCommands, idx) ->
@@ -338,16 +321,14 @@ module.exports = ({driver}) ->
       appliesByDataset
       #postProcessors
       #trackedSegregation: sortApplySegregation
-    } = FacetApply.segregate(condensedCommand.applies) #, combine?.sort?.prop)
-
-    applyHashes = appliesToHashes(appliesByDataset, datasetMap)
+    } = FacetApply.segregate(condensedCommand.applies)
 
     split = condensedCommand.getEffectiveSplit()
     if split
       combine = condensedCommand.getCombine()
 
       filterSplitHash = filterSplitToHash(datasetMap, filter, split)
-      combineToSplitsCacheSlot = combineToSplitCache.getOrCreateWithHash(filterSplitHash, ->
+      combineToSplitsCacheSlot = combineToSplitCache.getOrCreate(filterSplitHash, ->
         return switch getRealSplit(split).bucket
           when 'identity'   then new IdentityCombineToSplitValues(filter, split)
           when 'timePeriod' then new TimePeriodCombineToSplitValues(filter, split)
@@ -357,7 +338,8 @@ module.exports = ({driver}) ->
       splitValues = []
       for segment in segments
         splitValueFilter = new AndFilter([filter, split.getFilterFor(segment.prop)]).simplify()
-        propToCache(segment.prop, splitValueFilter, applyHashes)
+        applyHashes = appliesToHashes(appliesByDataset, splitValueFilter, datasetMap)
+        propToCache(segment.prop, applyHashes)
         splitValues.push(segment.prop[split.name])
         if idx < condensedCommands.length
           saveCondensedCommandToCache(segment.splits, datasetMap, splitValueFilter, condensedCommands, idx)
@@ -367,7 +349,8 @@ module.exports = ({driver}) ->
     else
       segment = segments[0]
       return unless segment?.prop
-      propToCache(segment.prop, filter, applyHashes)
+      applyHashes = appliesToHashes(appliesByDataset, filter, datasetMap)
+      propToCache(segment.prop, applyHashes)
       if idx < condensedCommands.length
         saveCondensedCommandToCache(segment.splits, datasetMap, filter, condensedCommands, idx)
 

@@ -1,10 +1,9 @@
-chai = require("chai")
-expect = chai.expect
+{expect} = require("chai")
 
 exec = require('child_process').exec
 async = require('async')
 zookeeper = require('node-zookeeper-client')
-CreateMode = zookeeper.CreateMode
+{CreateMode} = zookeeper
 
 zookeeperLocatorMaker = require('../../src/locator/zookeeperLocator')
 

@@ -218,7 +218,6 @@ describe "FacetQuery", ->
           name: 'ideal-cut'
           source: 'base'
           filter: {
-            dataset: 'ideal-cut'
             type: 'is'
             attribute: 'cut'
             value: 'Ideal'
@@ -229,7 +228,6 @@ describe "FacetQuery", ->
           name: 'good-cut'
           source: 'base'
           filter: {
-            dataset: 'good-cut'
             type: 'is'
             attribute: 'cut'
             value: 'Good'
@@ -277,132 +275,6 @@ describe "FacetQuery", ->
         }
       ]
       expect(new FacetQuery(querySpec).valueOf()).to.deep.equal(querySpec)
-
-    it "multi-dataset query (computability)", ->
-      querySpec = [
-        {
-          operation: 'dataset'
-          datasets: ['ideal-cut', 'good-cut']
-        }
-        {
-          operation: 'filter'
-          dataset: 'ideal-cut'
-          type: 'is'
-          attribute: 'cut'
-          value: 'Ideal'
-        }
-        {
-          operation: 'filter'
-          dataset: 'good-cut'
-          type: 'is'
-          attribute: 'cut'
-          value: 'Good'
-        }
-        {
-          operation: 'split'
-          name: 'Clarity'
-          bucket: 'parallel'
-          splits: [
-            {
-              dataset: 'ideal-cut'
-              bucket: 'identity'
-              attribute: 'clarity'
-            }
-            {
-              dataset: 'good-cut'
-              bucket: 'identity'
-              attribute: 'clarity'
-            }
-          ]
-        }
-        {
-          operation: 'apply'
-          name: 'PriceDiff'
-          arithmetic: 'subtract'
-          operands: [
-            {
-              dataset: 'ideal-cut'
-              aggregate: 'average'
-              attribute: 'price'
-            }
-            {
-              dataset: 'good-cut'
-              aggregate: 'average'
-              attribute: 'price'
-            }
-          ]
-        }
-        {
-          operation: 'combine'
-          method: 'slice'
-          sort: { prop: 'PriceDiff', compare: 'natural', direction: 'descending' }
-          limit: 4
-        }
-      ]
-      expect(new FacetQuery(querySpec).valueOf()).to.deep.equal [
-        {
-          operation: 'dataset'
-          name: 'ideal-cut'
-          source: 'base'
-          filter: {
-            dataset: 'ideal-cut'
-            type: 'is'
-            attribute: 'cut'
-            value: 'Ideal'
-          }
-        }
-        {
-          operation: 'dataset'
-          name: 'good-cut'
-          source: 'base'
-          filter: {
-            dataset: 'good-cut'
-            type: 'is'
-            attribute: 'cut'
-            value: 'Good'
-          }
-        }
-        {
-          operation: 'split'
-          name: 'Clarity'
-          bucket: 'parallel'
-          splits: [
-            {
-              dataset: 'ideal-cut'
-              bucket: 'identity'
-              attribute: 'clarity'
-            }
-            {
-              dataset: 'good-cut'
-              bucket: 'identity'
-              attribute: 'clarity'
-            }
-          ]
-        }
-        {
-          operation: 'apply'
-          name: 'PriceDiff'
-          arithmetic: 'subtract'
-          operands: [
-            {
-              dataset: 'ideal-cut'
-              aggregate: 'average'
-              attribute: 'price'
-            }
-            {
-              dataset: 'good-cut'
-              aggregate: 'average'
-              attribute: 'price'
-            }
-          ]
-        }
-        {
-          operation: 'combine'
-          method: 'slice'
-          sort: { prop: 'PriceDiff', compare: 'natural', direction: 'descending' }
-          limit: 4
-        }
-      ]
 
     it "actual complex query with segment filter", ->
       querySpec = [
@@ -453,7 +325,7 @@ describe "FacetQuery", ->
             "prop": "count",
             "direction": "descending"
           },
-          "limit": "10"
+          "limit": 10
         },
         {
           "name": "robot",
@@ -490,7 +362,7 @@ describe "FacetQuery", ->
             "prop": "count",
             "direction": "descending"
           },
-          "limit": "10"
+          "limit": 10
         }
       ]
       expect(new FacetQuery(querySpec).valueOf()).to.deep.equal(querySpec)

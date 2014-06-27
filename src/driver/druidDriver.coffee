@@ -11,6 +11,7 @@ SegmentTree = require('./segmentTree')
   FacetQuery, CondensedCommand
   FacetFilter, TrueFilter, InFilter, AndFilter
   FacetSplit, FacetApply, CountApply, FacetCombine, SliceCombine
+  ApplySimplifier
 } = require('../query')
 
 defaultAttributeMeta = AttributeMeta.default
@@ -29,6 +30,34 @@ arithmeticToDruidFn = {
   subtract: '-'
   multiply: '*'
   divide: '/'
+}
+
+druidPostProcessorScheme = {
+  constant: ({value}) ->
+    return {
+      type: "constant"
+      value
+    }
+
+  getter: ({name, aggregate}) ->
+    return {
+      type: if aggregate is 'uniqueCount' then 'hyperUniqueCardinality' else 'fieldAccess'
+      fieldName: name
+    }
+
+  arithmetic: (arithmetic, lhs, rhs) ->
+    druidFn = arithmeticToDruidFn[arithmetic]
+    throw new Error("unsupported arithmetic '#{arithmetic}'") unless druidFn
+
+    return {
+      type: "arithmetic"
+      fn: druidFn
+      fields: [lhs, rhs]
+    }
+
+  finish: (name, getter) ->
+    getter.name = name
+    return getter
 }
 
 aggregateToJS = {
@@ -350,13 +379,6 @@ class DruidQueryBuilder
 
     attributeMeta = @getAttributeMeta(apply.attribute)
     switch apply.aggregate
-      when 'constant'
-        @addPostAggregation({
-          name: apply.name
-          type: "constant"
-          value: apply.value
-        })
-
       when 'count', 'sum', 'min', 'max'
         if @approximate and apply.aggregate in ['min', 'max'] and attributeMeta.type is 'histogram'
           histogramAggregationName = "_hist_" + apply.attribute
@@ -456,42 +478,20 @@ class DruidQueryBuilder
 
     return
 
-  arithmeticToPostAggregation: (apply) ->
-    if apply.aggregate
-      # This is a leaf node
-      if apply.aggregate is 'constant'
-        return {
-          type: "constant"
-          value: apply.value
-        }
-      else
-        return {
-          type: if apply.aggregate is 'uniqueCount' then 'hyperUniqueCardinality' else 'fieldAccess'
-          fieldName: apply.name
-        }
-
-    druidFn = arithmeticToDruidFn[apply.arithmetic]
-    throw new Error("unsupported arithmetic '#{apply.arithmetic}'") unless druidFn
-
-    return {
-      type: "arithmetic"
-      fn: druidFn
-      fields: apply.operands.map(@arithmeticToPostAggregation, this)
-    }
-
-  addArithmeticApply: (apply) ->
-    postAggregation = @arithmeticToPostAggregation(apply)
-    postAggregation.name = apply.name
-    @addPostAggregation(postAggregation)
-    return
-
   addApplies: (applies) ->
     if applies.length is 0
       @addAggregateApply(new CountApply({ name: '_dummy' }))
     else
-      { aggregates, arithmetics } = FacetApply.breaker(applies, true)
-      @addAggregateApply(apply) for apply in aggregates
-      @addArithmeticApply(apply) for apply in arithmetics
+      applySimplifier = new ApplySimplifier({
+        postProcessorScheme: druidPostProcessorScheme
+        breakToSimple: true
+        breakAverage: true
+        topLevelConstant: 'process'
+      })
+      applySimplifier.addApplies(applies)
+
+      @addAggregateApply(apply) for apply in applySimplifier.getSimpleApplies()
+      @addPostAggregation(postAgg) for postAgg in applySimplifier.getPostProcessors()
 
     return this
 
@@ -1043,11 +1043,11 @@ splitupCondensedCommand = (condensedCommand) ->
     }
 
   # Segregate applies
-  {
-    appliesByDataset
-    postProcessors
-    trackedSegregation: sortApplySegregation
-  } = FacetApply.segregate(condensedCommand.applies, combine?.sort?.prop)
+  applySimplifier = new ApplySimplifier()
+  applySimplifier.addApplies(condensedCommand.applies)
+
+  appliesByDataset = applySimplifier.getSimpleAppliesByDataset()
+  sortApplyComponents = applySimplifier.getApplyComponents(combine?.sort?.prop)
 
   for info in perDatasetInfo
     applies = appliesByDataset[info.dataset] or []
@@ -1058,13 +1058,13 @@ splitupCondensedCommand = (condensedCommand) ->
     sort = combine.sort
     if sort
       splitName = condensedCommand.split.name
-      if sortApplySegregation.length is 0
+      if sortApplyComponents.length is 0
         # Sorting on splitting prop
         for info in perDatasetInfo
           info.condensedCommand.setCombine(combine)
-      else if sortApplySegregation.length is 1
+      else if sortApplyComponents.length is 1
         # Sorting on regular apply
-        mainDataset = sortApplySegregation[0].dataset
+        mainDataset = sortApplyComponents[0].getDataset()
 
         for info in perDatasetInfo
           if info.dataset is mainDataset
@@ -1082,10 +1082,10 @@ splitupCondensedCommand = (condensedCommand) ->
       else
         # Sorting on a post apply
         for info in perDatasetInfo
-          infoApplyName = driverUtil.find(sortApplySegregation, ({dataset}) -> dataset is info.dataset)
-          if infoApplyName
+          infoApply = driverUtil.find(sortApplyComponents, (apply) -> apply.getDataset() is info.dataset)
+          if infoApply
             # has a part of the apply that will be combined into the sorting apply
-            sortProp = infoApplyName.applyName
+            sortProp = infoApply.name
           else
             sortProp = splitName
             info.driven = true
@@ -1107,7 +1107,7 @@ splitupCondensedCommand = (condensedCommand) ->
     null
 
   return {
-    postProcessors
+    postProcessors: applySimplifier.getPostProcessors()
     perDatasetInfo
   }
 

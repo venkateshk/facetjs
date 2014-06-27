@@ -2,7 +2,14 @@ async = require('async')
 {Duration} = require('chronology')
 driverUtil = require('./driverUtil')
 SegmentTree = require('./segmentTree')
-{FacetFilter, TrueFilter, FacetSplit, FacetApply, FacetCombine, FacetQuery, AndFilter} = require('../query')
+{
+  FacetFilter, TrueFilter, AndFilter
+  FacetSplit
+  FacetApply
+  FacetCombine
+  FacetQuery
+  ApplySimplifier
+} = require('../query')
 
 # -----------------------------------------------------
 
@@ -11,6 +18,25 @@ arithmeticToHadoopOp = {
   subtract: '-'
   multiply: '*'
   divide:   '/'
+}
+
+hadoopPostProcessorScheme = {
+  constant: ({value}) -> value
+
+  getter: ({name}) ->
+    return "prop['#{name}']"
+
+  arithmetic: (arithmetic, lhs, rhs) ->
+    hadoopOp = arithmeticToHadoopOp[arithmetic]
+    throw new Error("unsupported arithmetic '#{arithmetic}'") unless hadoopOp
+
+    if hadoopOp is '/'
+      return "(#{rhs} === 0 ? 0 : #{lhs} / #{rhs})"
+    else
+      return "(#{lhs} #{hadoopOp} #{rhs})"
+
+  finish: (name, getter) ->
+    return "prop['#{name}'] = #{getter};"
 }
 
 class HadoopQueryBuilder
@@ -123,19 +149,6 @@ class HadoopQueryBuilder
 
 
   addApplies: (applies) ->
-    hadoopProcessorScheme = {
-      constant: ({value}) -> "#{value}"
-      getter: ({name}) -> "prop['#{name}']"
-      arithmetic: (arithmetic, lhs, rhs) ->
-        hadoopOp = arithmeticToHadoopOp[arithmetic]
-        throw new Error('unknown arithmetic') unless hadoopOp
-        if hadoopOp is '/'
-          return "(#{rhs} === 0 ? 0 : #{lhs} / #{rhs})"
-        else
-          return "(#{lhs} #{hadoopOp} #{rhs})"
-      finish: (name, getter) -> "prop['#{name}'] = #{getter}"
-    }
-
     jsParts = {
       'count': { zero: '0', update: '$ += 1' }
       'sum': { zero: '0', update: '$ += Number(x)' }
@@ -145,38 +158,26 @@ class HadoopQueryBuilder
 
     return if applies.length is 0
 
-    {
-      appliesByDataset
-      postProcessors
-    } = FacetApply.segregate(applies, null, hadoopProcessorScheme)
+    applySimplifier = new ApplySimplifier({
+      postProcessorScheme: hadoopPostProcessorScheme
+      breakToSimple: true
+      breakAverage: true
+      topLevelConstant: 'process'
+    })
+    applySimplifier.addApplies(applies)
 
-    arithmeticToExpresion = (apply) ->
-      return "prop['#{apply.name}']" if apply.aggregate
-      hadoopOp = arithmeticToHadoopOp[apply.arithmetic]
-      throw new Error('unknown arithmetic') unless hadoopOp
-      [op1, op2] = apply.operands
-      if hadoopOp is '/'
-        return "(#{arithmeticToExpresion(op2)} === 0 ? 0 : #{arithmeticToExpresion(op1)} / #{arithmeticToExpresion(op2)})"
-      else
-        return "(#{arithmeticToExpresion(op1)} #{hadoopOp} #{arithmeticToExpresion(op2)})"
+    appliesByDataset = applySimplifier.getSimpleAppliesByDataset()
+    postProcessors = applySimplifier.getPostProcessors()
 
     preLines = []
     initLines = []
     loopLines = []
-    afterLines = []
     returnLines = []
     for datasetName, applies of appliesByDataset
-      {
-        aggregates
-        arithmetics
-      } = FacetApply.breaker(applies, true)
-
       loopLines.push("if(dataset === '#{datasetName}') {")
 
-      for apply in aggregates
-        if apply.aggregate is 'constant'
-          initLines.push("'#{apply.name}': #{apply.value}")
-        else if apply.aggregate is 'uniqueCount'
+      for apply in applies
+        if apply.aggregate is 'uniqueCount'
           preLines.push("seen['#{apply.name}'] = {};")
           initLines.push("'#{apply.name}': 0")
           loopLines.push("  x = datum['#{apply.attribute}'];")
@@ -190,11 +191,6 @@ class HadoopQueryBuilder
 
       loopLines.push("}")
 
-      for apply in arithmetics
-        afterLines.push("prop['#{apply.name}'] = #{arithmeticToExpresion(apply)};")
-
-      afterLines = afterLines.concat(postProcessors)
-
     @applies = """
       function(iter) {
         var t, x, datum, dataset, seen = {};
@@ -207,7 +203,7 @@ class HadoopQueryBuilder
           datum = t.datum; dataset = t.dataset;
           #{loopLines.join('\n    ')}
         }
-        #{afterLines.join('\n  ')}
+        #{postProcessors.join('\n  ')}
         return prop;
       }
       """

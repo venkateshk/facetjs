@@ -5,6 +5,8 @@
 {FacetFilter, IsFilter, WithinFilter} = require('./filter')
 
 class FacetSplit
+  operation: 'split'
+
   constructor: ({@bucket, @dataset}, dummy) ->
     throw new TypeError("can not call `new FacetSplit` directly use FacetSplit.fromSpec instead") unless dummy is dummyObject
 
@@ -67,6 +69,12 @@ class FacetSplit
 
   getAttributes: ->
     return [@attribute]
+
+  withoutSegmentFilter: ->
+    return this unless @segmentFilter
+    spec = @valueOf()
+    delete spec.segmentFilter
+    return FacetSplit.fromSpec(spec)
 
 
 class IdentitySplit extends FacetSplit
@@ -290,6 +298,7 @@ splitConstructorMap = {
 
 
 FacetSplit.fromSpec = (splitSpec) ->
+  return splitSpec if splitSpec instanceof FacetSplit
   throw new Error("unrecognizable split") unless typeof splitSpec is 'object'
   throw new Error("bucket must be defined") unless splitSpec.hasOwnProperty('bucket')
   throw new Error("bucket must be a string") unless typeof splitSpec.bucket is 'string'

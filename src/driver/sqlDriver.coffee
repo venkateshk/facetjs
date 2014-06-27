@@ -2,7 +2,14 @@ async = require('async')
 {Duration} = require('chronology')
 driverUtil = require('./driverUtil')
 SegmentTree = require('./segmentTree')
-{FacetFilter, TrueFilter, FacetSplit, FacetApply, FacetCombine, FacetQuery, AndFilter} = require('../query')
+{
+  FacetFilter, TrueFilter, AndFilter
+  FacetSplit
+  FacetApply
+  FacetCombine
+  FacetQuery
+  ApplySimplifier
+} = require('../query')
 
 # -----------------------------------------------------
 
@@ -253,11 +260,13 @@ class SQLQueryBuilder
       finish: (name, getter) -> "#{getter} AS `#{name}`"
     }
 
-    {
-      appliesByDataset
-      postProcessors
-      #trackedSegregation
-    } = FacetApply.segregate(applies, null, sqlProcessorScheme)
+    applySimplifier = new ApplySimplifier({
+      postProcessorScheme: sqlProcessorScheme
+    })
+    applySimplifier.addApplies(applies)
+
+    appliesByDataset = applySimplifier.getSimpleAppliesByDataset()
+    postProcessors = applySimplifier.getPostProcessors()
 
     @commonApplySelectParts = postProcessors
     for dataset, datasetApplies of appliesByDataset

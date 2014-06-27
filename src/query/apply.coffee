@@ -1,14 +1,30 @@
-{specialJoin, getValueOf, find, dummyObject} = require('./common')
+{specialJoin, find, dummyObject} = require('./common')
 {FacetFilter} = require('./filter')
 {FacetOptions} = require('./options')
 
+DEFAULT_DATASET = 'main'
+
 class FacetApply
-  constructor: ({dataset}, @datasetContext, dummy) ->
+  operation: 'apply'
+
+  constructor: ({dataset, operands}, datasetContext, dummy) ->
     throw new TypeError("can not call `new FacetApply` directly use FacetApply.fromSpec instead") unless dummy is dummyObject
-    if dataset and @datasetContext isnt ''
+
+    datasetContext or= DEFAULT_DATASET
+    if dataset and datasetContext isnt DEFAULT_DATASET and dataset isnt datasetContext
+      throw new Error("dataset conflict between '#{datasetContext}' and '#{dataset}'")
+
+    dataset or= datasetContext
+    if operands
+      throw new TypeError("operands must be an array of length 2") unless Array.isArray(operands) and operands.length is 2
+      @operands = if operands[0] instanceof FacetApply then operands else operands.map((op) -> applyFromSpec(op, dataset))
+      seenDataset = {}
+      for operand in @operands
+        for ds in operand.getDatasets()
+          seenDataset[ds] = 1
+      @datasets = Object.keys(seenDataset).sort()
+    else
       @dataset = dataset
-      if @datasetContext and dataset isnt @datasetContext
-        throw new Error("dataset conflict between '#{@datasetContext}' and '#{dataset}'")
 
   _ensureAggregate: (aggregate) ->
     if not @aggregate
@@ -33,14 +49,15 @@ class FacetApply
   _verifyAttribute: ->
     throw new TypeError("attribute must be a string") unless typeof @attribute is 'string'
 
-  _parseOperands: ->
-    throw new TypeError("operands must be an array of length 2") unless Array.isArray(@operands) and @operands.length is 2
-    dataset = @dataset or @datasetContext
-    @operands = @operands.map((op) -> applyFromSpec(op, dataset)) unless @operands[0] instanceof FacetApply
-
   _addNameToString: (str) ->
     return str unless @name
     return "#{@name} <- #{str}"
+
+  _datasetOrNothing: ->
+    return if @dataset is DEFAULT_DATASET then '' else @dataset
+
+  _datasetWithAttribute: ->
+    return if @dataset is DEFAULT_DATASET then @attribute else "#{@dataset}@#{@attribute}"
 
   toString: ->
     return @_addNameToString("base apply")
@@ -48,13 +65,20 @@ class FacetApply
   toHash: ->
     throw new Error('can not call this directly')
 
-  valueOf: ->
-    apply = {}
-    apply.name = @name if @name
-    apply.dataset = @dataset if @dataset and @dataset isnt @datasetContext
-    apply.filter = @filter.valueOf() if @filter
-    apply.options = @options.valueOf() if @options
-    return apply
+  valueOf: (datasetContext) ->
+    applySpec = {}
+    applySpec.name = @name if @name
+    applySpec.filter = @filter.valueOf() if @filter
+    applySpec.options = @options.valueOf() if @options
+    if @arithmetic
+      myDataset = if @datasets.length is 1 then @datasets[0] else null
+      applySpec.arithmetic = @arithmetic
+      applySpec.operands = @operands.map((op) -> op.valueOf(myDataset))
+      applySpec.dataset = myDataset if myDataset and myDataset isnt datasetContext and myDataset isnt DEFAULT_DATASET
+    else
+      applySpec.aggregate = @aggregate
+      applySpec.dataset = @dataset if @dataset and @dataset isnt datasetContext and @dataset isnt DEFAULT_DATASET
+    return applySpec
 
   toJSON: -> @valueOf.apply(this, arguments)
 
@@ -66,7 +90,7 @@ class FacetApply
     else
       return @aggregate is other.aggregate and
              @attribute is other.attribute and
-             @getDataset() is other.getDataset() and
+             @dataset is other.dataset and
              Boolean(@filter) is Boolean(other.filter) and
              (not @filter or @filter.isEqual(other.filter)) and
              Boolean(@options) is Boolean(other.options) and
@@ -82,16 +106,15 @@ class FacetApply
 
   getDataset: ->
     if @operands
-      return @operands[0].getDataset() or @operands[1].getDataset()
+      return @datasets[0]
     else
-      return @dataset or @datasetContext or 'main'
+      return @dataset
 
   getDatasets: ->
-    return [@getDataset()] unless @operands
-    datasets = @operands[0].getDatasets()
-    for dataset in @operands[1].getDatasets()
-      datasets.push(dataset) unless dataset in datasets
-    return datasets
+    if @operands
+      return @datasets
+    else
+      return [@dataset]
 
   getAttributes: ->
     attributeCollection = {}
@@ -112,7 +135,8 @@ class FacetApply
 
 class ConstantApply extends FacetApply
   constructor: ({name, @aggregate, value, options}, datasetContext) ->
-    super(arguments[0], '', dummyObject)
+    super(arguments[0], datasetContext, dummyObject)
+    @dataset = null
     @name = name if name
     @options = new FacetOptions(options) if options
     @_ensureAggregate('constant')
@@ -131,7 +155,6 @@ class ConstantApply extends FacetApply
 
   valueOf: ->
     apply = super
-    apply.aggregate = @aggregate
     apply.value = @value
     return apply
 
@@ -140,9 +163,6 @@ class ConstantApply extends FacetApply
 
   isAdditive: ->
     return true
-
-  getDataset: ->
-    return null
 
   getDatasets: ->
     return []
@@ -161,14 +181,9 @@ class CountApply extends FacetApply
     return @_addNameToString("count()")
 
   toHash: ->
-    hashStr = "CT"
+    hashStr = "CT#{@_datasetOrNothing()}"
     hashStr += '/' + @filter.toHash() if @filter
     return hashStr
-
-  valueOf: ->
-    apply = super
-    apply.aggregate = @aggregate
-    return apply
 
   isAdditive: ->
     return true
@@ -189,13 +204,12 @@ class SumApply extends FacetApply
     return @_addNameToString("#{@aggregate}(`#{@attribute}`)")
 
   toHash: ->
-    hashStr = "SM:#{@attribute}"
+    hashStr = "SM:#{@_datasetWithAttribute()}"
     hashStr += '/' + @filter.toHash() if @filter
     return hashStr
 
   valueOf: ->
     apply = super
-    apply.aggregate = @aggregate
     apply.attribute = @attribute
     return apply
 
@@ -218,16 +232,24 @@ class AverageApply extends FacetApply
     return @_addNameToString("#{@aggregate}(`#{@attribute}`)")
 
   toHash: ->
-    hashStr = "AV:#{@attribute}"
+    hashStr = "AV:#{@_datasetWithAttribute()}"
     hashStr += '/' + @filter.toHash() if @filter
     return hashStr
 
   valueOf: ->
     apply = super
-    apply.aggregate = @aggregate
     apply.attribute = @attribute
     return apply
 
+  decomposeAverage: ->
+    return new DivideApply({
+      name: @name
+      dataset: @dataset
+      operands: [
+        { aggregate: 'sum', attribute: @attribute }
+        { aggregate: 'count' }
+      ]
+    })
 
 
 class MinApply extends FacetApply
@@ -244,13 +266,12 @@ class MinApply extends FacetApply
     return @_addNameToString("#{@aggregate}(`#{@attribute}`)")
 
   toHash: ->
-    hashStr = "MN:#{@attribute}"
+    hashStr = "MN:#{@_datasetWithAttribute()}"
     hashStr += '/' + @filter.toHash() if @filter
     return hashStr
 
   valueOf: ->
     apply = super
-    apply.aggregate = @aggregate
     apply.attribute = @attribute
     return apply
 
@@ -270,13 +291,12 @@ class MaxApply extends FacetApply
     return @_addNameToString("#{@aggregate}(`#{@attribute}`)")
 
   toHash: ->
-    hashStr = "MX:#{@attribute}"
+    hashStr = "MX:#{@_datasetWithAttribute()}"
     hashStr += '/' + @filter.toHash() if @filter
     return hashStr
 
   valueOf: ->
     apply = super
-    apply.aggregate = @aggregate
     apply.attribute = @attribute
     return apply
 
@@ -296,13 +316,12 @@ class UniqueCountApply extends FacetApply
     return @_addNameToString("#{@aggregate}(`#{@attribute}`)")
 
   toHash: ->
-    hashStr = "UC:#{@attribute}"
+    hashStr = "UC:#{@_datasetWithAttribute()}"
     hashStr += '/' + @filter.toHash() if @filter
     return hashStr
 
   valueOf: ->
     apply = super
-    apply.aggregate = @aggregate
     apply.attribute = @attribute
     return apply
 
@@ -329,7 +348,6 @@ class QuantileApply extends FacetApply
 
   valueOf: ->
     apply = super
-    apply.aggregate = @aggregate
     apply.attribute = @attribute
     apply.quantile = @quantile
     return apply
@@ -348,7 +366,6 @@ class AddApply extends FacetApply
     @name = name if name
     @_verifyName()
     @_ensureArithmetic('add')
-    @_parseOperands()
 
   toString: (from = 'add') ->
     expr = "#{@operands[0].toString(@arithmetic)} + #{@operands[1].toString(@arithmetic)}"
@@ -357,12 +374,6 @@ class AddApply extends FacetApply
 
   toHash: ->
     return "#{@operands[0].toHash()}+#{@operands[1].toHash()}"
-
-  valueOf: ->
-    apply = super
-    apply.arithmetic = @arithmetic
-    apply.operands = @operands.map(getValueOf)
-    return apply
 
   isAdditive: ->
     return @operands[0].isAdditive() and @operands[1].isAdditive()
@@ -375,7 +386,6 @@ class SubtractApply extends FacetApply
     @name = name if name
     @_verifyName()
     @_ensureArithmetic('subtract')
-    @_parseOperands()
 
   toString: (from = 'add') ->
     expr = "#{@operands[0].toString(@arithmetic)} - #{@operands[1].toString(@arithmetic)}"
@@ -384,12 +394,6 @@ class SubtractApply extends FacetApply
 
   toHash: ->
     return "#{@operands[0].toHash()}-#{@operands[1].toHash()}"
-
-  valueOf: ->
-    apply = super
-    apply.arithmetic = @arithmetic
-    apply.operands = @operands.map(getValueOf)
-    return apply
 
   isAdditive: ->
     return @operands[0].isAdditive() and @operands[1].isAdditive()
@@ -402,7 +406,6 @@ class MultiplyApply extends FacetApply
     @name = name if name
     @_verifyName()
     @_ensureArithmetic('multiply')
-    @_parseOperands()
 
   toString: (from = 'add') ->
     expr = "#{@operands[0].toString(@arithmetic)} * #{@operands[1].toString(@arithmetic)}"
@@ -411,12 +414,6 @@ class MultiplyApply extends FacetApply
 
   toHash: ->
     return "#{@operands[0].toHash()}*#{@operands[1].toHash()}"
-
-  valueOf: ->
-    apply = super
-    apply.arithmetic = @arithmetic
-    apply.operands = @operands.map(getValueOf)
-    return apply
 
   isAdditive: ->
     return (
@@ -432,7 +429,6 @@ class DivideApply extends FacetApply
     @name = name if name
     @_verifyName()
     @_ensureArithmetic('divide')
-    @_parseOperands()
 
   toString: (from = 'add') ->
     expr = "#{@operands[0].toString(@arithmetic)} / #{@operands[1].toString(@arithmetic)}"
@@ -442,214 +438,9 @@ class DivideApply extends FacetApply
   toHash: ->
     return "#{@operands[0].toHash()}/#{@operands[1].toHash()}"
 
-  valueOf: ->
-    apply = super
-    apply.arithmetic = @arithmetic
-    apply.operands = @operands.map(getValueOf)
-    return apply
-
   isAdditive: ->
     return @operands[0].isAdditive() and @operands[1] instanceof ConstantApply
 
-
-# Breaker
-class ApplyBreaker
-  constructor: (@breakAverage) ->
-    @aggregates = []
-    @arithmetics = []
-    @nameIndex = 0
-
-  getNextName: (nameContext) ->
-    @nameIndex++
-    return "_B#{@nameIndex}_#{nameContext}"
-
-  decomposeAverageApply: (apply) ->
-    return new DivideApply({
-      name: apply.name
-      dataset: apply.dataset
-      operands: [
-        new SumApply({ attribute: apply.attribute })
-        new CountApply({})
-      ]
-    })
-
-  makeAggregateApply: (apply, nameContext) ->
-    if apply.name
-      @aggregates.push(apply)
-      return apply
-
-    for existingApply in @aggregates when existingApply.isEqual(apply)
-      return existingApply
-
-    apply = apply.addName(@getNextName(nameContext))
-    @aggregates.push(apply)
-    return apply
-
-  makeArithmeticApply: (apply, nameContext) ->
-    needNewApply = false
-    operands = apply.operands.map(((apply) ->
-      if apply.aggregate is 'average' and @breakAverage
-        apply = @decomposeAverageApply(apply)
-
-      if apply.aggregate
-        newApply = @makeAggregateApply(apply, nameContext)
-      else
-        newApply = @makeArithmeticApply(apply, nameContext)
-      needNewApply = true if newApply isnt apply
-      return newApply
-    ), this)
-
-    if needNewApply
-      apply = applyFromSpec({
-        name: apply.name
-        arithmetic: apply.arithmetic
-        dataset: apply.dataset
-        operands
-      })
-
-    return apply
-
-  addApplies: (applies) ->
-    arithmeticApplies = []
-    for apply in applies
-      if apply.aggregate is 'average' and @breakAverage
-        apply = @decomposeAverageApply(apply)
-
-      if apply.aggregate
-        @makeAggregateApply(apply, apply.name)
-      else
-        arithmeticApplies.push(apply)
-
-    for apply in arithmeticApplies
-      @arithmetics.push(@makeArithmeticApply(apply, apply.name))
-
-    return
-
-  getParts: ->
-    return {
-      @aggregates
-      @arithmetics
-    }
-
-
-FacetApply.breaker = (applies, breakAverage = false) ->
-  applyBreaker = new ApplyBreaker(breakAverage)
-  applyBreaker.addApplies(applies)
-  return applyBreaker.getParts()
-
-
-# Segregator
-
-jsPostProcessorScheme = {
-  constant: ({value}) -> return -> value
-
-  getter: ({name}) -> (prop) -> prop[name]
-
-  arithmetic: (arithmetic, lhs, rhs) ->
-    return switch arithmetic
-      when 'add'
-        (prop) -> lhs(prop) + rhs(prop)
-      when 'subtract'
-        (prop) -> lhs(prop) - rhs(prop)
-      when 'multiply'
-        (prop) -> lhs(prop) * rhs(prop)
-      when 'divide'
-        (prop) -> rv = rhs(prop); if rv is 0 then 0 else lhs(prop) / rv
-      else
-        throw new Error('unknown arithmetic')
-
-  finish: (name, getter) -> (prop) ->
-    prop[name] = getter(prop)
-    return
-}
-
-class ApplySegregator
-  constructor: (@postProcessorScheme) ->
-    @byDataset = {}
-    @postProcess = []
-    @nameIndex = 0
-
-  getNextName: (nameContext) ->
-    @nameIndex++
-    return "_S#{@nameIndex}_#{nameContext}"
-
-  addSingleDatasetApply: (apply, nameContext, track) ->
-    if apply.aggregate is 'constant'
-      return @postProcessorScheme.constant(apply)
-
-    dataset = apply.getDataset()
-    apply = apply.addName(@getNextName(nameContext)) if not apply.name
-    @byDataset[dataset] or= []
-
-    existingApplyGetter = find(@byDataset[dataset], (ag) -> ag.apply.isEqual(apply))
-
-    if not existingApplyGetter
-      getter = @postProcessorScheme.getter(apply)
-      @byDataset[dataset].push(existingApplyGetter = { apply, getter })
-
-    if track
-      @trackApplySegmentation.push({ dataset, applyName: existingApplyGetter.apply.name })
-
-    return existingApplyGetter.getter
-
-  addMultiDatasetApply: (apply, nameContext, track) ->
-    [op1, op2] = apply.operands
-    op1Datasets = op1.getDatasets()
-    op2Datasets = op2.getDatasets()
-    getter1 = if op1Datasets.length <= 1 then @addSingleDatasetApply(op1, nameContext, track) else @addMultiDatasetApply(op1, nameContext, track)
-    getter2 = if op2Datasets.length <= 1 then @addSingleDatasetApply(op2, nameContext, track) else @addMultiDatasetApply(op2, nameContext, track)
-    return @postProcessorScheme.arithmetic(apply.arithmetic, getter1, getter2)
-
-  addApplies: (applies, trackApplyName) ->
-    @trackApplySegmentation = if trackApplyName then [] else null
-
-    # First add all the simple applies then add the multi-dataset applies
-    # This greatly simplifies the logic in the addSingleDatasetApply function because it never have to
-    # substitute an apply with a temp name with one that has a permanent name
-
-    multiDatasetApplies = []
-    for apply in applies
-      applyName = apply.name
-      switch apply.getDatasets().length
-        when 0
-          getter = @addSingleDatasetApply(apply, applyName, applyName is trackApplyName)
-          @postProcess.push(@postProcessorScheme.finish(applyName, getter))
-        when 1
-          @addSingleDatasetApply(apply, applyName, applyName is trackApplyName)
-        else
-          multiDatasetApplies.push(apply)
-
-    multiDatasetApplies.forEach(((apply) ->
-      applyName = apply.name
-      getter = @addMultiDatasetApply(apply, applyName, applyName is trackApplyName)
-      @postProcess.push(@postProcessorScheme.finish(applyName, getter))
-    ), this)
-
-    return @trackApplySegmentation
-
-  getAppliesByDataset: ->
-    appliesByDataset = {}
-    for dataset, applyGetters of @byDataset
-      appliesByDataset[dataset] = applyGetters.map((d) -> d.apply)
-    return appliesByDataset
-
-  getPostProcessors: ->
-    return @postProcess
-
-
-# Segregate (split up) potentially multi-dataset applies into their component datasets
-#
-# @param {Array(Apply)} applies, the list of applies to segregate
-# @param {String} trackApplyName, the name of the apply to single out (optional)
-FacetApply.segregate = (applies, trackApplyName = null, postProcessorScheme = jsPostProcessorScheme) ->
-  applySegregator = new ApplySegregator(postProcessorScheme)
-  trackedSegregation = applySegregator.addApplies(applies, trackApplyName)
-
-  return {
-    appliesByDataset: applySegregator.getAppliesByDataset()
-    postProcessors: applySegregator.getPostProcessors()
-    trackedSegregation
-  }
 
 # Make lookup
 applyAggregateConstructorMap = {
@@ -671,6 +462,7 @@ applyArithmeticConstructorMap = {
 }
 
 applyFromSpec = (applySpec, datasetContext) ->
+  return applySpec if applySpec instanceof FacetApply
   throw new Error("unrecognizable apply") unless typeof applySpec is 'object'
   if applySpec.hasOwnProperty('aggregate')
     throw new Error("aggregate must be a string") unless typeof applySpec.aggregate is 'string'

@@ -38,6 +38,10 @@ uniformizeResults = (result) ->
 
   if result.splits
     ret.splits = result.splits.map(uniformizeResults)
+
+  if result.loading
+    ret.loading = true
+
   return ret
 
 exports.wrapVerbose = (requester, name) ->
@@ -56,7 +60,7 @@ exports.wrapVerbose = (requester, name) ->
 race = false
 
 exports.makeEqualityTest = (driverFns) ->
-  return ({drivers, query, verbose}) ->
+  return ({drivers, query, verbose, before, after}) ->
     throw new Error("must have at least two drivers") if drivers.length < 2
 
     driversToTest = drivers.map (driverName) ->
@@ -72,7 +76,7 @@ exports.makeEqualityTest = (driverFns) ->
             return
 
         driverFn({
-          query: new FacetQuery(query)
+          query: if query instanceof FacetQuery then query else new FacetQuery(query)
           context: {
             priority: -3
           }
@@ -80,13 +84,17 @@ exports.makeEqualityTest = (driverFns) ->
         return
 
     return (done) ->
+      before?()
       console.log '' if race
       async.parallel driversToTest, (err, results) ->
         console.log '--------------' if race
         if err
+          after?(err)
           console.log "got error from driver"
           console.log err
           throw err
+
+        after?(null, results[0], results)
 
         results = results.map((result) ->
           expect(result).to.be.instanceof(SegmentTree)

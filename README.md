@@ -1,4 +1,6 @@
-# Facet
+![logo](/logo/facet.png)
+
+A split-apply-combine based query language.
 
 ## Driver language
 

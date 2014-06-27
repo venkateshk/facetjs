@@ -176,7 +176,9 @@ class FacetFilter
   #
   setStringifier: (@stringifier) -> return this
 
-  constructor: ({@type, @dataset}, dummy) ->
+  operation: 'filter'
+
+  constructor: ({@type}, dummy) ->
     throw new TypeError("can not call `new FacetFilter` directly use FacetFilter.fromSpec instead") unless dummy is dummyObject
 
   _ensureType: (filterType) ->
@@ -195,9 +197,7 @@ class FacetFilter
     return @type
 
   valueOf: ->
-    filter = { type: @type }
-    filter.dataset = @dataset if @dataset
-    return filter
+    return { type: @type }
 
   toJSON: -> @valueOf.apply(this, arguments)
 
@@ -227,9 +227,6 @@ class FacetFilter
       return [this, new TrueFilter()]
     else
       return [new TrueFilter(), this]
-
-  getDataset: ->
-    return @dataset or 'main'
 
   toString: ->
     stringifier = @stringifier or FacetFilter.defaultStringifier
@@ -416,7 +413,9 @@ class WithinFilter extends FacetFilter
     return filterSpec
 
   isEqual: (other) ->
-    return super(other) and other.range[0] is @range[0] and other.range[1] is @range[1]
+    return super(other) and
+          other.range[0].valueOf() is @range[0].valueOf() and
+          other.range[1].valueOf() is @range[1].valueOf()
 
   getFilterFn: ->
     attribute = @attribute
@@ -844,6 +843,7 @@ filterConstructorMap = {
 }
 
 FacetFilter.fromSpec = (filterSpec) ->
+  return filterSpec if filterSpec instanceof FacetFilter
   throw new Error("unrecognizable filter") unless typeof filterSpec is 'object'
   throw new Error("type must be defined") unless filterSpec.hasOwnProperty('type')
   throw new Error("type must be a string") unless typeof filterSpec.type is 'string'

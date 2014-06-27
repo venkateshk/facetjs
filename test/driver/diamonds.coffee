@@ -179,7 +179,7 @@ describe "Diamonds dataset", ->
           name: 'Color'
           bucket: 'identity'
           attribute: 'color'
-          bucketFilter: { type: 'in', prop: 'Cut', values: ['Ideal', 'Good'] }
+          segmentFilter: { type: 'in', prop: 'Cut', values: ['Ideal', 'Good'] }
         }
         { operation: 'apply', name: 'Count', aggregate: 'count' }
         { operation: 'combine', method: 'slice', sort: { prop: 'Color', compare: 'natural', direction: 'descending' }, limit: 2 }

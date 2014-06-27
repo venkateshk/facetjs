@@ -303,7 +303,7 @@ describe "Wikipedia day dataset", ->
           name: 'Page'
           bucket: 'identity'
           attribute: 'page'
-          bucketFilter: { type: 'in', prop: 'Language', values: ['en', 'fr'] }
+          segmentFilter: { type: 'in', prop: 'Language', values: ['en', 'fr'] }
         }
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
         { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }

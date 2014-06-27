@@ -121,7 +121,7 @@ describe "Druid requester", ->
         done()
 
 
-  describe.only "timeout", ->
+  describe "timeout", ->
     it "works in simple case", (done) ->
       timeoutDruidPass = druidRequester({
         locator: simpleLocator('10.69.20.5')

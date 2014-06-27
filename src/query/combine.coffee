@@ -2,6 +2,8 @@
 {FacetSort} = require('./sort')
 
 class FacetCombine
+  operation: 'combine'
+
   constructor: ->
     return
 
@@ -77,6 +79,7 @@ combineConstructorMap = {
 
 
 FacetCombine.fromSpec = (combineSpec) ->
+  return combineSpec if combineSpec instanceof FacetCombine
   throw new Error("unrecognizable combine") unless typeof combineSpec is 'object'
   combineSpec.method ?= combineSpec.combine # ToDo: remove this. combineSpec.combine is a backwards compat. hack, remove it.
   throw new Error("method not defined") unless combineSpec.hasOwnProperty('method')

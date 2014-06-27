@@ -1485,6 +1485,11 @@ describe "FacetFilter", ->
             range: [10, 50]
           }
           {
+            type: 'within'
+            attribute: 'time'
+            range: [new Date("2013-02-26T00:00:00Z"), new Date("2013-02-27T00:00:00Z")]
+          }
+          {
             type: 'not'
             filter: {
               type: 'or'
@@ -1510,6 +1515,19 @@ describe "FacetFilter", ->
       filter3 = FacetFilter.fromSpec(filterSpec)
       expect(filter1.isEqual(filter2)).to.equal(true)
       expect(filter1.isEqual(filter3)).to.equal(false)
+
+    it "works for dates", ->
+      filter1 = FacetFilter.fromSpec({
+        type: 'within'
+        attribute: 'time'
+        range: [new Date("2013-02-26T00:00:00Z"), new Date("2013-02-27T00:00:00Z")]
+      })
+      filter2 = FacetFilter.fromSpec({
+        type: 'within'
+        attribute: 'time'
+        range: [new Date("2013-02-26T00:00:00Z"), new Date("2013-02-27T00:00:00Z")]
+      })
+      expect(filter1.isEqual(filter2)).to.equal(true)
 
 
   describe "getComplexity", ->

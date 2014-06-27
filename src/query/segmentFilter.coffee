@@ -221,6 +221,7 @@ segmentFilterConstructorMap = {
 }
 
 FacetSegmentFilter.fromSpec = (segmentFilterSpec) ->
+  return segmentFilterSpec if segmentFilterSpec instanceof FacetSegmentFilter
   throw new Error("unrecognizable segment filter") unless typeof segmentFilterSpec is 'object'
   throw new Error("type must be defined") unless segmentFilterSpec.hasOwnProperty('type')
   throw new Error("type must be a string") unless typeof segmentFilterSpec.type is 'string'

@@ -126,6 +126,7 @@ attributeMetaConstructorMap = {
 
 
 AttributeMeta.fromSpec = (attributeMetaSpec) ->
+  return attributeMetaSpec if attributeMetaSpec instanceof AttributeMeta
   if attributeMetaSpec.type is 'range' and attributeMetaSpec.size # Back compat.
     attributeMetaSpec.rangeSize = attributeMetaSpec.size
 

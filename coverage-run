@@ -1,5 +1,3 @@
 #!/bin/bash
-istanbul cover \
-  -x **/data/** \
-  -x **/utils/** \
-  _mocha -- --compilers coffee:coffee-script --reporter progress test/*/*
+mocha test/cover.coffee test/*/* --reporter xunit-html-cov
+open coverage.html

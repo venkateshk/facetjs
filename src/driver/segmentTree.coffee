@@ -9,23 +9,23 @@ cleanProp = (prop) ->
 
 
 class SegmentTree
-  constructor: ({prop, splits}, @parent = null) ->
+  constructor: ({prop, splits, loading}, @parent = null) ->
     if prop
-      cleanProp(prop)
-      @prop = prop
+      @setProps(prop)
     else if splits
-      throw new Error("can not have splits without prop")
+      throw new Error("can not initialize splits without prop")
 
     if splits
       @splits = splits.map(((spec) -> new SegmentTree(spec, this)), this)
 
+    if loading
+      @loading = true
+
   valueOf: ->
     spec = {}
-    if @prop
-      spec.prop = @prop
-
-    if @splits
-      spec.splits = @splits.map((split) -> split.valueOf())
+    spec.prop = @prop if @prop
+    spec.splits = @splits.map((split) -> split.valueOf()) if @splits
+    spec.loading = true if @loading
     return spec
 
   toJSON: -> @valueOf.apply(this, arguments)
@@ -40,10 +40,27 @@ class SegmentTree
 
     return this
 
+  setProps: (prop) ->
+    cleanProp(prop)
+    @prop = prop
+    return this
+
   setSplits: (splits) ->
     for split in splits
       split.parent = this
-    return @splits = splits
+    @splits = splits
+    return this
+
+  markLoading: ->
+    @loading = true
+    return this
+
+  hasLoading: ->
+    return true if @loading
+    if @splits
+      for segment in @splits
+        return true if segment.hasLoading()
+    return false
 
   getProp: (propName) ->
     segmentProp = @prop

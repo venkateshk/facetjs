@@ -2,6 +2,8 @@
 {FacetFilter, TrueFilter} = require('./filter')
 
 class FacetDataset
+  operation: 'dataset'
+
   constructor: ({@name, @source, filter}) ->
     throw new TypeError("dataset name must be a string") unless typeof @name is 'string'
     throw new TypeError("dataset source must be a string") unless typeof @source is 'string'
@@ -27,7 +29,7 @@ class FacetDataset
   isEqual: (other) ->
     return Boolean(other) and
            @source is other.source and
-           @filter.isEqual(other.filter)
+           @getFilter().isEqual(other.getFilter())
 
 
 FacetDataset.base = new FacetDataset({

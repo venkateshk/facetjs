@@ -2,6 +2,7 @@ chai = require("chai")
 expect = chai.expect
 utils = require('../utils')
 
+{AttributeMeta} = require('../../src/driver/attributeMeta')
 {FacetQuery, FacetFilter} = require('../../src/query')
 
 simpleLocator = require('../../src/locator/simpleLocator')
@@ -726,6 +727,45 @@ describe "Druid driver", ->
             { "name": "Count", "type": "count" }
           ]
         })
+        return
+
+      driver {
+        context
+        query
+      }, (err, result) ->
+        expect(count).to.equal(1)
+        done()
+
+  describe "acknowledges attribute metas", ->
+    querySpy = null
+    requesterSpy = (request, callback) ->
+      querySpy(request.query)
+      callback(null, [])
+      return
+
+    driver = druidDriver({
+      requester: requesterSpy
+      dataSource: 'wikipedia_editstream'
+      timeAttribute: 'time'
+      approximate: true
+      attributeMetas: {
+        page: AttributeMeta.fromSpec({
+          type: 'large'
+        })
+      }
+    })
+
+    it "does not send empty context", (done) ->
+      context = {}
+      query = new FacetQuery([
+        { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
+        { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+      ])
+
+      count = 0
+      querySpy = (query) ->
+        count++
+        expect(query.context['doAggregateTopNMetricFirst']).to.be.true
         return
 
       driver {

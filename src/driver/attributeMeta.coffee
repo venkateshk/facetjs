@@ -37,6 +37,12 @@ class DefaultAttributeMeta extends AttributeMeta
     @_ensureType('default')
 
 
+class LargeAttributeMeta extends AttributeMeta
+  constructor: ->
+    super(arguments[0] or {}, dummyObject)
+    @_ensureType('large')
+
+
 class RangeAttributeMeta extends AttributeMeta
   constructor: ({@separator, @rangeSize, @digitsBeforeDecimal, @digitsAfterDecimal}) ->
     super(arguments[0], dummyObject)
@@ -112,10 +118,12 @@ class HistogramAttributeMeta extends AttributeMeta
 # Make lookup
 attributeMetaConstructorMap = {
   default: DefaultAttributeMeta
+  large: LargeAttributeMeta
   range: RangeAttributeMeta
   unique: UniqueAttributeMeta
   historgram: HistogramAttributeMeta
 }
+
 
 AttributeMeta.fromSpec = (attributeMetaSpec) ->
   if attributeMetaSpec.type is 'range' and attributeMetaSpec.size # Back compat.
@@ -130,10 +138,12 @@ AttributeMeta.fromSpec = (attributeMetaSpec) ->
 
 AttributeMeta.default = new DefaultAttributeMeta()
 
+
 # Export!
 module.exports = {
   AttributeMeta
   DefaultAttributeMeta
+  LargeAttributeMeta
   RangeAttributeMeta
   UniqueAttributeMeta
   HistogramAttributeMeta

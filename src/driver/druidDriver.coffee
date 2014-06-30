@@ -506,6 +506,10 @@ class DruidQueryBuilder
             throw new Error("can not sort and limit on without approximate") unless @approximate
             @queryType = 'topN'
             @threshold = limit
+
+            if @getAttributeMeta(@dimension.dimension).type is 'large'
+              @context.doAggregateTopNMetricFirst = true
+
             if sort.prop is @dimension.outputName
               if sort.direction is 'ascending'
                 @metric = { type: "lexicographic" }

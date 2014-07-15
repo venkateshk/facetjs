@@ -1,5 +1,6 @@
 {wrapLiteral} = require('./common')
 Interval = require('./interval')
+util = require('../util')
 
 # A function that transforms the space from one form to another.
 # Arguments* -> Segment -> PsudoSpace
@@ -46,7 +47,7 @@ lineOnLine = (args, leftName, widthName, rightName) ->
     return (segment, spaceWidth) ->
       leftValue = left(segment)
       rightValue = right(segment)
-      if leftValue instanceof Interval or rightValue instanceof Interval
+      if util.isInstanceOf(leftValue, Interval) or util.isInstanceOf(rightValue, Interval)
         throw new Error("Over-constrained by interval")
       return [leftValue, spaceWidth - leftValue - rightValue]
 
@@ -61,7 +62,7 @@ lineOnLine = (args, leftName, widthName, rightName) ->
     if left
       (segment, spaceWidth) ->
         leftValue = left(segment)
-        if leftValue instanceof Interval
+        if util.isInstanceOf(leftValue, Interval)
           throw new Error("Over-constrained by #{widthName}")
         else
           widthValue = width(segment).valueOf()
@@ -74,7 +75,7 @@ lineOnLine = (args, leftName, widthName, rightName) ->
     if left
       (segment, spaceWidth) ->
         leftValue = left(segment)
-        if leftValue instanceof Interval
+        if util.isInstanceOf(leftValue, Interval)
           return [leftValue.start, leftValue.end - leftValue.start]
         else
           return [leftValue, spaceWidth - leftValue]
@@ -100,7 +101,7 @@ lineOnPoint = (args, leftName, widthName, rightName) ->
     return (segment, spaceWidth) ->
       leftValue = left(segment)
       rightValue = right(segment)
-      if leftValue instanceof Interval or rightValue instanceof Interval
+      if util.isInstanceOf(leftValue, Interval) or util.isInstanceOf(rightValue, Interval)
         throw new Error("Over-constrained by interval")
       return [-leftValue, leftValue + rightValue]
 
@@ -115,7 +116,7 @@ lineOnPoint = (args, leftName, widthName, rightName) ->
     if right
       (segment) ->
         rightValue = right(segment)
-        if rightValue instanceof Interval
+        if util.isInstanceOf(rightValue, Interval)
           throw new Error("Over-constrained by #{widthName}")
         else
           widthValue = width(segment).valueOf()
@@ -128,7 +129,7 @@ lineOnPoint = (args, leftName, widthName, rightName) ->
     if right
       (segment) ->
         rightValue = right(segment)
-        if rightValue instanceof Interval
+        if util.isInstanceOf(rightValue, Interval)
           return [rightValue.start, rightValue.end - rightValue.start]
         else
           return [0, rightValue]

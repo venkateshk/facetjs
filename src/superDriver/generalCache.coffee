@@ -1,6 +1,7 @@
 { Duration } = require('chronology')
 driverUtil = require('../driver/driverUtil')
 SegmentTree = require('../driver/segmentTree')
+util = require('../util')
 {
   FacetQuery,
   AndFilter, TrueFilter, FacetFilter,
@@ -372,12 +373,12 @@ module.exports = ({driver}) ->
     throw new Error("request not supplied") unless request
     {context, query} = request
 
-    if query not instanceof FacetQuery
+    if not util.isInstanceOf(query, FacetQuery)
       callback(new Error("query must be a FacetQuery"))
       return
 
     useCache = query.getSplits().every((split) -> split.bucket isnt 'tuple' and not split.segmentFilter) and
-      query.getCombines().every((combine) -> (not combine?) or (combine instanceof SliceCombine))
+      query.getCombines().every((combine) -> (not combine?) or util.isInstanceOf(combine, SliceCombine))
 
     if useCache
       result = getQueryDataFromCache(query)

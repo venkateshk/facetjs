@@ -2,6 +2,7 @@ async = require('async')
 { Duration } = require('chronology')
 driverUtil = require('./driverUtil')
 SegmentTree = require('./segmentTree')
+util = require('../util')
 {
   AttributeMeta
   UniqueAttributeMeta
@@ -227,7 +228,7 @@ class DruidQueryBuilder
 
 
   addSplit: (split) ->
-    throw new TypeError() unless split instanceof FacetSplit
+    throw new TypeError() unless util.isInstanceOf(split, FacetSplit)
     switch split.bucket
       when 'identity'
         @queryType = 'groupBy'
@@ -496,7 +497,7 @@ class DruidQueryBuilder
     return this
 
   addCombine: (combine) ->
-    throw new TypeError() unless combine instanceof FacetCombine
+    throw new TypeError() unless util.isInstanceOf(combine, FacetCombine)
     switch combine.method
       when 'slice'
         { sort, limit } = combine
@@ -1237,7 +1238,7 @@ module.exports = ({requester, dataSource, timeAttribute, attributeMetas, approxi
   queryLimit or= Infinity
   attributeMetas or= {}
   for k, v of attributeMetas
-    throw new TypeError("`attributeMeta` for attribute '#{k}' must be an AttributeMeta") unless v instanceof AttributeMeta
+    throw new TypeError("`attributeMeta` for attribute '#{k}' must be an AttributeMeta") unless util.isInstanceOf(v, AttributeMeta)
 
   queriesMade = 0
   driver = (request, callback) ->
@@ -1245,7 +1246,7 @@ module.exports = ({requester, dataSource, timeAttribute, attributeMetas, approxi
       throw new Error("request not supplied") unless request
       {context, query} = request
       throw new Error("query not supplied") unless query
-      throw new TypeError("query must be a FacetQuery") unless query instanceof FacetQuery
+      throw new TypeError("query must be a FacetQuery") unless util.isInstanceOf(query, FacetQuery)
       context or= {}
     catch e
       callback(e)

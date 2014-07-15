@@ -2,6 +2,7 @@ async = require('async')
 { Duration } = require('chronology')
 driverUtil = require('./driverUtil')
 SegmentTree = require('./segmentTree')
+util = require('../util')
 {FacetFilter, FacetSplit, FacetApply, FacetCombine, FacetQuery} = require('../query')
 
 # -----------------------------------------------------
@@ -31,7 +32,7 @@ splitFns = {
 }
 
 makeSplitFn = (split) ->
-  throw new TypeError("split must be a FacetSplit") unless split instanceof FacetSplit
+  throw new TypeError("split must be a FacetSplit") unless util.isInstanceOf(split, FacetSplit)
   splitFn = splitFns[split.bucket]
   throw new Error("split bucket '#{split.bucket}' not supported by driver") unless splitFn
   return splitFn(split)
@@ -103,7 +104,7 @@ arithmeticFns = {
 }
 
 makeApplyFn = (apply) ->
-  throw new TypeError("apply must be a FacetApply") unless apply instanceof FacetApply
+  throw new TypeError("apply must be a FacetApply") unless util.isInstanceOf(apply, FacetApply)
   if apply.aggregate
     aggregateFn = aggregateFns[apply.aggregate]
     throw new Error("aggregate '#{apply.aggregate}' unsupported by driver") unless aggregateFn
@@ -142,7 +143,7 @@ combineFns = {
 }
 
 makeCombineFn = (combine) ->
-  throw new TypeError("combine must be a FacetCombine") unless combine instanceof FacetCombine
+  throw new TypeError("combine must be a FacetCombine") unless util.isInstanceOf(combine, FacetCombine)
   combineFn = combineFns[combine.method]
   throw new Error("method '#{combine.method}' unsupported by driver") unless combineFn
   return combineFn(combine)
@@ -290,7 +291,7 @@ module.exports = (dataGetter) ->
       throw new Error("request not supplied") unless request
       {context, query} = request
       throw new Error("query not supplied") unless query
-      throw new TypeError("query must be a FacetQuery") unless query instanceof FacetQuery
+      throw new TypeError("query must be a FacetQuery") unless util.isInstanceOf(query, FacetQuery)
     catch e
       callback(e)
       return

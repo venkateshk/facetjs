@@ -1,4 +1,5 @@
 {specialJoin, getValueOf, find, dummyObject} = require('./common')
+util = require('../util')
 
 smaller = (a, b) -> if a < b then a else b
 
@@ -71,7 +72,7 @@ filterSortTypeSubPresedence = {
 
 defaultStringifier = {
   stringify: (filter) ->
-    throw new Error('stringifier needs FacetFilter') unless filter instanceof FacetFilter
+    throw new Error('stringifier needs FacetFilter') unless util.isInstanceOf(filter, FacetFilter)
     switch filter.type
       when 'true'
         return "None"
@@ -433,7 +434,7 @@ class WithinFilter extends FacetFilter
 
 class NotFilter extends FacetFilter
   constructor: (arg) ->
-    if arg not instanceof FacetFilter
+    if not util.isInstanceOf(arg, FacetFilter)
       super(arg, dummyObject)
       @filter = FacetFilter.fromSpec(arg.filter)
     else

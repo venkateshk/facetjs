@@ -1,6 +1,7 @@
 # Extracts the property and other things from a segment
 {useLiteral, wrapLiteral} = require('./common')
 Interval = require('./interval')
+util = require('../util')
 
 module.exports = {
   literal: useLiteral
@@ -48,7 +49,7 @@ module.exports = {
     interval = wrapLiteral(interval)
     return (segment) ->
       i = interval(segment)
-      throw new TypeError("must have an interval") unless i instanceof Interval
+      throw new TypeError("must have an interval") unless util.isInstanceOf(i, Interval)
       return i.valueOf()
 
   fn: (args..., fn) -> (segment) ->

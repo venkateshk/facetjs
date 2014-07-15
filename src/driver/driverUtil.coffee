@@ -1,3 +1,4 @@
+util = require '../util'
 { FacetQuery } = require('../query')
 
 # Flatten an array of array in to a single array
@@ -188,7 +189,7 @@ csvEscape = (str) -> '"' + String(str).replace(/\"/g, '\"\"') + '"'
 
 class Table
   constructor: ({root, query}) ->
-    throw new TypeError('query must be a FacetQuery') unless query instanceof FacetQuery
+    throw new TypeError('query must be a FacetQuery') unless util.isInstanceOf(query, FacetQuery)
     @query = query
     @titleFn = (op) -> op.name
     @splitColumns = flatten(query.getSplits().map((split) ->

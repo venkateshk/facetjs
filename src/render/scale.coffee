@@ -1,6 +1,7 @@
 d3 = require('d3')
 {wrapLiteral} = require('./common')
 Interval = require('./interval')
+util = require('../util')
 
 # A function that makes a scale and adds it to the segment.
 # Arguments* ->
@@ -9,7 +10,7 @@ Interval = require('./interval')
 #    -> { fn, use }
 
 scaleOverInterval = (baseScale) -> (x) ->
-  if x instanceof Interval
+  if util.isInstanceOf(x, Interval)
     return new Interval(baseScale(x.start), baseScale(x.end))
   else
     return baseScale(x)
@@ -30,7 +31,7 @@ module.exports = {
 
         for segment in segments
           domainValue = domain(segment)
-          if domainValue instanceof Interval
+          if util.isInstanceOf(domainValue, Interval)
             domainMin = min(domainMin, min(domainValue.start, domainValue.end))
             domainMax = max(domainMax, max(domainValue.start, domainValue.end))
           else
@@ -57,7 +58,7 @@ module.exports = {
 
         for space in spaces
           rangeValue = range(space)
-          if rangeValue instanceof Interval
+          if util.isInstanceOf(rangeValue, Interval)
             rangeFrom = rangeValue.start # really?
             rangeTo = min(rangeTo, rangeValue.end)
           else

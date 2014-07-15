@@ -1,6 +1,7 @@
 { isPropValueEqual } = require('../driver/driverUtil')
 SegmentTree = require('../driver/segmentTree')
 { FacetQuery, FacetFilter, AndFilter, FacetSplit, FacetCombine } = require('../query')
+util = require('../util')
 
 find = (list, fn) ->
   for d in list
@@ -129,7 +130,7 @@ module.exports = ({transport, onData}) ->
         myOnData(null, 'final')
         return
 
-      if newData not instanceof SegmentTree
+      if not util.isInstanceOf(newData, SegmentTree)
         myOnData(null, 'final')
         return
 
@@ -307,7 +308,7 @@ module.exports = ({transport, onData}) ->
             driverLog 'failed to load query'
             return
 
-          if partialData not instanceof SegmentTree
+          if not util.isInstanceOf(partialData, SegmentTree)
             myOnData(myData, 'final')
             driverLog 'expected a SegmentTree'
             return

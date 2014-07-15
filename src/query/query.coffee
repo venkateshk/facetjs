@@ -4,6 +4,7 @@
 {FacetSplit, ParallelSplit} = require('./split')
 {FacetApply} = require('./apply')
 {FacetCombine, SliceCombine} = require('./combine')
+util = require('../util')
 
 # Group the queries steps in to the logical queries that will need to be done
 addSplitName = (split, name) ->
@@ -52,8 +53,8 @@ class CondensedCommand
   getEffectiveSplit: ->
     return @split if not @split or @split.bucket isnt 'parallel'
     sortBy = @getSortBy()
-    return @split if sortBy instanceof FacetSplit
-    # if here then sortBy is instanceof FacetApply
+    return @split if util.isInstanceOf(sortBy, FacetSplit)
+    # if here then sortBy is instance of FacetApply
 
     sortDatasets = sortBy.getDatasets()
     effectiveSplits = @split.splits.filter((split) -> split.getDataset() in sortDatasets)
@@ -230,7 +231,7 @@ class FacetQuery
 
   getFiltersByDataset: (extraFilter) ->
     extraFilter or= new TrueFilter()
-    throw new TypeError("extra filter should be a FacetFilter") unless extraFilter instanceof FacetFilter
+    throw new TypeError("extra filter should be a FacetFilter") unless util.isInstanceOf(extraFilter, FacetFilter)
     commonFilter = new AndFilter([@getFilter(), extraFilter]).simplify()
     filtersByDataset = {}
     for dataset in @datasets

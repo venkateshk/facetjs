@@ -1,6 +1,7 @@
 {specialJoin, getValueOf, find, dummyObject} = require('./common')
 {FacetFilter} = require('./filter')
 {FacetOptions} = require('./options')
+util = require('../util')
 
 class FacetApply
   constructor: ({dataset}, @datasetContext, dummy) ->
@@ -36,7 +37,7 @@ class FacetApply
   _parseOperands: ->
     throw new TypeError("operands must be an array of length 2") unless Array.isArray(@operands) and @operands.length is 2
     dataset = @dataset or @datasetContext
-    @operands = @operands.map((op) -> applyFromSpec(op, dataset)) unless @operands[0] instanceof FacetApply
+    @operands = @operands.map((op) -> applyFromSpec(op, dataset)) unless util.isInstanceOf(@operands[0], FacetApply)
 
   _addNameToString: (str) ->
     return str unless @name
@@ -420,8 +421,8 @@ class MultiplyApply extends FacetApply
 
   isAdditive: ->
     return (
-      (@operands[0] instanceof ConstantApply and @operands[1].isAdditive()) or
-      (@operands[0].isAdditive() and @operands[1] instanceof ConstantApply)
+      (util.isInstanceOf(@operands[0], ConstantApply) and @operands[1].isAdditive()) or
+      (@operands[0].isAdditive() and util.isInstanceOf(@operands[1], ConstantApply))
     )
 
 
@@ -449,7 +450,7 @@ class DivideApply extends FacetApply
     return apply
 
   isAdditive: ->
-    return @operands[0].isAdditive() and @operands[1] instanceof ConstantApply
+    return @operands[0].isAdditive() and util.isInstanceOf(@operands[1], ConstantApply)
 
 
 # Breaker

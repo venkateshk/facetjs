@@ -1,4 +1,5 @@
 {specialJoin, getValueOf, find, dummyObject} = require('./common')
+util = require('../util')
 
 parseValue = (value) ->
   return value unless Array.isArray(value)
@@ -115,7 +116,7 @@ class InSegmentFilter extends FacetSegmentFilter
 
 class NotSegmentFilter extends FacetSegmentFilter
   constructor: (arg) ->
-    if arg not instanceof FacetFilter
+    if not util.isInstanceOf(arg, FacetFilter)
       {@type, @filter} = arg
       @filter = FacetSegmentFilter.fromSpec(@filter)
     else

@@ -130,6 +130,11 @@ getFilteredValuesFromSlot = (sortSlot, split, myFilter) ->
     return filterFn(row)
 
 
+isCompleteInput = (givenFilter, givenCombine, givenSplitValues) ->
+  return false unless givenFilter.type is 'true'
+  return if givenCombine.limit? then givenSplitValues.length < givenCombine.limit else true
+
+
 getRealSplit = (split) ->
   return if split.bucket is 'parallel' then split.splits[0] else split
 
@@ -143,7 +148,6 @@ class IdentityCombineToSplitValues
     return unless filterExtract = filter.extractFilterByAttribute(split.attribute)
     myFilter = filterExtract[1]
 
-    completeInput = if combine.limit? then splitValues.length < combine.limit else true
     sortHash = condensedCommand.getSortHash()
     sortSlot = @bySort[sortHash]
 
@@ -152,8 +156,8 @@ class IdentityCombineToSplitValues
         filter: myFilter
         splitValues
       }
-      complete = if combine.limit? then splitValues.length < combine.limit else true
-      if complete
+
+      if isCompleteInput(myFilter, combine, splitValues)
         sortSlot.complete = true
       else
         sortSlot.limit = combine.limit
@@ -257,7 +261,6 @@ class TimePeriodCombineToSplitValues
       return unless splitValues.length < possibleSplitValues.length
       @_calculateKnownUnknowns(possibleSplitValues, splitValues)
     else
-      completeInput = if combine.limit? then splitValues.length < combine.limit else true
       sortHash = condensedCommand.getSortHash()
       sortSlot = @bySort[sortHash]
 
@@ -266,8 +269,8 @@ class TimePeriodCombineToSplitValues
           filter: myFilter
           splitValues: splitValues.map(([start]) -> start)
         }
-        complete = if combine.limit? then splitValues.length < combine.limit else true
-        if complete
+
+        if isCompleteInput(myFilter, combine, splitValues)
           sortSlot.complete = true
         else
           sortSlot.limit = combine.limit

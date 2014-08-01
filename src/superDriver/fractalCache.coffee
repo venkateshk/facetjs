@@ -322,16 +322,13 @@ class ContinuousCombineToSplitValues
 
 # ------------------------
 
-sortedApplyValues = (hashToApply, sortBy) ->
-  if hashToApply
-    applies = Object.keys(hashToApply).sort().map((h) -> hashToApply[h])
-  else
-    applies = []
+sortedApplyValues = (hashToApply) ->
+  return if hashToApply then Object.keys(hashToApply).sort().map((h) -> hashToApply[h]) else []
 
+addSortByIfNeeded = (applies, sortBy) ->
   if isInstanceOf(sortBy, FacetApply) and not driverUtil.find(applies, ({name}) -> name is sortBy.name)
     applies.push(sortBy)
-
-  return applies
+  return
 
 nextLayer = (segments) ->
   return driverUtil.flatten(driverUtil.filterMap(segments, ({splits}) -> splits))
@@ -389,7 +386,8 @@ computeDeltaQuery = (originalQuery, rootSegment) ->
         newQuery.push(condensedCommand.split.withoutSegmentFilter())
       else
         newQuery.push(condensedCommand.split)
-      sortedMissingApplies = sortedApplyValues(gatherMissingApplies(currentLayer), condensedCommand.getSortBy())
+      sortedMissingApplies = sortedApplyValues(gatherMissingApplies(currentLayer))
+      addSortByIfNeeded(sortedMissingApplies, condensedCommand.getSortBy())
       newQuery = newQuery.concat(sortedMissingApplies)
       newQuery.push(condensedCommand.combine)
     else
@@ -397,7 +395,12 @@ computeDeltaQuery = (originalQuery, rootSegment) ->
         newQuery.push(condensedCommand.split.withoutSegmentFilter())
       else
         newQuery.push(condensedCommand.split)
-      newQuery = newQuery.concat(condensedCommand.applies)
+
+      applySimplifier = new ApplySimplifier(applySimplifierSettings)
+      applySimplifier.addApplies(condensedCommand.applies)
+      simpleApplies = applySimplifier.getSimpleApplies()
+      addSortByIfNeeded(simpleApplies, condensedCommand.getSortBy())
+      newQuery = newQuery.concat(simpleApplies)
       newQuery.push(condensedCommand.combine)
 
     prevLayer = currentLayer
@@ -615,6 +618,7 @@ module.exports = ({driver}) ->
         # then fill the cache with this info and then ask the cache
         # to fill the original query again.
         deltaQuery = computeDeltaQuery(query, rootSegment)
+
         driver({
           query: deltaQuery
           context

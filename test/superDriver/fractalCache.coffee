@@ -752,7 +752,68 @@ describe "Fractal cache", ->
 
     it "runs the initial query", testEquality {
       drivers: ['diamondsCached', 'diamonds']
-      before: -> expectedQuery = setUpQuery
+      before: ->
+        expectedQuery = new FacetQuery [
+          {
+            operation: 'dataset'
+            name: 'ideal-cut'
+            source: 'base'
+            filter: {
+              dataset: 'ideal-cut'
+              type: 'is'
+              attribute: 'cut'
+              value: 'Ideal'
+            }
+          }
+          {
+            operation: 'dataset'
+            name: 'good-cut'
+            source: 'base'
+            filter: {
+              dataset: 'good-cut'
+              type: 'is'
+              attribute: 'cut'
+              value: 'Good'
+            }
+          }
+          {
+            operation: 'split'
+            name: 'Clarity'
+            bucket: 'parallel'
+            splits: [
+              {
+                dataset: 'ideal-cut'
+                bucket: 'identity'
+                attribute: 'clarity'
+              }
+              {
+                dataset: 'good-cut'
+                bucket: 'identity'
+                attribute: 'clarity'
+              }
+            ]
+          }
+          {
+            operation: 'apply'
+            name: 'AvgIdealPrice'
+            dataset: 'ideal-cut'
+            aggregate: 'average'
+            attribute: 'price'
+          }
+          {
+            operation: 'apply'
+            name: 'AvgGoodPrice'
+            dataset: 'good-cut'
+            aggregate: 'average'
+            attribute: 'price'
+          }
+          {
+            operation: 'combine'
+            method: 'slice'
+            sort: { prop: 'AvgIdealPrice', compare: 'natural', direction: 'descending' }
+            limit: 20
+          }
+        ]
       query: setUpQuery
     }
 
@@ -844,6 +905,20 @@ describe "Fractal cache", ->
       }
       {
         operation: 'apply'
+        name: 'AvgIdealPrice'
+        dataset: 'ideal-cut'
+        aggregate: 'average'
+        attribute: 'price'
+      }
+      {
+        operation: 'apply'
+        name: 'AvgGoodPrice'
+        dataset: 'good-cut'
+        aggregate: 'average'
+        attribute: 'price'
+      }
+      {
+        operation: 'apply'
         name: 'PriceDiff'
         arithmetic: 'subtract'
         operands: [
@@ -858,20 +933,6 @@ describe "Fractal cache", ->
             attribute: 'price'
           }
         ]
-      }
-      {
-        operation: 'apply'
-        name: 'AvgIdealPrice'
-        dataset: 'ideal-cut'
-        aggregate: 'average'
-        attribute: 'price'
-      }
-      {
-        operation: 'apply'
-        name: 'AvgGoodPrice'
-        dataset: 'good-cut'
-        aggregate: 'average'
-        attribute: 'price'
       }
       {
         operation: 'combine'
@@ -1305,6 +1366,15 @@ describe "Fractal cache", ->
         { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
         { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+        {
+          operation: 'apply'
+          name: 'AvgDeleted'
+          arithmetic: 'divide'
+          operands: [
+            { aggregate: 'sum', attribute: 'deleted' }
+            { aggregate: 'sum', attribute: 'count' }
+          ]
+        }
         { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
       ]
 
@@ -1313,7 +1383,15 @@ describe "Fractal cache", ->
 
       it "runs the initial query", testEquality {
         drivers: ['wikipediaCached', 'wikipedia']
-        before: -> expectedQuery = setUpQuery
+        before: ->
+          expectedQuery = new FacetQuery [
+            { operation: 'filter', type: 'within', attribute: 'time', range: [new Date("2013-02-26T00:00:00Z"), new Date("2013-02-27T00:00:00Z")] }
+            { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
+            { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+            { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
+            { operation: 'apply', name: 'c_S1_AvgDeleted', aggregate: 'sum', attribute: 'deleted' }
+            { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
+          ]
         query: setUpQuery
       }
 

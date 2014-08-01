@@ -7,7 +7,7 @@ if not WallTime.rules
 
 fractalCache = require('../../src/superDriver/fractalCache')
 SegmentTree = require('../../src/driver/segmentTree')
-{FacetQuery, FacetFilter} = require('../../src/query')
+{FacetQuery, FacetFilter, ApplySimplifier} = require('../../src/query')
 
 { computeDeltaQuery } = fractalCache
 
@@ -25,8 +25,15 @@ toSegmentTreeWithMeta = ({prop, loading, meta, splits}) ->
   return rootSegment
 
 computeMissingApplies = (applies) ->
+  applySimplifier = new ApplySimplifier({
+    namePrefix: 'c_S'
+    breakToSimple: true
+    topLevelConstant: 'process'
+  })
+  applySimplifier.addApplies(applies)
+  simpleApplies = applySimplifier.getSimpleApplies()
   missingApplies = {}
-  for apply in applies
+  for apply in simpleApplies
     missingApplies[apply.toHash()] = apply
   return missingApplies
 
@@ -51,6 +58,15 @@ describe "computeDeltaQuery", ->
     { operation: "split", name: "Page", bucket: "identity", attribute: "page" }
     { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
     { operation: "apply", name: "Edits", aggregate: "sum", attribute: "edits" }
+    {
+      operation: 'apply'
+      name: 'AvgDeleted'
+      arithmetic: 'divide'
+      operands: [
+        { aggregate: 'sum', attribute: 'deleted' }
+        { aggregate: 'sum', attribute: 'count' }
+      ]
+    }
     { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
   ]
 
@@ -62,7 +78,20 @@ describe "computeDeltaQuery", ->
       }
     })
     deltaQuery = computeDeltaQuery(facetQuery, rootSegment)
-    expect(deltaQuery.valueOf()).to.deep.equal(facetQuery.valueOf())
+    expect(deltaQuery.valueOf()).to.deep.equal([
+      { operation: "filter", type: "is", attribute: "country", value: "USA" }
+      { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
+      { operation: "apply", name: "Edits", aggregate: "sum", attribute: "edits" }
+      { operation: "split", name: "Language", bucket: "identity", attribute: "language" }
+      { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
+      { operation: "apply", name: "Edits", aggregate: "sum", attribute: "edits" }
+      { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
+      { operation: "split", name: "Page", bucket: "identity", attribute: "page" }
+      { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
+      { operation: "apply", name: "Edits", aggregate: "sum", attribute: "edits" }
+      { operation: 'apply', name: 'c_S1_AvgDeleted', aggregate: 'sum', attribute: 'deleted' }
+      { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
+    ])
 
   it "generates the full query (no total applies)", ->
     rootSegment = toSegmentTreeWithMeta({
@@ -82,6 +111,7 @@ describe "computeDeltaQuery", ->
       { operation: "split", name: "Page", bucket: "identity", attribute: "page" }
       { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
       { operation: "apply", name: "Edits", aggregate: "sum", attribute: "edits" }
+      { operation: 'apply', name: 'c_S1_AvgDeleted', aggregate: 'sum', attribute: 'deleted' }
       { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
     ])
 
@@ -140,6 +170,7 @@ describe "computeDeltaQuery", ->
       { operation: "split", name: "Page", bucket: "identity", attribute: "page" }
       { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
       { operation: "apply", name: "Edits", aggregate: "sum", attribute: "edits" }
+      { operation: 'apply', name: 'c_S1_AvgDeleted', aggregate: 'sum', attribute: 'deleted' }
       { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
     ])
 
@@ -195,6 +226,7 @@ describe "computeDeltaQuery", ->
       { operation: "split", name: "Page", bucket: "identity", attribute: "page" }
       { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
       { operation: "apply", name: "Edits", aggregate: "sum", attribute: "edits" }
+      { operation: 'apply', name: 'c_S1_AvgDeleted', aggregate: 'sum', attribute: 'deleted' }
       { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
     ])
 
@@ -212,8 +244,8 @@ describe "computeDeltaQuery", ->
             Edits: 22
           }
           splits: [
-            { prop: { Page: 'Love at first sight',  Count: 3, Edits: 6 } }
-            { prop: { Page: 'Love at second sight', Count: 2, Edits: 4 } }
+            { prop: { Page: 'Love at first sight',  Count: 3, Edits: 6, AvgDeleted: 1 } }
+            { prop: { Page: 'Love at second sight', Count: 2, Edits: 4, AvgDeleted: 1 } }
           ]
         }
         {
@@ -223,7 +255,7 @@ describe "computeDeltaQuery", ->
             Edits: 20
           }
           splits: [
-            { prop: { Page: 'El love at first sight',  Count: 3, Edits: 6 } }
+            { prop: { Page: 'El love at first sight',  Count: 3, Edits: 6, AvgDeleted: 1 } }
             {
               prop: { Page: 'El love at second sight' }
               loading: true
@@ -240,8 +272,8 @@ describe "computeDeltaQuery", ->
             Edits: 18
           }
           splits: [
-            { prop: { Page: 'Ahava bemabat rishon', Count: 3, Edits: 6 } }
-            { prop: { Page: 'Ahava bemabat sheni',  Count: 2, Edits: 4 } }
+            { prop: { Page: 'Ahava bemabat rishon', Count: 3, Edits: 6, AvgDeleted: 1 } }
+            { prop: { Page: 'Ahava bemabat sheni',  Count: 2, Edits: 4, AvgDeleted: 1 } }
           ]
         }
       ]
@@ -258,6 +290,7 @@ describe "computeDeltaQuery", ->
         ]
       }
       { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
+      { operation: 'apply', name: 'c_S1_AvgDeleted', aggregate: 'sum', attribute: 'deleted' }
       { operation: "apply", name: "Edits", aggregate: "sum", attribute: "edits" }
     ])
 
@@ -276,8 +309,8 @@ describe "computeDeltaQuery", ->
             Edits: 22
           }
           splits: [
-            { prop: { Page: 'Love at first sight',  Count: 3, Edits: 6 } }
-            { prop: { Page: 'Love at second sight', Count: 2, Edits: 4 } }
+            { prop: { Page: 'Love at first sight',  Count: 3, Edits: 6, AvgDeleted: 1 } }
+            { prop: { Page: 'Love at second sight', Count: 2, Edits: 4, AvgDeleted: 1 } }
           ]
         }
         {
@@ -306,8 +339,8 @@ describe "computeDeltaQuery", ->
             Edits: 18
           }
           splits: [
-            { prop: { Page: 'Ahava bemabat rishon', Count: 3, Edits: 6 } }
-            { prop: { Page: 'Ahava bemabat sheni',  Count: 2, Edits: 4 } }
+            { prop: { Page: 'Ahava bemabat rishon', Count: 3, Edits: 6, AvgDeleted: 1 } }
+            { prop: { Page: 'Ahava bemabat sheni',  Count: 2, Edits: 4, AvgDeleted: 1 } }
           ]
         }
       ]
@@ -325,6 +358,7 @@ describe "computeDeltaQuery", ->
       }
       { operation: "split", name: "Page", bucket: "identity", attribute: "page" }
       { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
+      { operation: 'apply', name: 'c_S1_AvgDeleted', aggregate: 'sum', attribute: 'deleted' }
       { operation: "apply", name: "Edits", aggregate: "sum", attribute: "edits" }
       { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
     ])
@@ -476,6 +510,7 @@ describe "computeDeltaQuery", ->
       { operation: "split", name: "Page", bucket: "identity", attribute: "page" }
       { operation: "apply", name: "Count", aggregate: "sum", attribute: "count" }
       { operation: "apply", name: "Edits", aggregate: "sum", attribute: "edits" }
+      { operation: 'apply', name: 'c_S1_AvgDeleted', aggregate: 'sum', attribute: 'deleted' }
       { operation: "combine", method: "slice", sort: { compare: "natural", prop: "Count", direction: "descending" }, limit: 10 }
     ])
 

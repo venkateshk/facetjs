@@ -1,3 +1,7 @@
+"use strict"
+
+{isInstanceOf} = require('../util')
+
 class Interval
   constructor: (@start, @end) ->
     throw new Error("invalid start (is '#{@start}')") unless typeof @start.valueOf() is 'number'
@@ -8,7 +12,7 @@ class Interval
     return @end - @start
 
   toString: ->
-    if @start instanceof Date
+    if isInstanceOf(@start, Date)
       return "[#{@start.toISOString()}, #{@end.toISOString()})"
     else
       return "[#{@start.toPrecision(3)}, #{@end.toPrecision(3)})"

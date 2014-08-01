@@ -1,5 +1,9 @@
+"use strict"
+
 async = require('async')
 {Duration} = require('chronology')
+
+{isInstanceOf} = require('../util')
 driverUtil = require('./driverUtil')
 SegmentTree = require('./segmentTree')
 {
@@ -100,7 +104,7 @@ class SQLQueryBuilder
       when 'within'
         attribute = @escapeAttribute(filter.attribute)
         [r0, r1] = filter.range
-        if r0 instanceof Date and r1 instanceof Date
+        if isInstanceOf(r0, Date) and isInstanceOf(r1, Date)
           "'#{@dateToSQL(r0)}' <= #{attribute} AND #{attribute} < '#{@dateToSQL(r1)}'"
         else
           "#{r0} <= #{attribute} AND #{attribute} < #{r1}"
@@ -207,7 +211,7 @@ class SQLQueryBuilder
     return
 
   addSplit: (split) ->
-    throw new TypeError("split must be a FacetSplit") unless split instanceof FacetSplit
+    throw new TypeError("split must be a FacetSplit") unless isInstanceOf(split, FacetSplit)
     splits = if split.bucket is 'parallel' then split.splits else [split]
     @commonSplitSelectParts.push("`#{split.name}`")
     for subSplit in splits
@@ -289,7 +293,7 @@ class SQLQueryBuilder
         throw new Error("compare '#{sort.compare}' unsupported by driver")
 
   addCombine: (combine) ->
-    throw new TypeError("combine must be a FacetCombine") unless combine instanceof FacetCombine
+    throw new TypeError("combine must be a FacetCombine") unless isInstanceOf(combine, FacetCombine)
     switch combine.method
       when 'slice'
         sort = combine.sort
@@ -438,7 +442,7 @@ module.exports = ({requester, table, filter}) ->
       throw new Error("request not supplied") unless request
       {context, query} = request
       throw new Error("query not supplied") unless query
-      throw new TypeError("query must be a FacetQuery") unless query instanceof FacetQuery
+      throw new TypeError("query must be a FacetQuery") unless isInstanceOf(query, FacetQuery)
     catch e
       callback(e)
       return

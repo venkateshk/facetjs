@@ -1,4 +1,7 @@
+"use strict"
+
 { expect } = require("chai")
+
 utils = require('../utils')
 
 { WallTime } = require('chronology')
@@ -6,6 +9,7 @@ if not WallTime.rules
   tzData = require("chronology/lib/walltime/walltime-data.js")
   WallTime.init(tzData.rules, tzData.zones)
 
+{isInstanceOf} = require('../../src/util')
 sqlRequester = require('../../src/requester/mySqlRequester')
 sqlDriver = require('../../src/driver/sqlDriver')
 simpleDriver = require('../../src/driver/simpleDriver')
@@ -27,7 +31,7 @@ driverFns.wikipedia = wikipedia = simpleDriver(wikipediaData)
 # Cached Versions
 firstForbindenQuery = true
 wrapDriver = (driver) -> (request, callback) ->
-  if expectedQuery instanceof FacetQuery
+  if isInstanceOf(expectedQuery, FacetQuery)
     expect(request.query.valueOf()).to.deep.equal(expectedQuery.valueOf())
 
   if expectedQuery is false

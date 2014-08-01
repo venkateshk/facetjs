@@ -1,6 +1,8 @@
 "use strict"
 
 { Duration } = require('chronology')
+
+{isInstanceOf} = require('../util')
 driverUtil = require('../driver/driverUtil')
 SegmentTree = require('../driver/segmentTree')
 {
@@ -326,7 +328,7 @@ sortedApplyValues = (hashToApply, sortBy) ->
   else
     applies = []
 
-  if sortBy instanceof FacetApply and not driverUtil.find(applies, ({name}) -> name is sortBy.name)
+  if isInstanceOf(sortBy, FacetApply) and not driverUtil.find(applies, ({name}) -> name is sortBy.name)
     applies.push(sortBy)
 
   return applies
@@ -576,13 +578,13 @@ module.exports = ({driver}) ->
     throw new Error("request not supplied") unless request
     {context, query} = request
 
-    if query not instanceof FacetQuery
+    if not isInstanceOf(query, FacetQuery)
       callback(new Error("query must be a FacetQuery"))
       return
 
     useCache = (not context?.dontCache) and
       query.getSplits().every((split) -> split.bucket isnt 'tuple') and
-      query.getCombines().every((combine) -> (not combine?) or (combine instanceof SliceCombine))
+      query.getCombines().every((combine) -> (not combine?) or isInstanceOf(combine, SliceCombine))
 
     if useCache
       flags = {}

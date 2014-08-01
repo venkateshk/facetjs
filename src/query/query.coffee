@@ -1,5 +1,6 @@
 "use strict"
 
+{isInstanceOf} = require('../util')
 {specialJoin, getValueOf, find, dummyObject} = require('./common')
 {FacetDataset} = require('./dataset')
 {FacetFilter, TrueFilter, AndFilter} = require('./filter')
@@ -111,7 +112,7 @@ class FacetQuery
 
   getFiltersByDataset: (extraFilter) ->
     extraFilter or= new TrueFilter()
-    throw new TypeError("extra filter should be a FacetFilter") unless extraFilter instanceof FacetFilter
+    throw new TypeError("extra filter should be a FacetFilter") unless isInstanceOf(extraFilter, FacetFilter)
     commonFilter = new AndFilter([@getFilter(), extraFilter]).simplify()
     filtersByDataset = {}
     for dataset in @datasets

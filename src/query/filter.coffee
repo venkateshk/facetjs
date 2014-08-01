@@ -1,4 +1,7 @@
+"use strict"
+
 {specialJoin, getValueOf, find, dummyObject} = require('./common')
+{isInstanceOf} = require('../util')
 
 smaller = (a, b) -> if a < b then a else b
 
@@ -71,7 +74,7 @@ filterSortTypeSubPresedence = {
 
 defaultStringifier = {
   stringify: (filter) ->
-    throw new Error('stringifier needs FacetFilter') unless filter instanceof FacetFilter
+    throw new Error('stringifier needs FacetFilter') unless isInstanceOf(filter, FacetFilter)
     switch filter.type
       when 'true'
         return "None"
@@ -96,8 +99,8 @@ defaultStringifier = {
           return String(filter.filters[0])
       when 'within'
         [r0, r1] = filter.range
-        r0 = r0.toISOString() if r0 instanceof Date
-        r1 = r1.toISOString() if r1 instanceof Date
+        r0 = r0.toISOString() if isInstanceOf(r0, Date)
+        r1 = r1.toISOString() if isInstanceOf(r1, Date)
         return "#{filter.attribute} is within #{r0} and #{r1}"
       when 'not'
         return "not (#{filter.filter})"
@@ -420,7 +423,7 @@ class WithinFilter extends FacetFilter
   getFilterFn: ->
     attribute = @attribute
     [r0, r1] = @range
-    if r0 instanceof Date
+    if isInstanceOf(r0, Date)
       return (d) -> r0 <= new Date(d[attribute]) < r1
     else
       return (d) -> r0 <= Number(d[attribute]) < r1
@@ -432,7 +435,7 @@ class WithinFilter extends FacetFilter
 
 class NotFilter extends FacetFilter
   constructor: (arg) ->
-    if arg not instanceof FacetFilter
+    if not isInstanceOf(arg, FacetFilter)
       super(arg, dummyObject)
       @filter = FacetFilter.fromSpec(arg.filter)
     else
@@ -843,7 +846,7 @@ filterConstructorMap = {
 }
 
 FacetFilter.fromSpec = (filterSpec) ->
-  return filterSpec if filterSpec instanceof FacetFilter
+  return filterSpec if isInstanceOf(filterSpec, FacetFilter)
   throw new Error("unrecognizable filter") unless typeof filterSpec is 'object'
   throw new Error("type must be defined") unless filterSpec.hasOwnProperty('type')
   throw new Error("type must be a string") unless typeof filterSpec.type is 'string'

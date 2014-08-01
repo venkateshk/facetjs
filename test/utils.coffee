@@ -1,7 +1,9 @@
-async = require('async')
-chai = require("chai")
-expect = chai.expect
+"use strict"
 
+async = require('async')
+{expect} = require("chai")
+
+{isInstanceOf} = require('../src/util')
 {FacetQuery} = require('../src/query')
 SegmentTree = require('../src/driver/segmentTree')
 
@@ -76,7 +78,7 @@ exports.makeEqualityTest = (driverFns) ->
             return
 
         driverFn({
-          query: if query instanceof FacetQuery then query else new FacetQuery(query)
+          query: if isInstanceOf(query, FacetQuery) then query else new FacetQuery(query)
           context: {
             priority: -3
           }

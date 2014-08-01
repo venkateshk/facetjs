@@ -1,3 +1,7 @@
+"use strict"
+
+{isInstanceOf} = require('../util')
+
 dummyObject = {}
 
 isInterger = (n) ->
@@ -126,7 +130,7 @@ attributeMetaConstructorMap = {
 
 
 AttributeMeta.fromSpec = (attributeMetaSpec) ->
-  return attributeMetaSpec if attributeMetaSpec instanceof AttributeMeta
+  return attributeMetaSpec if isInstanceOf(attributeMetaSpec, AttributeMeta)
   if attributeMetaSpec.type is 'range' and attributeMetaSpec.size # Back compat.
     attributeMetaSpec.rangeSize = attributeMetaSpec.size
 

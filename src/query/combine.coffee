@@ -1,3 +1,6 @@
+"use strict"
+
+{isInstanceOf} = require('../util')
 {specialJoin, getValueOf, find, dummyObject} = require('./common')
 {FacetSort} = require('./sort')
 
@@ -79,7 +82,7 @@ combineConstructorMap = {
 
 
 FacetCombine.fromSpec = (combineSpec) ->
-  return combineSpec if combineSpec instanceof FacetCombine
+  return combineSpec if isInstanceOf(combineSpec, FacetCombine)
   throw new Error("unrecognizable combine") unless typeof combineSpec is 'object'
   combineSpec.method ?= combineSpec.combine # ToDo: remove this. combineSpec.combine is a backwards compat. hack, remove it.
   throw new Error("method not defined") unless combineSpec.hasOwnProperty('method')

@@ -1,3 +1,6 @@
+"use strict"
+
+{isInstanceOf} = require('../util')
 {specialJoin, getValueOf, find, dummyObject} = require('./common')
 
 parseValue = (value) ->
@@ -115,7 +118,7 @@ class InSegmentFilter extends FacetSegmentFilter
 
 class NotSegmentFilter extends FacetSegmentFilter
   constructor: (arg) ->
-    if arg not instanceof FacetFilter
+    if not isInstanceOf(arg, FacetFilter)
       {@type, @filter} = arg
       @filter = FacetSegmentFilter.fromSpec(@filter)
     else
@@ -221,7 +224,7 @@ segmentFilterConstructorMap = {
 }
 
 FacetSegmentFilter.fromSpec = (segmentFilterSpec) ->
-  return segmentFilterSpec if segmentFilterSpec instanceof FacetSegmentFilter
+  return segmentFilterSpec if isInstanceOf(segmentFilterSpec, FacetSegmentFilter)
   throw new Error("unrecognizable segment filter") unless typeof segmentFilterSpec is 'object'
   throw new Error("type must be defined") unless segmentFilterSpec.hasOwnProperty('type')
   throw new Error("type must be a string") unless typeof segmentFilterSpec.type is 'string'

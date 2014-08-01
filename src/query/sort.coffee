@@ -1,3 +1,6 @@
+"use strict"
+
+{isInstanceOf} = require('../util')
 {specialJoin, getValueOf, find, dummyObject} = require('./common')
 
 directionFns = {
@@ -99,7 +102,7 @@ sortConstructorMap = {
 
 
 FacetSort.fromSpec = (sortSpec) ->
-  return sortSpec if sortSpec instanceof FacetSort
+  return sortSpec if isInstanceOf(sortSpec, FacetSort)
   throw new Error("unrecognizable sort") unless typeof sortSpec is 'object'
   throw new Error("compare must be defined") unless sortSpec.hasOwnProperty('compare')
   throw new Error("compare must be a string") unless typeof sortSpec.compare is 'string'

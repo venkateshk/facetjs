@@ -1,4 +1,8 @@
+"use strict"
+
 {isTimezone} = require('chronology')
+
+{isInstanceOf} = require('../util')
 {specialJoin, getValueOf, find, dummyObject} = require('./common')
 {FacetOptions} = require('./options')
 {FacetSegmentFilter} = require('./segmentFilter')
@@ -298,7 +302,7 @@ splitConstructorMap = {
 
 
 FacetSplit.fromSpec = (splitSpec) ->
-  return splitSpec if splitSpec instanceof FacetSplit
+  return splitSpec if isInstanceOf(splitSpec, FacetSplit)
   throw new Error("unrecognizable split") unless typeof splitSpec is 'object'
   throw new Error("bucket must be defined") unless splitSpec.hasOwnProperty('bucket')
   throw new Error("bucket must be a string") unless typeof splitSpec.bucket is 'string'

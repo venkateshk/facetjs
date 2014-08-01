@@ -1,5 +1,9 @@
+"use strict"
+
 async = require('async')
 {Duration} = require('chronology')
+
+{isInstanceOf} = require('../util')
 driverUtil = require('./driverUtil')
 SegmentTree = require('./segmentTree')
 {
@@ -137,7 +141,7 @@ class HadoopQueryBuilder
 
 
   addSplit: (split) ->
-    throw new TypeError("split must be a FacetSplit") unless split instanceof FacetSplit
+    throw new TypeError("split must be a FacetSplit") unless isInstanceOf(split, FacetSplit)
     splitName = split.name
     split = if split.bucket is 'parallel' then split.splits[0] else split
 
@@ -211,7 +215,7 @@ class HadoopQueryBuilder
     return this
 
   addCombine: (combine) ->
-    throw new TypeError("combine must be a FacetCombine") unless combine instanceof FacetCombine
+    throw new TypeError("combine must be a FacetCombine") unless isInstanceOf(combine, FacetCombine)
 
     switch combine.method
       when 'slice'
@@ -317,7 +321,7 @@ module.exports = ({requester, timeAttribute, path, filter}) ->
       throw new Error("request not supplied") unless request
       {context, query} = request
       throw new Error("query not supplied") unless query
-      throw new TypeError("query must be a FacetQuery") unless query instanceof FacetQuery
+      throw new TypeError("query must be a FacetQuery") unless isInstanceOf(query, FacetQuery)
     catch e
       callback(e)
       return

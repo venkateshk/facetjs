@@ -1,5 +1,6 @@
 "use strict"
 
+{isInstanceOf} = require('../util')
 {FacetSplit, ParallelSplit} = require('./split')
 {FacetCombine, SliceCombine} = require('./combine')
 
@@ -49,8 +50,8 @@ class CondensedCommand
   getEffectiveSplit: ->
     return @split if not @split or @split.bucket isnt 'parallel'
     sortBy = @getSortBy()
-    return @split if sortBy instanceof FacetSplit
-    # if here then sortBy is instanceof FacetApply
+    return @split if isInstanceOf(sortBy, FacetSplit)
+    # if here then sortBy isInstanceOf(is, FacetApply)
 
     sortDatasets = sortBy.getDatasets()
     effectiveSplits = @split.splits.filter((split) -> split.getDataset() in sortDatasets)

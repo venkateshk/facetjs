@@ -1,3 +1,6 @@
+"use strict"
+
+{isInstanceOf} = require('../util')
 {specialJoin, find, dummyObject} = require('./common')
 {FacetFilter} = require('./filter')
 {FacetOptions} = require('./options')
@@ -462,7 +465,7 @@ applyArithmeticConstructorMap = {
 }
 
 applyFromSpec = (applySpec, datasetContext) ->
-  return applySpec if applySpec instanceof FacetApply
+  return applySpec if isInstanceOf(applySpec, FacetApply)
   throw new Error("unrecognizable apply") unless typeof applySpec is 'object'
   if applySpec.hasOwnProperty('aggregate')
     throw new Error("aggregate must be a string") unless typeof applySpec.aggregate is 'string'

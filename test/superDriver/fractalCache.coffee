@@ -50,10 +50,12 @@ fractalCache.currentTime = ->
 
 driverFns.diamondsCached = fractalCache({
   driver: wrapDriver(diamonds)
+  debug: true
 })
 
 driverFns.wikipediaCached = fractalCache({
   driver: wrapDriver(wikipedia)
+  debug: true
 })
 
 testEquality = utils.makeEqualityTest(driverFns)

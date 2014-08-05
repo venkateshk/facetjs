@@ -445,10 +445,11 @@ computeDeltaQuery = (originalQuery, rootSegment) ->
 
 # ------------------------
 
-module.exports = fractalCache = ({driver}) ->
+module.exports = fractalCache = ({driver, keepFor, debug}) ->
   # Filter -> (Apply -> Number)
   applyCache = new LRUCache({
     name: 'apply'
+    keepFor
     currentTime: fractalCache.currentTime
   })
 
@@ -456,6 +457,7 @@ module.exports = fractalCache = ({driver}) ->
   #              where CombineToSplitValues :: Combine -> [SplitValue]
   combineToSplitCache = new LRUCache({
     name: 'splitCombine'
+    keepFor
     currentTime: fractalCache.currentTime
   })
 
@@ -625,65 +627,75 @@ module.exports = fractalCache = ({driver}) ->
       callback(new Error("query must be a FacetQuery"))
       return
 
-    useCache = (not context?.dontCache) and
-      query.getSplits().every((split) -> split.bucket isnt 'tuple') and
-      query.getCombines().every((combine) -> (not combine?) or isInstanceOf(combine, SliceCombine))
+    avoidCache = context?.dontCache or
+      query.getSplits().some((split) -> split.bucket is 'tuple') or
+      query.getCombines().some((combine) -> combine and not isInstanceOf(combine, SliceCombine))
 
-    if useCache
-      flags = {}
-      rootSegment = getQueryDataFromCache(query)
-      if rootSegment.hasLoading()
-        intermediate?(rootSegment)
-      else
-        callback(null, rootSegment)
-        return
+    if avoidCache
+      return driver(request, callback)
 
-      if rootSegment.$_fullQuery
-        # The cache gave up on constructing an incremental query,
-        # let's just query the whole thing and save the results.
-        driver({
-          query
-          context
-        }, (err, fullResult) ->
-          if err
-            callback(err)
-            return
+    flags = {}
+    rootSegment = getQueryDataFromCache(query)
+    if rootSegment.hasLoading()
+      intermediate?(rootSegment)
+    else
+      callback(null, rootSegment)
+      return
 
-          saveQueryDataToCache(fullResult, query)
-          callback(null, fullResult)
-          applyCache.tidy()
-          combineToSplitCache.tidy()
+    queryFilter = query.getFilter()
+    queryAndFilters = if queryFilter.type is 'true' then [] else if queryFilter.type is 'and' then queryFilter.filters else [queryFilter]
+    readOnlyCache = queryAndFilters.some(({type}) -> type in ['false', 'contains', 'match', 'or'])
+    if readOnlyCache
+      return driver(request, callback)
+
+    if rootSegment.$_fullQuery
+      # The cache gave up on constructing an incremental query,
+      # let's just query the whole thing and save the results.
+      driver({
+        query
+        context
+      }, (err, fullResult) ->
+        if err
+          callback(err)
           return
-        )
-      else
-        # The cache gave us an incremental query, let's query it,
-        # then fill the cache with this info and then ask the cache
-        # to fill the original query again.
-        deltaQuery = computeDeltaQuery(query, rootSegment)
 
-        driver({
-          query: deltaQuery
-          context
-        }, (err, deltaResult) ->
-          if err
-            callback(err)
-            return
+        saveQueryDataToCache(fullResult, query)
+        callback(null, fullResult)
+        applyCache.tidy()
+        combineToSplitCache.tidy()
+        return
+      )
+    else
+      # The cache gave us an incremental query, let's query it,
+      # then fill the cache with this info and then ask the cache
+      # to fill the original query again.
+      deltaQuery = computeDeltaQuery(query, rootSegment)
 
-          saveQueryDataToCache(deltaResult, deltaQuery)
+      driver({
+        query: deltaQuery
+        context
+      }, (err, deltaResult) ->
+        if err
+          callback(err)
+          return
 
-          rootSegment = getQueryDataFromCache(query)
-          if rootSegment.hasLoading()
+        saveQueryDataToCache(deltaResult, deltaQuery)
+
+        rootSegment = getQueryDataFromCache(query)
+        if rootSegment.hasLoading()
+          fractalCache.totalCacheError++
+          if debug
             console.log 'stillLoading', rootSegment.valueOf()
             cachedDriver.debug()
             callback(new Error('total cache error'))
           else
-            callback(null, rootSegment)
-          applyCache.tidy()
-          combineToSplitCache.tidy()
-          return
-        )
-    else
-      driver(request, callback)
+            driver(request, callback)
+        else
+          callback(null, rootSegment)
+        applyCache.tidy()
+        combineToSplitCache.tidy()
+        return
+      )
 
     return
 
@@ -706,6 +718,8 @@ module.exports = fractalCache = ({driver}) ->
   return cachedDriver
 
 fractalCache.currentTime = -> Date.now()
+
+fractalCache.totalCacheError = 0
 
 fractalCache.computeDeltaQuery = computeDeltaQuery
 fractalCache.LRUCache = LRUCache

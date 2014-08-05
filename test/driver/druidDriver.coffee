@@ -2,8 +2,7 @@ chai = require("chai")
 expect = chai.expect
 utils = require('../utils')
 
-{AttributeMeta} = require('../../src/driver/attributeMeta')
-{FacetQuery, FacetFilter} = require('../../src/query')
+{FacetQuery, FacetFilter, AttributeMeta} = require('../../src/query')
 
 simpleLocator = require('../../src/locator/simpleLocator')
 

@@ -149,7 +149,11 @@
           });
 
           // These are there for testing
-          var attributeMetas = {};
+          var attributeMetas = {
+            app_name: facet.AttributeMeta.fromSpec({
+              type: 'large'
+            })
+          };
 
           return facet.driver.druid({
             requester: druidRequester,

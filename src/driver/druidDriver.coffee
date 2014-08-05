@@ -7,14 +7,14 @@ async = require('async')
 driverUtil = require('./driverUtil')
 SegmentTree = require('./segmentTree')
 {
-  AttributeMeta
-  UniqueAttributeMeta
-  HistogramAttributeMeta
-} = require('./attributeMeta')
-{
   FacetQuery, CondensedCommand
   FacetFilter, TrueFilter, InFilter, AndFilter
   FacetSplit, FacetApply, CountApply, FacetCombine, SliceCombine
+
+  AttributeMeta
+  UniqueAttributeMeta
+  HistogramAttributeMeta
+
   ApplySimplifier
 } = require('../query')
 

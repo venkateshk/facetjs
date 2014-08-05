@@ -2,6 +2,7 @@ copyHere = (subModule) ->
   exports[k] = v for k, v of subModule
   return
 
+copyHere(require('./attributeMeta'))
 copyHere(require('./filter'))
 copyHere(require('./segmentFilter'))
 copyHere(require('./dataset'))

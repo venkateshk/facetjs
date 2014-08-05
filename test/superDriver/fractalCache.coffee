@@ -2795,7 +2795,7 @@ describe "Fractal cache", ->
           done()
 
 
-  describe "Matrix Cache", ->
+  describe "Matrix cache", ->
     it "returns the right value", (done) ->
       myQuery = new FacetQuery([
         { operation: 'filter', type: 'within', attribute: 'time', range: [new Date("2013-02-26T00:00:00Z"), new Date("2013-02-27T00:00:00Z")] },

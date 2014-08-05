@@ -699,6 +699,9 @@ module.exports = fractalCache = ({driver, keepFor, debug}) ->
 
     return
 
+  cachedDriver.introspect = (opts, callback) ->
+    return driver.introspect(opts, callback)
+
   cachedDriver.clear = ->
     applyCache.clear()
     combineToSplitCache.clear()
@@ -711,6 +714,7 @@ module.exports = fractalCache = ({driver, keepFor, debug}) ->
     }
 
   cachedDriver.debug = ->
+    console.log "fractal cache debug:"
     applyCache.debug()
     combineToSplitCache.debug()
     return

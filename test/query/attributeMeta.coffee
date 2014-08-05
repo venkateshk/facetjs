@@ -1,6 +1,6 @@
 {expect} = require("chai")
 
-{AttributeMeta} = require('../../src/driver/attributeMeta')
+{AttributeMeta} = require('../../src/query/attributeMeta')
 
 describe "AttributeMeta", ->
   describe "errors", ->

@@ -1,6 +1,6 @@
 {
   "name": "facet",
-  "version": "0.8.4",
+  "version": "0.8.5",
   "description": "split-apply-combine; unify data and vis; with single language",
   "keywords": [
     "split",
@@ -18,7 +18,7 @@
   },
   "main": "build/facet.js",
   "scripts": {
-    "install": "./compile"
+    "prepublish": "echo 'one day run ./compile'"
   },
   "dependencies": {
     "async": "0.2.5",
@@ -26,14 +26,15 @@
     "mysql": "2.0.0-alpha7",
     "express": "3.1.0",
     "node-zookeeper-client": "~0.2.0",
-    "pegjs": "0.8.0",
-    "browserify": "~3.19.1",
     "request": "~2.34.0",
     "chronology": "0.1.1",
     "backoff": "~2.3.0"
   },
   "devDependencies": {
     "chai": "~1.6.0",
+    "browserify": "~3.19.1",
+    "pegjs": "0.8.0",
+    "coffee-script": "~1.7.1",
     "d3": "~3.2.7",
     "underscore": "~1.5.1"
   }

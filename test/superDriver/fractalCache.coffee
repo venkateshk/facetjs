@@ -43,14 +43,17 @@ wrapDriver = (driver) -> (request, callback) ->
   driver(request, callback)
   return
 
+currentTimeOverride = null
+fractalCache.currentTime = ->
+  return currentTimeOverride if currentTimeOverride
+  return Date.now()
+
 driverFns.diamondsCached = fractalCache({
   driver: wrapDriver(diamonds)
-  #timeAttribute: 'time'
 })
 
 driverFns.wikipediaCached = fractalCache({
   driver: wrapDriver(wikipedia)
-  #timeAttribute: 'time'
 })
 
 testEquality = utils.makeEqualityTest(driverFns)
@@ -2789,6 +2792,7 @@ describe "Fractal cache", ->
           expect(result.valueOf()).to.deep.equal(dayLightSavingsData.valueOf())
           done()
 
+
   describe "Matrix Cache", ->
     it "returns the right value", (done) ->
       myQuery = new FacetQuery([
@@ -2805,3 +2809,45 @@ describe "Fractal cache", ->
         expect(err).to.have.property('message').that.equals('matrix combine not implemented yet')
         done()
       )
+
+
+  describe 'Cleans up old values', ->
+    setUpQuery = new FacetQuery [
+      { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+      { operation: 'apply', name: 'Cheapest', aggregate: 'min', attribute: 'price' }
+      { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+    ]
+
+    irrelevantQuery = new FacetQuery [
+      { operation: 'apply', name: 'Expensive', aggregate: 'max', attribute: 'price' }
+    ]
+
+    before ->
+      currentTimeOverride = Date.now()
+      driverFns.diamondsCached.clear()
+
+    it "runs the initial query", testEquality {
+      drivers: ['diamondsCached', 'diamonds']
+      before: -> expectedQuery = setUpQuery
+      query: setUpQuery
+    }
+
+    it "runs some irrelevant query 31 min later", testEquality {
+      drivers: ['diamondsCached', 'diamonds']
+      before: ->
+        expectedQuery = irrelevantQuery
+        currentTimeOverride += 31 * 60 * 1000
+      query: irrelevantQuery
+      after: ->
+        expect(driverFns.diamondsCached.stats()).to.deep.equal({
+          applyCache: 1,
+          combineToSplitCache: 0
+        })
+    }
+
+    it "runs the query again", testEquality {
+      drivers: ['diamondsCached', 'diamonds']
+      before: -> expectedQuery = setUpQuery
+      query: setUpQuery
+    }

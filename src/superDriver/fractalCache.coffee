@@ -16,7 +16,12 @@ SegmentTree = require('../driver/segmentTree')
 } = require('../query')
 
 class LRUCache
-  constructor: (@name = 'cache') ->
+  constructor: ({@name, @keepFor, @currentTime}) ->
+    @name or= 'nameless'
+    @keepFor or= 30 * 60 * 1000 # 30 min
+    throw new TypeError("keepFor must be a number") unless typeof @keepFor is 'number'
+    throw new Error("must keep for at least 5 minutes") if @keepFor < 5 * 60 * 1000
+    @currentTime or= -> Date.now()
     @clear()
 
   clear: ->
@@ -24,16 +29,30 @@ class LRUCache
     @size = 0
     return
 
+  tidy: ->
+    # Trim old
+    trimBefore = @currentTime() - @keepFor
+    _store = @store
+    for hash, slot of _store
+      continue if trimBefore <= slot.time
+      delete _store[hash]
+      @size--
+    return
+
   get: (hash) ->
-    return @store[hash] #?.value
+    if @store.hasOwnProperty(hash)
+      storeSlot = @store[hash]
+      storeSlot.time = @currentTime()
+      return storeSlot.value
+    else
+      return null
 
   set: (hash, value) ->
     @size++ unless @store.hasOwnProperty(hash)
-    @store[hash] = value
-    # {
-    #   value
-    #   time: Date.now()
-    # }
+    @store[hash] = {
+      value
+      time: @currentTime()
+    }
     return
 
   getOrCreate: (hash, createFn) ->
@@ -42,6 +61,18 @@ class LRUCache
       ret = createFn()
       @set(hash, ret)
     return ret
+
+  toString: ->
+    return "[#{@name} cache, size: #{@size}]"
+
+  debug: ->
+    console.log "#{@name} cache"
+    console.log "Size: #{@size}"
+    for hash, slot of @store
+      console.log hash, JSON.stringify(slot)
+    return
+
+
 
 # -------------------------
 
@@ -414,13 +445,19 @@ computeDeltaQuery = (originalQuery, rootSegment) ->
 
 # ------------------------
 
-module.exports = ({driver}) ->
+module.exports = fractalCache = ({driver}) ->
   # Filter -> (Apply -> Number)
-  applyCache = new LRUCache('apply')
+  applyCache = new LRUCache({
+    name: 'apply'
+    currentTime: fractalCache.currentTime
+  })
 
   # (Filter, Split) -> CombineToSplitValues
   #              where CombineToSplitValues :: Combine -> [SplitValue]
-  combineToSplitCache = new LRUCache('splitCombine')
+  combineToSplitCache = new LRUCache({
+    name: 'splitCombine'
+    currentTime: fractalCache.currentTime
+  })
 
   # ---------------------------------------------
   cleanCacheProp = (prop) ->
@@ -614,6 +651,8 @@ module.exports = ({driver}) ->
 
           saveQueryDataToCache(fullResult, query)
           callback(null, fullResult)
+          applyCache.tidy()
+          combineToSplitCache.tidy()
           return
         )
       else
@@ -639,6 +678,8 @@ module.exports = ({driver}) ->
             callback(new Error('total cache error'))
           else
             callback(null, rootSegment)
+          applyCache.tidy()
+          combineToSplitCache.tidy()
           return
         )
     else
@@ -651,24 +692,24 @@ module.exports = ({driver}) ->
     combineToSplitCache.clear()
     return
 
-  cachedDriver.debug = ->
-    console.log 'applyCache'
-    console.log "Size: #{applyCache.size}"
-    for k, v of applyCache.store
-      console.log k, JSON.stringify(v)
+  cachedDriver.stats = ->
+    return {
+      applyCache: applyCache.size
+      combineToSplitCache: combineToSplitCache.size
+    }
 
-    console.log 'combineToSplitCache'
-    console.log "Size: #{combineToSplitCache.size}"
-    for k, v of combineToSplitCache.store
-      console.log k, JSON.stringify(v)
+  cachedDriver.debug = ->
+    applyCache.debug()
+    combineToSplitCache.debug()
     return
 
   return cachedDriver
 
+fractalCache.currentTime = -> Date.now()
 
-module.exports.computeDeltaQuery = computeDeltaQuery
-
-module.exports.cacheSlots = {
+fractalCache.computeDeltaQuery = computeDeltaQuery
+fractalCache.LRUCache = LRUCache
+fractalCache.cacheSlots = {
   IdentityCombineToSplitValues
   TimePeriodCombineToSplitValues
   ContinuousCombineToSplitValues

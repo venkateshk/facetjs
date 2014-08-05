@@ -1,6 +1,6 @@
 "use strict"
 
-backoff = require 'backoff'
+backoff = require('backoff')
 
 module.exports = ({requester, retry, retryOnTimout}) ->
   throw new TypeError("retry should be a number") unless typeof retry is 'number'

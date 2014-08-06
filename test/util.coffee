@@ -1,7 +1,7 @@
 { expect } = require('chai')
 Applies = require('../src/query/apply')
 Queries = require('../src/query/query')
-util = require('../src/util')
+{isInstanceOf} = require('../src/util')
 
 describe 'util', ->
   describe 'isInstanceOf', ->

@@ -636,7 +636,7 @@ module.exports = fractalCache = ({driver, keepFor, debug}) ->
 
     flags = {}
     rootSegment = getQueryDataFromCache(query)
-    if rootSegment.hasLoading()
+    if rootSegment.hasLoading() or rootSegment.$_fullQuery # re-examine
       intermediate?(rootSegment)
     else
       callback(null, rootSegment)

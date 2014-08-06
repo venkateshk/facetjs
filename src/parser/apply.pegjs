@@ -1,6 +1,9 @@
 start
   = NamedApply
+  / Apply
 
+Apply
+  = _ apply:AdditiveArithmetic _ { return apply; }
 
 NamedApply
   = _ name:Name _ "<-" _ apply:AdditiveArithmetic _
@@ -12,6 +15,9 @@ NamedApply
 
 Name "Name"
   = $([a-z0-9A-Z_]+)
+
+NotTick "NotTick"
+  = $([^`]+)
 
 AdditiveArithmetic
   = head:MultiplicativeArithmetic tail:(_ [+-] _ MultiplicativeArithmetic)*
@@ -64,7 +70,9 @@ AggregateFn1 "Aggregare Function"
   / "uniqueCount"
 
 Attribute "Attribute"
-  = "`" chars:Name "`" { return chars; }
+  = "`" chars:NotTick "`" { return chars; }
+  / chars:Name
+  / "`" chars:NotTick { throw new Error("Unmatched tickmark")}
 
 
 /* Numbers */

@@ -16,6 +16,12 @@ node_modules/pegjs/bin/pegjs \
   src/parser/apply.pegjs \
   build/parser/apply.js
 
+# Filter parser
+pegjs \
+  --export-var "module.exports" \
+  src/parser/filter.pegjs \
+  build/parser/filter.js
+
 # Parts
 mkdir -p package
 

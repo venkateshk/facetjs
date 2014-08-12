@@ -284,6 +284,32 @@ describe "Utility", ->
       expect(table.data).to.deep.equal(data.diamond.tabular)
       expect(table.toTabular(',', '\n')).to.equal(data.diamond.csv)
 
+    it "translates columns if @translateFn is set", ->
+      table = new Table({
+        query
+        root: responce
+      })
+
+      table.columnTitle ({name}) ->
+        map = {
+          "Cut": "Cut_Test"
+        }
+        return map[name]
+
+      table.translate((_, datum) -> '_')
+
+      expect(table.toTabular('\t', '\n')).to.deep.equal(
+        """
+        "Cut_Test"
+        "_"
+        "_"
+        "_"
+        "_"
+        "_"
+        "_"
+        """
+      )
+
     it "maps column names", ->
       table = new Table({
         query

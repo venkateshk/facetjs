@@ -197,6 +197,7 @@ class Table
     ))
     @applyColumns = query.getApplies()
     @data = createTabular(root)
+    @translateFn = (columnName, datum) -> datum
 
   toTabular: (separator, lineBreak, rangeFn) ->
     columnNames = []
@@ -218,17 +219,25 @@ class Table
         range = range.map((r) -> r.toISOString())
       return range.join('-')
 
+    translate = @translateFn
     lines = [header.join(separator)]
     for row in @data
       lines.push(
         columnNames.map((columnName) ->
           datum = row[columnName] or ''
+          datum = translate(columnName, datum)
           datum = rangeFn(datum) if Array.isArray(datum)
           return csvEscape(datum)
         ).join(separator)
       )
 
     return lines.join(lineBreak)
+
+  translate: (fn) ->
+    if arguments.length
+      @translateFn = fn
+      return
+    return @translateFn
 
   columnTitle: (v) ->
     if arguments.length

@@ -277,7 +277,7 @@ class DruidQueryBuilder
               function: """function(d) {
                 var start = d.split(#{separator})[0];
                 if(isNaN(start)) return 'null';
-                var parts = Math.abs(start).split('.');
+                var parts = String(Math.abs(start)).split('.');
                 d = ('000000000' + parts[0]).substr(-10);
                 if(parts.length > 1) d += '.' + parts[1];
                 if(start < 0) d = '-' + d;

@@ -2,7 +2,12 @@ chai = require("chai")
 expect = chai.expect
 utils = require('../utils')
 
-{FacetQuery, FacetFilter, AttributeMeta} = require('../../src/query')
+{
+  FacetQuery
+  FacetFilter
+  AttributeMeta
+  FacetSplit
+} = require('../../src/query')
 
 simpleLocator = require('../../src/locator/simpleLocator')
 
@@ -13,6 +18,48 @@ verbose = false
 
 describe "Druid driver", ->
   @timeout(5 * 1000)
+
+  describe.only "makes good queries", ->
+    describe "good bucketing function", ->
+      queryBuilder = new druidDriver.DruidQueryBuilder({
+        dataSource: 'some_data'
+        timeAttribute: 'time'
+        attributeMetas: {
+          age_range: AttributeMeta.fromSpec({
+            type: 'range'
+            separator: '|'
+            rangeSize: 0.05
+          })
+        }
+        forceInterval: false
+        approximate: true
+        context: {}
+      })
+
+      queryBuilder.addSplit(FacetSplit.fromSpec({
+        name: 'AgeRange'
+        bucket: 'identity'
+        attribute: 'age_range'
+      }))
+
+      dimExtractionFn = null
+
+      it "does have a dimExtractionFn", ->
+        druidQuery = queryBuilder.getQuery()
+        expect(druidQuery.queryType).to.equal('groupBy')
+        dimExtractionFnSrc = druidQuery.dimensions[0].dimExtractionFn.function
+        expect(dimExtractionFnSrc).to.exist
+        expect(->
+          dimExtractionFn = eval("(#{dimExtractionFnSrc})")
+        ).to.not.throw()
+        expect(dimExtractionFn).to.be.a('function')
+
+      it "has a working dimExtractionFn", ->
+        expect(dimExtractionFn("0.05|0.10")).to.equal("0000000000.05")
+        expect(dimExtractionFn("10.05|10.10")).to.equal("0000000010.05")
+        expect(dimExtractionFn("-10.10|-10.05")).to.equal("-0000000010.1")
+        expect(dimExtractionFn("blah_unknown")).to.equal("null")
+
 
   describe "introspects", ->
     druidPass = druidRequester({

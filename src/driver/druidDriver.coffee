@@ -3,7 +3,7 @@
 async = require('async')
 { Duration } = require('chronology')
 
-{isInstanceOf} = require('../util')
+{isInstanceOf, copyObject} = require('../util')
 driverUtil = require('./driverUtil')
 SegmentTree = require('./segmentTree')
 {
@@ -82,7 +82,7 @@ class DruidQueryBuilder
 
   @FALSE_INTERVALS = ["1000-01-01/1000-01-02"]
 
-  constructor: ({dataSource, @timeAttribute, @attributeMetas, @forceInterval, @approximate, @context}) ->
+  constructor: ({dataSource, @timeAttribute, @attributeMetas, @forceInterval, @approximate, context}) ->
     @setDataSource(dataSource)
     throw new Error("must have a timeAttribute") unless isString(@timeAttribute)
     @queryType = 'timeseries'
@@ -93,7 +93,7 @@ class DruidQueryBuilder
     @postAggregations = []
     @nameIndex = 0
     @intervals = null
-    @useCache = true
+    @context = if context then copyObject(context) else {}
 
   setDataSource: (dataSource) ->
     if not (isString(dataSource) or (Array.isArray(dataSource) and dataSource.length and dataSource.every(isString)))
@@ -324,7 +324,8 @@ class DruidQueryBuilder
             bucketSize: split.size
             offset: split.offset
           }
-          #@useCache = false
+          # @context.useCache = false
+          # @context.populateCache = false
         else if attributeMeta.type is 'range'
           throw new Error("not implemented yet")
         else
@@ -551,17 +552,6 @@ class DruidQueryBuilder
     return this
 
   getQuery: ->
-    emptyContext = true
-    queryContext = {}
-    for k, v of @context
-      emptyContext = false
-      queryContext[k] = v
-
-    if not @useCache
-      emptyContext = false
-      queryContext.useCache = false
-      queryContext.populateCache = false
-
     query = {
       @queryType
       @dataSource
@@ -569,7 +559,7 @@ class DruidQueryBuilder
       @intervals
     }
 
-    query.context = queryContext unless emptyContext
+    query.context = @context if Object.keys(@context).length
     query.filter = @filter if @filter
 
     if @dimension

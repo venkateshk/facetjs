@@ -36,7 +36,7 @@ driverFns.mySql = sqlDriver({
 
 # # Druid
 druidPass = druidRequester({
-  locator: simpleLocator('10.136.50.119')
+  locator: simpleLocator('10.169.43.71')
 })
 
 driverFns.druid = druidDriver({

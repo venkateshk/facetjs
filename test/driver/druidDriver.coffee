@@ -19,7 +19,7 @@ verbose = false
 describe "Druid driver", ->
   @timeout(5 * 1000)
 
-  describe.only "makes good queries", ->
+  describe "makes good queries", ->
     describe "good bucketing function", ->
       queryBuilder = new druidDriver.DruidQueryBuilder({
         dataSource: 'some_data'
@@ -63,7 +63,7 @@ describe "Druid driver", ->
 
   describe "introspects", ->
     druidPass = druidRequester({
-      locator: simpleLocator('10.136.50.119')
+      locator: simpleLocator('10.169.43.71')
     })
 
     wikiDriver = druidDriver({
@@ -75,6 +75,7 @@ describe "Druid driver", ->
 
     it "works", (done) ->
       wikiDriver.introspect null, (err, attributes) ->
+        expect(err).to.not.exist
         expect(attributes).to.deep.equal([
           {
             "name": "time",
@@ -242,7 +243,7 @@ describe "Druid driver", ->
 
   describe "should work with driver level filter", ->
     druidPass = druidRequester({
-      locator: simpleLocator('10.136.50.119')
+      locator: simpleLocator('10.169.43.71')
     })
 
     noFilter = druidDriver({
@@ -300,7 +301,7 @@ describe "Druid driver", ->
 
   describe "should work with nothingness", ->
     druidPass = druidRequester({
-      locator: simpleLocator('10.136.50.119')
+      locator: simpleLocator('10.169.43.71')
     })
 
     wikiDriver = druidDriver({
@@ -357,7 +358,7 @@ describe "Druid driver", ->
 
   describe "should work with inferred nothingness", ->
     druidPass = druidRequester({
-      locator: simpleLocator('10.136.50.119')
+      locator: simpleLocator('10.169.43.71')
     })
 
     wikiDriver = druidDriver({
@@ -400,7 +401,7 @@ describe "Druid driver", ->
 
   describe "specific queries", ->
     druidPass = druidRequester({
-      locator: simpleLocator('10.136.50.119')
+      locator: simpleLocator('10.169.43.71')
     })
 
     driver = druidDriver({

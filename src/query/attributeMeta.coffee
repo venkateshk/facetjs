@@ -100,6 +100,22 @@ class RangeAttributeMeta extends AttributeMeta
     return null unless Array.isArray(range) and range.length is 2
     return @_serializeNumber(range[0]) + @separator + @_serializeNumber(range[1])
 
+  getMatchingRegExpString: ->
+    separatorRegExp = @separator.replace(/[.$^{[(|)*+?\\]/g, (c) -> "\\#{c}")
+
+    beforeRegExp = if @digitsBeforeDecimal
+      "-?\\d{#{@digitsBeforeDecimal}}"
+    else
+      '(?:-?[1-9]\\d*|0)'
+
+    afterRegExp = if @digitsAfterDecimal
+      "\\.\\d{#{@digitsAfterDecimal}}"
+    else
+      '(?:\\.\\d*[1-9])?'
+
+    numberRegExp = beforeRegExp + afterRegExp
+    return "/^(#{numberRegExp})#{separatorRegExp}(#{numberRegExp})$/"
+
 
 class UniqueAttributeMeta extends AttributeMeta
   constructor: ->

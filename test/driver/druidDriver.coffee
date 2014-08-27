@@ -19,13 +19,13 @@ verbose = false
 describe "Druid driver", ->
   @timeout(5 * 1000)
 
-  describe "makes good queries", ->
-    describe "good bucketing function", ->
+  describe.only "makes good queries", ->
+    describe "good bucketing function (no before / no after)", ->
       queryBuilder = new druidDriver.DruidQueryBuilder({
         dataSource: 'some_data'
         timeAttribute: 'time'
         attributeMetas: {
-          age_range: AttributeMeta.fromSpec({
+          price_range: AttributeMeta.fromSpec({
             type: 'range'
             separator: '|'
             rangeSize: 0.05
@@ -37,14 +37,72 @@ describe "Druid driver", ->
       })
 
       queryBuilder.addSplit(FacetSplit.fromSpec({
-        name: 'AgeRange'
+        name: 'PriceRange'
         bucket: 'identity'
-        attribute: 'age_range'
+        attribute: 'price_range'
       }))
 
       dimExtractionFn = null
 
-      it "does have a dimExtractionFn", ->
+      it "has a dimExtractionFn", ->
+        druidQuery = queryBuilder.getQuery()
+        expect(druidQuery.queryType).to.equal('groupBy')
+        dimExtractionFnSrc = druidQuery.dimensions[0].dimExtractionFn.function
+        expect(dimExtractionFnSrc).to.exist
+        expect(->
+          dimExtractionFn = eval("(#{dimExtractionFnSrc})")
+        ).to.not.throw()
+        expect(dimExtractionFn).to.be.a('function')
+
+      it "has a working dimExtractionFn", ->
+        expect(dimExtractionFn("0.05|0.1")).to.equal("0000000000.05")
+        expect(dimExtractionFn("10.05|10.1")).to.equal("0000000010.05")
+        expect(dimExtractionFn("-10.1|-10.05")).to.equal("-0000000010.1")
+        expect(dimExtractionFn("blah_unknown")).to.equal("null")
+
+      it "is checks end", ->
+        expect(dimExtractionFn("50.05|whatever")).to.equal("null")
+
+      it "is checks range size", ->
+        expect(dimExtractionFn("50.05|50.09")).to.equal("null")
+
+      it "is checks trailing zeroes", ->
+        expect(dimExtractionFn("50.05|50.10")).to.equal("null")
+
+      it "is checks number of splits", ->
+        expect(dimExtractionFn("50.05|50.1|50.2")).to.equal("null")
+
+      it "is checks separator", ->
+        expect(dimExtractionFn("50.05| 50.1")).to.equal("null")
+        expect(dimExtractionFn("50.05 |50.1")).to.equal("null")
+
+
+    describe "good bucketing function (no before / 2 after)", ->
+      queryBuilder = new druidDriver.DruidQueryBuilder({
+        dataSource: 'some_data'
+        timeAttribute: 'time'
+        attributeMetas: {
+          price_range: AttributeMeta.fromSpec({
+            type: 'range'
+            separator: '|'
+            rangeSize: 0.05
+            digitsAfterDecimal: 2
+          })
+        }
+        forceInterval: false
+        approximate: true
+        context: {}
+      })
+
+      queryBuilder.addSplit(FacetSplit.fromSpec({
+        name: 'PriceRange'
+        bucket: 'identity'
+        attribute: 'price_range'
+      }))
+
+      dimExtractionFn = null
+
+      it "has a dimExtractionFn", ->
         druidQuery = queryBuilder.getQuery()
         expect(druidQuery.queryType).to.equal('groupBy')
         dimExtractionFnSrc = druidQuery.dimensions[0].dimExtractionFn.function
@@ -59,6 +117,71 @@ describe "Druid driver", ->
         expect(dimExtractionFn("10.05|10.10")).to.equal("0000000010.05")
         expect(dimExtractionFn("-10.10|-10.05")).to.equal("-0000000010.1")
         expect(dimExtractionFn("blah_unknown")).to.equal("null")
+
+      it "is checks end", ->
+        expect(dimExtractionFn("50.05|whatever")).to.equal("null")
+
+      it "is checks range size", ->
+        expect(dimExtractionFn("50.05|50.09")).to.equal("null")
+
+      it "is checks trailing zeroes (none)", ->
+        expect(dimExtractionFn("50.05|50.1")).to.equal("null")
+
+      it "is checks trailing zeroes (too many)", ->
+        expect(dimExtractionFn("50.050|50.100")).to.equal("null")
+
+    describe "good bucketing function (4 before / no after)", ->
+      queryBuilder = new druidDriver.DruidQueryBuilder({
+        dataSource: 'some_data'
+        timeAttribute: 'time'
+        attributeMetas: {
+          price_range: AttributeMeta.fromSpec({
+            type: 'range'
+            separator: '|'
+            rangeSize: 0.05
+            digitsBeforeDecimal: 4
+          })
+        }
+        forceInterval: false
+        approximate: true
+        context: {}
+      })
+
+      queryBuilder.addSplit(FacetSplit.fromSpec({
+        name: 'PriceRange'
+        bucket: 'identity'
+        attribute: 'price_range'
+      }))
+
+      dimExtractionFn = null
+
+      it "has a dimExtractionFn", ->
+        druidQuery = queryBuilder.getQuery()
+        expect(druidQuery.queryType).to.equal('groupBy')
+        dimExtractionFnSrc = druidQuery.dimensions[0].dimExtractionFn.function
+        expect(dimExtractionFnSrc).to.exist
+        expect(->
+          dimExtractionFn = eval("(#{dimExtractionFnSrc})")
+        ).to.not.throw()
+        expect(dimExtractionFn).to.be.a('function')
+
+      it "has a working dimExtractionFn", ->
+        expect(dimExtractionFn("0000.05|0000.1")).to.equal("0000000000.05")
+        expect(dimExtractionFn("0010.05|0010.1")).to.equal("0000000010.05")
+        expect(dimExtractionFn("-0010.1|-0010.05")).to.equal("-0000000010.1")
+        expect(dimExtractionFn("blah_unknown")).to.equal("null")
+
+      it "is checks end", ->
+        expect(dimExtractionFn("0050.05|whatever")).to.equal("null")
+
+      it "is checks range size", ->
+        expect(dimExtractionFn("0050.05|0050.09")).to.equal("null")
+
+      it "is checks number of digits (too few)", ->
+        expect(dimExtractionFn("050.05|050.1")).to.equal("null")
+
+      it "is checks number of digits (too many)", ->
+        expect(dimExtractionFn("00050.05|00050.1")).to.equal("null")
 
 
   describe "introspects", ->

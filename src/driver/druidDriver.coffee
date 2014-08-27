@@ -267,7 +267,7 @@ class DruidQueryBuilder
         #@granularity stays 'all'
         attributeMeta = @getAttributeMeta(split.attribute)
         if attributeMeta.type is 'range'
-          separator = JSON.stringify(attributeMeta.separator or ';')
+          regExp = attributeMeta.getMatchingRegExpString()
           @dimension = {
             type: 'extraction'
             dimension: split.attribute
@@ -275,13 +275,13 @@ class DruidQueryBuilder
             dimExtractionFn: {
               type: 'javascript'
               function: """function(d) {
-                var start = d.split(#{separator})[0];
-                if(isNaN(start)) return 'null';
+                var match = d.match(#{regExp});
+                if(!match) return 'null';
+                var start = +match[1], end = +match[2];
+                if(!(Math.abs(end - start - #{attributeMeta.rangeSize}) < 1e-6)) return 'null';
                 var parts = String(Math.abs(start)).split('.');
-                d = ('000000000' + parts[0]).substr(-10);
-                if(parts.length > 1) d += '.' + parts[1];
-                if(start < 0) d = '-' + d;
-                return d;
+                parts[0] = ('000000000' + parts[0]).substr(-10);
+                return (start < 0 ?'-':'') + parts.join('.');
                 }"""
             }
           }

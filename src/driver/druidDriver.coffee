@@ -551,6 +551,9 @@ class DruidQueryBuilder
 
     return this
 
+  hasContext: ->
+    return Object.keys(@context).length
+
   getQuery: ->
     query = {
       @queryType
@@ -559,7 +562,7 @@ class DruidQueryBuilder
       @intervals
     }
 
-    query.context = @context if Object.keys(@context).length
+    query.context = @context if @hasContext()
     query.filter = @filter if @filter
 
     if @dimension
@@ -617,6 +620,8 @@ DruidQueryBuilder.queryFns = {
       queryType: 'timeBoundary'
       dataSource: queryBuilder.dataSource
     }
+
+    queryObj.context = queryBuilder.context if queryBuilder.hasContext()
 
     maxTimeOnly = applies.length is 1 and applies[0].aggregate is 'max'
     if maxTimeOnly

@@ -151,7 +151,7 @@ exports.joinResults = (splitNames, applyNames, results) ->
       mapping[key].push(row)
 
   joinResult = []
-  joinResult.push(joinRows(rows)) for ket, rows of mapping
+  joinResult.push(joinRows(rows)) for key, rows of mapping
   return joinResult
 
 

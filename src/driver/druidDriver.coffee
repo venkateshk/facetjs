@@ -258,7 +258,6 @@ class DruidQueryBuilder
 
     return this
 
-
   addSplit: (split) ->
     throw new TypeError() unless isInstanceOf(split, FacetSplit)
     switch split.bucket
@@ -327,6 +326,14 @@ class DruidQueryBuilder
           # @context.useCache = false
           # @context.populateCache = false
         else if attributeMeta.type is 'range'
+          # ToDo: make up-bucketing (aka redneck histograms) work
+          # When bucketing on buckets of size 0.1 an an attribute that is a size 0.05
+          # The values should map as follows:
+          # 0.00;0.05 => 0000000000.0 => [0, 0.1]
+          # 0.05;0.10 => 0000000000.0 => [0, 0.1]
+          # 0.10;0.15 => 0000000000.1 => [0.1, 0.2]
+          # 0.15;0.20 => 0000000000.1 => [0.1, 0.2]
+          # etc...
           throw new Error("not implemented yet")
         else
           floorExpresion = driverUtil.continuousFloorExpresion({

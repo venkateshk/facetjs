@@ -19,7 +19,7 @@ verbose = false
 describe "Druid driver", ->
   @timeout(5 * 1000)
 
-  describe.only "makes good queries", ->
+  describe "makes good queries", ->
     describe "good bucketing function (no before / no after)", ->
       queryBuilder = new druidDriver.DruidQueryBuilder({
         dataSource: 'some_data'

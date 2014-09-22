@@ -1,27 +1,30 @@
 #!/bin/bash
 
 echo "Compiling..."
-PATH="`pwd`/node_modules/.bin:$PATH"
 
 rm -r build/*
 
 mkdir -p build/parser
 mkdir -p build/package
 
+echo "Compiling SCSS styles"
+
 # Style
-compass compile --sass-dir src/style/ --css-dir package/style/
+# compass compile --sass-dir src/style/ --css-dir package/style/
 
 # All files
-coffee --compile --bare --output build src
+# node_modules/.bin/coffee --compile --bare --output build src
+
+echo "Compiling PEG.js"
 
 # Apply parser
-pegjs \
+node_modules/.bin/pegjs \
   --export-var "module.exports" \
   src/parser/apply.pegjs \
   build/parser/apply.js
 
 # Filter parser
-pegjs \
+node_modules/.bin/pegjs \
   --export-var "module.exports" \
   src/parser/filter.pegjs \
   build/parser/filter.js
@@ -29,24 +32,46 @@ pegjs \
 # Parts
 mkdir -p package
 
-browserify build/driver/index.js \
-  -o package/driver.js \
-  --ignore async \
-  --standalone driver
+# TypeScript
+echo "Compiling TypeScript basics"
+node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/*.ts
 
-browserify build/render/index.js \
-  -o package/render.js \
-  --standalone render
+echo "Compiling query"
+node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/query/*.ts
 
-browserify build/query/index.js \
-  -o package/query.js \
-  --standalone query
+echo "Compiling locators"
+node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/locator/*.ts
 
-# All in one
-browserify build/facet.js \
-  -o package/facet.js \
-  --standalone facet
+echo "Compiling requesters"
+node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/requester/*.ts
 
-# Web workers
-browserify build/worker/simpleDriverWorker.js \
-  -o package/simpleDriverWorker.js
+echo "Compiling drivers"
+node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/driver/*.ts
+
+echo "Compiling workers"
+node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/worker/*.ts
+
+# echo "Bundle type definitions"
+# node dts-bundle.js
+
+# browserify build/driver/index.js \
+#   -o package/driver.js \
+#   --ignore async \
+#   --standalone driver
+#
+# browserify build/render/index.js \
+#   -o package/render.js \
+#   --standalone render
+#
+# browserify build/query/index.js \
+#   -o package/query.js \
+#   --standalone query
+#
+# # All in one
+# browserify build/facet.js \
+#   -o package/facet.js \
+#   --standalone facet
+#
+# # Web workers
+# browserify build/worker/simpleDriverWorker.js \
+#   -o package/simpleDriverWorker.js

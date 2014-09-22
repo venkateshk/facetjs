@@ -1,4 +1,4 @@
-{wrapLiteral} = require('./common')
+{ wrapLiteral } = require('./common')
 
 # A function that takes a rectangle and a lists of facets and initializes their node. (Should be generalized to any shape).
 

@@ -1,4 +1,4 @@
-{wrapLiteral} = require('./common')
+{ wrapLiteral } = require('./common')
 
 createNode = (segment, space, nodeType, { title, link, visible, opacity, dash }) ->
   title = wrapLiteral(title)

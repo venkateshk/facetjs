@@ -1,5 +1,5 @@
 d3 = require('d3')
-{wrapLiteral} = require('./common')
+{ wrapLiteral } = require('./common')
 
 # Arguments* -> (Segment, Space) -> ([Spaces]) -> void
 

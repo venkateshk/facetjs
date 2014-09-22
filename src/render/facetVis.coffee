@@ -1,5 +1,5 @@
 d3 = require('d3')
-{FacetQuery} = require('../query')
+{ FacetQuery } = require('../query')
 Segment = require('./segment')
 Space = require('./space')
 

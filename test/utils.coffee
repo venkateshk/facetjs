@@ -1,12 +1,9 @@
 "use strict"
 
 async = require('async')
-{expect} = require("chai")
+{ expect } = require("chai")
 
-{isInstanceOf} = require('../src/util')
-{FacetQuery} = require('../src/query')
-SegmentTree = require('../src/driver/segmentTree')
-
+{FacetQuery, SegmentTree} = require('../build/query')
 
 uniformizeResults = (result) ->
   if not result?.prop
@@ -78,7 +75,7 @@ exports.makeEqualityTest = (driverFns) ->
             return
 
         driverFn({
-          query: if isInstanceOf(query, FacetQuery) then query else new FacetQuery(query)
+          query: if FacetQuery.isFacetQuery(query) then query else new FacetQuery(query)
           context: {
             priority: -3
           }
@@ -100,7 +97,7 @@ exports.makeEqualityTest = (driverFns) ->
 
         results = results.map((result) ->
           expect(result).to.be.instanceof(SegmentTree)
-          return uniformizeResults(result.valueOf())
+          return uniformizeResults(result.toJS())
         )
 
         if verbose

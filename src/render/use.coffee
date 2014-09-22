@@ -1,7 +1,7 @@
 # Extracts the property and other things from a segment
 {useLiteral, wrapLiteral} = require('./common')
 Interval = require('./interval')
-{isInstanceOf} = require('../util')
+{ isInstanceOf } = require('../utils')
 
 module.exports = {
   literal: useLiteral

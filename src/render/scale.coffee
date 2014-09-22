@@ -1,7 +1,7 @@
 d3 = require('d3')
-{wrapLiteral} = require('./common')
+{ wrapLiteral } = require('./common')
 Interval = require('./interval')
-{isInstanceOf} = require('../util')
+{ isInstanceOf } = require('../utils')
 
 # A function that makes a scale and adds it to the segment.
 # Arguments* ->

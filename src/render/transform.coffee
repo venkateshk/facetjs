@@ -1,6 +1,6 @@
-{wrapLiteral} = require('./common')
+{ wrapLiteral } = require('./common')
 Interval = require('./interval')
-{isInstanceOf} = require('../util')
+{ isInstanceOf } = require('../utils')
 
 # A function that transforms the space from one form to another.
 # Arguments* -> Segment -> PsudoSpace

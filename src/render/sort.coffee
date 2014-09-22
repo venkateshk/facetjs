@@ -5,8 +5,8 @@ module.exports = {
     direction
   }
 
-  caseInsensetive: (prop, direction = 'descending') -> {
-    compare: 'caseInsensetive'
+  caseInsensitive: (prop, direction = 'descending') -> {
+    compare: 'caseInsensitive'
     prop
     direction
   }

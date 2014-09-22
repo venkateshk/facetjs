@@ -1,6 +1,6 @@
 "use strict"
 
-{isInstanceOf} = require('../util')
+{ isInstanceOf } = require('../utils')
 
 class Interval
   constructor: (@start, @end) ->

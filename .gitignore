@@ -5,3 +5,4 @@ node_modules/
 scratch/
 data/wiki/
 coverage/
+src_old/**/*.js

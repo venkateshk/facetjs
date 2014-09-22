@@ -127,13 +127,13 @@
 
         if (driverStr === "SQL") {
           // SQL
-          var sqlRequester = facet.requester.proxy.ajax({
+          var mySqlRequester = facet.requester.proxy.ajax({
             url: '/pass/sql',
-            prety: true
+            pretty: true
           });
 
           return facet.driver.sql({
-            requester: sqlRequester,
+            requester: mySqlRequester,
             table: "diamonds"
           });
         }
@@ -142,7 +142,7 @@
           // DRUID
           var druidRequester = facet.requester.proxy.ajax({
             url: '/pass/druid',
-            prety: true,
+            pretty: true,
             context: {
               resource: d3.select("#resource").property("value")
             }

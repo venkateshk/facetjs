@@ -105,6 +105,7 @@ exports.makeEqualityTest = (driverFns) ->
 
         if verbose
           console.log('vvvvvvvvvvvvvvvvvvvvvvv')
+          console.log("From #{drivers[0]} I got:")
           console.log(JSON.stringify(results[0], null, 2))
           console.log('^^^^^^^^^^^^^^^^^^^^^^^')
 

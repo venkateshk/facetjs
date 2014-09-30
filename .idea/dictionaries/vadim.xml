@@ -3,6 +3,10 @@
     <words>
       <w>dataset</w>
       <w>editstream</w>
+      <w>guid</w>
+      <w>memoized</w>
+      <w>stderr</w>
+      <w>stdout</w>
       <w>stringifier</w>
       <w>wickham</w>
     </words>

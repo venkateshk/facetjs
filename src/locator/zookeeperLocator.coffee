@@ -23,6 +23,18 @@ makeManagerForPath = (client, path, emitter, dataExtractor, locatorTimeout) ->
   pool = null
   queue = []
 
+  dispatch = (callback) ->
+    throw new Error('get next called on loading pool') unless pool
+    if pool.length
+      next++
+      callback(null, pool[next % pool.length])
+    else
+      callback(new Error('Empty pool'))
+
+  processQueue = ->
+    dispatch(queue.shift()) while queue.length
+    return
+
   onGetChildren = (err, children) ->
     if err
       console.log('Failed to list children of %s due to: %s.', path, err) if debug
@@ -62,18 +74,6 @@ makeManagerForPath = (client, path, emitter, dataExtractor, locatorTimeout) ->
     return
 
   client.getChildren(path, onChange, onGetChildren)
-
-  dispatch = (callback) ->
-    throw new Error('get next called on loading pool') unless pool
-    if pool.length
-      next++
-      callback(null, pool[next % pool.length])
-    else
-      callback(new Error('Empty pool'))
-
-  processQueue = ->
-    dispatch(queue.shift()) while queue.length
-    return
 
   return (callback) ->
     if pool

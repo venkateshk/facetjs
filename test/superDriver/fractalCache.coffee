@@ -672,8 +672,48 @@ describe "Fractal cache", ->
       ]
     }
 
-
   describe 'Identity split cache (filtered / incomplete)', ->
+    setUpQuery = new FacetQuery [
+      { operation: 'filter', type: 'is', attribute: 'cut', value: 'Good' }
+      { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+      { operation: 'apply', name: 'Cheapest', aggregate: 'min', attribute: 'price' }
+      { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+      { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+    ]
+
+    before ->
+      driverFns.diamondsCached.clear()
+
+    it "runs the initial query", testEquality {
+      drivers: ['diamondsCached', 'diamonds']
+      before: -> expectedQuery = setUpQuery
+      query: setUpQuery
+    }
+
+    it "caches the set up query", testEquality {
+      drivers: ['diamondsCached', 'diamonds']
+      before: -> expectedQuery = false
+      query: setUpQuery
+    }
+
+    it "handles un-filter", testEquality {
+      drivers: ['diamondsCached', 'diamonds']
+      before: ->
+        expectedQuery = new FacetQuery [
+          { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+          { operation: 'apply', name: 'Cheapest', aggregate: 'min', attribute: 'price' }
+          { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+          { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+        ]
+      query: new FacetQuery [
+        { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
+        { operation: 'apply', name: 'Cheapest', aggregate: 'min', attribute: 'price' }
+        { operation: 'apply', name: 'Revenue', aggregate: 'sum', attribute: 'price' }
+        { operation: 'combine', combine: 'slice', sort: { compare: 'natural', prop: 'Revenue', direction: 'descending' }, limit: 5 }
+      ]
+    }
+
+  describe.skip 'Identity split cache (filtered on split attribute / incomplete)', ->
     setUpQuery = new FacetQuery [
       { operation: 'filter', type: 'is', attribute: 'color', value: 'H' }
       { operation: 'split', name: 'Color', bucket: 'identity', attribute: 'color' }
@@ -697,7 +737,7 @@ describe "Fractal cache", ->
       query: setUpQuery
     }
 
-    it "handles unfilter", testEquality {
+    it "handles un-filter", testEquality {
       drivers: ['diamondsCached', 'diamonds']
       before: ->
         expectedQuery = new FacetQuery [

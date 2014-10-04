@@ -287,10 +287,6 @@ describe "Druid driver", ->
           {
             "name": "delta",
             "numeric": true
-          },
-          {
-            "name": "variation",
-            "numeric": true
           }
         ])
         done()

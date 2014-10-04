@@ -211,17 +211,17 @@ class IdentityCombineToSplitValues
       return null
 
     myFilter = filterExtract[1]
-
+      
     sortHash = condensedCommand.getSortHash()
     sortSlot = @bySort[sortHash]
     if canServeFromSlot(sortSlot, filter, combine)
       filteredSplitValues = getFilteredValuesFromSlot(sortSlot, split, myFilter)
 
-      if combine.limit? and combine.limit <= filteredSplitValues.length
+      if sortSlot.complete or combine.limit <= filteredSplitValues.length
         driverUtil.inPlaceTrim(filteredSplitValues, combine.limit)
         return filteredSplitValues
-      else # sortSlot.complete
-        flags.fullQuery = true # why?
+      else
+        flags.fullQuery = true
         return filteredSplitValues
     else
       completeSlot = @_findComplete()
@@ -445,7 +445,7 @@ computeDeltaQuery = (originalQuery, rootSegment) ->
 
 # ------------------------
 
-module.exports = fractalCache = ({driver, keepFor, debug}) ->
+fractalCache = ({driver, keepFor, debug}) ->
   # Filter -> (Apply -> Number)
   applyCache = new LRUCache({
     name: 'apply'
@@ -463,7 +463,7 @@ module.exports = fractalCache = ({driver, keepFor, debug}) ->
 
   # ---------------------------------------------
   cleanCacheProp = (prop) ->
-    for key, value of prop
+    for key of prop
       if key.substring(0, 3) is 'c_S'
         delete prop[key]
     return
@@ -527,8 +527,6 @@ module.exports = fractalCache = ({driver, keepFor, debug}) ->
         split = nextCondensedCommand.getEffectiveSplit()
         splitName = split.name
         segmentFilterFn = if split.segmentFilter then split.segmentFilter.getFilterFn() else null
-
-        #combine = nextCondensedCommand.getCombine()
 
         flatLayer = driverUtil.flatten(currentLayerGroups)
         flatLayer = flatLayer.filter(segmentFilterFn) if segmentFilterFn
@@ -598,8 +596,6 @@ module.exports = fractalCache = ({driver, keepFor, debug}) ->
           when 'timePeriod' then TimePeriodCombineToSplitValues
           when 'continuous' then ContinuousCombineToSplitValues
 
-        #combine = nextCondensedCommand.getCombine()
-
         currentLayer = driverUtil.flatten(driverUtil.filterMap(currentLayer, (segment) ->
           return unless segment.splits
           filter = segment.$_filter
@@ -634,7 +630,6 @@ module.exports = fractalCache = ({driver, keepFor, debug}) ->
     if avoidCache
       return driver(request, callback)
 
-    flags = {}
     rootSegment = getQueryDataFromCache(query)
     if rootSegment.hasLoading() or rootSegment.$_fullQuery # re-examine
       intermediate?(rootSegment)
@@ -732,3 +727,5 @@ fractalCache.cacheSlots = {
   TimePeriodCombineToSplitValues
   ContinuousCombineToSplitValues
 }
+
+module.exports = fractalCache

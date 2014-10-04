@@ -159,11 +159,11 @@ describe "SegmentTree", ->
       ]
     }
     segmentTree = new SegmentTree(segmentTreeSpec)
-    expect(segmentTree.isSubTree(segmentTree)).to.equal(true)
-    expect(segmentTree.isSubTree(segmentTree.splits[0])).to.equal(true)
-    expect(segmentTree.isSubTree(segmentTree.splits[0].splits[0])).to.equal(true)
-    expect(segmentTree.splits[0].isSubTree(segmentTree)).to.equal(false)
-    expect(segmentTree.splits[0].isSubTree(segmentTree.splits[1])).to.equal(false)
+    expect(segmentTree.isSubTreeOf(segmentTree)).to.equal(true)
+    expect(segmentTree.isSubTreeOf(segmentTree.splits[0])).to.equal(true)
+    expect(segmentTree.isSubTreeOf(segmentTree.splits[0].splits[0])).to.equal(true)
+    expect(segmentTree.splits[0].isSubTreeOf(segmentTree)).to.equal(false)
+    expect(segmentTree.splits[0].isSubTreeOf(segmentTree.splits[1])).to.equal(false)
 
   it "computes depth", ->
     segmentTreeSpec = {
@@ -198,7 +198,61 @@ describe "SegmentTree", ->
       ]
     }
     segmentTree = new SegmentTree(segmentTreeSpec)
-    expect(segmentTree.getDepth()).to.equal(0)
-    expect(segmentTree.splits[0].getDepth()).to.equal(1)
-    expect(segmentTree.splits[0].splits[0].getDepth()).to.equal(2)
+    expect(segmentTree.getParentDepth()).to.equal(0)
+    expect(segmentTree.splits[0].getParentDepth()).to.equal(1)
+    expect(segmentTree.splits[0].splits[0].getParentDepth()).to.equal(2)
 
+    expect(segmentTree.getMaxDepth()).to.equal(3)
+    expect(segmentTree.splits[0].getMaxDepth()).to.equal(2)
+    expect(segmentTree.splits[0].splits[0].getMaxDepth()).to.equal(1)
+
+  it "computes trims to depth", ->
+    segmentTreeSpec = {
+      "prop": {},
+      "splits": [
+        {
+          "prop": {
+            "Cut": "Ideal",
+            "Count": 21551
+          },
+          "splits": [
+            {
+              "prop": {
+                "Clarity": "VS2",
+                "Count": 5071
+              }
+            },
+            {
+              "prop": {
+                "Clarity": "SI1",
+                "Count": 4282
+              }
+            }
+          ]
+        },
+        {
+          "prop": {
+            "Cut": "Premium",
+            "Count": 13791
+          }
+        }
+      ]
+    }
+    segmentTree = new SegmentTree(segmentTreeSpec).trimToMaxDepth(2)
+    expect(segmentTree.valueOf()).to.deep.equal({
+      "prop": {},
+      "splits": [
+        {
+          "prop": {
+            "Cut": "Ideal",
+            "Count": 21551
+          }
+        },
+        {
+          "prop": {
+            "Cut": "Premium",
+            "Count": 13791
+          }
+        }
+      ]
+    })

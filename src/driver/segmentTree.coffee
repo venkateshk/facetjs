@@ -31,7 +31,7 @@ class SegmentTree
   toJSON: -> @valueOf.apply(this, arguments)
 
   selfClean: ->
-    for own k, v of this
+    for own k of this
       delete this[k] if k[0] is '_'
 
     if @splits
@@ -68,20 +68,38 @@ class SegmentTree
     return segmentProp[propName] if segmentProp.hasOwnProperty(propName)
     return if @parent then @parent.getProp(propName) else null
 
-  getDepth: ->
+  getParentDepth: ->
     depth = 0
     node = this
     depth++ while node = node.parent
     return depth
 
-  isSubTree: (subTree) ->
+  getMaxDepth: ->
+    maxDepth = 1
+    if @splits
+      for segment in @splits
+        maxDepth = Math.max(maxDepth, segment.getMaxDepth() + 1)
+    return maxDepth
+
+  specToMaxDepth: (maxDepth) ->
+    spec = {}
+    spec.prop = @prop if @prop
+    if @splits and maxDepth > 1
+      newMaxDepth = maxDepth - 1
+      spec.splits = @splits.map((split) -> split.specToMaxDepth(newMaxDepth))
+    spec.loading = true if @loading
+    return spec
+
+  trimToMaxDepth: (maxDepth) ->
+    return null if maxDepth < 1
+    spec = @specToMaxDepth(maxDepth)
+    return new SegmentTree(spec)
+
+  isSubTreeOf: (subTree) ->
     while subTree
       return true if @prop is subTree.prop
       subTree = subTree.parent
     return false
-
-  computeTags: (baseFilter) ->
-    return
 
   # Flattens the segment tree into an array
   #

@@ -3,8 +3,8 @@
 { Duration } = require('chronology')
 
 {isInstanceOf} = require('../util')
-driverUtil = require('../driver/driverUtil')
-SegmentTree = require('../driver/segmentTree')
+driverUtil = require('./driverUtil')
+SegmentTree = require('./segmentTree')
 {
   FacetQuery,
   FacetDataset,
@@ -13,7 +13,7 @@ SegmentTree = require('../driver/segmentTree')
   FacetApply,
   FacetCombine, SliceCombine
   ApplySimplifier
-} = require('../query')
+} = require('../query/index')
 
 class LRUCache
   constructor: ({@name, @keepFor, @currentTime}) ->
@@ -211,7 +211,7 @@ class IdentityCombineToSplitValues
       return null
 
     myFilter = filterExtract[1]
-      
+
     sortHash = condensedCommand.getSortHash()
     sortSlot = @bySort[sortHash]
     if canServeFromSlot(sortSlot, filter, combine)

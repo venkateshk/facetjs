@@ -14,9 +14,9 @@ sqlRequester = require('../../src/requester/mySqlRequester')
 sqlDriver = require('../../src/driver/sqlDriver')
 simpleDriver = require('../../src/driver/simpleDriver')
 SegmentTree = require('../../src/driver/segmentTree')
-fractalCache = require('../../src/superDriver/fractalCache')
+fractalCache = require('../../src/driver/fractalCache')
 
-{FacetQuery} = require('../../src/query')
+{FacetQuery} = require('../../src/query/index')
 
 # Set up drivers
 driverFns = {}

@@ -5,9 +5,9 @@ if not WallTime.rules
   tzData = require("chronology/lib/walltime/walltime-data.js")
   WallTime.init(tzData.rules, tzData.zones)
 
-fractalCache = require('../../src/superDriver/fractalCache')
+fractalCache = require('../../src/driver/fractalCache')
 SegmentTree = require('../../src/driver/segmentTree')
-{FacetQuery, FacetFilter, ApplySimplifier} = require('../../src/query')
+{FacetQuery, FacetFilter, ApplySimplifier} = require('../../src/query/index')
 
 { computeDeltaQuery } = fractalCache
 

@@ -27,7 +27,7 @@
     "express": "3.1.0",
     "node-zookeeper-client": "~0.2.0",
     "request": "~2.34.0",
-    "chronology": "0.4.0",
+    "chronology": "0.5.0",
     "backoff": "~2.3.0"
   },
   "devDependencies": {

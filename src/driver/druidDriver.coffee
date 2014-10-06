@@ -1013,11 +1013,10 @@ addSplitName = (split, name) ->
 
 
 # Split up the condensed command into condensed commands contained within the dataset
-splitupCondensedCommand = (condensedCommand) ->
+splitUpCondensedCommand = (condensedCommand) ->
   datasets = condensedCommand.getDatasets()
   combine = condensedCommand.getCombine()
 
-  tempProps = []
   perDatasetInfo = []
   if datasets.length <= 1
     if datasets.length
@@ -1140,7 +1139,7 @@ multiDatasetQuery = ({parentSegment, condensedCommand, builderSettings, requeste
     }, callback)
     return
 
-  { postProcessors, perDatasetInfo } = splitupCondensedCommand(condensedCommand)
+  { postProcessors, perDatasetInfo } = splitUpCondensedCommand(condensedCommand)
 
   performApplyCombine = (result) ->
     for postProcessor in postProcessors

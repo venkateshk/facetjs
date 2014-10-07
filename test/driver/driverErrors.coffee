@@ -44,7 +44,7 @@ driverFns.druid = druidDriver({
   dataSource: 'wikipedia_editstream'
   timeAttribute: 'time'
   approximate: true
-  filter: FacetFilter.fromSpec({
+  filter: FacetFilter.fromJS({
     type: 'within'
     attribute: 'time'
     range: [

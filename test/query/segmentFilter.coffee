@@ -8,15 +8,15 @@ describe "FacetSegmentFilter", ->
   describe "errors", ->
     it "missing type", ->
       segmentSilterSpec = {}
-      expect(-> FacetSegmentFilter.fromSpec(segmentSilterSpec)).to.throw(Error, "type must be defined")
+      expect(-> FacetSegmentFilter.fromJS(segmentSilterSpec)).to.throw(Error, "type must be defined")
 
     it "invalid type in filter", ->
       segmentSilterSpec = { type: ['wtf?'] }
-      expect(-> FacetSegmentFilter.fromSpec(segmentSilterSpec)).to.throw(Error, "type must be a string")
+      expect(-> FacetSegmentFilter.fromJS(segmentSilterSpec)).to.throw(Error, "type must be a string")
 
     it "unknown type in filter", ->
       segmentSilterSpec = { type: 'poo' }
-      expect(-> FacetSegmentFilter.fromSpec(segmentSilterSpec)).to.throw(Error, "unsupported segment filter type 'poo'")
+      expect(-> FacetSegmentFilter.fromJS(segmentSilterSpec)).to.throw(Error, "unsupported segment filter type 'poo'")
 
 
   describe "filterFunction", ->
@@ -36,7 +36,7 @@ describe "FacetSegmentFilter", ->
         prop: "City",
         value: 'San Francisco'
       }
-      filterFn = FacetSegmentFilter.fromSpec(segmentSilterSpec).getFilterFn()
+      filterFn = FacetSegmentFilter.fromJS(segmentSilterSpec).getFilterFn()
       expect(segment.splits.filter(filterFn).length).to.equal(1)
 
     it "works with 'London'", ->
@@ -45,7 +45,7 @@ describe "FacetSegmentFilter", ->
         prop: "City",
         value: 'London'
       }
-      filterFn = FacetSegmentFilter.fromSpec(segmentSilterSpec).getFilterFn()
+      filterFn = FacetSegmentFilter.fromJS(segmentSilterSpec).getFilterFn()
       expect(segment.splits.filter(filterFn).length).to.equal(0)
 
     it "works with ''", ->
@@ -54,7 +54,7 @@ describe "FacetSegmentFilter", ->
         prop: "City",
         value: ""
       }
-      filterFn = FacetSegmentFilter.fromSpec(segmentSilterSpec).getFilterFn()
+      filterFn = FacetSegmentFilter.fromJS(segmentSilterSpec).getFilterFn()
       expect(segment.splits.filter(filterFn).length).to.equal(1)
 
     it "works with null", ->
@@ -63,7 +63,7 @@ describe "FacetSegmentFilter", ->
         prop: "City",
         value: null
       }
-      filterFn = FacetSegmentFilter.fromSpec(segmentSilterSpec).getFilterFn()
+      filterFn = FacetSegmentFilter.fromJS(segmentSilterSpec).getFilterFn()
       expect(segment.splits.filter(filterFn).length).to.equal(1)
 
     it "works with parent", ->
@@ -72,7 +72,7 @@ describe "FacetSegmentFilter", ->
         prop: "Country",
         value: "USA"
       }
-      filterFn = FacetSegmentFilter.fromSpec(segmentSilterSpec).getFilterFn()
+      filterFn = FacetSegmentFilter.fromJS(segmentSilterSpec).getFilterFn()
       expect(segment.splits.filter(filterFn).length).to.equal(4)
 
 
@@ -123,7 +123,7 @@ describe "FacetSegmentFilter", ->
           "2013-02-26T16:00:00.000Z"
         ]
       }
-      filterFn = FacetSegmentFilter.fromSpec(segmentSilterSpec).getFilterFn()
+      filterFn = FacetSegmentFilter.fromJS(segmentSilterSpec).getFilterFn()
       expect(segment.splits.filter(filterFn).length).to.equal(1)
 
     it "works with bad time", ->
@@ -135,7 +135,7 @@ describe "FacetSegmentFilter", ->
           "2013-02-26T16:00:01.000Z"
         ]
       }
-      filterFn = FacetSegmentFilter.fromSpec(segmentSilterSpec).getFilterFn()
+      filterFn = FacetSegmentFilter.fromJS(segmentSilterSpec).getFilterFn()
       expect(segment.splits.filter(filterFn).length).to.equal(0)
 
     it "works with null", ->
@@ -144,6 +144,6 @@ describe "FacetSegmentFilter", ->
         prop: "Time",
         value: null
       }
-      filterFn = FacetSegmentFilter.fromSpec(segmentSilterSpec).getFilterFn()
+      filterFn = FacetSegmentFilter.fromJS(segmentSilterSpec).getFilterFn()
       expect(segment.splits.filter(filterFn).length).to.equal(1)
 

@@ -101,7 +101,7 @@ sortConstructorMap = {
 }
 
 
-FacetSort.fromSpec = (sortSpec) ->
+FacetSort.fromJS = (sortSpec) ->
   return sortSpec if isInstanceOf(sortSpec, FacetSort)
   throw new Error("unrecognizable sort") unless typeof sortSpec is 'object'
   throw new Error("compare must be defined") unless sortSpec.hasOwnProperty('compare')

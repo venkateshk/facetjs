@@ -50,7 +50,7 @@ driverFns.druid = druidDriver({
   timeAttribute: 'time'
   approximate: true
   forceInterval: true
-  filter: FacetFilter.fromSpec({
+  filter: FacetFilter.fromJS({
     type: 'within'
     attribute: 'time'
     range: [

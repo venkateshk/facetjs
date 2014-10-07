@@ -10,5 +10,5 @@ describe "FacetCombine", ->
         method: 'slice'
         sort: { compare: 'natural', prop: 'Time', direction: 'ascending' }
       }
-      expect(FacetCombine.fromSpec(combineSpec).valueOf()).to.deep.equal(combineSpec)
+      expect(FacetCombine.fromJS(combineSpec).valueOf()).to.deep.equal(combineSpec)
 

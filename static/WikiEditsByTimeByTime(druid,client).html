@@ -50,7 +50,7 @@
       var druidDriverClient = facet.driver.druid({
         requester: druidRequester,
         dataSource: "wikipedia_editstream",
-        filter: FacetFilter.fromSpec({
+        filter: FacetFilter.fromJS({
           type: 'and',
           filters: [
             {

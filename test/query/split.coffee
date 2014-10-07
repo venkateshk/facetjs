@@ -7,27 +7,27 @@ describe "FacetSplit", ->
   describe "error", ->
     it "fails on bad input", ->
       splitSpec = "hello world"
-      expect(-> FacetSplit.fromSpec(splitSpec)).to.throw(Error, "unrecognizable split")
+      expect(-> FacetSplit.fromJS(splitSpec)).to.throw(Error, "unrecognizable split")
 
     it "fails on no bucket", ->
       splitSpec = {}
-      expect(-> FacetSplit.fromSpec(splitSpec)).to.throw(Error, "bucket must be defined")
+      expect(-> FacetSplit.fromJS(splitSpec)).to.throw(Error, "bucket must be defined")
 
     it "fails on bad bucket", ->
       splitSpec = { bucket: ['wtf?'] }
-      expect(-> FacetSplit.fromSpec(splitSpec)).to.throw(Error, "bucket must be a string")
+      expect(-> FacetSplit.fromJS(splitSpec)).to.throw(Error, "bucket must be a string")
 
     it "fails on unknown bucket", ->
       splitSpec = { bucket: 'poo' }
-      expect(-> FacetSplit.fromSpec(splitSpec)).to.throw(Error, "unsupported bucket 'poo'")
+      expect(-> FacetSplit.fromJS(splitSpec)).to.throw(Error, "unsupported bucket 'poo'")
 
     it "fails on bad name", ->
       splitSpec = { bucket: "identity", name: ["wtf?"] }
-      expect(-> FacetSplit.fromSpec(splitSpec)).to.throw(Error, "split name must be a string")
+      expect(-> FacetSplit.fromJS(splitSpec)).to.throw(Error, "split name must be a string")
 
     it "fails on bad timezone in timePeriod", ->
       splitSpec = { name: 'stuff', attribute: 'something', bucket: "timePeriod", period: 'P1D', timezone: 'UTC' }
-      expect(-> FacetSplit.fromSpec(splitSpec)).to.throw(TypeError, "invalid timezone 'UTC'")
+      expect(-> FacetSplit.fromJS(splitSpec)).to.throw(TypeError, "invalid timezone 'UTC'")
 
   describe "preserves", ->
     it "identity", ->
@@ -36,7 +36,7 @@ describe "FacetSplit", ->
         bucket: "identity"
         attribute: "country"
       }
-      split = FacetSplit.fromSpec(splitSpec)
+      split = FacetSplit.fromJS(splitSpec)
       expect(split.getDataset()).to.equal('main')
       expect(split.valueOf()).to.deep.equal(splitSpec)
 
@@ -51,7 +51,7 @@ describe "FacetSplit", ->
           value: 'Asia'
         }
       }
-      split = FacetSplit.fromSpec(splitSpec)
+      split = FacetSplit.fromJS(splitSpec)
       expect(split.getDataset()).to.equal('main')
       expect(split.valueOf()).to.deep.equal(splitSpec)
 
@@ -68,7 +68,7 @@ describe "FacetSplit", ->
           druidResolution: 200
         }
       }
-      split = FacetSplit.fromSpec(splitSpec)
+      split = FacetSplit.fromJS(splitSpec)
       expect(split.getDataset()).to.equal('main')
       expect(split.valueOf()).to.deep.equal(splitSpec)
 
@@ -80,7 +80,7 @@ describe "FacetSplit", ->
         period: 'PT1H'
         timezone: 'Etc/UTC'
       }
-      split = FacetSplit.fromSpec(splitSpec)
+      split = FacetSplit.fromJS(splitSpec)
       expect(split.getDataset()).to.equal('main')
       expect(split.valueOf()).to.deep.equal(splitSpec)
 
@@ -95,7 +95,7 @@ describe "FacetSplit", ->
           type: 'false'
         }
       }
-      split = FacetSplit.fromSpec(splitSpec)
+      split = FacetSplit.fromJS(splitSpec)
       expect(split.getDataset()).to.equal('main')
       expect(split.valueOf()).to.deep.equal(splitSpec)
 
@@ -115,7 +115,7 @@ describe "FacetSplit", ->
           }
         ]
       }
-      split = FacetSplit.fromSpec(splitSpec)
+      split = FacetSplit.fromJS(splitSpec)
       expect(split.getDataset()).to.equal('main')
       expect(split.valueOf()).to.deep.equal(splitSpec)
 
@@ -136,7 +136,7 @@ describe "FacetSplit", ->
           }
         ]
       }
-      split = FacetSplit.fromSpec(splitSpec)
+      split = FacetSplit.fromJS(splitSpec)
       expect(split.valueOf()).to.deep.equal(splitSpec)
 
 
@@ -152,7 +152,7 @@ describe "FacetSplit", ->
           type: 'false'
         }
       }
-      expect(FacetSplit.fromSpec(splitSpec).getAttributes()).to.deep.equal(["timestamp"])
+      expect(FacetSplit.fromJS(splitSpec).getAttributes()).to.deep.equal(["timestamp"])
 
     it "works for tuple split", ->
       splitSpec = {
@@ -170,7 +170,7 @@ describe "FacetSplit", ->
           }
         ]
       }
-      expect(FacetSplit.fromSpec(splitSpec).getAttributes()).to.deep.equal(["attr1", "attr2"])
+      expect(FacetSplit.fromJS(splitSpec).getAttributes()).to.deep.equal(["attr1", "attr2"])
 
     it "works for parallel split (different attributes)", ->
       splitSpec = {
@@ -189,7 +189,7 @@ describe "FacetSplit", ->
           }
         ]
       }
-      expect(FacetSplit.fromSpec(splitSpec).getAttributes()).to.deep.equal(["attr1", "attr2"])
+      expect(FacetSplit.fromJS(splitSpec).getAttributes()).to.deep.equal(["attr1", "attr2"])
 
     it "works for parallel split (same attributes)", ->
       splitSpec = {
@@ -208,12 +208,12 @@ describe "FacetSplit", ->
           }
         ]
       }
-      expect(FacetSplit.fromSpec(splitSpec).getAttributes()).to.deep.equal(["attr1"])
+      expect(FacetSplit.fromJS(splitSpec).getAttributes()).to.deep.equal(["attr1"])
 
 
   describe "getFilterFor", ->
     it "identity", ->
-      expect(FacetSplit.fromSpec({
+      expect(FacetSplit.fromJS({
         name: "Something"
         bucket: "identity"
         attribute: "country"

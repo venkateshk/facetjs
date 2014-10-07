@@ -12,7 +12,7 @@ class FacetSplit
   operation: 'split'
 
   constructor: ({@bucket, @dataset}, dummy) ->
-    throw new TypeError("can not call `new FacetSplit` directly use FacetSplit.fromSpec instead") unless dummy is dummyObject
+    throw new TypeError("can not call `new FacetSplit` directly use FacetSplit.fromJS instead") unless dummy is dummyObject
 
   _ensureBucket: (bucket) ->
     if not @bucket
@@ -78,14 +78,14 @@ class FacetSplit
     return this unless @segmentFilter
     spec = @valueOf()
     delete spec.segmentFilter
-    return FacetSplit.fromSpec(spec)
+    return FacetSplit.fromJS(spec)
 
 
 class IdentitySplit extends FacetSplit
   constructor: ({name, @attribute, segmentFilter, options}) ->
     super(arguments[0], dummyObject)
     @name = name if name
-    @segmentFilter = FacetSegmentFilter.fromSpec(segmentFilter) if segmentFilter
+    @segmentFilter = FacetSegmentFilter.fromJS(segmentFilter) if segmentFilter
     @options = new FacetOptions(options) if options
     @_ensureBucket('identity')
     @_verifyName()
@@ -113,7 +113,7 @@ class ContinuousSplit extends FacetSplit
   constructor: ({name, @attribute, @size, @offset, lowerLimit, upperLimit, segmentFilter, options}) ->
     super(arguments[0], dummyObject)
     @name = name if name
-    @segmentFilter = FacetSegmentFilter.fromSpec(segmentFilter) if segmentFilter
+    @segmentFilter = FacetSegmentFilter.fromJS(segmentFilter) if segmentFilter
     @options = new FacetOptions(options) if options
     @offset ?= 0
     @lowerLimit = lowerLimit if lowerLimit?
@@ -155,7 +155,7 @@ class TimePeriodSplit extends FacetSplit
   constructor: ({name, @attribute, @period, @timezone, segmentFilter, options}) ->
     super(arguments[0], dummyObject)
     @name = name if name
-    @segmentFilter = FacetSegmentFilter.fromSpec(segmentFilter) if segmentFilter
+    @segmentFilter = FacetSegmentFilter.fromJS(segmentFilter) if segmentFilter
     @options = new FacetOptions(options) if options
     @timezone ?= 'Etc/UTC'
     throw new TypeError("period must be in ['PT1S', 'PT1M', 'PT1H', 'P1D', 'P1W']") unless @period in ['PT1S', 'PT1M', 'PT1H', 'P1D', 'P1W']
@@ -192,13 +192,13 @@ class TupleSplit extends FacetSplit
   constructor: ({name, @splits, segmentFilter}) ->
     super(arguments[0], dummyObject)
     throw new Error("tuple split does not use a name") if name
-    @segmentFilter = FacetSegmentFilter.fromSpec(segmentFilter) if segmentFilter
+    @segmentFilter = FacetSegmentFilter.fromJS(segmentFilter) if segmentFilter
     throw new TypeError("splits must be a non-empty array") unless Array.isArray(@splits) and @splits.length
     @splits = @splits.map((splitSpec) ->
       throw new Error("tuple splits can not be nested") if splitSpec.bucket is 'tuple'
       throw new Error("a split within a tuple must have a name") unless splitSpec.hasOwnProperty('name')
       throw new Error("a split within a tuple should not have a segmentFilter") if splitSpec.hasOwnProperty('segmentFilter')
-      return FacetSplit.fromSpec(splitSpec)
+      return FacetSplit.fromJS(splitSpec)
     )
     @_ensureBucket('tuple')
 
@@ -233,7 +233,7 @@ class ParallelSplit extends FacetSplit
       throw new Error("parallel splits can not be nested") if splitSpec.bucket is 'parallel'
       throw new Error("a split within a parallel must not have a name") if splitSpec.hasOwnProperty('name')
       throw new Error("a split within a parallel should not have a segmentFilter") if splitSpec.hasOwnProperty('segmentFilter')
-      return FacetSplit.fromSpec(splitSpec)
+      return FacetSplit.fromJS(splitSpec)
     )
     @_ensureBucket('parallel')
 
@@ -301,7 +301,7 @@ splitConstructorMap = {
 }
 
 
-FacetSplit.fromSpec = (splitSpec) ->
+FacetSplit.fromJS = (splitSpec) ->
   return splitSpec if isInstanceOf(splitSpec, FacetSplit)
   throw new Error("unrecognizable split") unless typeof splitSpec is 'object'
   throw new Error("bucket must be defined") unless splitSpec.hasOwnProperty('bucket')

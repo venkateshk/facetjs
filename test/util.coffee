@@ -11,7 +11,7 @@ describe 'util', ->
         aggregate: 'constant'
         value: 42
       }
-      expect(isInstanceOf(Applies.FacetApply.fromSpec(applySpec), Applies.FacetApply)).to.be.true
+      expect(isInstanceOf(Applies.FacetApply.fromJS(applySpec), Applies.FacetApply)).to.be.true
 
     it 'returns false correctly', ->
       applySpec = {
@@ -19,4 +19,4 @@ describe 'util', ->
         aggregate: 'constant'
         value: 42
       }
-      expect(isInstanceOf(Applies.FacetApply.fromSpec(applySpec), Queries.FacetQuery)).to.be.false
+      expect(isInstanceOf(Applies.FacetApply.fromJS(applySpec), Queries.FacetQuery)).to.be.false

@@ -6,15 +6,15 @@ describe "FacetFilter", ->
   describe "errors", ->
     it "missing type", ->
       filterSpec = {}
-      expect(-> FacetFilter.fromSpec(filterSpec)).to.throw(Error, "type must be defined")
+      expect(-> FacetFilter.fromJS(filterSpec)).to.throw(Error, "type must be defined")
 
     it "invalid type in filter", ->
       filterSpec = { type: ['wtf?'] }
-      expect(-> FacetFilter.fromSpec(filterSpec)).to.throw(Error, "type must be a string")
+      expect(-> FacetFilter.fromJS(filterSpec)).to.throw(Error, "type must be a string")
 
     it "unknown type in filter", ->
       filterSpec = { type: 'poo' }
-      expect(-> FacetFilter.fromSpec(filterSpec)).to.throw(Error, "unsupported filter type 'poo'")
+      expect(-> FacetFilter.fromJS(filterSpec)).to.throw(Error, "unsupported filter type 'poo'")
 
 
   describe "preserves", ->
@@ -24,7 +24,7 @@ describe "FacetFilter", ->
         attribute: 'color'
         value: 'Red'
       }
-      expect(FacetFilter.fromSpec(filterSpec).valueOf()).to.deep.equal(filterSpec)
+      expect(FacetFilter.fromJS(filterSpec).valueOf()).to.deep.equal(filterSpec)
 
     it "contains", ->
       filterSpec = {
@@ -32,7 +32,7 @@ describe "FacetFilter", ->
         attribute: 'color'
         value: 'Red'
       }
-      expect(FacetFilter.fromSpec(filterSpec).valueOf()).to.deep.equal(filterSpec)
+      expect(FacetFilter.fromJS(filterSpec).valueOf()).to.deep.equal(filterSpec)
 
     it "match", ->
       filterSpec = {
@@ -40,18 +40,18 @@ describe "FacetFilter", ->
         attribute: 'country'
         expression: 'U[SK]'
       }
-      expect(FacetFilter.fromSpec(filterSpec).valueOf()).to.deep.equal(filterSpec)
+      expect(FacetFilter.fromJS(filterSpec).valueOf()).to.deep.equal(filterSpec)
 
 
   describe 'toString', ->
     it 'properly describes empty filter', ->
       filterSpec = { type: 'true' }
-      expect(FacetFilter.fromSpec(filterSpec).toString())
+      expect(FacetFilter.fromJS(filterSpec).toString())
         .to.equal('None')
 
     it 'properly describes false filter', ->
       filterSpec = { type: 'false' }
-      expect(FacetFilter.fromSpec(filterSpec).toString())
+      expect(FacetFilter.fromJS(filterSpec).toString())
         .to.equal('Nothing')
 
     it 'properly describes is filter', ->
@@ -60,7 +60,7 @@ describe "FacetFilter", ->
         attribute: 'color'
         value: 'Red'
       }
-      expect(FacetFilter.fromSpec(filterSpec).toString())
+      expect(FacetFilter.fromJS(filterSpec).toString())
         .to.equal('color is Red')
 
     it 'properly describes in filter', ->
@@ -69,7 +69,7 @@ describe "FacetFilter", ->
         attribute: 'color'
         values: []
       }
-      expect(FacetFilter.fromSpec(filterSpec).toString())
+      expect(FacetFilter.fromJS(filterSpec).toString())
         .to.equal('Nothing')
 
       filterSpec = {
@@ -77,7 +77,7 @@ describe "FacetFilter", ->
         attribute: 'color'
         values: ['Red']
       }
-      expect(FacetFilter.fromSpec(filterSpec).toString())
+      expect(FacetFilter.fromJS(filterSpec).toString())
         .to.equal('color is Red')
 
       filterSpec = {
@@ -85,7 +85,7 @@ describe "FacetFilter", ->
         attribute: 'color'
         values: ['Red', 'Blue']
       }
-      expect(FacetFilter.fromSpec(filterSpec).toString())
+      expect(FacetFilter.fromJS(filterSpec).toString())
         .to.equal('color is either Red or Blue')
 
       filterSpec = {
@@ -93,7 +93,7 @@ describe "FacetFilter", ->
         attribute: 'color'
         values: ['Red', 'Blue', 'Green']
       }
-      expect(FacetFilter.fromSpec(filterSpec).toString())
+      expect(FacetFilter.fromJS(filterSpec).toString())
         .to.equal('color is one of: Red, Blue, or Green')
 
     it 'properly describes contains filter', ->
@@ -102,7 +102,7 @@ describe "FacetFilter", ->
         attribute: 'color'
         value: 'Red'
       }
-      expect(FacetFilter.fromSpec(filterSpec).toString())
+      expect(FacetFilter.fromJS(filterSpec).toString())
         .to.equal("color contains 'Red'")
 
     it 'properly describes match filter', ->
@@ -111,7 +111,7 @@ describe "FacetFilter", ->
         attribute: 'color'
         expression: "^R"
       }
-      expect(FacetFilter.fromSpec(filterSpec).toString())
+      expect(FacetFilter.fromJS(filterSpec).toString())
         .to.equal('color matches /^R/')
 
     it 'properly describes within filter', ->
@@ -120,7 +120,7 @@ describe "FacetFilter", ->
         attribute: 'Number'
         range: [1, 10]
       }
-      expect(FacetFilter.fromSpec(filterSpec).toString())
+      expect(FacetFilter.fromJS(filterSpec).toString())
         .to.equal('Number is within 1 and 10')
 
       filterSpec = {
@@ -128,7 +128,7 @@ describe "FacetFilter", ->
         attribute: 'Time'
         range: ["2013-07-09T20:30:40.251Z", "2014-07-09T20:30:40.251Z"]
       }
-      expect(FacetFilter.fromSpec(filterSpec).toString())
+      expect(FacetFilter.fromJS(filterSpec).toString())
         .to.equal("Time is within 2013-07-09T20:30:40.251Z and 2014-07-09T20:30:40.251Z")
 
     it 'properly describes not filter', ->
@@ -140,7 +140,7 @@ describe "FacetFilter", ->
           value: 'Red'
         }
       }
-      expect(FacetFilter.fromSpec(filterSpec).toString())
+      expect(FacetFilter.fromJS(filterSpec).toString())
         .to.equal('not (color is Red)')
 
     it 'properly describes and filter', ->
@@ -154,7 +154,7 @@ describe "FacetFilter", ->
           }
         ]
       }
-      expect(FacetFilter.fromSpec(filterSpec).toString())
+      expect(FacetFilter.fromJS(filterSpec).toString())
         .to.equal("color is Red")
 
       filterSpec = {
@@ -172,7 +172,7 @@ describe "FacetFilter", ->
           }
         ]
       }
-      expect(FacetFilter.fromSpec(filterSpec).toString())
+      expect(FacetFilter.fromJS(filterSpec).toString())
         .to.equal("(color is Red) and (color is either Red or Blue)")
 
     it 'properly describes or filter', ->
@@ -186,7 +186,7 @@ describe "FacetFilter", ->
           }
         ]
       }
-      expect(FacetFilter.fromSpec(filterSpec).toString())
+      expect(FacetFilter.fromJS(filterSpec).toString())
         .to.equal("color is Red")
 
       filterSpec = {
@@ -204,7 +204,7 @@ describe "FacetFilter", ->
           }
         ]
       }
-      expect(FacetFilter.fromSpec(filterSpec).toString())
+      expect(FacetFilter.fromJS(filterSpec).toString())
         .to.equal("(color is Red) or (color is either Red or Blue)")
 
     it 'properly describes nested filter 1', ->
@@ -226,7 +226,7 @@ describe "FacetFilter", ->
           ]
         }
       }
-      expect(FacetFilter.fromSpec(filterSpec).toString())
+      expect(FacetFilter.fromJS(filterSpec).toString())
         .to.equal("not ((color is Red) or (color is either Red or Blue))")
 
     it 'properly describes nested filter 2', ->
@@ -253,13 +253,13 @@ describe "FacetFilter", ->
           }
         ]
       }
-      expect(FacetFilter.fromSpec(filterSpec).toString())
+      expect(FacetFilter.fromJS(filterSpec).toString())
         .to.equal("(color is Red) and (color is either Red or Blue) and (not (color is Red))")
 
 
   describe "simplify", ->
     it "keeps regular filters unchanged", ->
-      expect(FacetFilter.fromSpec({
+      expect(FacetFilter.fromJS({
         type: 'is'
         attribute: 'lady'
         value: 'GaGa'
@@ -270,7 +270,7 @@ describe "FacetFilter", ->
       })
 
     it "turns IN filter into IS filter when appropriate", ->
-      expect(FacetFilter.fromSpec({
+      expect(FacetFilter.fromJS({
         type: 'in'
         attribute: 'device'
         values: ['Nexus 5', 'Nexus 5', 'Nexus 5']
@@ -281,7 +281,7 @@ describe "FacetFilter", ->
       })
 
     it "sorts IN filters and removes duplicate values", ->
-      expect(FacetFilter.fromSpec({
+      expect(FacetFilter.fromJS({
         type: 'in'
         attribute: 'device'
         values: ['Nexus 5', 'Nexus 5', 'iPhone 5', 'Galaxy Note', 'Nexus 5']
@@ -292,7 +292,7 @@ describe "FacetFilter", ->
       })
 
     it "flattens (and sorts) nested ANDs", ->
-      expect(FacetFilter.fromSpec({
+      expect(FacetFilter.fromJS({
         type: 'and'
         filters: [
           {
@@ -353,7 +353,7 @@ describe "FacetFilter", ->
       })
 
     it "flattens (and sorts) nested ORs", ->
-      expect(FacetFilter.fromSpec({
+      expect(FacetFilter.fromJS({
         type: 'or'
         filters: [
           {
@@ -414,7 +414,7 @@ describe "FacetFilter", ->
       })
 
     it "AND turns same attributed IS and IN filters into INs", ->
-      expect(FacetFilter.fromSpec({
+      expect(FacetFilter.fromJS({
         type: 'and'
         filters: [
           {
@@ -460,7 +460,7 @@ describe "FacetFilter", ->
       })
 
     it "OR turns same attributed IS and IN filters into INs", ->
-      expect(FacetFilter.fromSpec({
+      expect(FacetFilter.fromJS({
         type: 'or'
         filters: [
           {
@@ -506,7 +506,7 @@ describe "FacetFilter", ->
       })
 
     it "AND detects a complex FALSE", ->
-      expect(FacetFilter.fromSpec({
+      expect(FacetFilter.fromJS({
         type: 'and'
         filters: [
           {
@@ -540,7 +540,7 @@ describe "FacetFilter", ->
       })
 
     it "gets rid of empty ANDs", ->
-      expect(FacetFilter.fromSpec({
+      expect(FacetFilter.fromJS({
         type: 'and'
         filters: []
       }).simplify().valueOf()).to.deep.equal({
@@ -548,7 +548,7 @@ describe "FacetFilter", ->
       })
 
     it "gets rid of single ANDs", ->
-      expect(FacetFilter.fromSpec({
+      expect(FacetFilter.fromJS({
         type: 'and'
         filters: [
           {
@@ -564,7 +564,7 @@ describe "FacetFilter", ->
       })
 
     it "gets rid of TRUEs in ANDs", ->
-      expect(FacetFilter.fromSpec({
+      expect(FacetFilter.fromJS({
         type: 'and'
         filters: [
           {
@@ -583,7 +583,7 @@ describe "FacetFilter", ->
       })
 
     it "gets rid of nested single and empty ANDs", ->
-      expect(FacetFilter.fromSpec({
+      expect(FacetFilter.fromJS({
         type: 'and'
         filters: [
           {
@@ -608,7 +608,7 @@ describe "FacetFilter", ->
       })
 
     it "gets rid of empty IN", ->
-      expect(FacetFilter.fromSpec({
+      expect(FacetFilter.fromJS({
         type: 'in'
         attribute: 'venue'
         values: []
@@ -617,7 +617,7 @@ describe "FacetFilter", ->
       })
 
     it "gets rid of empty ORs", ->
-      expect(FacetFilter.fromSpec({
+      expect(FacetFilter.fromJS({
         type: 'or'
         filters: []
       }).simplify().valueOf()).to.deep.equal({
@@ -625,7 +625,7 @@ describe "FacetFilter", ->
       })
 
     it "gets rid of single ORs", ->
-      expect(FacetFilter.fromSpec({
+      expect(FacetFilter.fromJS({
         type: 'or'
         filters: [
           {
@@ -641,7 +641,7 @@ describe "FacetFilter", ->
       })
 
     it "gets rid of nested single and empty ORs", ->
-      expect(FacetFilter.fromSpec({
+      expect(FacetFilter.fromJS({
         type: 'or'
         filters: [
           {
@@ -666,7 +666,7 @@ describe "FacetFilter", ->
       })
 
     it "gets rid of repeating filters in ANDs", ->
-      expect(FacetFilter.fromSpec({
+      expect(FacetFilter.fromJS({
         type: 'and'
         filters: [
           {
@@ -692,7 +692,7 @@ describe "FacetFilter", ->
       })
 
     it "gets rid of repeating filters in ORs", ->
-      expect(FacetFilter.fromSpec({
+      expect(FacetFilter.fromJS({
         type: 'or'
         filters: [
           {
@@ -718,7 +718,7 @@ describe "FacetFilter", ->
       })
 
     it "preserves simple not()", ->
-      expect(FacetFilter.fromSpec({
+      expect(FacetFilter.fromJS({
         type: 'not'
         filter: {
           type: 'is'
@@ -735,7 +735,7 @@ describe "FacetFilter", ->
       })
 
     it "gets rid of NOT(TRUE)", ->
-      expect(FacetFilter.fromSpec({
+      expect(FacetFilter.fromJS({
         type: 'not'
         filter: {
           type: 'true'
@@ -745,7 +745,7 @@ describe "FacetFilter", ->
       })
 
     it "gets rid of NOT(FALSE)", ->
-      expect(FacetFilter.fromSpec({
+      expect(FacetFilter.fromJS({
         type: 'not'
         filter: {
           type: 'false'
@@ -755,7 +755,7 @@ describe "FacetFilter", ->
       })
 
     it "gets rid of NOT(NOT(*))", ->
-      expect(FacetFilter.fromSpec({
+      expect(FacetFilter.fromJS({
         type: 'not'
         filter: {
           type: 'not'
@@ -772,7 +772,7 @@ describe "FacetFilter", ->
       })
 
     it "gets rid of NOT(AND(*)) with De Morgan", ->
-      expect(FacetFilter.fromSpec({
+      expect(FacetFilter.fromJS({
         type: 'not'
         filter: {
           type: 'and'
@@ -812,7 +812,7 @@ describe "FacetFilter", ->
       })
 
     it "gets rid of NOT(OR(*)) with De Morgan", ->
-      expect(FacetFilter.fromSpec({
+      expect(FacetFilter.fromJS({
         type: 'not'
         filter: {
           type: 'or'
@@ -852,7 +852,7 @@ describe "FacetFilter", ->
       })
 
     it "merges WITHIN filters in AND", ->
-      expect(FacetFilter.fromSpec({
+      expect(FacetFilter.fromJS({
         type: 'and'
         filters: [
           {
@@ -872,7 +872,7 @@ describe "FacetFilter", ->
         range: [30, 40]
       })
 
-      expect(FacetFilter.fromSpec({
+      expect(FacetFilter.fromJS({
         type: 'and'
         filters: [
           {
@@ -890,7 +890,7 @@ describe "FacetFilter", ->
         type: 'false'
       })
 
-      expect(FacetFilter.fromSpec({
+      expect(FacetFilter.fromJS({
         type: 'and'
         filters: [
           {
@@ -910,7 +910,7 @@ describe "FacetFilter", ->
         range: [new Date('2013/01/08'), new Date('2013/01/10')]
       })
 
-      expect(FacetFilter.fromSpec({
+      expect(FacetFilter.fromJS({
         type: 'and'
         filters: [
           {
@@ -929,7 +929,7 @@ describe "FacetFilter", ->
       })
 
     it "merges WITHIN filters in OR", ->
-      expect(FacetFilter.fromSpec({
+      expect(FacetFilter.fromJS({
         type: 'or'
         filters: [
           {
@@ -949,7 +949,7 @@ describe "FacetFilter", ->
         range: [20, 50]
       })
 
-      expect(FacetFilter.fromSpec({
+      expect(FacetFilter.fromJS({
         type: 'or'
         filters: [
           {
@@ -969,7 +969,7 @@ describe "FacetFilter", ->
         range: [20, 50]
       })
 
-      expect(FacetFilter.fromSpec({
+      expect(FacetFilter.fromJS({
         type: 'or'
         filters: [
           {
@@ -999,7 +999,7 @@ describe "FacetFilter", ->
         ]
       })
 
-      expect(FacetFilter.fromSpec({
+      expect(FacetFilter.fromJS({
         type: 'or'
         filters: [
           {
@@ -1019,7 +1019,7 @@ describe "FacetFilter", ->
         range: [new Date('2013/01/05'), new Date('2013/01/20')]
       })
 
-      expect(FacetFilter.fromSpec({
+      expect(FacetFilter.fromJS({
         type: 'or'
         filters: [
           {
@@ -1050,7 +1050,7 @@ describe "FacetFilter", ->
       })
 
     it "stops merging successfully for complicated filters", ->
-      expect(FacetFilter.fromSpec({
+      expect(FacetFilter.fromJS({
         type: 'and'
         filters: [
           {
@@ -1093,7 +1093,7 @@ describe "FacetFilter", ->
       })
 
     it "knows when something is simple", ->
-      filter = FacetFilter.fromSpec({
+      filter = FacetFilter.fromJS({
         type: 'and'
         filters: [
           {
@@ -1121,13 +1121,13 @@ describe "FacetFilter", ->
 
     it 'throws on bad input', ->
       expect(->
-        FacetFilter.fromSpec({
+        FacetFilter.fromJS({
           type: 'true'
         }).extractFilterByAttribute()
       ).to.throw(TypeError)
 
     it 'works on a single included filter', ->
-      expect(mapValueOf(FacetFilter.fromSpec({
+      expect(mapValueOf(FacetFilter.fromJS({
         type: 'is'
         attribute: 'venue'
         value: 'Google'
@@ -1143,7 +1143,7 @@ describe "FacetFilter", ->
       ])
 
     it 'works on a single excluded filter', ->
-      expect(mapValueOf(FacetFilter.fromSpec({
+      expect(mapValueOf(FacetFilter.fromJS({
         type: 'is'
         attribute: 'venue'
         value: 'Google'
@@ -1159,7 +1159,7 @@ describe "FacetFilter", ->
       ])
 
     it 'works on a small AND filter', ->
-      expect(mapValueOf(FacetFilter.fromSpec({
+      expect(mapValueOf(FacetFilter.fromJS({
         type: 'and'
         filters: [
           {
@@ -1187,7 +1187,7 @@ describe "FacetFilter", ->
       ])
 
     it 'works on an AND filter', ->
-      expect(mapValueOf(FacetFilter.fromSpec({
+      expect(mapValueOf(FacetFilter.fromJS({
         type: 'and'
         filters: [
           {
@@ -1230,7 +1230,7 @@ describe "FacetFilter", ->
       ])
 
     it 'extracts a NOT filter', ->
-      expect(mapValueOf(FacetFilter.fromSpec({
+      expect(mapValueOf(FacetFilter.fromJS({
         type: 'and'
         filters: [
           {
@@ -1279,7 +1279,7 @@ describe "FacetFilter", ->
       ])
 
     it 'works with a true filter', ->
-      expect(mapValueOf(FacetFilter.fromSpec({
+      expect(mapValueOf(FacetFilter.fromJS({
         type: 'true'
       }).extractFilterByAttribute('country'))).to.deep.equal([
         { type: 'true' }
@@ -1287,7 +1287,7 @@ describe "FacetFilter", ->
       ])
 
     it 'works with a false filter', ->
-      expect(mapValueOf(FacetFilter.fromSpec({
+      expect(mapValueOf(FacetFilter.fromJS({
         type: 'false'
       }).extractFilterByAttribute('country'))).to.deep.equal([
         { type: 'false' }
@@ -1295,7 +1295,7 @@ describe "FacetFilter", ->
       ])
 
     it 'does not work on mixed OR filter', ->
-      expect(mapValueOf(FacetFilter.fromSpec({
+      expect(mapValueOf(FacetFilter.fromJS({
         type: 'or'
         filters: [
           {
@@ -1317,7 +1317,7 @@ describe "FacetFilter", ->
       }).extractFilterByAttribute('country'))).to.deep.equal(null)
 
     it 'works on mixed OR filter (all in)', ->
-      expect(mapValueOf(FacetFilter.fromSpec({
+      expect(mapValueOf(FacetFilter.fromJS({
         type: 'or'
         filters: [
           {
@@ -1367,7 +1367,7 @@ describe "FacetFilter", ->
       ])
 
     it 'works on mixed OR filter (all out)', ->
-      expect(mapValueOf(FacetFilter.fromSpec({
+      expect(mapValueOf(FacetFilter.fromJS({
         type: 'or'
         filters: [
           {
@@ -1417,7 +1417,7 @@ describe "FacetFilter", ->
       ])
 
     it 'works on NOT filter', ->
-      expect(mapValueOf(FacetFilter.fromSpec({
+      expect(mapValueOf(FacetFilter.fromJS({
         type: 'not'
         filter: {
           type: 'or'
@@ -1509,20 +1509,20 @@ describe "FacetFilter", ->
           }
         ]
       }
-      filter1 = FacetFilter.fromSpec(filterSpec)
-      filter2 = FacetFilter.fromSpec(filterSpec)
+      filter1 = FacetFilter.fromJS(filterSpec)
+      filter2 = FacetFilter.fromJS(filterSpec)
       filterSpec.filters[0].value = 'Nevada'
-      filter3 = FacetFilter.fromSpec(filterSpec)
+      filter3 = FacetFilter.fromJS(filterSpec)
       expect(filter1.isEqual(filter2)).to.equal(true)
       expect(filter1.isEqual(filter3)).to.equal(false)
 
     it "works for dates", ->
-      filter1 = FacetFilter.fromSpec({
+      filter1 = FacetFilter.fromJS({
         type: 'within'
         attribute: 'time'
         range: [new Date("2013-02-26T00:00:00Z"), new Date("2013-02-27T00:00:00Z")]
       })
-      filter2 = FacetFilter.fromSpec({
+      filter2 = FacetFilter.fromJS({
         type: 'within'
         attribute: 'time'
         range: [new Date("2013-02-26T00:00:00Z"), new Date("2013-02-27T00:00:00Z")]
@@ -1580,7 +1580,7 @@ describe "FacetFilter", ->
           }
         ]
       }
-      expect(FacetFilter.fromSpec(filterSpec).getComplexity()).to.equal(10)
+      expect(FacetFilter.fromJS(filterSpec).getComplexity()).to.equal(10)
 
 
   describe "getFilterFn", ->
@@ -1590,14 +1590,14 @@ describe "FacetFilter", ->
         attribute: 'state'
         value: 'California'
       }
-      filterFn = FacetFilter.fromSpec(filterSpec).getFilterFn()
+      filterFn = FacetFilter.fromJS(filterSpec).getFilterFn()
       expect(filterFn({ state: 'California' })).to.equal(true)
       expect(filterFn({ state: 'Nevada' })).to.equal(false)
 
 
   describe "FacetFilter.filterDiff", ->
     it "computes a subset with IN filters", ->
-      subFilter = FacetFilter.fromSpec({
+      subFilter = FacetFilter.fromJS({
         type: 'and'
         filters: [
           {
@@ -1612,7 +1612,7 @@ describe "FacetFilter", ->
           }
         ]
       })
-      superFilter = FacetFilter.fromSpec({
+      superFilter = FacetFilter.fromJS({
         type: 'is'
         attribute: 'color'
         value: 'Red'
@@ -1630,7 +1630,7 @@ describe "FacetFilter", ->
       expect(diff).to.be.null
 
     it "computes a subset with CONTAINS filters", ->
-      subFilter = FacetFilter.fromSpec({
+      subFilter = FacetFilter.fromJS({
         type: 'and'
         filters: [
           {
@@ -1653,7 +1653,7 @@ describe "FacetFilter", ->
           }
         ]
       })
-      superFilter = FacetFilter.fromSpec({
+      superFilter = FacetFilter.fromJS({
         type: 'and'
         filters: [
           {

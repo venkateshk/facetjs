@@ -6,36 +6,36 @@ describe "AttributeMeta", ->
   describe "errors", ->
     it "missing type", ->
       attributeMetaSpec = {}
-      expect(-> AttributeMeta.fromSpec(attributeMetaSpec)).to.throw(Error, "type must be defined")
+      expect(-> AttributeMeta.fromJS(attributeMetaSpec)).to.throw(Error, "type must be defined")
 
     it "invalid type", ->
       attributeMetaSpec = { type: ['wtf?'] }
-      expect(-> AttributeMeta.fromSpec(attributeMetaSpec)).to.throw(Error, "type must be a string")
+      expect(-> AttributeMeta.fromJS(attributeMetaSpec)).to.throw(Error, "type must be a string")
 
     it "unknown type", ->
       attributeMetaSpec = { type: 'poo' }
-      expect(-> AttributeMeta.fromSpec(attributeMetaSpec)).to.throw(Error, "unsupported attributeMeta type 'poo'")
+      expect(-> AttributeMeta.fromJS(attributeMetaSpec)).to.throw(Error, "unsupported attributeMeta type 'poo'")
 
     it "non-numeric range size", ->
       attributeMetaSpec = {
         type: 'range'
         rangeSize: 'hello'
       }
-      expect(-> AttributeMeta.fromSpec(attributeMetaSpec)).to.throw(Error, "`rangeSize` must be a number")
+      expect(-> AttributeMeta.fromJS(attributeMetaSpec)).to.throw(Error, "`rangeSize` must be a number")
 
     it "bad range size (<1)", ->
       attributeMetaSpec = {
         type: 'range'
         rangeSize: 0.03
       }
-      expect(-> AttributeMeta.fromSpec(attributeMetaSpec)).to.throw(Error, "`rangeSize` less than 1 must divide 1")
+      expect(-> AttributeMeta.fromJS(attributeMetaSpec)).to.throw(Error, "`rangeSize` less than 1 must divide 1")
 
     it "bad range size (>1)", ->
       attributeMetaSpec = {
         type: 'range'
         rangeSize: 1.5
       }
-      expect(-> AttributeMeta.fromSpec(attributeMetaSpec)).to.throw(Error, "`rangeSize` greater than 1 must be an integer")
+      expect(-> AttributeMeta.fromJS(attributeMetaSpec)).to.throw(Error, "`rangeSize` greater than 1 must be an integer")
 
     it "bad digitsBeforeDecimal", ->
       attributeMetaSpec = {
@@ -43,7 +43,7 @@ describe "AttributeMeta", ->
         rangeSize: 0.05
         digitsBeforeDecimal: 0
       }
-      expect(-> AttributeMeta.fromSpec(attributeMetaSpec)).to.throw(Error, "`digitsBeforeDecimal` must be a positive integer")
+      expect(-> AttributeMeta.fromJS(attributeMetaSpec)).to.throw(Error, "`digitsBeforeDecimal` must be a positive integer")
 
     it "bad digitsAfterDecimal", ->
       attributeMetaSpec = {
@@ -51,7 +51,7 @@ describe "AttributeMeta", ->
         rangeSize: 0.05
         digitsAfterDecimal: 1.5
       }
-      expect(-> AttributeMeta.fromSpec(attributeMetaSpec)).to.throw(Error, "`digitsAfterDecimal` must be a positive integer")
+      expect(-> AttributeMeta.fromJS(attributeMetaSpec)).to.throw(Error, "`digitsAfterDecimal` must be a positive integer")
 
     it "digitsAfterDecimal too small", ->
       attributeMetaSpec = {
@@ -59,7 +59,7 @@ describe "AttributeMeta", ->
         rangeSize: 0.05
         digitsAfterDecimal: 1
       }
-      expect(-> AttributeMeta.fromSpec(attributeMetaSpec)).to.throw(Error, "`digitsAfterDecimal` must be at least 2 to accommodate for a `rangeSize` of 0.05")
+      expect(-> AttributeMeta.fromJS(attributeMetaSpec)).to.throw(Error, "`digitsAfterDecimal` must be at least 2 to accommodate for a `rangeSize` of 0.05")
 
 
   describe "preserves", ->
@@ -67,20 +67,20 @@ describe "AttributeMeta", ->
       attributeMetaSpec = {
         type: 'default'
       }
-      expect(AttributeMeta.fromSpec(attributeMetaSpec).valueOf()).to.deep.equal(attributeMetaSpec)
+      expect(AttributeMeta.fromJS(attributeMetaSpec).valueOf()).to.deep.equal(attributeMetaSpec)
 
     it "unique", ->
       attributeMetaSpec = {
         type: 'unique'
       }
-      expect(AttributeMeta.fromSpec(attributeMetaSpec).valueOf()).to.deep.equal(attributeMetaSpec)
+      expect(AttributeMeta.fromJS(attributeMetaSpec).valueOf()).to.deep.equal(attributeMetaSpec)
 
     it "range (simple)", ->
       attributeMetaSpec = {
         type: 'range'
         rangeSize: 0.05
       }
-      expect(AttributeMeta.fromSpec(attributeMetaSpec).valueOf()).to.deep.equal(attributeMetaSpec)
+      expect(AttributeMeta.fromJS(attributeMetaSpec).valueOf()).to.deep.equal(attributeMetaSpec)
 
     it "range with digitsAfterDecima", ->
       attributeMetaSpec = {
@@ -89,7 +89,7 @@ describe "AttributeMeta", ->
         separator: ' - '
         digitsAfterDecimal: 2
       }
-      expect(AttributeMeta.fromSpec(attributeMetaSpec).valueOf()).to.deep.equal(attributeMetaSpec)
+      expect(AttributeMeta.fromJS(attributeMetaSpec).valueOf()).to.deep.equal(attributeMetaSpec)
 
 
   describe "serialize", ->
@@ -98,7 +98,7 @@ describe "AttributeMeta", ->
         type: 'range'
         rangeSize: 0.05
       }
-      attributeMeta = AttributeMeta.fromSpec(attributeMetaSpec)
+      attributeMeta = AttributeMeta.fromJS(attributeMetaSpec)
       expect(attributeMeta.serialize([0.05, 0.1])).to.equal('0.05;0.1')
       expect(attributeMeta.serialize([null, 0])).to.equal(';0')
       expect(attributeMeta.serialize([100, null])).to.equal('100;')
@@ -110,7 +110,7 @@ describe "AttributeMeta", ->
         separator: '::'
         digitsAfterDecimal: 2
       }
-      attributeMeta = AttributeMeta.fromSpec(attributeMetaSpec)
+      attributeMeta = AttributeMeta.fromJS(attributeMetaSpec)
       expect(attributeMeta.serialize([0.05, 0.1])).to.equal('0.05::0.10')
       expect(attributeMeta.serialize([null, 0])).to.equal('::0.00')
       expect(attributeMeta.serialize([100, null])).to.equal('100.00::')
@@ -123,7 +123,7 @@ describe "AttributeMeta", ->
         digitsBeforeDecimal: 4
         digitsAfterDecimal: 3
       }
-      attributeMeta = AttributeMeta.fromSpec(attributeMetaSpec)
+      attributeMeta = AttributeMeta.fromJS(attributeMetaSpec)
       expect(attributeMeta.serialize([0.05, 0.1])).to.equal('0000.050/0000.100')
       expect(attributeMeta.serialize([null, 0])).to.equal('/0000.000')
       expect(attributeMeta.serialize([100, null])).to.equal('0100.000/')
@@ -132,7 +132,7 @@ describe "AttributeMeta", ->
       attributeMetaSpec = {
         type: 'unique'
       }
-      attributeMeta = AttributeMeta.fromSpec(attributeMetaSpec)
+      attributeMeta = AttributeMeta.fromJS(attributeMetaSpec)
       expect(-> attributeMeta.serialize('lol')).to.throw(Error, 'can not serialize an approximate unique value')
 
 
@@ -142,7 +142,7 @@ describe "AttributeMeta", ->
         type: 'range'
         size: 0.05
       }
-      expect(AttributeMeta.fromSpec(attributeMetaSpec).valueOf()).to.deep.equal({
+      expect(AttributeMeta.fromJS(attributeMetaSpec).valueOf()).to.deep.equal({
         type: 'range'
         rangeSize: 0.05
       })

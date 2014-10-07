@@ -36,7 +36,7 @@ class FacetCombine
 
 class SliceCombine extends FacetCombine
   constructor: ({@method, @sort, limit}) ->
-    @sort = FacetSort.fromSpec(@sort)
+    @sort = FacetSort.fromJS(@sort)
     @_ensureMethod('slice')
     if limit?
       throw new TypeError('limit must be a number') if isNaN(limit)
@@ -57,7 +57,7 @@ class SliceCombine extends FacetCombine
 
 class MatrixCombine extends FacetCombine
   constructor: ({@method, @sort, @limits}) ->
-    @sort = FacetSort.fromSpec(@sort)
+    @sort = FacetSort.fromJS(@sort)
     @_ensureMethod('matrix')
     throw new TypeError("limits must be an array") unless Array.isArray(@limits)
 
@@ -81,7 +81,7 @@ combineConstructorMap = {
 }
 
 
-FacetCombine.fromSpec = (combineSpec) ->
+FacetCombine.fromJS = (combineSpec) ->
   return combineSpec if isInstanceOf(combineSpec, FacetCombine)
   throw new Error("unrecognizable combine") unless typeof combineSpec is 'object'
   combineSpec.method ?= combineSpec.combine # ToDo: remove this. combineSpec.combine is a backwards compat. hack, remove it.

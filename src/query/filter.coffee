@@ -51,7 +51,7 @@ arrayCompare = (arr1, arr2) ->
   return 0
 
 
-filterSortTypePresedence = {
+filterSortTypePrecedence = {
   'true': -2
   'false': -1
   'within': 0
@@ -64,7 +64,7 @@ filterSortTypePresedence = {
   'or': 3
 }
 
-filterSortTypeSubPresedence = {
+filterSortTypeSubPrecedence = {
   'within': 0
   'in': 1
   'not in': 2
@@ -120,19 +120,19 @@ class FacetFilter
     filter1SortType = filter1._getSortType()
     filter2SortType = filter2._getSortType()
 
-    presedence1 = filterSortTypePresedence[filter1SortType]
-    presedence2 = filterSortTypePresedence[filter2SortType]
-    presedenceDiff = presedence1 - presedence2
-    return presedenceDiff if presedenceDiff isnt 0 or presedence1 > 0
+    precedence1 = filterSortTypePrecedence[filter1SortType]
+    precedence2 = filterSortTypePrecedence[filter2SortType]
+    precedenceDiff = precedence1 - precedence2
+    return precedenceDiff if precedenceDiff isnt 0 or precedence1 > 0
 
     # We are left with 'within', 'is', 'in', 'contains', 'match' at this point
     # Sort by attribute
     attributeDiff = compare(filter1.attribute, filter2.attribute)
     return attributeDiff if attributeDiff isnt 0
 
-    # Same attribute, sort by subPresedence
-    presedenceDiff = filterSortTypeSubPresedence[filter1SortType] - filterSortTypeSubPresedence[filter2SortType]
-    return presedenceDiff if presedenceDiff isnt 0
+    # Same attribute, sort by subPrecedence
+    precedenceDiff = filterSortTypeSubPrecedence[filter1SortType] - filterSortTypeSubPrecedence[filter2SortType]
+    return precedenceDiff if precedenceDiff isnt 0
 
     # Same attribute, same type, sort by specifics
     switch filter1SortType
@@ -182,7 +182,7 @@ class FacetFilter
   operation: 'filter'
 
   constructor: ({@type}, dummy) ->
-    throw new TypeError("can not call `new FacetFilter` directly use FacetFilter.fromSpec instead") unless dummy is dummyObject
+    throw new TypeError("can not call `new FacetFilter` directly use FacetFilter.fromJS instead") unless dummy is dummyObject
 
   _ensureType: (filterType) ->
     if not @type
@@ -202,7 +202,9 @@ class FacetFilter
   valueOf: ->
     return { type: @type }
 
-  toJSON: -> @valueOf.apply(this, arguments)
+  toJS: -> @valueOf()
+
+  toJSON: -> @toJS()
 
   isEqual: (other) ->
     return Boolean(other) and @type is other.type and @attribute is other.attribute
@@ -437,7 +439,7 @@ class NotFilter extends FacetFilter
   constructor: (arg) ->
     if not isInstanceOf(arg, FacetFilter)
       super(arg, dummyObject)
-      @filter = FacetFilter.fromSpec(arg.filter)
+      @filter = FacetFilter.fromJS(arg.filter)
     else
       @filter = arg
     @_ensureType('not')
@@ -503,7 +505,7 @@ class AndFilter extends FacetFilter
     if not Array.isArray(arg)
       super(arg, dummyObject)
       throw new TypeError('filters must be an array') unless Array.isArray(arg.filters)
-      @filters = arg.filters.map(FacetFilter.fromSpec)
+      @filters = arg.filters.map(FacetFilter.fromJS)
     else
       @filters = arg
 
@@ -646,7 +648,7 @@ class OrFilter extends FacetFilter
     if not Array.isArray(arg)
       super(arg, dummyObject)
       throw new TypeError('filters must be an array') unless Array.isArray(arg.filters)
-      @filters = arg.filters.map(FacetFilter.fromSpec)
+      @filters = arg.filters.map(FacetFilter.fromJS)
     else
       @filters = arg
 
@@ -845,7 +847,7 @@ filterConstructorMap = {
   "or": OrFilter
 }
 
-FacetFilter.fromSpec = (filterSpec) ->
+FacetFilter.fromJS = (filterSpec) ->
   return filterSpec if isInstanceOf(filterSpec, FacetFilter)
   throw new Error("unrecognizable filter") unless typeof filterSpec is 'object'
   throw new Error("type must be defined") unless filterSpec.hasOwnProperty('type')

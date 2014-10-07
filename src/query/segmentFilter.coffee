@@ -120,7 +120,7 @@ class NotSegmentFilter extends FacetSegmentFilter
   constructor: (arg) ->
     if not isInstanceOf(arg, FacetFilter)
       {@type, @filter} = arg
-      @filter = FacetSegmentFilter.fromSpec(@filter)
+      @filter = FacetSegmentFilter.fromJS(@filter)
     else
       @filter = arg
     @_ensureType('not')
@@ -145,7 +145,7 @@ class AndSegmentFilter extends FacetSegmentFilter
     if not Array.isArray(arg)
       {@type, @filters} = arg
       throw new TypeError('filters must be an array') unless Array.isArray(@filters)
-      @filters = @filters.map(FacetSegmentFilter.fromSpec)
+      @filters = @filters.map(FacetSegmentFilter.fromJS)
     else
       @filters = arg
 
@@ -180,7 +180,7 @@ class OrSegmentFilter extends FacetSegmentFilter
     if not Array.isArray(arg)
       {@type, @filters} = arg
       throw new TypeError('filters must be an array') unless Array.isArray(@filters)
-      @filters = @filters.map(FacetSegmentFilter.fromSpec)
+      @filters = @filters.map(FacetSegmentFilter.fromJS)
     else
       @filters = arg
 
@@ -223,7 +223,7 @@ segmentFilterConstructorMap = {
   "or": OrSegmentFilter
 }
 
-FacetSegmentFilter.fromSpec = (segmentFilterSpec) ->
+FacetSegmentFilter.fromJS = (segmentFilterSpec) ->
   return segmentFilterSpec if isInstanceOf(segmentFilterSpec, FacetSegmentFilter)
   throw new Error("unrecognizable segment filter") unless typeof segmentFilterSpec is 'object'
   throw new Error("type must be defined") unless segmentFilterSpec.hasOwnProperty('type')

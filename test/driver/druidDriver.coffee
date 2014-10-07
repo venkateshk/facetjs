@@ -25,7 +25,7 @@ describe "Druid driver", ->
         dataSource: 'some_data'
         timeAttribute: 'time'
         attributeMetas: {
-          price_range: AttributeMeta.fromSpec({
+          price_range: AttributeMeta.fromJS({
             type: 'range'
             separator: '|'
             rangeSize: 0.05
@@ -36,7 +36,7 @@ describe "Druid driver", ->
         context: {}
       })
 
-      queryBuilder.addSplit(FacetSplit.fromSpec({
+      queryBuilder.addSplit(FacetSplit.fromJS({
         name: 'PriceRange'
         bucket: 'identity'
         attribute: 'price_range'
@@ -82,7 +82,7 @@ describe "Druid driver", ->
         dataSource: 'some_data'
         timeAttribute: 'time'
         attributeMetas: {
-          price_range: AttributeMeta.fromSpec({
+          price_range: AttributeMeta.fromJS({
             type: 'range'
             separator: '|'
             rangeSize: 0.05
@@ -94,7 +94,7 @@ describe "Druid driver", ->
         context: {}
       })
 
-      queryBuilder.addSplit(FacetSplit.fromSpec({
+      queryBuilder.addSplit(FacetSplit.fromJS({
         name: 'PriceRange'
         bucket: 'identity'
         attribute: 'price_range'
@@ -135,7 +135,7 @@ describe "Druid driver", ->
         dataSource: 'some_data'
         timeAttribute: 'time'
         attributeMetas: {
-          price_range: AttributeMeta.fromSpec({
+          price_range: AttributeMeta.fromJS({
             type: 'range'
             separator: '|'
             rangeSize: 0.05
@@ -147,7 +147,7 @@ describe "Druid driver", ->
         context: {}
       })
 
-      queryBuilder.addSplit(FacetSplit.fromSpec({
+      queryBuilder.addSplit(FacetSplit.fromJS({
         name: 'PriceRange'
         bucket: 'identity'
         attribute: 'price_range'
@@ -399,7 +399,7 @@ describe "Druid driver", ->
       timeAttribute: 'time'
       approximate: true
       forceInterval: true
-      filter: FacetFilter.fromSpec(filterSpec)
+      filter: FacetFilter.fromJS(filterSpec)
     })
 
     it "should get back the same result", (done) ->
@@ -486,7 +486,7 @@ describe "Druid driver", ->
       timeAttribute: 'time'
       approximate: true
       forceInterval: true
-      filter: FacetFilter.fromSpec({
+      filter: FacetFilter.fromJS({
         type: 'within'
         attribute: 'time'
         range: [
@@ -915,7 +915,7 @@ describe "Druid driver", ->
       timeAttribute: 'time'
       approximate: true
       attributeMetas: {
-        page: AttributeMeta.fromSpec({
+        page: AttributeMeta.fromJS({
           type: 'large'
         })
       }

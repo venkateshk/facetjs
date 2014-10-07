@@ -11,7 +11,7 @@ class FacetApply
   operation: 'apply'
 
   constructor: ({dataset, operands}, datasetContext, dummy) ->
-    throw new TypeError("can not call `new FacetApply` directly use FacetApply.fromSpec instead") unless dummy is dummyObject
+    throw new TypeError("can not call `new FacetApply` directly use FacetApply.fromJS instead") unless dummy is dummyObject
 
     datasetContext or= DEFAULT_DATASET
     if dataset and datasetContext isnt DEFAULT_DATASET and dataset isnt datasetContext
@@ -105,7 +105,7 @@ class FacetApply
   addName: (name) ->
     applySpec = @valueOf()
     applySpec.name = name
-    return FacetApply.fromSpec(applySpec)
+    return FacetApply.fromJS(applySpec)
 
   getDataset: ->
     if @operands
@@ -175,7 +175,7 @@ class CountApply extends FacetApply
   constructor: ({name, @aggregate, filter, options}, datasetContext) ->
     super(arguments[0], datasetContext, dummyObject)
     @name = name if name
-    @filter = FacetFilter.fromSpec(filter) if filter
+    @filter = FacetFilter.fromJS(filter) if filter
     @options = new FacetOptions(options) if options
     @_ensureAggregate('count')
     @_verifyName()
@@ -197,7 +197,7 @@ class SumApply extends FacetApply
   constructor: ({name, @aggregate, @attribute, filter, options}, datasetContext) ->
     super(arguments[0], datasetContext, dummyObject)
     @name = name if name
-    @filter = FacetFilter.fromSpec(filter) if filter
+    @filter = FacetFilter.fromJS(filter) if filter
     @options = new FacetOptions(options) if options
     @_ensureAggregate('sum')
     @_verifyName()
@@ -225,7 +225,7 @@ class AverageApply extends FacetApply
   constructor: ({name, @aggregate, @attribute, filter, options}, datasetContext) ->
     super(arguments[0], datasetContext, dummyObject)
     @name = name if name
-    @filter = FacetFilter.fromSpec(filter) if filter
+    @filter = FacetFilter.fromJS(filter) if filter
     @options = new FacetOptions(options) if options
     @_ensureAggregate('average')
     @_verifyName()
@@ -259,7 +259,7 @@ class MinApply extends FacetApply
   constructor: ({name, @aggregate, @attribute, filter, options}, datasetContext) ->
     super(arguments[0], datasetContext, dummyObject)
     @name = name if name
-    @filter = FacetFilter.fromSpec(filter) if filter
+    @filter = FacetFilter.fromJS(filter) if filter
     @options = new FacetOptions(options) if options
     @_ensureAggregate('min')
     @_verifyName()
@@ -284,7 +284,7 @@ class MaxApply extends FacetApply
   constructor: ({name, @aggregate, @attribute, filter, options}, datasetContext) ->
     super(arguments[0], datasetContext, dummyObject)
     @name = name if name
-    @filter = FacetFilter.fromSpec(filter) if filter
+    @filter = FacetFilter.fromJS(filter) if filter
     @options = new FacetOptions(options) if options
     @_ensureAggregate('max')
     @_verifyName()
@@ -309,7 +309,7 @@ class UniqueCountApply extends FacetApply
   constructor: ({name, @aggregate, @attribute, filter, options}, datasetContext) ->
     super(arguments[0], datasetContext, dummyObject)
     @name = name if name
-    @filter = FacetFilter.fromSpec(filter) if filter
+    @filter = FacetFilter.fromJS(filter) if filter
     @options = new FacetOptions(options) if options
     @_ensureAggregate('uniqueCount')
     @_verifyName()
@@ -479,7 +479,7 @@ applyFromSpec = (applySpec, datasetContext) ->
     throw new Error("must have an aggregate or arithmetic")
   return new ApplyConstructor(applySpec, datasetContext)
 
-FacetApply.fromSpec = (applySpec) ->
+FacetApply.fromJS = (applySpec) ->
   return applyFromSpec(applySpec)
 
 

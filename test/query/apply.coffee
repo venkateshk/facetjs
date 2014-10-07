@@ -6,49 +6,49 @@ describe "FacetApply", ->
   describe "error", ->
     it "throws on bad input", ->
       applySpec = "hello world"
-      expect(-> FacetApply.fromSpec(applySpec)).to.throw(Error, "unrecognizable apply")
+      expect(-> FacetApply.fromJS(applySpec)).to.throw(Error, "unrecognizable apply")
 
     it "throws on no aggregate or arithmetic", ->
       applySpec = {}
-      expect(-> FacetApply.fromSpec(applySpec)).to.throw(Error, "must have an aggregate or arithmetic")
+      expect(-> FacetApply.fromJS(applySpec)).to.throw(Error, "must have an aggregate or arithmetic")
 
     it "throws on bad aggregate", ->
       applySpec = { aggregate: ['wtf?'] }
-      expect(-> FacetApply.fromSpec(applySpec)).to.throw(Error, "aggregate must be a string")
+      expect(-> FacetApply.fromJS(applySpec)).to.throw(Error, "aggregate must be a string")
 
     it "throws on bad arithmetic", ->
       applySpec = { arithmetic: ['wtf?'] }
-      expect(-> FacetApply.fromSpec(applySpec)).to.throw(Error, "arithmetic must be a string")
+      expect(-> FacetApply.fromJS(applySpec)).to.throw(Error, "arithmetic must be a string")
 
     it "throws on unknown aggregate", ->
       applySpec = { aggregate: 'poo' }
-      expect(-> FacetApply.fromSpec(applySpec)).to.throw(Error, "unsupported aggregate 'poo'")
+      expect(-> FacetApply.fromJS(applySpec)).to.throw(Error, "unsupported aggregate 'poo'")
 
     it "throws on unknown arithmetic", ->
       applySpec = { arithmetic: 'poo' }
-      expect(-> FacetApply.fromSpec(applySpec)).to.throw(Error, "unsupported arithmetic 'poo'")
+      expect(-> FacetApply.fromJS(applySpec)).to.throw(Error, "unsupported arithmetic 'poo'")
 
     it "throws on bad name", ->
       applySpec = { aggregate: 'count', name: ["wtf?"] }
-      expect(-> FacetApply.fromSpec(applySpec)).to.throw(Error, "apply name must be a string")
+      expect(-> FacetApply.fromJS(applySpec)).to.throw(Error, "apply name must be a string")
 
     it "throws on bad attribute", ->
       applySpec = { aggregate: 'sum', attribute: ["wtf?"] }
-      expect(-> FacetApply.fromSpec(applySpec)).to.throw(Error, "attribute must be a string")
+      expect(-> FacetApply.fromJS(applySpec)).to.throw(Error, "attribute must be a string")
 
     it "throws on constant without value", ->
       applySpec = { name: "Const", aggregate: 'constant' }
-      expect(-> FacetApply.fromSpec(applySpec)).to.throw(Error, "constant apply must have a numeric value")
+      expect(-> FacetApply.fromJS(applySpec)).to.throw(Error, "constant apply must have a numeric value")
 
     it "throws on constant with bad value", ->
       applySpec = { name: "Const", aggregate: 'constant', value: null }
-      expect(-> FacetApply.fromSpec(applySpec)).to.throw(Error, "constant apply must have a numeric value")
+      expect(-> FacetApply.fromJS(applySpec)).to.throw(Error, "constant apply must have a numeric value")
 
       applySpec = { name: "Const", aggregate: 'constant', value: NaN }
-      expect(-> FacetApply.fromSpec(applySpec)).to.throw(Error, "constant apply must have a numeric value")
+      expect(-> FacetApply.fromJS(applySpec)).to.throw(Error, "constant apply must have a numeric value")
 
       applySpec = { name: "Const", aggregate: 'constant', value: "wtf?" }
-      expect(-> FacetApply.fromSpec(applySpec)).to.throw(Error, "constant apply must have a numeric value")
+      expect(-> FacetApply.fromJS(applySpec)).to.throw(Error, "constant apply must have a numeric value")
 
     it "throws on on dataset conflict", ->
       applySpec = {
@@ -77,7 +77,7 @@ describe "FacetApply", ->
           }
         ]
       }
-      expect(-> FacetApply.fromSpec(applySpec)).to.throw(Error, "dataset conflict between 'somedata' and 'otherdata'")
+      expect(-> FacetApply.fromJS(applySpec)).to.throw(Error, "dataset conflict between 'somedata' and 'otherdata'")
 
 
   describe "preserves", ->
@@ -87,7 +87,7 @@ describe "FacetApply", ->
         aggregate: 'constant'
         value: 42
       }
-      expect(FacetApply.fromSpec(applySpec).valueOf()).to.deep.equal(applySpec)
+      expect(FacetApply.fromJS(applySpec).valueOf()).to.deep.equal(applySpec)
 
     it "constant with dataset", ->
       applySpec = {
@@ -96,7 +96,7 @@ describe "FacetApply", ->
         aggregate: 'constant'
         value: 42
       }
-      expect(FacetApply.fromSpec(applySpec).valueOf()).to.deep.equal({
+      expect(FacetApply.fromJS(applySpec).valueOf()).to.deep.equal({
         name: "Count"
         aggregate: 'constant'
         value: 42
@@ -107,7 +107,7 @@ describe "FacetApply", ->
         name: "Count"
         aggregate: 'count'
       }
-      expect(FacetApply.fromSpec(applySpec).valueOf()).to.deep.equal(applySpec)
+      expect(FacetApply.fromJS(applySpec).valueOf()).to.deep.equal(applySpec)
 
     it "count with dataset", ->
       applySpec = {
@@ -115,7 +115,7 @@ describe "FacetApply", ->
         dataset: 'mydata'
         aggregate: 'count'
       }
-      expect(FacetApply.fromSpec(applySpec).valueOf()).to.deep.equal(applySpec)
+      expect(FacetApply.fromJS(applySpec).valueOf()).to.deep.equal(applySpec)
 
     it "quantile", ->
       applySpec = {
@@ -129,7 +129,7 @@ describe "FacetApply", ->
           druidResolution: 200
         }
       }
-      expect(FacetApply.fromSpec(applySpec).valueOf()).to.deep.equal(applySpec)
+      expect(FacetApply.fromJS(applySpec).valueOf()).to.deep.equal(applySpec)
 
     it "complex", ->
       applySpec = {
@@ -155,7 +155,7 @@ describe "FacetApply", ->
           }
         ]
       }
-      expect(FacetApply.fromSpec(applySpec).valueOf()).to.deep.equal(applySpec)
+      expect(FacetApply.fromJS(applySpec).valueOf()).to.deep.equal(applySpec)
 
     it "filtered", ->
       applySpec = {
@@ -163,7 +163,7 @@ describe "FacetApply", ->
         aggregate: "sum", attribute: "count"
         filter: { type: 'is', attribute: "robot", value: "0" }
       }
-      expect(FacetApply.fromSpec(applySpec).valueOf()).to.deep.equal(applySpec)
+      expect(FacetApply.fromJS(applySpec).valueOf()).to.deep.equal(applySpec)
 
     it "constant dataset", ->
       applySpec = {
@@ -172,7 +172,7 @@ describe "FacetApply", ->
         value: 3600
         dataset: 'somedata'
       }
-      expect(FacetApply.fromSpec(applySpec).valueOf()).to.deep.equal({
+      expect(FacetApply.fromJS(applySpec).valueOf()).to.deep.equal({
         name: 'Const'
         aggregate: "constant"
         value: 3600
@@ -205,7 +205,7 @@ describe "FacetApply", ->
           }
         ]
       }
-      expect(FacetApply.fromSpec(applySpec).valueOf()).to.deep.equal({
+      expect(FacetApply.fromJS(applySpec).valueOf()).to.deep.equal({
         name: "lag"
         arithmetic: "divide"
         dataset: "somedata"
@@ -239,7 +239,7 @@ describe "FacetApply", ->
           { dataset: 'robots', aggregate: 'sum', attribute: 'count' }
         ]
       }
-      expect(FacetApply.fromSpec(applySpec).valueOf()).to.deep.equal(applySpec)
+      expect(FacetApply.fromJS(applySpec).valueOf()).to.deep.equal(applySpec)
 
 
   describe "toString", ->
@@ -267,7 +267,7 @@ describe "FacetApply", ->
           }
         ]
       }
-      expect(FacetApply.fromSpec(applySpec).toString()).to.equal("lag <- (sum(`value`) / sum(`count`)) / 3600")
+      expect(FacetApply.fromJS(applySpec).toString()).to.equal("lag <- (sum(`value`) / sum(`count`)) / 3600")
 
     it "complex multiply", ->
       applySpec = {
@@ -293,11 +293,11 @@ describe "FacetApply", ->
           }
         ]
       }
-      expect(FacetApply.fromSpec(applySpec).toString()).to.equal("lag <- sum(`value`) * sum(`count`) * 3600")
+      expect(FacetApply.fromJS(applySpec).toString()).to.equal("lag <- sum(`value`) * sum(`count`) * 3600")
 
   describe "isEqual", ->
     it "returns false for other types", ->
-      expect(FacetApply.fromSpec({aggregate: 'count'}).isEqual(null)).to.be.false
+      expect(FacetApply.fromJS({aggregate: 'count'}).isEqual(null)).to.be.false
 
     it "each pair is only equal to itself", ->
       applySpecs = [
@@ -382,11 +382,11 @@ describe "FacetApply", ->
       for applySpec1, i in applySpecs
         for applySpec2, j in applySpecs
           try
-            expect(FacetApply.fromSpec(applySpec1).isEqual(FacetApply.fromSpec(applySpec2))).to.equal(i is j)
+            expect(FacetApply.fromJS(applySpec1).isEqual(FacetApply.fromJS(applySpec2))).to.equal(i is j)
           catch e
             console.log 'applySpec1', applySpec1
             console.log 'applySpec2', applySpec2
-            console.log 'res', FacetApply.fromSpec(applySpec1).isEqual(FacetApply.fromSpec(applySpec2))
+            console.log 'res', FacetApply.fromJS(applySpec1).isEqual(FacetApply.fromJS(applySpec2))
             throw new Error("expected apply to be #{if i is j then 'equal' else 'unequal'}")
 
 
@@ -396,20 +396,20 @@ describe "FacetApply", ->
         aggregate: "constant"
         value: 3600
       }
-      expect(FacetApply.fromSpec(applySpec).getAttributes()).to.deep.equal([])
+      expect(FacetApply.fromJS(applySpec).getAttributes()).to.deep.equal([])
 
     it "works on count", ->
       applySpec = {
         aggregate: "count"
       }
-      expect(FacetApply.fromSpec(applySpec).getAttributes()).to.deep.equal([])
+      expect(FacetApply.fromJS(applySpec).getAttributes()).to.deep.equal([])
 
     it "works on basic example", ->
       applySpec = {
         aggregate: "sum"
         attribute: "count"
       }
-      expect(FacetApply.fromSpec(applySpec).getAttributes()).to.deep.equal(["count"])
+      expect(FacetApply.fromJS(applySpec).getAttributes()).to.deep.equal(["count"])
 
     it "works on a complex example", ->
       applySpec = {
@@ -425,7 +425,7 @@ describe "FacetApply", ->
           }
         ]
       }
-      expect(FacetApply.fromSpec(applySpec).getAttributes()).to.deep.equal(["count", "value"])
+      expect(FacetApply.fromJS(applySpec).getAttributes()).to.deep.equal(["count", "value"])
 
     it "works on an overlapping complex example", ->
       applySpec = {
@@ -441,7 +441,7 @@ describe "FacetApply", ->
           }
         ]
       }
-      expect(FacetApply.fromSpec(applySpec).getAttributes()).to.deep.equal(["value"])
+      expect(FacetApply.fromJS(applySpec).getAttributes()).to.deep.equal(["value"])
 
     it "works in a deep nested example", ->
       applySpec = {
@@ -466,7 +466,7 @@ describe "FacetApply", ->
           }
         ]
       }
-      expect(FacetApply.fromSpec(applySpec).getAttributes()).to.deep.equal(["count", "value"])
+      expect(FacetApply.fromJS(applySpec).getAttributes()).to.deep.equal(["count", "value"])
 
   describe "getDataset", ->
     it "basically works", ->
@@ -476,7 +476,7 @@ describe "FacetApply", ->
         attribute: "value"
         dataset: 'somedata'
       }
-      expect(FacetApply.fromSpec(applySpec).getDataset()).to.equal('somedata')
+      expect(FacetApply.fromJS(applySpec).getDataset()).to.equal('somedata')
 
     it "works for arithmetic applies", ->
       applySpec = {
@@ -496,7 +496,7 @@ describe "FacetApply", ->
           }
         ]
       }
-      apply = FacetApply.fromSpec(applySpec)
+      apply = FacetApply.fromJS(applySpec)
       expect(apply.getDataset()).to.equal('good-cut')
       expect(apply.getDatasets()).to.deep.equal(['good-cut', 'ideal-cut'])
 
@@ -516,7 +516,7 @@ describe "FacetApply", ->
           }
         ]
       }
-      apply = FacetApply.fromSpec(applySpec)
+      apply = FacetApply.fromJS(applySpec)
       expect(apply.getDataset()).to.equal('somedata')
       expect(apply.operands[0].getDataset()).to.equal('somedata')
       expect(apply.operands[0].valueOf()).to.deep.equal({

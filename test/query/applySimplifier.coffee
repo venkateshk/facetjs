@@ -30,7 +30,7 @@ describe "ApplySimplifier", ->
         breakToSimple: true
         topLevelConstant: 'leave'
       })
-      applySimplifier.addApplies(applySpecs.map(FacetApply.fromSpec))
+      applySimplifier.addApplies(applySpecs.map(FacetApply.fromJS))
 
       expect(applySimplifier.getSimpleApplies().map(getValueOf)).to.deep.equal(
         applySpecs
@@ -48,7 +48,7 @@ describe "ApplySimplifier", ->
         breakToSimple: true
         topLevelConstant: 'process'
       })
-      applySimplifier.addApplies(applySpecs.map(FacetApply.fromSpec))
+      applySimplifier.addApplies(applySpecs.map(FacetApply.fromJS))
 
       expect(applySimplifier.getSimpleApplies().map(getValueOf)).to.deep.equal(
         applySpecs.slice(0, 1)
@@ -67,7 +67,7 @@ describe "ApplySimplifier", ->
         breakToSimple: true
         breakAverage: true
       })
-      applySimplifier.addApplies(applySpecs.map(FacetApply.fromSpec))
+      applySimplifier.addApplies(applySpecs.map(FacetApply.fromJS))
 
       expect(applySimplifier.getSimpleApplies().map(getValueOf)).to.deep.equal([
         {
@@ -102,7 +102,7 @@ describe "ApplySimplifier", ->
         breakAverage: true
         topLevelConstant: 'leave'
       })
-      applySimplifier.addApplies(applySpecs.map(FacetApply.fromSpec))
+      applySimplifier.addApplies(applySpecs.map(FacetApply.fromJS))
 
       expect(applySimplifier.getSimpleApplies().map(getValueOf)).to.deep.equal([
         {
@@ -152,7 +152,7 @@ describe "ApplySimplifier", ->
         breakToSimple: true
         topLevelConstant: 'process'
       })
-      applySimplifier.addApplies(applySpecs.map(FacetApply.fromSpec))
+      applySimplifier.addApplies(applySpecs.map(FacetApply.fromJS))
 
       expect(applySimplifier.getSimpleApplies().map((d) -> d.valueOf())).to.deep.equal([
         {
@@ -206,7 +206,7 @@ describe "ApplySimplifier", ->
         breakToSimple: true
         topLevelConstant: 'process'
       })
-      applySimplifier.addApplies(applySpecs.map(FacetApply.fromSpec))
+      applySimplifier.addApplies(applySpecs.map(FacetApply.fromJS))
 
       expect(applySimplifier.getSimpleApplies().map((d) -> d.valueOf())).to.deep.equal([
         {
@@ -258,7 +258,7 @@ describe "ApplySimplifier", ->
         breakToSimple: true
         topLevelConstant: 'leave'
       })
-      applySimplifier.addApplies(applySpecs.map(FacetApply.fromSpec))
+      applySimplifier.addApplies(applySpecs.map(FacetApply.fromJS))
 
       expect(applySimplifier.getSimpleApplies().map((d) -> d.valueOf())).to.deep.equal([
         {
@@ -285,7 +285,7 @@ describe "ApplySimplifier", ->
       ]
 
       applySimplifier = new ApplySimplifier()
-      applySimplifier.addApplies(applySpecs.map(FacetApply.fromSpec))
+      applySimplifier.addApplies(applySpecs.map(FacetApply.fromJS))
 
       appliesByDataset = applySimplifier.getSimpleAppliesByDataset()
       postProcessors = applySimplifier.getPostProcessors()
@@ -316,7 +316,7 @@ describe "ApplySimplifier", ->
       ]
 
       applySimplifier = new ApplySimplifier()
-      applySimplifier.addApplies(applySpecs.map(FacetApply.fromSpec))
+      applySimplifier.addApplies(applySpecs.map(FacetApply.fromJS))
 
       appliesByDataset = applySimplifier.getSimpleAppliesByDataset()
       postProcessors = applySimplifier.getPostProcessors()
@@ -347,7 +347,7 @@ describe "ApplySimplifier", ->
       ]
 
       applySimplifier = new ApplySimplifier()
-      applySimplifier.addApplies(applySpecs.map(FacetApply.fromSpec))
+      applySimplifier.addApplies(applySpecs.map(FacetApply.fromJS))
 
       appliesByDataset = applySimplifier.getSimpleAppliesByDataset()
       postProcessors = applySimplifier.getPostProcessors()
@@ -372,7 +372,7 @@ describe "ApplySimplifier", ->
       ]
 
       applySimplifier = new ApplySimplifier()
-      applySimplifier.addApplies(applySpecs.map(FacetApply.fromSpec))
+      applySimplifier.addApplies(applySpecs.map(FacetApply.fromJS))
 
       appliesByDataset = applySimplifier.getSimpleAppliesByDataset()
       postProcessors = applySimplifier.getPostProcessors()
@@ -419,7 +419,7 @@ describe "ApplySimplifier", ->
       ]
 
       applySimplifier = new ApplySimplifier()
-      applySimplifier.addApplies(applySpecs.map(FacetApply.fromSpec))
+      applySimplifier.addApplies(applySpecs.map(FacetApply.fromJS))
 
       appliesByDataset = applySimplifier.getSimpleAppliesByDataset()
       postProcessors = applySimplifier.getPostProcessors()
@@ -459,7 +459,7 @@ describe "ApplySimplifier", ->
       applySimplifier = new ApplySimplifier({
         postProcessorScheme: customPostProcessorScheme
       })
-      applySimplifier.addApplies(applySpecs.map(FacetApply.fromSpec))
+      applySimplifier.addApplies(applySpecs.map(FacetApply.fromJS))
 
       appliesByDataset = applySimplifier.getSimpleAppliesByDataset()
       postProcessors = applySimplifier.getPostProcessors()
@@ -523,7 +523,7 @@ describe "ApplySimplifier", ->
       applySimplifier = new ApplySimplifier({
         postProcessorScheme: customPostProcessorScheme
       })
-      applySimplifier.addApplies(applySpecs.map(FacetApply.fromSpec))
+      applySimplifier.addApplies(applySpecs.map(FacetApply.fromJS))
 
       appliesByDataset = applySimplifier.getSimpleAppliesByDataset()
       postProcessors = applySimplifier.getPostProcessors()
@@ -603,7 +603,7 @@ describe "ApplySimplifier", ->
       applySimplifier = new ApplySimplifier({
         postProcessorScheme: customPostProcessorScheme
       })
-      applySimplifier.addApplies(applySpecs.map(FacetApply.fromSpec))
+      applySimplifier.addApplies(applySpecs.map(FacetApply.fromJS))
 
       appliesByDataset = applySimplifier.getSimpleAppliesByDataset()
       postProcessors = applySimplifier.getPostProcessors()
@@ -684,7 +684,7 @@ describe "ApplySimplifier", ->
         postProcessorScheme: customPostProcessorScheme
         breakToSimple: true
       })
-      applySimplifier.addApplies(applySpecs.map(FacetApply.fromSpec))
+      applySimplifier.addApplies(applySpecs.map(FacetApply.fromJS))
 
       appliesByDataset = applySimplifier.getSimpleAppliesByDataset()
       postProcessors = applySimplifier.getPostProcessors()
@@ -754,7 +754,7 @@ describe "ApplySimplifier", ->
         breakAverage: true
         topLevelConstant: 'process'
       })
-      applySimplifier.addApplies(applySpecs.map(FacetApply.fromSpec))
+      applySimplifier.addApplies(applySpecs.map(FacetApply.fromJS))
 
       appliesByDataset = applySimplifier.getSimpleAppliesByDataset()
       postProcessors = applySimplifier.getPostProcessors()
@@ -840,7 +840,7 @@ describe "ApplySimplifier", ->
       applySimplifier = new ApplySimplifier({
         postProcessorScheme: customPostProcessorScheme
       })
-      applySimplifier.addApplies(applySpecs.map(FacetApply.fromSpec))
+      applySimplifier.addApplies(applySpecs.map(FacetApply.fromJS))
 
       appliesByDataset = applySimplifier.getSimpleAppliesByDataset()
       postProcessors = applySimplifier.getPostProcessors()

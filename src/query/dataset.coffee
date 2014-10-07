@@ -7,7 +7,7 @@ class FacetDataset
   constructor: ({@name, @source, filter}) ->
     throw new TypeError("dataset name must be a string") unless typeof @name is 'string'
     throw new TypeError("dataset source must be a string") unless typeof @source is 'string'
-    @filter = FacetFilter.fromSpec(filter) if filter
+    @filter = FacetFilter.fromJS(filter) if filter
     return
 
   toString: ->

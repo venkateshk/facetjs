@@ -147,7 +147,7 @@ describe "SQL driver", ->
     withFilter = sqlDriver({
       requester: sqlPass
       table: 'diamonds'
-      filter: FacetFilter.fromSpec({
+      filter: FacetFilter.fromJS({
         type: 'is'
         attribute: 'color'
         value: 'E'

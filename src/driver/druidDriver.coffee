@@ -1009,7 +1009,7 @@ DruidQueryBuilder.makeSingleQuery = ({parentSegment, filter, condensedCommand, b
 addSplitName = (split, name) ->
   splitSpec = split.valueOf()
   splitSpec.name = name
-  return FacetSplit.fromSpec(splitSpec)
+  return FacetSplit.fromJS(splitSpec)
 
 
 # Split up the condensed command into condensed commands contained within the dataset

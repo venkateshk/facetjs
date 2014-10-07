@@ -16,7 +16,7 @@ repeatString = (string, times) ->
 
 class AttributeMeta
   constructor: ({@type}, dummy) ->
-    throw new TypeError("can not call `new AttributeMeta` directly use AttributeMeta.fromSpec instead") unless dummy is dummyObject
+    throw new TypeError("can not call `new AttributeMeta` directly use AttributeMeta.fromJS instead") unless dummy is dummyObject
 
   _ensureType: (attributeMetaType) ->
     if not @type
@@ -145,7 +145,7 @@ attributeMetaConstructorMap = {
 }
 
 
-AttributeMeta.fromSpec = (attributeMetaSpec) ->
+AttributeMeta.fromJS = (attributeMetaSpec) ->
   return attributeMetaSpec if isInstanceOf(attributeMetaSpec, AttributeMeta)
   if attributeMetaSpec.type is 'range' and attributeMetaSpec.size # Back compat.
     attributeMetaSpec.rangeSize = attributeMetaSpec.size

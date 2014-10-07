@@ -7,7 +7,7 @@
 addSplitName = (split, name) ->
   splitSpec = split.valueOf()
   splitSpec.name = name
-  return FacetSplit.fromSpec(splitSpec)
+  return FacetSplit.fromJS(splitSpec)
 
 class CondensedCommand
   constructor: ->

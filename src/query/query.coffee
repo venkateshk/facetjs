@@ -29,7 +29,7 @@ class FacetQuery
     # Parse filter
     @filter = null
     if i < numCommands and commands[i].operation is 'filter'
-      @filter = FacetFilter.fromSpec(command)
+      @filter = FacetFilter.fromJS(command)
       i++
 
     hasDataset = {}
@@ -47,7 +47,7 @@ class FacetQuery
           throw new Error("#{command.operation} not allowed here")
 
         when 'split'
-          split = FacetSplit.fromSpec(command)
+          split = FacetSplit.fromJS(command)
           for dataset in split.getDatasets()
             throw new Error("split dataset '#{dataset}' is not defined") unless hasDataset[dataset]
 
@@ -56,7 +56,7 @@ class FacetQuery
           @condensedCommands.push(curGroup)
 
         when 'apply'
-          apply = FacetApply.fromSpec(command)
+          apply = FacetApply.fromJS(command)
           throw new Error("base apply must have a name") unless apply.name
           datasets = apply.getDatasets()
           for dataset in datasets
@@ -64,7 +64,7 @@ class FacetQuery
           curGroup.addApply(apply)
 
         when 'combine'
-          curGroup.setCombine(FacetCombine.fromSpec(command))
+          curGroup.setCombine(FacetCombine.fromJS(command))
 
         else
           throw new Error("unrecognizable command") unless typeof command is 'object'

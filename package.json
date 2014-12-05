@@ -24,7 +24,6 @@
     "prepublish": "echo 'one day run ./compile'"
   },
   "dependencies": {
-    "chronology": "0.6.6",
     "higher-object": "0.2.5",
     "async": "~0.9.0",
     "mysql": "2.0.0-alpha7",
@@ -32,6 +31,9 @@
     "node-zookeeper-client": "~0.2.0",
     "request": "~2.34.0",
     "backoff": "~2.3.0"
+  },
+  "peerDependencies": {
+    "chronology": "0.6.x"
   },
   "devDependencies": {
     "typescript": "~1.3.0",

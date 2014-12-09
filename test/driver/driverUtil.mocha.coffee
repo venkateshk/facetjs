@@ -1,6 +1,6 @@
 { expect } = require("chai")
 
-{ FacetQuery } = require('../../build/query')
+{ FacetQuery, SegmentTree } = require('../../build/query')
 driverUtil = require('../../build/driver/driverUtil')
 { Table } = driverUtil
 data = require('../data')
@@ -88,6 +88,64 @@ describe "Utility", ->
 
     it "should be work in general", ->
       expect(driverUtil.continuousFloorExpression("x", "Math.floor", 5, 3)).to.equal('Math.floor((x - 3) / 5) * 5 + 3')
+
+
+
+  describe 'addOthers', ->
+    it "adds others to all children of the given root", ->
+      querySpec = [
+        { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
+        { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
+        { operation: 'split', name: 'Clarity', bucket: 'identity', attribute: 'clarity' }
+        { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 5 }
+      ]
+      query = FacetQuery.fromJS(querySpec);
+
+      segmentTreeSpec = {
+        "prop": {
+          "Count": 50000
+        },
+        "splits": [
+          {
+            "prop": {
+              "Cut": "Ideal",
+              "Count": 20000
+            },
+            "splits": [
+              {
+                "prop": {
+                  "Clarity": "VS2",
+                  "Count": 5000
+                }
+              },
+              {
+                "prop": {
+                  "Clarity": "SI1",
+                  "Count": 4000
+                }
+              }
+            ]
+          },
+          {
+            "prop": {
+              "Cut": "Premium",
+              "Count": 10000
+            }
+          }
+        ]
+      }
+      segmentTree = SegmentTree.fromJS(segmentTreeSpec)
+      othersTree = driverUtil.addOthers(segmentTree, query)
+      expect(othersTree.getProp("Count")).to.equal(50000)
+      expect(othersTree.splits).to.have.length(3)
+      expect(othersTree.splits[2]).to.have.deep.property('prop.Count', 20000)
+      expect(othersTree.splits[2]).to.have.deep.property('prop.Cut', null)
+      expect(othersTree.splits[2]).to.have.property('isOthers', true)
+      expect(othersTree.splits[0].splits[2]).to.have.deep.property('prop.Count', 11000)
+      expect(othersTree.splits[0].splits[2]).to.have.deep.property('prop.Clarity', null)
+      expect(othersTree.splits[0].splits[2]).to.have.property('isOthers', true)
 
 
   describe "Table", ->

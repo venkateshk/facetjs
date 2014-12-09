@@ -35,6 +35,7 @@ export interface SegmentTreeJS {
   prop?: Prop;
   splits?: SegmentTreeJS[];
   loading?: boolean;
+  isOthers?: boolean;
 }
 
 export interface SegmentTreeValue {
@@ -42,6 +43,7 @@ export interface SegmentTreeValue {
   prop?: Prop;
   splits?: SegmentTree[];
   loading?: boolean;
+  isOthers?: boolean;
 }
 
 var check: ImmutableClass<SegmentTreeValue, SegmentTreeJS>;
@@ -80,7 +82,8 @@ export class SegmentTree implements ImmutableInstance<SegmentTreeValue, SegmentT
     var newSegmentTree = new SegmentTree({
       parent: parent,
       prop: parameters.prop,
-      loading: parameters.loading
+      loading: parameters.loading,
+      isOthers: parameters.isOthers
     });
     if (parameters.splits) {
       newSegmentTree.splits = parameters.splits.map((st) => SegmentTree.fromJS(st, newSegmentTree));
@@ -93,11 +96,13 @@ export class SegmentTree implements ImmutableInstance<SegmentTreeValue, SegmentT
   public splits: SegmentTree[];
   public loading: boolean;
   public meta: any;
+  public isOthers: boolean;
 
   constructor(parameters: SegmentTreeValue, meta: any = null) {
     var prop = parameters.prop;
     var splits = parameters.splits;
     var loading = parameters.loading;
+    var isOthers = parameters.isOthers;
     this.parent = parameters.parent || null;
     this.meta = meta;
     if (prop) {
@@ -107,6 +112,7 @@ export class SegmentTree implements ImmutableInstance<SegmentTreeValue, SegmentT
     }
     if (splits) this.splits = splits;
     if (loading) this.loading = true;
+    if (isOthers) this.isOthers = true;
   }
 
   public valueOf() {
@@ -123,6 +129,9 @@ export class SegmentTree implements ImmutableInstance<SegmentTreeValue, SegmentT
     if (this.loading) {
       spec.loading = true;
     }
+    if (this.isOthers) {
+      spec.isOthers = true;
+    }
     return spec;
   }
 
@@ -137,6 +146,9 @@ export class SegmentTree implements ImmutableInstance<SegmentTreeValue, SegmentT
     if (this.loading) {
       spec.loading = true;
     }
+    if (this.isOthers) {
+      spec.isOthers = true;
+    }
     return spec;
   }
 
@@ -148,6 +160,7 @@ export class SegmentTree implements ImmutableInstance<SegmentTreeValue, SegmentT
     return SegmentTree.isSegmentTree(other) &&
       SegmentTree.isPropEqual(this.prop, other.prop) &&
       this.loading === other.loading &&
+      this.isOthers === other.isOthers &&
       Boolean(this.splits) === Boolean(other.splits);
       // ToDo: fill in split check
   }
@@ -204,12 +217,19 @@ export class SegmentTree implements ImmutableInstance<SegmentTreeValue, SegmentT
     return false;
   }
 
+  public hasProp(propName: string): boolean {
+    if (!this.prop) {
+      return false;
+    }
+    return this.prop.hasOwnProperty(propName);
+  }
+
   public getProp(propName: string): any {
     var segmentProp = this.prop;
     if (!segmentProp) {
       return null;
     }
-    if (segmentProp.hasOwnProperty(propName)) {
+    if (this.hasProp(propName)) {
       return segmentProp[propName];
     }
     if (this.parent) {
@@ -247,6 +267,9 @@ export class SegmentTree implements ImmutableInstance<SegmentTreeValue, SegmentT
     }
     if (this.loading) {
       spec.loading = true;
+    }
+    if (this.isOthers) {
+      spec.isOthers = true;
     }
     return spec;
   }
@@ -288,6 +311,12 @@ export class SegmentTree implements ImmutableInstance<SegmentTreeValue, SegmentT
     var result: SegmentTree[];
     this._flattenHelper(order, result = []);
     return result;
+  }
+
+  public hasOthers(): boolean {
+    return this.splits.some(function(segmentTree) {
+      return segmentTree.isOthers;
+    });
   }
 }
 check = SegmentTree;

@@ -53,6 +53,8 @@ export import FacetQuery = FacetQueryModule.FacetQuery;
 
 export import SegmentTreeModule = require("../query/segmentTree");
 export import SegmentTree = SegmentTreeModule.SegmentTree;
+export import SegmentTreeValue = SegmentTreeModule.SegmentTreeValue;
+export import Prop = SegmentTreeModule.Prop;
 
 export import ApplySimplifierModule = require("../query/applySimplifier");
 export import ApplySimplifier = ApplySimplifierModule.ApplySimplifier;

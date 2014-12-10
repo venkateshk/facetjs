@@ -24,6 +24,7 @@ export import OrFilter = FacetFilterModule.OrFilter;
 
 export import FacetSplitModule = require("../query/split");
 export import FacetSplit = FacetSplitModule.FacetSplit;
+export import IdentitySplit = FacetSplitModule.IdentitySplit;
 export import ContinuousSplit = FacetSplitModule.ContinuousSplit;
 export import TimePeriodSplit = FacetSplitModule.TimePeriodSplit;
 export import TupleSplit = FacetSplitModule.TupleSplit;

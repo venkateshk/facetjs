@@ -282,8 +282,8 @@ export class SegmentTree implements ImmutableInstance<SegmentTreeValue, SegmentT
   }
 
   public flatten(order: string = "preorder") {
-    if (order !== "preorder" && order !== "inorder" && order !== "none") {
-      throw new TypeError("order must be on of preorder, inorder, or none");
+    if (order !== "preorder" && order !== "postorder" && order !== "none") {
+      throw new TypeError("order must be on of preorder, postorder, or none");
     }
     var result: SegmentTree[];
     this._flattenHelper(order, result = []);

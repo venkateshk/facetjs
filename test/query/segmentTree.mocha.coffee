@@ -2,8 +2,7 @@
 
 { testHigherObjects } = require("higher-object/build/tester")
 
-{ SegmentTree } = require('../../build/query/segmentTree')
-
+{ FacetQuery, SegmentTree } = require('../../build/query')
 
 describe "SegmentTree", ->
   it "passes higher object tests", ->
@@ -13,6 +12,13 @@ describe "SegmentTree", ->
           "Clarity": "VS2",
           "Count": 5071
         }
+      },
+      {
+        "prop": {
+          "Clarity": null,
+          "Count": 5071
+        },
+        "isOthers": true
       },
       {
         "prop": {},
@@ -263,6 +269,61 @@ describe "SegmentTree", ->
       ]
     })
 
+  describe 'hasOthers', ->
+    it 'returns true when there is a Others child segmentTree in splits', ->
+
+      segmentTreeSpec = {
+        "prop": {
+          "Count": 50000
+        },
+        "splits": [
+          {
+            "prop": {
+              "Cut": "Ideal",
+              "Count": 20000
+            }
+          },
+          {
+            "prop": {
+              "Cut": "Premium",
+              "Count": 10000
+            }
+          }
+          {
+            "prop": {
+              "Cut": null,
+              "Count": 20000
+            }
+            "isOthers": true
+          }
+        ]
+      }
+      segmentTree = SegmentTree.fromJS(segmentTreeSpec)
+      expect(segmentTree.hasOthers()).to.be.true
+
+    it 'returns false when there isn\'t a Others child segmentTree in splits', ->
+      segmentTreeSpec = {
+        "prop": {
+          "Count": 50000
+        },
+        "splits": [
+          {
+            "prop": {
+              "Cut": "Ideal",
+              "Count": 20000
+            }
+          },
+          {
+            "prop": {
+              "Cut": "Premium",
+              "Count": 10000
+            }
+          }
+        ]
+      }
+      segmentTree = SegmentTree.fromJS(segmentTreeSpec)
+      expect(segmentTree.hasOthers()).to.be.false
+
   describe "isPropValueEqual", ->
     it "should work on strings", ->
       pv1 = "Facet"
@@ -348,4 +409,3 @@ describe "SegmentTree", ->
       propValue = [1, 1.1]
       propValueList = [1, null, [1, 1.05], "Facet"]
       expect(SegmentTree.isPropValueIn(propValue, propValueList)).to.equal(false)
-

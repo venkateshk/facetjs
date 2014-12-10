@@ -3,26 +3,20 @@
 import Basics = require("../basics") // Prop up
 import Lookup = Basics.Lookup;
 
-import FacetFilterModule = require("../query/filter")
-import FacetFilter = FacetFilterModule.FacetFilter;
-import InFilter = FacetFilterModule.InFilter;
-import WithinFilter = FacetFilterModule.WithinFilter;
-import AndFilter = FacetFilterModule.AndFilter;
-import OrFilter = FacetFilterModule.OrFilter;
-
-import FacetSplitModule = require("../query/split");
-import FacetSplit = FacetSplitModule.FacetSplit;
-
-import FacetApplyModule = require("../query/apply");
-import FacetApply = FacetApplyModule.FacetApply;
-
-import FacetQueryModule = require("../query/query");
+import FacetQueryModule = require("../query/index");
+import FacetFilter = FacetQueryModule.FacetFilter;
+import InFilter = FacetQueryModule.InFilter;
+import WithinFilter = FacetQueryModule.WithinFilter;
+import AndFilter = FacetQueryModule.AndFilter;
+import OrFilter = FacetQueryModule.OrFilter;
+import FacetSplit = FacetQueryModule.FacetSplit;
+import FacetApply = FacetQueryModule.FacetApply;
 import FacetQuery = FacetQueryModule.FacetQuery;
+import SegmentTree = FacetQueryModule.SegmentTree;
+import SegmentTreeValue = FacetQueryModule.SegmentTreeValue;
+import Prop = FacetQueryModule.Prop;
+import CondensedCommand = FacetQueryModule.CondensedCommand;
 
-import SegmentTreeModule = require("../query/segmentTree");
-import SegmentTree = SegmentTreeModule.SegmentTree;
-//import PropValue = SegmentTreeModule.PropValue;
-import Prop = SegmentTreeModule.Prop;
 
 export function flatten<T>(xss: T[][]): T[] {
   var flat: T[] = [];
@@ -314,4 +308,50 @@ export class Table {
     }
     return this.titleFn;
   }
+}
+
+export function addOthers(root: SegmentTree, query: FacetQuery): SegmentTree {
+  var rootWithOthersValue: SegmentTreeValue = {};
+
+  if (root.parent) {
+    rootWithOthersValue.parent = root.parent;
+  }
+  if (root.prop) {
+    rootWithOthersValue.prop = root.prop;
+  }
+  if (root.loading) {
+    rootWithOthersValue.loading = root.loading;
+  }
+
+  var rootWithOthers: SegmentTree =  new SegmentTree(rootWithOthersValue);
+
+  if (root.splits) {
+    var splitsWithOthers: SegmentTree[] = root.splits.map(function(childSegmentTree: SegmentTree) {
+      return addOthers(childSegmentTree, query);
+    });
+    var currentCommand: CondensedCommand = query.getCondensedCommands()[root.getParentDepth() + 1];
+    var currentApplies: FacetApply[] = currentCommand.getApplies();
+    var currentSplit: FacetSplit = currentCommand.getSplit();
+    var prop: Prop = {};
+    prop[currentSplit.name] = null;
+
+    for (var i = 0; i < currentApplies.length; i++) {
+      var apply: FacetApply = currentApplies[i];
+      if (root.hasProp(apply.name) && apply.isAdditive()) {
+        var splitSum = root.splits.reduce(function(sum: Number, segmentTree: SegmentTree) {
+          return sum + segmentTree.getProp(apply.name);
+        }, 0);
+        prop[apply.name] = root.getProp(apply.name) - splitSum;
+      }
+    }
+
+    splitsWithOthers.push(new SegmentTree({
+      prop: prop,
+      loading: false,
+      isOthers: true
+    }))
+
+    rootWithOthers.setSplits(splitsWithOthers);
+  }
+  return rootWithOthers;
 }

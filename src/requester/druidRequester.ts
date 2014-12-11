@@ -68,7 +68,7 @@ export function druidRequester(parameters: DruidRequesterParameters): Requester.
         }
 
         if (response.statusCode !== 200) {
-          if ((body != null ? body.error : void 0) === "Query timeout") {
+          if (body && body.error === "Query timeout") {
             err = new Error("timeout");
           } else {
             err = new Error("Bad status code");
@@ -77,7 +77,17 @@ export function druidRequester(parameters: DruidRequesterParameters): Requester.
           callback(err);
           return;
         }
-        if (query.queryType === "introspect" && (body.dimensions != null ? body.dimensions.length : void 0) === 0 && (body.metrics != null ? body.metrics.length : void 0) === 0) {
+
+        if (typeof body !== 'object') {
+          callback(new Error("bad response"));
+          return;
+        }
+
+        if (query.queryType === "introspect" &&
+            Array.isArray(body.dimensions) &&
+            body.dimensions.length === 0 &&
+            Array.isArray(body.metrics) &&
+            body.metrics.length === 0) {
           err = new Error("No such datasource");
           err.dataSource = query.dataSource;
           callback(err);

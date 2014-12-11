@@ -483,11 +483,11 @@ export class DruidQueryBuilder {
           if ((<ContinuousSplit>split).upperLimit != null) {
             aggregation.upperLimit = (<ContinuousSplit>split).upperLimit;
           }
-          var options = split.options || {}
+          var options = split.options || {};
           if (options.hasOwnProperty('druidResolution')) {
             aggregation.resolution = options['druidResolution'];
           }
-          this.addAggregation(aggregation)
+          this.addAggregation(aggregation);
           var tempHistogramName = 'blah'; // ToDo: OMG WTF ?!
             this.addPostAggregation({
             type: "buckets",
@@ -499,7 +499,7 @@ export class DruidQueryBuilder {
         } else if (attributeMeta.type === "range") {
           throw new Error("not implemented yet");
         } else {
-          var floorExpresion = driverUtil.continuousFloorExpression("d", "Math.floor", (<ContinuousSplit>split).size, (<ContinuousSplit>split).offset)
+          var floorExpression = driverUtil.continuousFloorExpression("d", "Math.floor", (<ContinuousSplit>split).size, (<ContinuousSplit>split).offset)
 
           this.queryType = "groupBy";
           this.dimension = {
@@ -508,7 +508,7 @@ export class DruidQueryBuilder {
             outputName: split.name,
             dimExtractionFn: {
               type: "javascript",
-              "function": "function(d) {\nd = Number(d);\nif(isNaN(d)) return 'null';\nreturn " + floorExpresion + ";\n}"
+              "function": "function(d) {\nd = Number(d);\nif(isNaN(d)) return 'null';\nreturn " + floorExpression + ";\n}"
             }
           };
         }
@@ -835,7 +835,6 @@ DruidQueryBuilder.queryFns = {
     var requester = parameters.requester;
     var queryBuilder = parameters.queryBuilder;
     var filter = parameters.filter;
-    var parentSegment = parameters.parentSegment;
     var condensedCommand = parameters.condensedCommand;
     try {
       queryBuilder.addFilter(filter).addApplies(condensedCommand.applies);
@@ -863,7 +862,9 @@ DruidQueryBuilder.queryFns = {
       if (emptySingletonDruidResult(ds)) {
         callback(null, [condensedCommand.getZeroProp()]);
       } else {
-        callback(null, ds.map((d: any) => d.result));
+        var result: any = ds[0].result;
+        if (Array.isArray(result) && !result.length) result = null;
+        callback(null, [result || condensedCommand.getZeroProp()]);
       }
 
     });
@@ -872,7 +873,6 @@ DruidQueryBuilder.queryFns = {
     var requester = parameters.requester;
     var queryBuilder = parameters.queryBuilder;
     var filter = parameters.filter;
-    var parentSegment = parameters.parentSegment;
     var condensedCommand = parameters.condensedCommand;
     var applies = condensedCommand.applies;
     if (!applies.every((apply) => {
@@ -929,7 +929,6 @@ DruidQueryBuilder.queryFns = {
     var requester = parameters.requester;
     var queryBuilder = parameters.queryBuilder;
     var filter = parameters.filter;
-    var parentSegment = parameters.parentSegment;
     var condensedCommand = parameters.condensedCommand;
 
     try {
@@ -949,6 +948,13 @@ DruidQueryBuilder.queryFns = {
         return;
       }
 
+      if (!Array.isArray(ds)) {
+        err = new Error("unexpected result from Druid (timeseries)");
+        (<any>err).result = ds;
+        callback(err);
+        return;
+      }
+
       var split = <TimePeriodSplit>(condensedCommand.split);
       var timePropName = split.name;
 
@@ -957,7 +963,7 @@ DruidQueryBuilder.queryFns = {
       var canonicalDurationLengthAndThenSome = splitDuration.canonicalLength() * 1.5;
       var props = ds.map((d: any, i: number) => {
         var rangeStart = new Date(d.timestamp);
-        var next = ds[i + 1]
+        var next = ds[i + 1];
         if (next) {
           next = new Date(next.timestamp);
         }
@@ -965,7 +971,7 @@ DruidQueryBuilder.queryFns = {
         var rangeEnd = (next && rangeStart.valueOf() < next.valueOf() && next.valueOf() - rangeStart.valueOf() < canonicalDurationLengthAndThenSome) ?
                         next : splitDuration.move(rangeStart, timezone, 1);
 
-        var prop = d.result
+        var prop = d.result;
         prop[timePropName] = [rangeStart, rangeEnd];
         return prop;
       });
@@ -982,7 +988,7 @@ DruidQueryBuilder.queryFns = {
       }
 
       if (combine.limit != null) {
-        var limit = combine.limit
+        var limit = combine.limit;
         driverUtil.inPlaceTrim(props, limit);
       }
 
@@ -993,7 +999,6 @@ DruidQueryBuilder.queryFns = {
     var requester = parameters.requester;
     var queryBuilder = parameters.queryBuilder;
     var filter = parameters.filter;
-    var parentSegment = parameters.parentSegment;
     var condensedCommand = parameters.condensedCommand;
 
     var split = condensedCommand.getSplit();
@@ -1059,7 +1064,6 @@ DruidQueryBuilder.queryFns = {
     var requester = parameters.requester;
     var queryBuilder = parameters.queryBuilder;
     var filter = parameters.filter;
-    var parentSegment = parameters.parentSegment;
     var condensedCommand = parameters.condensedCommand;
     var allDataChunks = DruidQueryBuilder.ALL_DATA_CHUNKS;
 
@@ -1125,7 +1129,6 @@ DruidQueryBuilder.queryFns = {
     var requester = parameters.requester;
     var queryBuilder = parameters.queryBuilder;
     var filter = parameters.filter;
-    var parentSegment = parameters.parentSegment;
     var condensedCommand = parameters.condensedCommand;
 
     try {
@@ -1156,7 +1159,6 @@ DruidQueryBuilder.queryFns = {
     var requester = parameters.requester;
     var queryBuilder = parameters.queryBuilder;
     var filter = parameters.filter;
-    var parentSegment = parameters.parentSegment;
     var condensedCommand = parameters.condensedCommand;
     if (!condensedCommand.applies.every((apply) => apply.aggregate === "count")) {
       callback(new Error("only count aggregated applies are supported"));
@@ -1228,8 +1230,7 @@ DruidQueryBuilder.queryFns = {
       }
 
       if (combine.limit != null) {
-        var limit = combine.limit
-        driverUtil.inPlaceTrim(props, limit);
+        driverUtil.inPlaceTrim(props, combine.limit);
       }
 
       callback(null, props);
@@ -1516,7 +1517,7 @@ function multiDatasetQuery(parameters: MultiDatasetQueryParameters, callback: Qu
         var driverFilter = new InFilter({
           attribute: info.condensedCommand.split.attribute,
           values: <any>(driverResult.map((prop) => prop[splitName]))
-        })
+        });
 
         return (callback: QueryFunctionCallback) => DruidQueryBuilder.makeSingleQuery({
           parentSegment: parentSegment,
@@ -1525,7 +1526,7 @@ function multiDatasetQuery(parameters: MultiDatasetQueryParameters, callback: Qu
           queryBuilder: new DruidQueryBuilder(builderSettings),
           requester: requester
         }, callback);
-      })
+      });
 
       async.parallel(drivenQueries, (err: Error, drivenResults: Prop[][]) => {
         var fullResult = driverUtil.joinResults([splitName], allApplyNames, [driverResult].concat(drivenResults));

@@ -2,6 +2,11 @@ chai = require("chai")
 expect = chai.expect
 utils = require('../utils')
 
+{ WallTime } = require('chronology')
+if not WallTime.rules
+  tzData = require("chronology/lib/walltime/walltime-data.js")
+  WallTime.init(tzData.rules, tzData.zones)
+
 {
   FacetQuery
   FacetFilter
@@ -402,22 +407,18 @@ describe "Druid driver", ->
         return
 
   describe "should work when getting back [] and [{result:[]}]", ->
-    nullRequester = (query, callback) ->
-      callback(null, [])
-      return
-
     nullDriver = druidDriver({
-      requester: nullRequester
+      requester: (query, callback) ->
+        callback(null, [])
+        return
       dataSource: 'blah'
       approximate: true
     })
 
-    emptyRequester = (query, callback) ->
-      callback(null, [{result:[]}])
-      return
-
     emptyDriver = druidDriver({
-      requester: nullRequester
+      requester: (query, callback) ->
+        callback(null, [{result:[]}])
+        return
       dataSource: 'blah'
       approximate: true
     })
@@ -468,6 +469,37 @@ describe "Druid driver", ->
           expect(err).to.be.null
           expect(result.toJS()).to.deep.equal({})
           done()
+
+  describe "should work when getting back crap data", ->
+    crapDriver = druidDriver({
+      requester: (query, callback) ->
+        callback(null, "[Does this look like data to you?")
+        return
+      dataSource: 'blah'
+      approximate: true
+    })
+
+    it "should work with all query", (done) ->
+      query = FacetQuery.fromJS([
+        { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+      ])
+
+      crapDriver {query}, (err, result) ->
+        expect(err.message).to.equal('unexpected result from Druid (all)')
+        done()
+        return
+
+    it "should work with timeseries query", (done) ->
+      query = FacetQuery.fromJS([
+        { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'timestamp', period: 'PT1H', timezone: 'Etc/UTC' }
+        { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
+        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
+      ])
+
+      crapDriver {query}, (err, result) ->
+        expect(err.message).to.equal('unexpected result from Druid (timeseries)')
+        done()
+        return
 
   describe "should work with driver level filter", ->
     druidPass = druidRequester({

@@ -23,6 +23,7 @@
       <w>stderr</w>
       <w>stdout</w>
       <w>stringifier</w>
+      <w>substr</w>
       <w>timeseries</w>
       <w>wickham</w>
     </words>

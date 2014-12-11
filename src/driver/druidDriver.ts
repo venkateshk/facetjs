@@ -960,7 +960,7 @@ DruidQueryBuilder.queryFns = {
 
       var timezone = split.timezone;
       var splitDuration = split.period;
-      var canonicalDurationLengthAndThenSome = splitDuration.canonicalLength() * 1.5;
+      var canonicalDurationLengthAndThenSome = splitDuration.getCanonicalLength() * 1.5;
       var props = ds.map((d: any, i: number) => {
         var rangeStart = new Date(d.timestamp);
         var next = ds[i + 1];

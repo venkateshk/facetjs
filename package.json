@@ -23,6 +23,9 @@
   "scripts": {
     "prepublish": "echo 'one day run ./compile'"
   },
+  "publishConfig": {
+    "registry": "https://metamx.registry.nodejitsu.com/"
+  },
   "dependencies": {
     "higher-object": "0.2.5",
     "async": "~0.9.0",

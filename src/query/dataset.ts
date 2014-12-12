@@ -99,7 +99,7 @@ export class FacetDataset implements ImmutableInstance<FacetDatasetValue, FacetD
   }
 
   public toJSON(): FacetDatasetJS {
-    return this.toJS()
+    return this.toJS();
   }
 
   public equals(other: FacetDataset) {

@@ -26,7 +26,7 @@ export function ajax(parameters: AjaxParameters) {
   return (request: Driver.Request, callback: Driver.DataCallback) => {
     var query = request.query;
     if (!FacetQuery.isFacetQuery(query)) {
-      throw new TypeError("query must be a FacetQuery")
+      throw new TypeError("query must be a FacetQuery");
     }
 
     var context = request.context || {};
@@ -51,7 +51,7 @@ export function ajax(parameters: AjaxParameters) {
         var err: any;
         var text = xhr.responseText;
         try {
-          err = JSON.parse(text)
+          err = JSON.parse(text);
         } catch (e) {
           err = {
             message: text

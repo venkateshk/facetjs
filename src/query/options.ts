@@ -25,7 +25,7 @@ export class FacetOptions implements ImmutableInstance<FacetOptionsJS, FacetOpti
   }
 
   static fromJS(options: FacetOptionsJS) {
-    return new FacetOptions(options)
+    return new FacetOptions(options);
   }
 
   [option: string]: any;

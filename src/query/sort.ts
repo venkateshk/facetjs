@@ -155,7 +155,7 @@ check = FacetSort;
 
 export class NaturalSort extends FacetSort {
   static fromJS(parameters: FacetSortJS) {
-    return new NaturalSort(parameters)
+    return new NaturalSort(parameters);
   }
 
   constructor(parameters: FacetSortJS) {
@@ -176,7 +176,7 @@ export class NaturalSort extends FacetSort {
 
 export class CaseInsensitiveSort extends FacetSort {
   static fromJS(parameters: FacetSortJS) {
-    return new CaseInsensitiveSort(parameters)
+    return new CaseInsensitiveSort(parameters);
   }
 
   constructor(parameters: FacetSortJS) {

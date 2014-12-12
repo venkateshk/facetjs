@@ -127,7 +127,7 @@ export class ApplySimplifier<Inter, Final> {
     var operands = apply.operands;
     var op1 = operands[0];
     var op2 = operands[1];
-    var lhs = op1.arithmetic ? this._addArithmeticApply(op1, sourceApplyName) : this._addBasicApply(op1, sourceApplyName)
+    var lhs = op1.arithmetic ? this._addArithmeticApply(op1, sourceApplyName) : this._addBasicApply(op1, sourceApplyName);
     var rhs = op2.arithmetic ? this._addArithmeticApply(op2, sourceApplyName) : this._addBasicApply(op2, sourceApplyName);
     return this.postProcessorScheme.arithmetic(apply.arithmetic, lhs, rhs);
   }

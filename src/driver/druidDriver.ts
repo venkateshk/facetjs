@@ -161,7 +161,7 @@ export class DruidQueryBuilder {
     var approximate = queryBuilder.approximate;
 
     var queryFnName: string;
-    var split = condensedCommand.getSplit()
+    var split = condensedCommand.getSplit();
     if (split) {
       switch (split.bucket) {
         case "identity":
@@ -179,7 +179,7 @@ export class DruidQueryBuilder {
           queryFnName = "timeseries";
           break;
         case "continuous":
-          var attributeMeta = queryBuilder.getAttributeMeta(split.attribute)
+          var attributeMeta = queryBuilder.getAttributeMeta(split.attribute);
           if (attributeMeta.type === "histogram") {
             queryFnName = "histogram";
           } else {
@@ -304,7 +304,7 @@ export class DruidQueryBuilder {
         attributeMeta = this.getAttributeMeta(filter.attribute);
         varName = this.addToNamespace(namespace, filter.attribute);
         return (<InFilter>filter).values.map((value) => {
-          return varName + " === '" + (attributeMeta.serialize(value)) + "'"
+          return varName + " === '" + (attributeMeta.serialize(value)) + "'";
         }).join("||");
       case "contains":
         if (filter.attribute === this.timeAttribute) throw new Error("can not filter on specific time");
@@ -326,9 +326,9 @@ export class DruidQueryBuilder {
   }
 
   public filterToJS(filter: FacetFilter) {
-    var namespace: Lookup<string> = {}
+    var namespace: Lookup<string> = {};
     this.jsCount = 0;
-    var jsFilter = this.filterToJSHelper(filter, namespace)
+    var jsFilter = this.filterToJSHelper(filter, namespace);
     return {
       jsFilter: jsFilter,
       namespace: namespace
@@ -427,9 +427,9 @@ export class DruidQueryBuilder {
     switch (split.bucket) {
       case "identity":
         this.queryType = "groupBy";
-        var attributeMeta = this.getAttributeMeta(split.attribute)
+        var attributeMeta = this.getAttributeMeta(split.attribute);
         if (attributeMeta.type === "range") {
-          var regExp = (<RangeAttributeMeta>attributeMeta).getMatchingRegExpString()
+          var regExp = (<RangeAttributeMeta>attributeMeta).getMatchingRegExpString();
           this.dimension = {
             type: "extraction",
             dimension: split.attribute,
@@ -476,7 +476,7 @@ export class DruidQueryBuilder {
           var aggregation: Druid.Aggregation = {
             type: "approxHistogramFold",
             fieldName: split.attribute
-          }
+          };
           if ((<ContinuousSplit>split).lowerLimit != null) {
             aggregation.lowerLimit = (<ContinuousSplit>split).lowerLimit;
           }
@@ -499,7 +499,7 @@ export class DruidQueryBuilder {
         } else if (attributeMeta.type === "range") {
           throw new Error("not implemented yet");
         } else {
-          var floorExpression = driverUtil.continuousFloorExpression("d", "Math.floor", (<ContinuousSplit>split).size, (<ContinuousSplit>split).offset)
+          var floorExpression = driverUtil.continuousFloorExpression("d", "Math.floor", (<ContinuousSplit>split).size, (<ContinuousSplit>split).offset);
 
           this.queryType = "groupBy";
           this.dimension = {
@@ -839,7 +839,7 @@ DruidQueryBuilder.queryFns = {
     try {
       queryBuilder.addFilter(filter).addApplies(condensedCommand.applies);
 
-      var queryObj = queryBuilder.getQuery()
+      var queryObj = queryBuilder.getQuery();
     } catch (error) {
       callback(error);
       return;
@@ -934,7 +934,7 @@ DruidQueryBuilder.queryFns = {
     try {
       queryBuilder.addFilter(filter).addSplit(condensedCommand.split).addApplies(condensedCommand.applies);
 
-      var queryObj = queryBuilder.getQuery()
+      var queryObj = queryBuilder.getQuery();
     } catch (error) {
       callback(error);
       return;
@@ -1009,7 +1009,7 @@ DruidQueryBuilder.queryFns = {
         .addApplies(condensedCommand.applies)
         .addCombine(condensedCommand.getCombine());
 
-      var queryObj = queryBuilder.getQuery()
+      var queryObj = queryBuilder.getQuery();
     } catch (error) {
       callback(error);
       return;
@@ -1067,7 +1067,7 @@ DruidQueryBuilder.queryFns = {
     var condensedCommand = parameters.condensedCommand;
     var allDataChunks = DruidQueryBuilder.ALL_DATA_CHUNKS;
 
-    var combine = condensedCommand.getCombine()
+    var combine = condensedCommand.getCombine();
     try {
       queryBuilder
         .addFilter(filter)
@@ -1082,7 +1082,7 @@ DruidQueryBuilder.queryFns = {
           limit: allDataChunks
         }));
 
-      var queryObj = queryBuilder.getQuery()
+      var queryObj = queryBuilder.getQuery();
     } catch (error) {
       callback(error);
       return;
@@ -1138,7 +1138,7 @@ DruidQueryBuilder.queryFns = {
         .addApplies(condensedCommand.applies)
         .addCombine(condensedCommand.getCombine());
 
-      var queryObj = queryBuilder.getQuery()
+      var queryObj = queryBuilder.getQuery();
     } catch (error) {
       callback(error);
       return;
@@ -1170,7 +1170,7 @@ DruidQueryBuilder.queryFns = {
         .addFilter(filter)
         .addSplit(condensedCommand.split);
 
-      var queryObj = queryBuilder.getQuery()
+      var queryObj = queryBuilder.getQuery();
     } catch (error) {
       callback(error);
       return;
@@ -1250,7 +1250,7 @@ DruidQueryBuilder.queryFns = {
         .addApplies(condensedCommand.applies)
         .addCombine(condensedCommand.getCombine());
 
-      var queryObj = queryBuilder.getQuery()
+      var queryObj = queryBuilder.getQuery();
     } catch (error) {
       callback(error);
       return;
@@ -1394,7 +1394,7 @@ function splitUpCondensedCommand(condensedCommand: CondensedCommand) {
         perDatasetInfo.forEach((info) => {
           var infoApply = driverUtil.find(sortApplyComponents, (apply) => apply.getDataset() === info.dataset);
           if (infoApply) {
-            var sortProp = infoApply.name
+            var sortProp = infoApply.name;
           } else {
             sortProp = splitName;
             info.driven = true;
@@ -1663,7 +1663,7 @@ export function druidDriver(parameters: DruidDriverParameters) {
                 prop: props[0]
               }, {
                 filtersByDataset: parentSegment.meta['filtersByDataset']
-              })
+              });
               parentSegment.setSplits([newSegmentTree]);
             }
 
@@ -1691,7 +1691,7 @@ export function druidDriver(parameters: DruidDriverParameters) {
       );
     }
 
-    var cmdIndex = 0
+    var cmdIndex = 0;
     async.whilst(
       () => cmdIndex < condensedGroups.length && rootSegment,
       (callback: Callback) => {
@@ -1709,7 +1709,7 @@ export function druidDriver(parameters: DruidDriverParameters) {
         callback(null, (rootSegment || new SegmentTree({})).selfClean());
       }
     );
-  }
+  };
 
   driver.introspect = (opts: any, callback: Driver.IntrospectionCallback) => {
     requester({
@@ -1734,7 +1734,7 @@ export function druidDriver(parameters: DruidDriverParameters) {
           attributes.push({
             name: dimension,
             categorical: true
-          })
+          });
         });
 
       var metrics = ret.metrics.sort();

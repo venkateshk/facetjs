@@ -47,7 +47,7 @@ export function druidRequester(parameters: DruidRequesterParameters): Requester.
           url: url + ("datasources/" + dataSourceString),
           json: true,
           timeout: timeout
-        }
+        };
       } else {
         param = {
           method: "POST",

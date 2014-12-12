@@ -79,7 +79,7 @@ function convertToValue(js: FacetSplitJS): FacetSplitValue {
   };
   if (js.segmentFilter) value.segmentFilter = FacetSegmentFilter.fromJS(js.segmentFilter);
   if (js.options) value.options = FacetOptions.fromJS(js.options);
-  return value
+  return value;
 }
 
 var check: ImmutableClass<FacetSplitValue, FacetSplitJS>;
@@ -623,7 +623,7 @@ export class ParallelSplit extends FacetSplit {
         if (attributes.indexOf(attribute) < 0) {
           return attributes.push(attribute);
         }
-      })
+      });
     });
     return attributes.sort();
   }

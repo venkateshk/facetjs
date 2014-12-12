@@ -66,7 +66,7 @@ function convertToValue(js: FacetApplyJS, datasetContext: string): FacetApplyVal
   if (js.operands) value.operands = js.operands.map((operand) => FacetApply.fromJS(operand, datasetContext));
   if (js.filter) value.filter = FacetFilter.fromJS(js.filter);
   if (js.options) value.options = FacetOptions.fromJS(js.options);
-  return value
+  return value;
 }
 
 var check: ImmutableClass<FacetApplyValue, FacetApplyJS>;
@@ -134,7 +134,7 @@ export class FacetApply implements ImmutableInstance<FacetApplyValue, FacetApply
       operands.forEach((operand) => {
         operand.getDatasets().forEach((ds) => {
           seenDataset[ds] = 1;
-        })
+        });
       });
       var datasets = Object.keys(seenDataset).sort();
       if (dataset && dataset !== DEFAULT_DATASET) {

@@ -153,7 +153,7 @@ export function joinResults(splitNames: string[], applyNames: string[], results:
     var result = results[i];
     if (!result) continue;
     result.forEach((row) => {
-      var key = splitNames.map((splitName) => row[splitName]).join("]#;{#")
+      var key = splitNames.map((splitName) => row[splitName]).join("]#;{#");
       if (!mapping[key]) {
         mapping[key] = [zeroRow];
       }
@@ -349,7 +349,7 @@ export function addOthers(root: SegmentTree, query: FacetQuery): SegmentTree {
       prop: prop,
       loading: false,
       isOthers: true
-    }))
+    }));
 
     rootWithOthers.setSplits(splitsWithOthers);
   }

@@ -279,7 +279,7 @@ export class SQLQueryBuilder {
 
         var bucketTimezone = (<TimePeriodSplit>split).timezone;
         if (bucketTimezone.valueOf() === "Etc/UTC") {
-          var sqlAttribute = this.escapeAttribute(split.attribute)
+          var sqlAttribute = this.escapeAttribute(split.attribute);
         } else {
           sqlAttribute = "CONVERT_TZ(" + (this.escapeAttribute(split.attribute)) + ", '+0:00', " + bucketTimezone + ")";
         }
@@ -306,7 +306,7 @@ export class SQLQueryBuilder {
     var splits = split.bucket === "parallel" ? (<ParallelSplit>split).splits : [split];
     this.commonSplitSelectParts.push("`" + split.name + "`");
     splits.forEach((subSplit) => {
-      var datasetPart = this.datasetParts[subSplit.getDataset()]
+      var datasetPart = this.datasetParts[subSplit.getDataset()];
       var selectGroup = this.splitToSQL(subSplit, split.name);
       var selectPart = selectGroup.selectPart;
       var groupByPart = selectGroup.groupByPart;
@@ -480,11 +480,11 @@ export class SQLQueryBuilder {
         }
 
         return "  " + partialQuery.join("\n  ");
-      }), this)
+      }), this);
       if (!partials.every(Boolean)) {
         return null;
       }
-      var query = [partials.join("\nUNION\n")]
+      var query = [partials.join("\nUNION\n")];
     } else {
       var queryForOnlyDataset = this.getQueryForDataset(this.datasets[0], true);
       if (!queryForOnlyDataset) {
@@ -582,7 +582,7 @@ function condensedCommandToSQL(properties: CondensedCommandToSQLParameters, call
         }, {
           filtersByDataset: FacetFilter.andFiltersByDataset(filtersByDataset, split.getFilterByDatasetFor(prop))
         });
-      })
+      });
     } else {
       if (ds.length > 1) {
         callback(new Error("unexpected result"));
@@ -702,7 +702,7 @@ export function sqlDriver(parameters: SQLDriverParameters): Driver.FacetDriver {
 
           callback();
         }
-      )
+      );
     }
 
     var cmdIndex = 0;

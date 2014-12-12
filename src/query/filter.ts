@@ -48,7 +48,7 @@ function union(...arraySets: any[][]) {
 }
 
 function intersection<T>(set1: T[], set2: T[]): T[] {
-  return set1.filter((value) => set2.indexOf(value) !== -1)
+  return set1.filter((value) => set2.indexOf(value) !== -1);
 }
 
 function compare(a: any, b: any): number {
@@ -664,8 +664,8 @@ export class MatchFilter extends FacetFilter {
   }
 
   public getFilterFn(): FilterFn {
-    var attribute = this.attribute
-    var expression = new RegExp(this.expression)
+    var attribute = this.attribute;
+    var expression = new RegExp(this.expression);
     return (d) => expression.test(d[attribute]);
   }
 
@@ -683,7 +683,7 @@ export class WithinFilter extends FacetFilter {
       return new WithinFilter({
         attribute: parameters.attribute,
         range: [new Date(r0), new Date(r1)]
-      })
+      });
     } else {
       return new WithinFilter(<FacetFilterValue>parameters);
     }
@@ -981,7 +981,7 @@ export class AndFilter extends FacetFilter {
       case 1:
         return newFilters[0];
       default:
-        var simpleFilter = new AndFilter(newFilters)
+        var simpleFilter = new AndFilter(newFilters);
         simpleFilter.simple = true;
         return simpleFilter;
     }

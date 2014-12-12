@@ -117,7 +117,7 @@ export class SliceCombine extends FacetCombine {
     return new SliceCombine({
       sort: FacetSort.fromJS(parameters.sort),
       limit: parameters.limit != null ? Number(parameters.limit) : null
-    })
+    });
   }
 
   public sort: FacetSort;
@@ -163,7 +163,7 @@ export class MatrixCombine extends FacetCombine {
     return new MatrixCombine({
       sort: FacetSort.fromJS(parameters.sort),
       limits: parameters.limits.map(Number)
-    })
+    });
   }
 
   public sort: FacetSort;

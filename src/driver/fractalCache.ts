@@ -213,7 +213,7 @@ function betterThanExistingSlot(sortSlot: SortSlot, givenFilter: FacetFilter, gi
   if (!sortSlot) {
     return true;
   }
-  var givenComplete = givenCombine.limit != null ? givenSplitValues.length < givenCombine.limit : true
+  var givenComplete = givenCombine.limit != null ? givenSplitValues.length < givenCombine.limit : true;
   if (!sortSlot.splitValues) {
     return true;
   }
@@ -326,7 +326,7 @@ export class IdentityCombineToSplitValues implements CombineToSplits {
   public get(filter: FacetFilter, condensedCommand: CondensedCommand, flags: Flags) {
     var split = getRealSplit(condensedCommand.split);
     var combine = <SliceCombine>(condensedCommand.combine);
-    var filterExtract = filter.extractFilterByAttribute(split.attribute)
+    var filterExtract = filter.extractFilterByAttribute(split.attribute);
     if (!filterExtract) {
       flags.fullQuery = true;
       return null;
@@ -347,7 +347,7 @@ export class IdentityCombineToSplitValues implements CombineToSplits {
         return filteredSplitValues;
       }
     } else {
-      var completeSlot = this._findComplete()
+      var completeSlot = this._findComplete();
       if (!completeSlot) {
         return null;
       }
@@ -564,7 +564,7 @@ export function computeDeltaQuery(originalQuery: FacetQuery, rootSegment: Segmen
   var andFilters = [originalQuery.getFilter()];
   var condensedCommands = originalQuery.getCondensedCommands();
   var newQuery: any[] = datasets.length === 1 && datasets[0].name === "main" ? [] : datasets.map((dataset) => {
-    return jsWithOpperation(dataset, 'dataset')
+    return jsWithOpperation(dataset, 'dataset');
   });
 
   var i = 0;
@@ -737,7 +737,7 @@ export function fractalCache(parameters: FractalCacheParameters) {
           return layerGroup.$_parent.setSplits(layerGroup);
         });
       }
-      var nextCondensedCommand = condensedCommands[i + 1]
+      var nextCondensedCommand = condensedCommands[i + 1];
       if (nextCondensedCommand) {
         var split = nextCondensedCommand.getEffectiveSplit();
         var splitName = split.name;
@@ -912,7 +912,7 @@ export function fractalCache(parameters: FractalCacheParameters) {
         combineToSplitCache.tidy();
       });
     } else {
-      var deltaQuery = computeDeltaQuery(query, rootSegment)
+      var deltaQuery = computeDeltaQuery(query, rootSegment);
 
       driver({
         query: deltaQuery,
@@ -946,7 +946,7 @@ export function fractalCache(parameters: FractalCacheParameters) {
 
   cachedDriver.introspect = (opts: any, callback: Driver.IntrospectionCallback) => {
     return driver.introspect(opts, callback);
-  }
+  };
 
   cachedDriver.clear = () => {
     applyCache.clear();

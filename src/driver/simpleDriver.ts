@@ -125,7 +125,7 @@ var aggregateFns: Lookup<SingleDatasetApplyFnFactory> = {
     return (ds: Datum[]) => Number(value);
   },
   count: (apply: CountApply) => {
-    return (ds: Datum[]) => ds.length
+    return (ds: Datum[]) => ds.length;
   },
   sum: (apply: SumApply) => {
     var attribute = apply.attribute;
@@ -187,7 +187,7 @@ var aggregateFns: Lookup<SingleDatasetApplyFnFactory> = {
     var quantile = apply.quantile;
     return (ds: Datum[]) => {
       if (!ds.length) return null;
-      var points = ds.map((d) => Number(d[attribute]))
+      var points = ds.map((d) => Number(d[attribute]));
       points.sort((a, b) => a - b);
       return points[Math.floor(points.length * quantile)];
     };
@@ -253,7 +253,7 @@ var combineFns: Lookup<CombineFnFactory> = {
     var sort = combine.sort;
     var limit = combine.limit;
     if (sort) {
-      var segmentCompareFn = sort.getSegmentCompareFn()
+      var segmentCompareFn = sort.getSegmentCompareFn();
     }
 
     return (segments) => {
@@ -269,7 +269,7 @@ var combineFns: Lookup<CombineFnFactory> = {
   matrix: (combine: MatrixCombine) => {
     return (segments) => {
       throw new Error("matrix combine not implemented yet");
-    }
+    };
   }
 };
 
@@ -277,7 +277,7 @@ function makeCombineFn(combine: FacetCombine) {
   if (!isInstanceOf(combine, FacetCombine)) {
     throw new TypeError("combine must be a FacetCombine");
   }
-  var combineFn = combineFns[combine.method]
+  var combineFn = combineFns[combine.method];
   if (!combineFn) {
     throw new Error("method '" + combine.method + "' unsupported by driver");
   }
@@ -316,7 +316,7 @@ function computeQuery(data: Datum[], query: FacetQuery): SegmentTree {
 
       var parallelSplitFns: Lookup<SplitFn> = {};
       parallelSplits.forEach((parallelSplit) => {
-        parallelSplitFns[parallelSplit.getDataset()] = makeSplitFn(parallelSplit)
+        parallelSplitFns[parallelSplit.getDataset()] = makeSplitFn(parallelSplit);
       });
 
       segmentFilterFn = split.segmentFilter ? split.segmentFilter.getFilterFn() : null;
@@ -373,8 +373,8 @@ function computeQuery(data: Datum[], query: FacetQuery): SegmentTree {
       return segmentGroups.map((segmentGroup) => {
         segmentGroup.map((segment) => {
           // ToDo: remove <any> when union types
-          segment.prop[propName] = <any>applyFn(segment.meta['raws'])
-        })
+          segment.prop[propName] = <any>applyFn(segment.meta['raws']);
+        });
       });
     });
 
@@ -486,7 +486,7 @@ export function simpleDriver(dataGetter: any): Driver.FacetDriver {
       }
 
       try {
-        var result = computeQuery(dataArray, query)
+        var result = computeQuery(dataArray, query);
       } catch (error) {
         callback(error);
         return;

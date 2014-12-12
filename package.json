@@ -21,7 +21,7 @@
     "definition": "build/facetBase.d.ts"
   },
   "scripts": {
-    "prepublish": "echo 'one day run ./compile'"
+    "prepublish": "./prepublish"
   },
   "publishConfig": {
     "registry": "https://metamx.registry.nodejitsu.com/"

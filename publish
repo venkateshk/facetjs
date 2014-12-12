@@ -1,9 +1,0 @@
-#!/bin/bash
-
-./compile
-git add build/ package/
-git commit -m "Compiled"
-
-npm version patch -m "Upgrade version to %s"
-git push
-git push --tags;

@@ -50,7 +50,7 @@
 
       var mySqlRequester = facet.driver.proxy.ajax({
         url: '/pass/sql',
-        prety: true
+        pretty: true
       });
 
       var sqlDriverClient = facet.driver.sql({
@@ -59,6 +59,7 @@
         filter: null
       });
 
+      /*
       var vis = facet.define('.example', 800, 600, sqlDriverClient)
         .scale('vert', scale.linear())
         .scale('color', scale.color())
@@ -84,8 +85,48 @@
                 anchor: 'middle',
                 baseline: 'bottom'
               }))
+      */
 
-      vis.render(true);
+      facet.start('svg')
+        .def('diamonds', sqlDriverClient)
+        .def('stage', stage.rectangle(800, 600))
+        .def('verticalScale', scale.linear())
+        .def('colorScale', scale.color())
+        .def('Cuts',
+          facet.split('Cut', 'diamonds.cut')
+            .def('AvgPrice', 'diamonds.sum("price") / diamonds.count()')
+            .sort('AvgPrice')
+            .reverse()
+            .accumulate('AccAvgPrice', use('AvgPrice'))
+            .def('stage', layout.horizontal({ stage: use('stage'), gap: 3 }))
+            .domain('verticalScale', interval(0, use('AvgPrice')))
+            .range('verticalScale', use('stage.height'))
+            .domain('color', use('Cut'))
+            .def('barStage', function(d) {
+              return d.stage.margin({
+                bottom: 0,
+                height: d.verticalScale(d.AvgPrice)
+              })
+            })
+            .render(plot.box({
+              stage: use('barStage'),
+              fill: '#f0f0f0',
+              stroke: use('color')
+            }))
+            .def('pointStage', function(d) {
+              return d.barStage.margin({
+                bottom: 6
+              })
+            })
+            .render(plot.label({
+              text: use.prop('Cut'),
+              color: use.scale('color'),
+              anchor: 'middle',
+              baseline: 'bottom'
+            }))
+        )
+        .render('.example');
+
     })();
     </script>
   </body>

@@ -80,11 +80,6 @@ class FacetVis
     })
     return subVis
 
-  unlayout: ->
-    throw new Error("can not unlayout on the base") unless @parent
-    throw new Error("unmatched nesting (nested with #{@from})") unless @from is 'layout'
-    return @parent
-
   scale: (name, scale) ->
     throw new TypeError("not a valid scale") unless typeof scale is 'function'
     @ops.push({
@@ -109,27 +104,6 @@ class FacetVis
       range
     })
     return this
-
-  branch: (data) ->
-    # create a branch split segment
-
-  unbranch: ->
-    # go back to the main segment
-
-  transform: (transform) ->
-    throw new TypeError("transform must be a function") unless typeof transform is 'function'
-    subVis = new FacetVis(this, 'transform', @knownProps)
-    @ops.push({
-      operation: 'transform'
-      transform
-      vis: subVis
-    })
-    return subVis
-
-  untransform: ->
-    throw new Error("can not untransform on the base") unless @parent
-    throw new Error("unmatched nesting (nested with #{@from})") unless @from is 'transform'
-    return @parent
 
   plot: (plot) ->
     throw new TypeError("plot must be a function") unless typeof plot is 'function'

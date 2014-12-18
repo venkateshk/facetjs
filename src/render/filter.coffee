@@ -1,10 +1,3 @@
-# { attribute: "make", type: "is", value: "Honda" }
-# { attribute: "make", type: "in", values: ["Honda", "BMW"] }
-# { attribute: "make", type: "match", expression: "Hond[ao]" }
-# { attribute: "displacement", type: "within", range: [5, 6] }
-# { type: "not", filter: {...} }
-# { type: "and", filters: [{...}] }
-# { type: "or", filters: [{...}] }
 
 module.exports = {
   'true': -> {

@@ -3,7 +3,7 @@ Interval = require('./interval')
 { isInstanceOf } = require('../utils')
 
 # A function that transforms the space from one form to another.
-# Arguments* -> Segment -> PsudoSpace
+# Arguments* -> Segment -> PseudoSpace
 
 pointOnPoint = (args, leftName, rightName) ->
   left = wrapLiteral(args[leftName])

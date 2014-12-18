@@ -93,8 +93,8 @@
         .def('verticalScale', scale.linear())
         .def('colorScale', scale.color())
         .def('Cuts',
-          facet.split('Cut', 'diamonds.cut')
-            .def('AvgPrice', 'diamonds.sum("price") / diamonds.count()')
+          facet.split('Cut', split('diamonds.cut'))
+            .def('AvgPrice', apply('diamonds.sum("price") / diamonds.count()'))
             .sort('AvgPrice')
             .reverse()
             .accumulate('AccAvgPrice', use('AvgPrice'))

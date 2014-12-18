@@ -88,7 +88,9 @@
       */
 
       facet.start('svg')
+        .container('.example')
         .def('diamonds', sqlDriverClient)
+        .filter('diamonds', filter("color == 'D"))
         .def('stage', stage.rectangle(800, 600))
         .def('verticalScale', scale.linear())
         .def('colorScale', scale.color())
@@ -125,7 +127,6 @@
               baseline: 'bottom'
             }))
         )
-        .render('.example');
 
     })();
     </script>

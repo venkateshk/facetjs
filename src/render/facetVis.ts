@@ -1,70 +1,46 @@
+/// <reference path="../../typings/tsd.d.ts" />
 "use strict";
 
-import Basics = require("../basics") // Prop up
+import Basics = require("../basics"); // Prop up
 import Lookup = Basics.Lookup;
 
-FacetQuery = require("../query").FacetQuery;
-Segment = require("./segment");
-Space = require("./space");
+import d3 = require("d3");
+import FacetQueryModule = require("../query/index");
+import FacetQuery = FacetQueryModule.FacetQuery;
+import FacetFilter = FacetQueryModule.FacetFilter;
 
-function clone(obj) {
-  var k, newObj, v;
-  newObj = {};
-  for (k in obj) {
-    v = obj[k];
-    newObj[k] = v;
-  }
-  return newObj;
-}
-
-function flatten(arrays) {
-  var flat;
-  flat = [];
-  arrays.forEach((array) => array.map((a) => flat.push(a)));
-  return flat;
-}
-
-function pseudoSpaceToTransform(_arg) {
-  var a, transformStr, x, y, _arg;
-  x = _arg.x, y = _arg.y, a = _arg.a;
-  transformStr = "translate(" + x + "," + y + ")";
-  if (a) {
-    transformStr += " rotate(" + a + ")";
-  }
-  return transformStr;
-}
+import SpaceModule = require("./space");
+import RectangularSpace = SpaceModule.RectangularSpace;
 
 export interface FacetVisParameters {
-  parentAttributes: Lookup<any>;
+  renderType: string;
+  fromSplit?: boolean;
 }
 
 export class FacetVis {
+  public parent: FacetVis;
+  public renderType: string;
+  public fromSplit: boolean;
+  public ops: any[] = [];
+
   constructor(parameters: FacetVisParameters) {
-    if (args.length === 4) {
-      this.selector = args[0], this.width = args[1], this.height = args[2], this.driver = args[3];
-      this.knownProps = {};
-    } else {
-      this.parent = args[0], this.from = args[1], this.knownProps = args[2];
-    }
-    this.ops = [];
+    this.renderType = parameters.renderType;
+    this.fromSplit = Boolean(parameters.fromSplit);
   }
 
-  public filter(filter) {
-    if (this.parent) {
-      throw new Error("can only filter on the base instance");
-    }
-    filter = clone(filter);
-    filter.operation = "filter";
-    this.ops.push(filter);
+  public container(selector: any): FacetVis {
+    this.ops.push({
+      operation: 'container',
+      selector: selector
+    });
     return this;
   }
 
-  public split(name, split) {
-    split = clone(split);
-    split.operation = "split";
-    split.name = name;
-    this.ops.push(split);
-    this.knownProps[name] = true;
+  public filter(filter: FacetFilter): FacetVis {
+    if (this.fromSplit) throw new Error("can only filter on the base instance");
+    var filterJS = filter.toJS();
+    filterJS.operation = "filter";
+    this.ops.push(filterJS);
     return this;
   }
 

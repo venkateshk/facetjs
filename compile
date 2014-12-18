@@ -48,6 +48,9 @@ node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/requeste
 echo "Compiling drivers"
 node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/driver/*.ts
 
+echo "Compiling render"
+node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/render/*.ts
+
 echo "Compiling workers"
 node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/worker/*.ts
 

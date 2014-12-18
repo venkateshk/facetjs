@@ -1,5 +1,8 @@
 "use strict";
 
+import Basics = require("../basics") // Prop up
+import Lookup = Basics.Lookup;
+
 import FacetVis = require("./facetVis");
 
 //exports.filter = require("./filter");

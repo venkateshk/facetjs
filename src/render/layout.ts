@@ -1,6 +1,7 @@
-var wrapLiteral;
+"use strict";
 
-wrapLiteral = require("./common").wrapLiteral;
+import Basics = require("../basics") // Prop up
+import Lookup = Basics.Lookup;
 
 function divideLength(length, sizes) {
   var lengthPerSize, totalSize;

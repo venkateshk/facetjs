@@ -1,4 +1,8 @@
-// d3 = require("d3");
+"use strict";
+
+import Basics = require("../basics") // Prop up
+import Lookup = Basics.Lookup;
+
 FacetQuery = require("../query").FacetQuery;
 Segment = require("./segment");
 Space = require("./space");

@@ -1,4 +1,7 @@
-var Interval, d3, isInstanceOf, wrapLiteral;
+"use strict";
+
+import Basics = require("../basics") // Prop up
+import Lookup = Basics.Lookup;
 
 d3 = require("d3");
 wrapLiteral = require("./common").wrapLiteral;

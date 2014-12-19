@@ -190,49 +190,26 @@ describe "Druid driver", ->
         expect(dimExtractionFn("00050.05|00050.1")).to.equal("null")
 
     describe "good native filtered aggregator", ->
-      queryBuilder = new DruidQueryBuilder({
-        dataSource: 'some_data'
-        timeAttribute: 'time'
-        attributeMetas: {}
-        forceInterval: false
-        approximate: true
-        context: {}
-      })
+      queryBuilder = null
+      beforeEach ->
+        queryBuilder = new DruidQueryBuilder({
+          dataSource: 'some_data'
+          timeAttribute: 'time'
+          attributeMetas: {}
+          forceInterval: false
+          approximate: true
+          context: {}
+        })
 
-      queryBuilder.addApplies([
-        FacetApply.fromJS({
-          name: 'HondaPrice'
-          aggregate: 'sum'
-          attribute: 'price'
-          filter: { type: 'is', attribute: 'make', value: 'honda' }
-        })
-        FacetApply.fromJS({
-          name: 'HondaPrice2'
-          aggregate: 'sum'
-          attribute: 'price'
-          filter: { type: 'in', attribute: 'make', values: ['honda'] }
-        })
-        FacetApply.fromJS({
-          name: 'NotHondaPrice'
-          aggregate: 'sum'
-          attribute: 'price'
-          filter: {
-            type: 'not'
-            filter: {type: 'is', attribute: 'make', value: 'honda' }
-          }
-        })
-        FacetApply.fromJS({
-          name: 'HondaAndLexusPrice'
-          aggregate: 'sum'
-          attribute: 'price'
-          filter: {
-            type: 'not'
-            filter: {type: 'in', attribute: 'make', values: ['honda', 'lexus'] }
-          }
-        })
-      ])
-
-      it "it makes the correct aggregates", ->
+      it "makes the correct aggregate for is filters", ->
+        queryBuilder.addApplies([
+          FacetApply.fromJS({
+            name: 'HondaPrice'
+            aggregate: 'sum'
+            attribute: 'price'
+            filter: { type: 'is', attribute: 'make', value: 'honda' }
+          })
+        ])
         druidQuery = queryBuilder.getQuery()
         expect(druidQuery.aggregations).to.deep.equal([
           {
@@ -249,6 +226,19 @@ describe "Druid driver", ->
               "value": "honda"
             }
           }
+        ])
+
+      it "makes the correct aggregate for in filters with single value", ->
+        queryBuilder.addApplies([
+          FacetApply.fromJS({
+            name: 'HondaPrice2'
+            aggregate: 'sum'
+            attribute: 'price'
+            filter: { type: 'in', attribute: 'make', values: ['honda'] }
+          })
+        ])
+        druidQuery = queryBuilder.getQuery()
+        expect(druidQuery.aggregations).to.deep.equal([
           {
             "name": "HondaPrice2"
             "type": "filtered"
@@ -263,6 +253,60 @@ describe "Druid driver", ->
               "value": "honda"
             }
           }
+        ])
+
+
+      it "makes the correct aggregate for in filters with multiple values", ->
+        queryBuilder.addApplies([
+          FacetApply.fromJS({
+            name: 'InHondaPrice'
+            aggregate: 'sum'
+            attribute: 'price'
+            filter: { type: 'in', attribute: 'make', values: ['honda', 'hyundai'] }
+          })
+        ])
+        druidQuery = queryBuilder.getQuery()
+        expect(druidQuery.aggregations).to.deep.equal([
+          {
+            "name": "InHondaPrice"
+            "type": "filtered"
+            "aggregator": {
+              "name": "InHondaPrice"
+              "fieldName": "price"
+              "type": "doubleSum"
+            }
+            "filter": {
+              "type": "or",
+              "fields": [
+                {
+                  "type": "selector",
+                  "dimension": "make",
+                  "value": "honda"
+                },
+                {
+                  "type": "selector",
+                  "dimension": "make",
+                  "value": "hyundai"
+                }
+              ]
+            }
+          }
+        ])
+
+      it "makes the correct native aggregate for not filters only with is", ->
+        queryBuilder.addApplies([
+          FacetApply.fromJS({
+            name: 'NotHondaPrice'
+            aggregate: 'sum'
+            attribute: 'price'
+            filter: {
+              type: 'not'
+              filter: {type: 'is', attribute: 'make', value: 'honda' }
+            }
+          })
+        ])
+        druidQuery = queryBuilder.getQuery()
+        expect(druidQuery.aggregations).to.deep.equal([
           {
             "name": "NotHondaPrice"
             "type": "filtered"
@@ -280,18 +324,172 @@ describe "Druid driver", ->
               }
             }
           }
+        ])
+
+
+      it "makes the correct native aggregate for or filters only with is", ->
+        queryBuilder.addApplies([
+          FacetApply.fromJS({
+            name: 'OrHondaPrice'
+            aggregate: 'sum'
+            attribute: 'price'
+            filter: {
+              type: 'or'
+              filters: [
+                {type: 'is', attribute: 'make', value: 'honda' }
+                {type: 'is', attribute: 'year', value: '2014' }
+              ]
+            }
+          })
+        ])
+        druidQuery = queryBuilder.getQuery()
+        expect(druidQuery.aggregations).to.deep.equal([
+          {
+            "type": "filtered",
+            "name": "OrHondaPrice",
+            "filter": {
+              "type": "or",
+              "fields": [
+                {
+                  "type": "selector",
+                  "dimension": "make",
+                  "value": "honda"
+                },
+                {
+                  "type": "selector",
+                  "dimension": "year",
+                  "value": "2014"
+                }
+              ]
+            },
+            "aggregator": {
+              "name": "OrHondaPrice",
+              "type": "doubleSum",
+              "fieldName": "price"
+            }
+          }
+        ])
+
+      it "makes the correct native aggregate for and filters only with is", ->
+        queryBuilder.addApplies([
+          FacetApply.fromJS({
+            name: 'AndHondaPrice'
+            aggregate: 'sum'
+            attribute: 'price'
+            filter: {
+              type: 'and'
+              filters: [
+                {type: 'is', attribute: 'make', value: 'honda' }
+                {type: 'is', attribute: 'year', value: '2014' }
+              ]
+            }
+          })
+        ])
+        druidQuery = queryBuilder.getQuery()
+        expect(druidQuery.aggregations).to.deep.equal([
+          {
+            "type": "filtered",
+            "name": "AndHondaPrice",
+            "filter": {
+              "type": "and",
+              "fields": [
+                {
+                  "type": "selector",
+                  "dimension": "make",
+                  "value": "honda"
+                },
+                {
+                  "type": "selector",
+                  "dimension": "year",
+                  "value": "2014"
+                }
+              ]
+            },
+            "aggregator": {
+              "name": "AndHondaPrice",
+              "type": "doubleSum",
+              "fieldName": "price"
+            }
+          }
+        ])
+
+      it "makes the correct native aggregate for complex filters only with is", ->
+        queryBuilder.addApplies([
+          FacetApply.fromJS({
+            name: 'ComplexHondaPrice'
+            aggregate: 'sum'
+            attribute: 'price'
+            filter: {
+              type: 'and'
+              filters: [
+                {type: 'is', attribute: 'make', value: 'honda' }
+                {
+                  type: 'not'
+                  filter: {type: 'is', attribute: 'year', value: '2014' }
+                }
+              ]
+            }
+          })
+        ])
+        druidQuery = queryBuilder.getQuery()
+        expect(druidQuery.aggregations).to.deep.equal([
+          {
+            "type": "filtered",
+            "name": "ComplexHondaPrice",
+            "filter": {
+              "type": "and",
+              "fields": [
+                {
+                  "type": "selector",
+                  "dimension": "make",
+                  "value": "honda"
+                },
+                {
+                  "type": "not",
+                  "field": {
+                    "type": "selector",
+                    "dimension": "year",
+                    "value": "2014"
+                  }
+                }
+              ]
+            },
+            "aggregator": {
+              "name": "ComplexHondaPrice",
+              "type": "doubleSum",
+              "fieldName": "price"
+            }
+          }
+        ])
+
+      it "does not make a native aggregate for other filters", ->
+        queryBuilder.addApplies([
+          FacetApply.fromJS({
+            name: 'HondaAndLexusPrice'
+            aggregate: 'sum'
+            attribute: 'price'
+            filter: {
+              type: 'contains'
+              attribute: 'make'
+              value: 'honda'
+            }
+          })
+        ])
+        druidQuery = queryBuilder.getQuery()
+        expect(druidQuery.aggregations).to.deep.equal([
           {
             "fieldNames": [
               "make"
               "price"
             ]
-            "fnAggregate": "function(cur,v0,a){return cur + (!(v0 === 'honda'||v0 === 'lexus')?a:0);}"
+            "fnAggregate": "function(cur,v0,a){return cur + (String(v0).indexOf(\'honda\') !== -1?a:0);}"
             "fnCombine": "function(pa,pb){return pa + pb;}"
             "fnReset": "function(){return 0;}"
             "name": "HondaAndLexusPrice"
             "type": "javascript"
           }
         ])
+
 
 
   describe "introspects", ->

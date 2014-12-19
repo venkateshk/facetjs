@@ -544,9 +544,12 @@ export class DruidQueryBuilder {
     this.postAggregations.push(postAggregation);
   }
 
-  public canUseNativeAggregateFilter(filter: FacetFilter) {
+  public canUseNativeAggregateFilter(filter: FacetFilter): boolean {
     if (!filter) return true;
-    return filter.type === 'is' || (filter.type === 'not' && (<NotFilter>filter).filter.type === 'is');
+    return filter.type === 'is' || filter.type === 'in'
+      || (filter.type === 'not' && this.canUseNativeAggregateFilter((<NotFilter>filter).filter))
+      || (filter.type === 'and' && (<AndFilter>filter).filters.every((filter) => this.canUseNativeAggregateFilter(filter)))
+      || (filter.type === 'or' && (<OrFilter>filter).filters.every((filter) => this.canUseNativeAggregateFilter(filter)));
   }
 
   public addAggregateApply(apply: FacetApply) {

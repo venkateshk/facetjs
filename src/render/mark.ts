@@ -4,12 +4,12 @@
 import Basics = require("../basics") // Prop up
 import Lookup = Basics.Lookup;
 
-import d3 = require("d3");
-
 import HigherObjectModule = require("higher-object");
 import isInstanceOf = HigherObjectModule.isInstanceOf;
 import ImmutableClass = HigherObjectModule.ImmutableClass;
 import ImmutableInstance = HigherObjectModule.ImmutableInstance;
+
+import d3 = require("d3");
 
 export class Mark {
   public spaceName: string;

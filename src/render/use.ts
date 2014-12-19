@@ -3,12 +3,6 @@
 import Basics = require("../basics") // Prop up
 import Lookup = Basics.Lookup;
 
-var Interval, isInstanceOf, useLiteral, wrapLiteral, _ref;
-
-_ref = require("./common"), useLiteral = _ref.useLiteral, wrapLiteral = _ref.wrapLiteral;
-Interval = require("./interval");
-isInstanceOf = require("../utils").isInstanceOf;
-
 module.exports = {
   literal: useLiteral,
   prop: (propName) => {
@@ -19,23 +13,6 @@ module.exports = {
       throw new TypeError("prop name must be a string");
     }
     return (segment) => segment.getProp(propName);
-  },
-  comulative: (use) => {
-    var curParent, tally;
-    use = wrapLiteral(use);
-    tally = 0;
-    curParent = null;
-    return (segment) => {
-      var ret, v;
-      v = use(segment);
-      if (curParent !== segment.parent) {
-        curParent = segment.parent;
-        tally = 0;
-      }
-      ret = tally;
-      tally += v;
-      return ret;
-    };
   },
   scale: (scaleName, use) => {
     use = wrapLiteral(use);

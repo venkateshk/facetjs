@@ -5,15 +5,20 @@ import Basics = require("../basics"); // Prop up
 import Lookup = Basics.Lookup;
 
 import d3 = require("d3");
+
 import FacetQueryModule = require("../query/index");
 import FacetQuery = FacetQueryModule.FacetQuery;
-import FacetFilter = FacetQueryModule.FacetFilter;
+import FacetApply = FacetQueryModule.FacetApply;
 
 import SpaceModule = require("./space");
+import Space = SpaceModule.Space;
 import RectangularSpace = SpaceModule.RectangularSpace;
 
+import ScaleModule = require("./scale");
+import Scale = ScaleModule.Scale;
+
 export interface FacetVisParameters {
-  renderType: string;
+  renderType?: string;
   fromSplit?: boolean;
 }
 
@@ -36,23 +41,30 @@ export class FacetVis {
     return this;
   }
 
-  public filter(filter: FacetFilter): FacetVis {
-    if (this.fromSplit) throw new Error("can only filter on the base instance");
-    var filterJS = filter.toJS();
-    filterJS.operation = "filter";
-    this.ops.push(filterJS);
+  public def(name: string, thing: any): FacetVis {
+    if (FacetApply.isFacetApply(thing)) {
+      var applyJS = (<FacetApply>thing).toJS();
+      applyJS.operation = "apply";
+      applyJS.name = name;
+      this.ops.push(applyJS);
+      //this.knownProps[name] = true;
+    } else if (Scale.isScale(thing)) {
+      // ToDo: fill me in
+    } else if (Space.isSpace(thing)) {
+      // ToDo: fill me in
+    }
     return this;
   }
 
-  public apply(name, apply) {
-    apply = clone(apply);
-    apply.operation = "apply";
-    apply.name = name;
-    this.ops.push(apply);
-    this.knownProps[name] = true;
+  public sort(attribute: string): FacetVis {
+    this.ops.push({
+      operation: 'sort',
+      attribute: attribute
+    });
     return this;
   }
 
+  /*
   public combine(_arg) {
     var combineCmd, limit, method, sort, _arg, _base;
     method = _arg.method, sort = _arg.sort, limit = _arg.limit;
@@ -426,4 +438,5 @@ export class FacetVis {
 
     return this;
   }
+  */
 }

@@ -3,7 +3,16 @@
 import Basics = require("../basics") // Prop up
 import Lookup = Basics.Lookup;
 
-import FacetVis = require("./facetVis");
+import FacetQueryModule = require("../query/index");
+import FacetSplit = FacetQueryModule.FacetSplit;
+
+import FacetVisModule = require("./facetVis");
+import FacetVis = FacetVisModule.FacetVis;
+
+import DatasetModule = require("./dataset");
+import Dataset = DatasetModule.Dataset;
+
+import Driver = require("../driverCommon");
 
 //exports.filter = require("./filter");
 //exports.split = require("./split");
@@ -21,4 +30,15 @@ export function define(renderType: string) {
   return new FacetVis({
     renderType: renderType
   });
+}
+
+export function facet(name: string, split: FacetSplit) {
+  return new FacetVis({
+
+  });
+}
+
+
+export function dataset(driver: Driver.FacetDriver) {
+  return new Dataset(driver);
 }

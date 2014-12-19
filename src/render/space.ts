@@ -1,7 +1,13 @@
+/// <reference path="../../typings/tsd.d.ts" />
 "use strict";
 
 import Basics = require("../basics") // Prop up
 import Lookup = Basics.Lookup;
+
+import HigherObjectModule = require("higher-object");
+import isInstanceOf = HigherObjectModule.isInstanceOf;
+import ImmutableClass = HigherObjectModule.ImmutableClass;
+import ImmutableInstance = HigherObjectModule.ImmutableInstance;
 
 export interface Functor {
   (d: any, i: number): number;
@@ -53,6 +59,10 @@ export class Space {
   public parent: Space;
   public x: Functor;
   public y: Functor;
+
+  static isSpace(candidate: any): boolean {
+    return isInstanceOf(candidate, Space);
+  }
 
   constructor(parent: Space, x: Functor, y: Functor) {
     this.parent = parent;

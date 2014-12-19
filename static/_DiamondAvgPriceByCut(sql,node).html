@@ -89,13 +89,12 @@
 
       facet.start('svg')
         .container('.example')
-        .def('diamonds', sqlDriverClient)
-        .filter('diamonds', filter("color == 'D"))
+        .def('diamonds', facet.dataset(sqlDriverClient).filter("color == 'D"))
         .def('stage', stage.rectangle(800, 600))
         .def('verticalScale', scale.linear())
         .def('colorScale', scale.color())
         .def('Cuts',
-          facet.split('Cut', split('diamonds.cut'))
+          facet.facet('Cut', split('diamonds.cut'))
             .def('AvgPrice', apply('diamonds.sum("price") / diamonds.count()'))
             .sort('AvgPrice')
             .reverse()

@@ -1,13 +1,29 @@
+/// <reference path="../../typings/tsd.d.ts" />
 "use strict";
 
 import Basics = require("../basics") // Prop up
 import Lookup = Basics.Lookup;
 
-d3 = require("d3");
-wrapLiteral = require("./common").wrapLiteral;
-Interval = require("./interval");
-isInstanceOf = require("../utils").isInstanceOf;
+import d3 = require("d3");
 
+import HigherObjectModule = require("higher-object");
+import isInstanceOf = HigherObjectModule.isInstanceOf;
+import ImmutableClass = HigherObjectModule.ImmutableClass;
+import ImmutableInstance = HigherObjectModule.ImmutableInstance;
+
+export class Scale {
+  public scaleFn: any;
+
+  static isScale(candidate: any): boolean {
+    return isInstanceOf(candidate, Scale);
+  }
+
+  constructor() {
+
+  }
+}
+
+/*
 function scaleOverInterval(baseScale) {
   return (x) => {
     if (isInstanceOf(x, Interval)) {
@@ -129,3 +145,4 @@ module.exports = {
     };
   }
 };
+*/

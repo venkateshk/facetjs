@@ -17,6 +17,9 @@ import RectangularSpace = SpaceModule.RectangularSpace;
 import ScaleModule = require("./scale");
 import Scale = ScaleModule.Scale;
 
+import MarkModule = require("./mark");
+import Mark = MarkModule.Mark;
+
 export interface FacetVisParameters {
   renderType?: string;
   fromSplit?: boolean;
@@ -34,6 +37,9 @@ export class FacetVis {
   }
 
   public container(selector: any): FacetVis {
+    if (this.fromSplit) {
+      throw new Error("Can not only call container in a 'start' chain");
+    }
     this.ops.push({
       operation: 'container',
       selector: selector
@@ -62,6 +68,70 @@ export class FacetVis {
       attribute: attribute
     });
     return this;
+  }
+
+  public reverse(): FacetVis {
+    this.ops.push({
+      operation: 'reverse'
+    });
+    return this;
+  }
+
+  public accumulate(name: string, thing: any): FacetVis {
+    // ToDo: work out what this will do.
+    this.ops.push({
+      operation: 'accumulate'
+    });
+    return this;
+  }
+
+  public train(what: string, property: string, expression: any): FacetVis {
+    this.ops.push({
+      operation: 'train'
+    });
+    return this;
+  }
+
+  public render(mark: Mark): FacetVis {
+    this.ops.push({
+      operation: 'render',
+      mark: mark
+    });
+    return this;
+  }
+
+  /*
+  public connector(name, connector) {
+    if (typeof connector !== "function") {
+      throw new TypeError("not a valid connector");
+    }
+    this.ops.push({
+      operation: "connector",
+      name: name,
+      connector: connector
+    });
+    return this;
+  }
+
+  public connect(name) {
+    this.ops.push({
+      operation: "connect",
+      name: name
+    });
+    return this;
+  }
+  */
+
+  public compute(): FacetVis {
+    return this;
+  }
+
+  private getQueryParts(): any[] {
+    throw "add this"
+  }
+
+  public getQuery(): FacetQuery {
+    throw "add this"
   }
 
   /*
@@ -104,66 +174,8 @@ export class FacetVis {
     return subVis;
   }
 
-  public scale(name, scale) {
-    if (typeof scale !== "function") {
-      throw new TypeError("not a valid scale");
-    }
-    this.ops.push({
-      operation: "scale",
-      name: name,
-      scale: scale
-    });
-    return this;
-  }
 
-  public domain(name, domain) {
-    this.ops.push({
-      operation: "domain",
-      name: name,
-      domain: domain
-    });
-    return this;
-  }
 
-  public range(name, range) {
-    this.ops.push({
-      operation: "range",
-      name: name,
-      range: range
-    });
-    return this;
-  }
-
-  public plot(plot) {
-    if (typeof plot !== "function") {
-      throw new TypeError("plot must be a function");
-    }
-    this.ops.push({
-      operation: "plot",
-      plot: plot
-    });
-    return this;
-  }
-
-  public connector(name, connector) {
-    if (typeof connector !== "function") {
-      throw new TypeError("not a valid connector");
-    }
-    this.ops.push({
-      operation: "connector",
-      name: name,
-      connector: connector
-    });
-    return this;
-  }
-
-  public connect(name) {
-    this.ops.push({
-      operation: "connect",
-      name: name
-    });
-    return this;
-  }
 
   public getFlatOperations() {
     var operations, _ref;

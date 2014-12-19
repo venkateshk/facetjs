@@ -90,7 +90,7 @@
       facet.start('svg')
         .container('.example')
         .def('diamonds', facet.dataset(sqlDriverClient).filter("color == 'D"))
-        .def('stage', stage.rectangle(800, 600))
+        .def('stage', space.rectangle(800, 600))
         .def('verticalScale', scale.linear())
         .def('colorScale', scale.color())
         .def('Cuts',
@@ -98,18 +98,18 @@
             .def('AvgPrice', apply('diamonds.sum("price") / diamonds.count()'))
             .sort('AvgPrice')
             .reverse()
-            .accumulate('AccAvgPrice', use('AvgPrice'))
+            //.accumulate('AccAvgPrice', use('AvgPrice'))
             .def('stage', layout.horizontal({ stage: use('stage'), gap: 3 }))
-            .domain('verticalScale', interval(0, use('AvgPrice')))
-            .range('verticalScale', use('stage.height'))
-            .domain('color', use('Cut'))
+            .train('verticalScale', 'domain', interval(0, use('AvgPrice')))
+            .train('verticalScale', 'range', use('stage.height'))
+            .train('color', 'domain', use('Cut'))
             .def('barStage', function(d) {
               return d.stage.margin({
                 bottom: 0,
                 height: d.verticalScale(d.AvgPrice)
               })
             })
-            .render(plot.box({
+            .render(mark('box', {
               stage: use('barStage'),
               fill: '#f0f0f0',
               stroke: use('color')
@@ -119,13 +119,15 @@
                 bottom: 6
               })
             })
-            .render(plot.label({
+            .render(mark('label', {
+              stage: use('pointStage'),
               text: use.prop('Cut'),
               color: use.scale('color'),
               anchor: 'middle',
               baseline: 'bottom'
             }))
         )
+        .compute()
 
     })();
     </script>

@@ -1,39 +1,35 @@
+/// <reference path="../../typings/tsd.d.ts" />
 "use strict";
 
 import Basics = require("../basics") // Prop up
 import Lookup = Basics.Lookup;
 
-var wrapLiteral;
+import d3 = require("d3");
 
-wrapLiteral = require("./common").wrapLiteral;
+import HigherObjectModule = require("higher-object");
+import isInstanceOf = HigherObjectModule.isInstanceOf;
+import ImmutableClass = HigherObjectModule.ImmutableClass;
+import ImmutableInstance = HigherObjectModule.ImmutableInstance;
 
-function createNode(segment, space, nodeType, _arg) {
-  var dash, link, node, opacity, title, visible, _arg;
-  title = _arg.title, link = _arg.link, visible = _arg.visible, opacity = _arg.opacity, dash = _arg.dash;
-  title = wrapLiteral(title);
-  link = wrapLiteral(link);
-  visible = wrapLiteral(visible);
-  opacity = wrapLiteral(opacity);
+export class Mark {
+  public spaceName: string;
 
-  node = space.node;
-
-  if (title || link) {
-    node = node.append("a").datum(segment).attr("xlink:title", title).attr("xlink:href", link);
+  static isMark(candidate: any): boolean {
+    return isInstanceOf(candidate, Mark);
   }
 
-  node = node.append(nodeType).datum(segment).style("opacity", opacity);
-
-  if (visible) {
-    node.style("display", visible(segment) ? null : "none");
+  constructor(spaceName: string) {
+    this.spaceName = spaceName;
   }
 
-  if (dash) {
-    node.style("stroke-dasharray", dash);
+  public toJS() {
+    return {
+      spaceName: this.spaceName
+    };
   }
-
-  return node;
 }
 
+/*
 module.exports = {
   box: (args: any = {}) => {
     var color, fill, stroke;
@@ -137,3 +133,31 @@ module.exports = {
     };
   }
 };
+
+function createNode(segment, space, nodeType, _arg) {
+ var dash, link, node, opacity, title, visible, _arg;
+ title = _arg.title, link = _arg.link, visible = _arg.visible, opacity = _arg.opacity, dash = _arg.dash;
+ title = wrapLiteral(title);
+ link = wrapLiteral(link);
+ visible = wrapLiteral(visible);
+ opacity = wrapLiteral(opacity);
+
+ node = space.node;
+
+ if (title || link) {
+ node = node.append("a").datum(segment).attr("xlink:title", title).attr("xlink:href", link);
+ }
+
+ node = node.append(nodeType).datum(segment).style("opacity", opacity);
+
+ if (visible) {
+ node.style("display", visible(segment) ? null : "none");
+ }
+
+ if (dash) {
+ node.style("stroke-dasharray", dash);
+ }
+
+ return node;
+ }
+*/

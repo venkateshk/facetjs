@@ -29,7 +29,7 @@ export interface FacetDatasetJS {
 export interface FacetDatasetValue {
   name?: string;
   source?: string;
-  filter?: FacetFilter;
+  filter: FacetFilter;
 }
 
 var check: ImmutableClass<FacetDatasetValue, FacetDatasetJS>;
@@ -44,7 +44,7 @@ export class FacetDataset implements ImmutableInstance<FacetDatasetValue, FacetD
     return new FacetDataset({
       name: parameters.name,
       source: parameters.source,
-      filter: parameters.filter ? FacetFilter.fromJS(parameters.filter) : null
+      filter: parameters.filter ? FacetFilter.fromJS(parameters.filter) : FacetFilter.TRUE
     });
   }
 
@@ -61,12 +61,10 @@ export class FacetDataset implements ImmutableInstance<FacetDatasetValue, FacetD
     if (typeof this.source !== "string") {
       throw new TypeError("dataset source must be a string");
     }
-    if (parameters.filter) {
-      if (!FacetFilter.isFacetFilter(parameters.filter)) {
-        throw new TypeError("filter must be a FacetFilter");
-      }
-      this.filter = parameters.filter;
+    if (!FacetFilter.isFacetFilter(parameters.filter)) {
+      throw new TypeError("filter must be a FacetFilter");
     }
+    this.filter = parameters.filter;
   }
 
   public toString(): string {
@@ -74,7 +72,7 @@ export class FacetDataset implements ImmutableInstance<FacetDatasetValue, FacetD
   }
 
   public getFilter(): FacetFilter {
-    return this.filter || FacetFilter.TRUE;
+    return this.filter;
   }
 
   public and(filter: FacetFilter): FacetDataset {
@@ -86,11 +84,9 @@ export class FacetDataset implements ImmutableInstance<FacetDatasetValue, FacetD
   public valueOf(): FacetDatasetValue {
     var spec: FacetDatasetValue = {
       name: this.name,
-      source: this.source
+      source: this.source,
+      filter: this.filter
     };
-    if (this.filter) {
-      spec.filter = this.filter;
-    }
     return spec;
   }
 
@@ -99,7 +95,7 @@ export class FacetDataset implements ImmutableInstance<FacetDatasetValue, FacetD
       name: this.name,
       source: this.source
     };
-    if (this.filter) {
+    if (this.filter.type !== 'true') {
       spec.filter = this.filter.toJS();
     }
     return spec;
@@ -119,5 +115,6 @@ check = FacetDataset;
 
 FacetDataset.BASE = new FacetDataset({
   name: "main",
-  source: "base"
+  source: "base",
+  filter: FacetFilter.TRUE
 });

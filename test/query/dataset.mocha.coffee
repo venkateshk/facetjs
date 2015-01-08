@@ -8,6 +8,10 @@ describe "FacetDataset", ->
   it "passes higher object tests", ->
     testHigherObjects(FacetDataset, [
       {
+        name: 'basic-dataset'
+        source: 'base'
+      }
+      {
         name: 'ideal-cut'
         source: 'base'
         filter: {

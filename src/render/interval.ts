@@ -15,7 +15,6 @@ class Interval {
     if (typeof this.end.valueOf() !== "number") {
       throw new Error("invalid end (is '" + this.end + "')");
     }
-    return;
   }
 
   public valueOf() {

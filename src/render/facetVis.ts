@@ -13,12 +13,13 @@ import d3 = require("d3");
 
 import FacetQueryModule = require("../query/index");
 import FacetQuery = FacetQueryModule.FacetQuery;
+import FacetDataset = FacetQueryModule.FacetDataset;
 import FacetSplit = FacetQueryModule.FacetSplit;
 import FacetApply = FacetQueryModule.FacetApply;
-import FacetCombine = FacetQueryModule.FacetCombine;
 
-import DatasetModule = require("./dataset");
-import Dataset = DatasetModule.Dataset;
+import FacetCombineModule = require("../query/combine");
+import FacetCombine = FacetCombineModule.FacetCombine;
+import FacetCombineJS = FacetCombineModule.FacetCombineJS;
 
 import SpaceModule = require("./space");
 import Space = SpaceModule.Space;
@@ -34,16 +35,24 @@ export interface FacetVisValue {
   selector?: string;
   renderType?: string;
   split?: FacetSplit;
+  splitName?: string;
+}
+
+interface Def {
+  name: string;
+  thing: any;
 }
 
 export class FacetVis {
   public parent: FacetVis;
   public renderType: string;
   public split: FacetSplit;
-  public defs: Lookup<any> = {};
+  public splitName: string;
   public renders: Mark[];
-  public combine: any[];
+  public combineOperations: any[];
   public selector: string;
+
+  private defs: Def[] = [];
 
   static isFacetVis(candidate: any): boolean {
     return isInstanceOf(candidate, FacetVis);
@@ -53,6 +62,7 @@ export class FacetVis {
     this.selector = parameters.selector;
     this.renderType = parameters.renderType;
     this.split = parameters.split;
+    this.splitName = parameters.splitName;
   }
 
   public toJS(): FacetVisValue {
@@ -72,30 +82,26 @@ export class FacetVis {
   }
 
   public def(name: string, thing: any): FacetVis {
-    this.defs[name] = thing;
-    return this;
-  }
-
-  public sort(attribute: string): FacetVis {
-    this.combine || (this.combine = []);
-    this.combine.push({
-      operation: 'sort',
-      attribute: attribute
+    this.defs.push({
+      name: name,
+      thing: thing
     });
     return this;
   }
 
-  public reverse(): FacetVis {
-    this.combine || (this.combine = []);
-    this.combine.push({
-      operation: 'reverse'
+  public sort(attribute: string, direction: string): FacetVis {
+    this.combineOperations || (this.combineOperations = []);
+    this.combineOperations.push({
+      operation: 'sort',
+      attribute: attribute,
+      direction: direction
     });
     return this;
   }
 
   public limit(limit: number): FacetVis {
-    this.combine || (this.combine = []);
-    this.combine.push({
+    this.combineOperations || (this.combineOperations = []);
+    this.combineOperations.push({
       operation: 'limit',
       limit: limit
     });
@@ -139,17 +145,18 @@ export class FacetVis {
   }
   */
 
-  private getQueryParts(splitName: string = null): any[] {
+  private getQueryParts(): any[] {
     var res: any[] = [];
     var defs = this.defs;
 
     // Look for Dataset
     if (!this.split) {
-      for (var name in defs) {
-        if (Dataset.isDataset(defs[name])) {
-          var dataset = <Dataset>defs[name];
-          if (dataset.dataFilter.type !== 'true') {
-            var filterJS = dataset.dataFilter.toJS();
+      for (var i = 0; i < defs.length; i++) {
+        var def = defs[i];
+        if (FacetDataset.isFacetDataset(def.thing)) {
+          var dataset = <FacetDataset>def.thing;
+          if (dataset.filter.type !== 'true') {
+            var filterJS = dataset.filter.toJS();
             filterJS.operation = 'filter';
             res.push(filterJS);
           }
@@ -158,58 +165,74 @@ export class FacetVis {
     } else {
       var splitJS = this.split.toJS();
       splitJS.operation = 'split';
-      splitJS.name = splitName;
+      if (this.splitName) {
+        splitJS.name = this.splitName;
+      }
       res.push(splitJS);
     }
 
     // Look for applies
-    for (var name in defs) {
-      if (FacetApply.isFacetApply(defs[name])) {
-        var apply = <FacetApply>defs[name];
+    for (var i = 0; i < defs.length; i++) {
+      var def = defs[i];
+      if (FacetApply.isFacetApply(def.thing)) {
+        var apply = <FacetApply>def.thing;
         var applyJS = apply.toJS();
         applyJS.operation = 'apply';
+        if (def.name) {
+          applyJS.name = def.name;
+        }
         res.push(applyJS);
       }
     }
 
     // Add the combine
-    if (this.combine) {
-      var combineCommands = this.combine;
-      var combineJS = {
+    if (this.split) {
+      var combineOperations = this.combineOperations || [];
+      var combineJS: FacetCombineJS = {
         operation: 'combine',
         method: 'slice',
         sort: {
-          compare: 'natural'
-          prop: splitName,
+          compare: 'natural',
+          prop: this.splitName,
           direction: 'ascending'
         }
       };
-      for (var i = 0; i < combineCommands.length; i++) {
-        var combineCommand = combineCommands[i];
-        switch (combineCommand.operation) {
+      for (var i = 0; i < combineOperations.length; i++) {
+        var combineOperation = combineOperations[i];
+        switch (combineOperation.operation) {
           case 'sort':
-            combineJS.sort.prop = combineCommand.attribute;
-            break;
-
-          case 'reverse':
-            combineJS.sort.direction = combineJS.sort.direction === 'ascending' ? 'descending' : 'ascending';
+            combineJS.sort.prop = combineOperation.attribute;
+            combineJS.sort.direction = combineOperation.direction;
             break;
 
           case 'limit':
+            combineJS.limit = combineOperation.limit;
             break;
 
           default:
             throw new Error('unknown combine command');
         }
       }
-      res.push(combineJS);
+      if (combineJS.sort.prop) { // Make sure we are not sorting on a prop that does not exist
+        res.push(combineJS);
+      }
+    }
+
+    // Add sub-split
+    var numSubSplits = 0;
+    for (var i = 0; i < defs.length; i++) {
+      var def = defs[i];
+      if (FacetVis.isFacetVis(def.thing)) {
+        numSubSplits++;
+        if (numSubSplits > 1) {
+          throw new Error("can only have one sub split for now")
+        }
+        var subVis = <FacetVis>def.thing;
+        res = res.concat(subVis.getQueryParts())
+      }
     }
 
     return res;
-  }
-
-  public getQuery(): FacetQuery {
-    throw "add this"
   }
 
   public compute(): FacetVis {

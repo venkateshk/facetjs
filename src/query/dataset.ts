@@ -17,6 +17,7 @@ import dummyObject = CommonModule.dummyObject;
 import FilterModule = require("./filter");
 import FacetFilter = FilterModule.FacetFilter;
 import FacetFilterJS = FilterModule.FacetFilterJS;
+import AndFilter = FilterModule.AndFilter;
 
 export interface FacetDatasetJS {
   operation?: string;
@@ -74,6 +75,12 @@ export class FacetDataset implements ImmutableInstance<FacetDatasetValue, FacetD
 
   public getFilter(): FacetFilter {
     return this.filter || FacetFilter.TRUE;
+  }
+
+  public and(filter: FacetFilter): FacetDataset {
+    var value = this.valueOf();
+    value.filter = new AndFilter([value.filter, filter]).simplify();
+    return new FacetDataset(value);
   }
 
   public valueOf(): FacetDatasetValue {

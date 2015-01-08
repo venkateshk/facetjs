@@ -9,6 +9,9 @@ export import UniqueAttributeMeta = AttributeMetaModule.UniqueAttributeMeta;
 export import HistogramAttributeMeta = AttributeMetaModule.HistogramAttributeMeta;
 export import RangeAttributeMeta = AttributeMetaModule.RangeAttributeMeta;
 
+export import FacetDatasetModule = require("../query/dataset")
+export import FacetDataset = FacetDatasetModule.FacetDataset;
+
 export import FacetFilterModule = require("../query/filter")
 export import FacetFilter = FacetFilterModule.FacetFilter;
 export import FalseFilter = FacetFilterModule.FalseFilter;

@@ -1,6 +1,6 @@
 { expect } = require("chai")
 
-{ FacetSplit, FacetApply, FacetCombine } = require('../../build/query')
+{ FacetDataset, FacetFilter, FacetSplit, FacetApply, FacetCombine } = require('../../build/query')
 
 { FacetVis } = require('../../build/render/facetVis')
 
@@ -8,12 +8,19 @@ describe "Facet Vis", ->
   describe "#getQueryParts()", ->
     it "works for single initial split", ->
       facetVis = new FacetVis({})
+        .def('diamonds', FacetDataset.BASE.and(FacetFilter.fromJS({ attribute: 'quality', type: 'is', value: 'high' })))
         .def('Count', FacetApply.fromJS({ aggregate: 'count' }))
         .def('TotalPrice', FacetApply.fromJS({ aggregate: 'sum', attribute: 'price' }))
         .sort('Cut', 'descending')
         .limit(10)
 
       expect(facetVis.getQueryParts()).to.deep.equal([
+        {
+          "attribute": "quality"
+          "operation": "filter"
+          "type": "is"
+          "value": "high"
+        }
         {
           "aggregate": "count"
           "operation": "apply"

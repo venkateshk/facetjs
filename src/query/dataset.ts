@@ -92,9 +92,11 @@ export class FacetDataset implements ImmutableInstance<FacetDatasetValue, FacetD
 
   public toJS() {
     var spec: FacetDatasetJS = {
-      name: this.name,
       source: this.source
     };
+    if (this.name) {
+      spec.name = this.name
+    }
     if (this.filter.type !== 'true') {
       spec.filter = this.filter.toJS();
     }

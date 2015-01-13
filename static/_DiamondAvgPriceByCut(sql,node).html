@@ -90,7 +90,7 @@
       facet.start('svg')
         .container('.example')
         .def('diamonds', facet.dataset(sqlDriverClient).and("color = 'D"))
-        .def('stage', space.rectangle(800, 600))
+        .def('stage', shape.rectangle(800, 600))
         .def('verticalScale', scale.linear())
         .def('colorScale', scale.color())
         .def('Cuts',
@@ -110,7 +110,7 @@
               })
             })
             .def(mark('box', {
-              stage: use('barStage'),
+              stage: 'barStage',
               fill: '#f0f0f0',
               stroke: use('color')
             }), 'Bars')// access anchors via Bars.left e.t.c
@@ -120,7 +120,7 @@
               })
             })
             .def(mark('label', {
-              stage: use('pointStage'),
+              stage: 'pointStage',
               text: use.prop('Cut'),
               color: use.scale('color'),
               anchor: 'middle',

@@ -21,9 +21,13 @@ import FacetCombineModule = require("../query/combine");
 import FacetCombine = FacetCombineModule.FacetCombine;
 import FacetCombineJS = FacetCombineModule.FacetCombineJS;
 
-import SpaceModule = require("./space");
-import Space = SpaceModule.Space;
-import RectangularSpace = SpaceModule.RectangularSpace;
+import SegmentTreeModule = require("../query/segmentTree");
+import SegmentTree = SegmentTreeModule.SegmentTree;
+import SegmentTreeJS = SegmentTreeModule.SegmentTreeJS;
+
+import ShapeModule = require("./shape");
+import Shape = ShapeModule.Shape;
+import RectangularShape = ShapeModule.RectangularShape;
 
 import ScaleModule = require("./scale");
 import Scale = ScaleModule.Scale;
@@ -36,6 +40,44 @@ export interface FacetVisValue {
   renderType?: string;
   split?: FacetSplit;
   splitName?: string;
+}
+
+export interface Stat {
+  [name: string]: any;
+}
+
+function statToJS(stat: Stat): Stat {
+  var js: Stat = {};
+  for (var k in stat) {
+    if (!stat.hasOwnProperty(k)) continue;
+    var v: any = stat[k];
+    js[k] = Array.isArray(v) ? v.map(statToJS) : (typeof v.toJS === 'function' ? v.toJS() : v);
+  }
+  return js;
+}
+
+export class StatBase implements Stat {
+  [name: string]: any;
+
+  // Future static fromJS
+  //protoLink = (object, parent = null) ->
+  //  return object unless typeof object is 'object'
+  //  if Array.isArray(object)
+  //    return object.map((o) -> protoLink(o, parent))
+  //  newObject = new Object(parent)
+  //  for own k, v of object
+  //    console.log("k", k);
+  //    newObject[k] = protoLink(v, newObject)
+  //  return newObject
+
+
+  public toJS(): any {
+    return statToJS(this)
+  }
+
+  public toString(): string {
+    return 'Stat'
+  }
 }
 
 interface Def {
@@ -235,8 +277,45 @@ export class FacetVis {
     return res;
   }
 
-  public compute(): FacetVis {
-    return this;
+  public evaluate(segmentTree: SegmentTree, parentStat: Stat = null): Stat {
+    var myStat: Stat = parentStat ? Object.create(parentStat) : new StatBase();
+
+    var splitName = this.splitName;
+    if (splitName) {
+      myStat[splitName] = segmentTree.prop[splitName];
+    }
+
+    var defs = this.defs;
+    for (var i = 0; i < defs.length; i++) {
+      var def = defs[i];
+      var typeofThing = typeof def.thing;
+      switch (typeofThing) {
+        case 'number':
+        case 'string':
+          myStat[def.name] = def.thing;
+          break;
+
+        case 'function':
+          myStat[def.name] = def.thing.call(myStat, myStat, parentStat);
+          break;
+
+        case 'object':
+          if (FacetApply.isFacetApply(def.thing)) {
+            myStat[def.name] = segmentTree.prop[def.name];
+          } else if (FacetVis.isFacetVis(def.thing)) {
+            var subFacetVis = <FacetVis>(def.thing);
+            myStat[def.name] = segmentTree.splits.map((subSegmentTree) => subFacetVis.evaluate(subSegmentTree, myStat));
+          } else if (Shape.isShape(def.thing)) {
+            myStat[def.name] = (<Shape>(def.thing)).evaluate(myStat);
+          }
+          break;
+
+        default:
+          throw new Error('unsupported def type');
+      }
+    }
+
+    return myStat;
   }
 
   /*
@@ -248,7 +327,7 @@ export class FacetVis {
     //this.knownProps[name] = true;
   } else if (Scale.isScale(thing)) {
     // ToDo: fill me in
-  } else if (Space.isSpace(thing)) {
+  } else if (Shape.isShape(thing)) {
     // ToDo: fill me in
   }
 
@@ -321,7 +400,7 @@ export class FacetVis {
     this.driver({
       query: new FacetQuery(querySpec)
     }, (err, res) => {
-      var allStates, c, connector, curBatch, curConnector, curScale, curState, domain, errorMerrage, i, k, layout, myScale, name, newSpaces, nextState, plot, pseudoSpaces, range, rootSegment, scale, segment, segmentGroup, segmentGroups, space, stateStack, transform, v, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _ref, _ref1, _ref2, _ref3, _ref4, _results, _results1, _results2, _results3;
+      var allStates, c, connector, curBatch, curConnector, curScale, curState, domain, errorMerrage, i, k, layout, myScale, name, newShapes, nextState, plot, pseudoShapes, range, rootSegment, scale, segment, segmentGroup, segmentGroups, space, stateStack, transform, v, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _ref, _ref1, _ref2, _ref3, _ref4, _results, _results1, _results2, _results3;
       svg.classed("loading", false);
       if (err) {
         svg.classed("error", true);
@@ -337,7 +416,7 @@ export class FacetVis {
       stateStack = [
         {
           spaces: [
-            new Space(null, svg, "rectangle", {
+            new Shape(null, svg, "rectangle", {
               width: width,
               height: height
             })
@@ -438,17 +517,17 @@ export class FacetVis {
               throw new Error("Must be in pregnant state to layout (split first)");
             }
             layout = cmd.layout;
-            newSpaces = [];
+            newShapes = [];
             _ref1 = curState.segmentGroups;
             for (i = _j = 0, _len1 = _ref1.length; _j < _len1; i = ++_j) {
               segmentGroup = _ref1[i];
               space = curState.spaces[i];
-              pseudoSpaces = layout(segmentGroup, space);
-              pseudoSpaces.forEach((pseudoSpace) => newSpaces.push(new Space(space, space.node.append("g").attr("transform", pseudoSpaceToTransform(pseudoSpace)), pseudoSpace.type, pseudoSpace.attr)));
+              pseudoShapes = layout(segmentGroup, space);
+              pseudoShapes.forEach((pseudoShape) => newShapes.push(new Shape(space, space.node.append("g").attr("transform", pseudoShapeToTransform(pseudoShape)), pseudoShape.type, pseudoShape.attr)));
             }
 
             nextState = {
-              spaces: newSpaces,
+              spaces: newShapes,
               segments: curState.nextSegments
             };
             stateStack.push(nextState);
@@ -464,10 +543,10 @@ export class FacetVis {
             }
 
             nextState.spaces = curState.spaces.map((space, i) => {
-              var pseudoSpace;
+              var pseudoShape;
               segment = curState.segments[i];
-              pseudoSpace = transform(segment, space);
-              return new Space(space, space.node.append("g").attr("transform", pseudoSpaceToTransform(pseudoSpace)), pseudoSpace.type, pseudoSpace.attr);
+              pseudoShape = transform(segment, space);
+              return new Shape(space, space.node.append("g").attr("transform", pseudoShapeToTransform(pseudoShape)), pseudoShape.type, pseudoShape.attr);
             });
 
             stateStack.push(nextState);

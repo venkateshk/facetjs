@@ -13,7 +13,7 @@ describe "Facet Vis", ->
   describe "#getQueryParts()", ->
     it "works for initial facet vis", ->
       facetVis = new FacetVis({})
-        .def('diamonds', FacetDataset.BASE.and(FacetFilter.fromJS({ attribute: 'quality', type: 'is', value: 'high' })))
+        .data(FacetDataset.BASE.and(FacetFilter.fromJS({ attribute: 'quality', type: 'is', value: 'high' })))
         .def('Count', FacetApply.fromJS({ aggregate: 'count' }))
         .def('TotalPrice', FacetApply.fromJS({ aggregate: 'sum', attribute: 'price' }))
 
@@ -88,23 +88,23 @@ describe "Facet Vis", ->
         })
         splitName: 'Cut'
       })
-      .def('Count', FacetApply.fromJS({ aggregate: 'count' }))
-      .def('TotalPrice', FacetApply.fromJS({ aggregate: 'sum', attribute: 'price' }))
-      .sort('Cut', 'descending')
-      .limit(10)
-      .def('Colors',
-        new FacetVis({
-          split: FacetSplit.fromJS({
-            bucket: 'identity',
-            attribute: 'color'
+        .def('Count', FacetApply.fromJS({ aggregate: 'count' }))
+        .def('TotalPrice', FacetApply.fromJS({ aggregate: 'sum', attribute: 'price' }))
+        .sort('Cut', 'descending')
+        .limit(10)
+        .def('Colors',
+          new FacetVis({
+            split: FacetSplit.fromJS({
+              bucket: 'identity',
+              attribute: 'color'
+            })
+            splitName: 'Color'
           })
-          splitName: 'Color'
-        })
-          .def('ColCount', FacetApply.fromJS({ aggregate: 'count' }))
-          .def('TotalPrice', FacetApply.fromJS({ aggregate: 'sum', attribute: 'price' }))
-          .sort('Cut', 'ascending')
-          .limit(7)
-      )
+            .def('ColCount', FacetApply.fromJS({ aggregate: 'count' }))
+            .def('TotalPrice', FacetApply.fromJS({ aggregate: 'sum', attribute: 'price' }))
+            .sort('Cut', 'ascending')
+            .limit(7)
+        )
 
       expect(facetVis.getQueryParts()).to.deep.equal([
         {
@@ -166,7 +166,7 @@ describe "Facet Vis", ->
   describe "#evaluate()", ->
     it "works for initial facet vis", ->
       facetVis = new FacetVis({})
-        .def('diamonds', FacetDataset.BASE.and(FacetFilter.fromJS({ attribute: 'quality', type: 'is', value: 'high' })))
+        .data(FacetDataset.BASE.and(FacetFilter.fromJS({ attribute: 'quality', type: 'is', value: 'high' })))
         .def('Count', FacetApply.fromJS({ aggregate: 'count' }))
         .def('TotalPrice', FacetApply.fromJS({ aggregate: 'sum', attribute: 'price' }))
         .def('Five', 5)
@@ -194,7 +194,7 @@ describe "Facet Vis", ->
 
     it "works for a split", ->
       facetVis = new FacetVis({})
-        .def('diamonds', FacetDataset.BASE.and(FacetFilter.fromJS({ attribute: 'quality', type: 'is', value: 'high' })))
+        .data(FacetDataset.BASE.and(FacetFilter.fromJS({ attribute: 'quality', type: 'is', value: 'high' })))
         .def('Count', FacetApply.fromJS({ aggregate: 'count' }))
         .def('TotalPrice', FacetApply.fromJS({ aggregate: 'sum', attribute: 'price' }))
         .def('Five', 5)
@@ -211,7 +211,7 @@ describe "Facet Vis", ->
             .def('CutPrice', FacetApply.fromJS({ aggregate: 'sum', attribute: 'price' }))
             .sort('Cut', 'descending')
             .limit(3)
-            .def('myStage', (d) ->
+            .def('myShape', (d) ->
               return d['Shape'].margin({
                 bottom: 0,
                 height: d.CutPrice
@@ -265,7 +265,7 @@ describe "Facet Vis", ->
             "Count": 10
             "Cut": "Great"
             "CutPrice": 133
-            "myStage": {
+            "myShape": {
               "height": 133
               "width": 800
               "x": 0
@@ -276,7 +276,7 @@ describe "Facet Vis", ->
             "Count": 4
             "Cut": "Amazing"
             "CutPrice": 337
-            "myStage": {
+            "myShape": {
               "height": 337
               "width": 800
               "x": 0
@@ -287,7 +287,7 @@ describe "Facet Vis", ->
             "Count": 2
             "Cut": "Crappy"
             "CutPrice": 13
-            "myStage": {
+            "myShape": {
               "height": 13
               "width": 800
               "x": 0

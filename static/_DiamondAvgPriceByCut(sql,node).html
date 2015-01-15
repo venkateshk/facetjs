@@ -89,37 +89,45 @@
 
       facet.start('svg')
         .container('.example')
-        .def('diamonds', facet.dataset(sqlDriverClient).and("color = 'D"))
-        .def('stage', shape.rectangle(800, 600))
-        .def('verticalScale', scale.linear())
-        .def('colorScale', scale.color())
+        .data(facet.dataset(sqlDriverClient).and("color = 'D"))
+        .def('stage', Shape.rectangle(800, 600))
+        .def('verticalScale', Scale.linear())
+        .def('colorScale', Scale.color())
         .def('Cuts',
-          facet.facet(split('diamonds.cut'), 'Cut')
-            .def('AvgPrice', apply('diamonds.sum("price") / diamonds.count()'))
+          facet.facet("split('cut')", 'Cut')
+            .def('AvgPrice', 'sum("price") / count()')
             .sort('AvgPrice', 'descending')
             .limit(10)
-            //.accumulate('AccAvgPrice', use('AvgPrice'))
-            .def('stage', layout.horizontal({ stage: use('stage'), gap: 3 }))
-            .train('verticalScale', 'domain', interval(0, use('AvgPrice')))
-            .train('verticalScale', 'range', use('stage.height'))
-            .train('color', 'domain', use('Cut'))
+            //.accumulate('AccAvgPrice', '$AvgPrice')
+            .def('stage', Layout.horizontal({ stage: use('stage'), gap: 3 }))
+            .train('verticalScale', 'domain', '$AvgPrice')
+            .train('verticalScale', 'range', '$stage.height')
+            .train('color', 'domain', '$Cut')
             .def('barStage', function(d) {
               return d.stage.margin({
                 bottom: 0,
                 height: d.verticalScale(d.AvgPrice)
               })
             })
-            .def(mark('box', {
+            .def('barStage1', call('$stage', 'margin', {
+                bottom: 0,
+                height: '$verticalScale($AvgPrice)'
+              })
+            )
+            .def('barStage2', "$stage.margin(bottom=0, height=$verticalScale($AvgPrice))")
+            .def('Bars', mark({
+              type: 'box',
               stage: 'barStage',
               fill: '#f0f0f0',
               stroke: use('color')
-            }), 'Bars')// access anchors via Bars.left e.t.c
+            }))// access anchors via Bars.left e.t.c
             .def('pointStage', function(d) {
               return d.barStage.margin({
                 bottom: 6
               })
             })
-            .def(mark('label', {
+            .def(mark({
+              type: 'label',
               stage: 'pointStage',
               text: use.prop('Cut'),
               color: use.scale('color'),

@@ -59,10 +59,10 @@ Aggregate "Aggregate"
   / aggregate:AggregateFn1 "(" attribute:Attribute ")"
     { return { aggregate: aggregate, attribute:attribute }; }
 
-AggregateFn0 "Aggregare Function"
+AggregateFn0 "Aggregate Function"
   = "count"
 
-AggregateFn1 "Aggregare Function"
+AggregateFn1 "Aggregate Function"
   = "sum"
   / "max"
   / "min"

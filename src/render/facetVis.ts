@@ -93,6 +93,8 @@ export class FacetVis {
   public renders: Mark[];
   public combineOperations: any[];
   public selector: string;
+  public datasets: Lookup<FacetDataset> = {};
+  public numDatasets: number = 0;
 
   private defs: Def[] = [];
 
@@ -117,9 +119,24 @@ export class FacetVis {
 
   public container(selector: any): FacetVis {
     if (this.split) {
-      throw new Error("Can not only call container in a 'start' chain");
+      throw new Error("Can not only call container in the base");
     }
     this.selector = selector;
+    return this;
+  }
+
+  public data(name: string, dataset: FacetDataset): FacetVis;
+  public data(dataset: FacetDataset): FacetVis;
+  public data(name: any, dataset: FacetDataset = null): FacetVis {
+    if (this.split) {
+      throw new Error("Can not only call data in the base");
+    }
+    if (!dataset) {
+      dataset = name;
+      name = "main";
+    }
+    this.datasets[name] = dataset;
+    this.numDatasets++;
     return this;
   }
 
@@ -191,12 +208,12 @@ export class FacetVis {
     var res: any[] = [];
     var defs = this.defs;
 
-    // Look for Dataset
+    // Look for filter or split
     if (!this.split) {
-      for (var i = 0; i < defs.length; i++) {
-        var def = defs[i];
-        if (FacetDataset.isFacetDataset(def.thing)) {
-          var dataset = <FacetDataset>def.thing;
+      if (this.numDatasets === 0) throw new Error("must have at least one dataset");
+      for (var datasetName in this.datasets) {
+        if (datasetName === 'main') { // ToDo: fix this hack
+          var dataset = this.datasets[datasetName];
           if (dataset.filter.type !== 'true') {
             var filterJS = dataset.filter.toJS();
             filterJS.operation = 'filter';

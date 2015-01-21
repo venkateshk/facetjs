@@ -74,7 +74,7 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
     }
     var ClassFn = Expression.classMap[op];
     if (!ClassFn) {
-      throw new Error("unsupported filter type '" + op + "'");
+      throw new Error("unsupported expression op '" + op + "'");
     }
 
     return ClassFn.fromJS(expressionJS);

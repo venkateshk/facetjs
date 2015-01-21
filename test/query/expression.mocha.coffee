@@ -34,6 +34,16 @@ describe "Expression", ->
         lhs: { op: 'literal', value: 5 }
         rhs: { op: 'literal', value: 8 }
       }
+      {
+        op: 'lessThan'
+        lhs: { op: 'literal', value: 5 }
+        rhs: { op: 'literal', value: 8 }
+      }
+      {
+        op: 'lessThan'
+        lhs: { op: 'lookup', name: 'x' }
+        rhs: { op: 'literal', value: 5 }
+      }
     ], {
       newThrows: true
     })

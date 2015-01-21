@@ -11,23 +11,23 @@ import ExpressionJS = BaseModule.ExpressionJS;
 import ExpressionValue = BaseModule.ExpressionValue;
 import BinaryExpression = BaseModule.BinaryExpression;
 
-export class EqualsExpression extends BinaryExpression {
-  static fromJS(parameters: ExpressionJS): EqualsExpression {
-    return new EqualsExpression(BinaryExpression.jsToValue(parameters));
+export class LessThanExpression extends BinaryExpression {
+  static fromJS(parameters: ExpressionJS): LessThanExpression {
+    return new LessThanExpression(BinaryExpression.jsToValue(parameters));
   }
 
   constructor(parameters: ExpressionValue = {}) {
     super(parameters, dummyObject);
-    this._ensureOp("equals");
+    this._ensureOp("lessThan");
   }
 
   public toString(): string {
-    return this.lhs.toString() + ' = ' + this.rhs.toString();
+    return this.lhs.toString() + ' < ' + this.rhs.toString();
   }
 
-  public simplify(): EqualsExpression {
+  public simplify(): LessThanExpression {
     return this
   }
 }
 
-Expression.classMap["equals"] = EqualsExpression;
+Expression.classMap["lessThan"] = LessThanExpression;

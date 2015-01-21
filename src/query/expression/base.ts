@@ -22,6 +22,8 @@ export interface ExpressionJS {
   name?: string;
   lhs?: ExpressionJS;
   rhs?: ExpressionJS;
+  operand?: ExpressionJS;
+  operands?: ExpressionJS[];
 }
 
 export interface ExpressionValue {
@@ -31,6 +33,8 @@ export interface ExpressionValue {
   name?: string;
   lhs?: Expression;
   rhs?: Expression;
+  operand?: Expression;
+  operands?: Expression[];
 }
 
 var check: ImmutableClass<ExpressionValue, ExpressionJS>;
@@ -81,6 +85,7 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
   }
 
   public op: string;
+  public type: string;
 
   constructor(parameters: ExpressionValue, dummy: Dummy = null) {
     this.op = parameters.op;
@@ -134,8 +139,35 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
 }
 check = Expression;
 
-export class UnaryExpression extends Expression {
 
+export class UnaryExpression extends Expression {
+  static jsToValue(parameters: ExpressionJS): ExpressionValue {
+    var op = parameters.op;
+    var value: ExpressionValue = {
+      op: op
+    };
+    if (parameters.operand) {
+      value.operand = Expression.fromJS(parameters.operand);
+    } else {
+      throw new TypeError("must have a operand");
+    }
+
+    return value;
+  }
+
+  public operand: Expression;
+
+  public valueOf(): ExpressionValue {
+    var value = super.valueOf();
+    value.operand = this.operand;
+    return value;
+  }
+
+  public toJS(): ExpressionJS {
+    var js = super.toJS();
+    js.operand = this.operand.toJS();
+    return js;
+  }
 }
 
 export class BinaryExpression extends Expression {
@@ -170,6 +202,20 @@ export class BinaryExpression extends Expression {
     this.rhs = parameters.rhs;
   }
 
+  public valueOf(): ExpressionValue {
+    var value = super.valueOf();
+    value.lhs = this.lhs;
+    value.rhs = this.rhs;
+    return value;
+  }
+
+  public toJS(): ExpressionJS {
+    var js = super.toJS();
+    js.lhs = this.lhs.toJS();
+    js.rhs = this.rhs.toJS();
+    return js;
+  }
+
   public equals(other: BinaryExpression): boolean {
     return super.equals(other) &&
       this.lhs.equals(other.lhs) &&
@@ -182,4 +228,31 @@ export class BinaryExpression extends Expression {
 }
 
 export class NaryExpression extends Expression {
+  static jsToValue(parameters: ExpressionJS): ExpressionValue {
+    var op = parameters.op;
+    var value: ExpressionValue = {
+      op: op
+    };
+    if (Array.isArray(parameters.operands)) {
+      value.operands = parameters.operands.map((operand) => Expression.fromJS(operand));
+    } else {
+      throw new TypeError("must have a operands");
+    }
+
+    return value;
+  }
+
+  public operands: Expression[];
+
+  public valueOf(): ExpressionValue {
+    var value = super.valueOf();
+    value.operands = this.operands;
+    return value;
+  }
+
+  public toJS(): ExpressionJS {
+    var js = super.toJS();
+    js.operands = this.operands.map((operand) => operand.toJS());
+    return js;
+  }
 }

@@ -11,3 +11,9 @@ export import LookupExpression = LookupModule.LookupExpression;
 
 import EqualsModule = require("./equals");
 export import EqualsExpression = EqualsModule.EqualsExpression;
+
+import LessThanModule = require("./lessThan");
+export import LessThanExpression = LessThanModule.LessThanExpression;
+
+import LessThanOrEqualsModule = require("./lessThanOrEquals");
+export import LessThanOrEqualsExpression = LessThanOrEqualsModule.LessThanOrEqualsExpression;

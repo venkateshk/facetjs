@@ -74,7 +74,7 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
     }
     var op = expressionJS.op;
     if (typeof op !== "string") {
-      throw new Error("type must be a string");
+      throw new Error("op must be a string");
     }
     var ClassFn = Expression.classMap[op];
     if (!ClassFn) {
@@ -185,7 +185,7 @@ export class BinaryExpression extends Expression {
     if (parameters.rhs) {
       value.rhs = Expression.fromJS(parameters.rhs);
     } else {
-      throw new TypeError("must have a lhs");
+      throw new TypeError("must have a rhs");
     }
 
     return value;

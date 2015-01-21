@@ -3,6 +3,15 @@
 import Basics = require("../basics") // Prop up
 import Lookup = Basics.Lookup;
 
+export class Layout {
+
+}
+
+export class HorizontalLayout {
+
+}
+
+/*
 function divideLength(length, sizes) {
   var lengthPerSize, totalSize;
   totalSize = 0;
@@ -110,3 +119,4 @@ module.exports = {
     throw new Error("not implemented yet");
   }
 };
+*/

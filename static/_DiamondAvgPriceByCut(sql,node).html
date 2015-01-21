@@ -87,50 +87,101 @@
               }))
       */
 
-      facet.start('svg')
-        .container('.example')
-        .data(facet.dataset(sqlDriverClient).and("color = 'D"))
+
+      facet() // [{}]
+        .container('.example', 'svg')
+        .def("diamonds",
+          facet(sqlDriverClient)
+            .filter("color = 'D")
+            .def(Mark.box(...))
+        )
+
+      a_dataset = [
+        { make: 'honda', year: 2004, models: '<dataset>' }
+        { make: 'suzuki', year: 2003, models: '<dataset>' }
+      ]
+
+
+
+
+
+      facet() // [{}]
+        //.container('.example', 'svg')
+        .def("diamonds",
+          facet(sqlDriverClient)
+            .filter("color = 'D")
+            .def("PriceOver2", "$price/2")
+        )
+        // [{ diamonds: <Dataset> }]
         .def('stage', Shape.rectangle(800, 600))
+        // [{ diamonds: <Dataset>, stage: '<shape>' }]
+        .def('Count', '$diamonds.count()')
+        .def('Count', $('diamonds').count())
+        // [{ diamonds: <Dataset>, stage: '<shape>', Count: 2342 }]
         .def('verticalScale', Scale.linear())
         .def('colorScale', Scale.color())
         .def('Cuts',
-          facet.facet("split('cut')", 'Cut')
-            .def('AvgPrice', 'sum("price") / count()')
+          facet("diamonds").split("cut", 'Cut')
+            // [
+            //   {
+            //     Cut: 'good'
+            //   }
+            //   {
+            //     Cut: 'v good'
+            //   }
+            //   {
+            //     Cut: 'ideal'
+            //   }
+            // ]
+            .def('diamonds', $('diamonds').filter('cut = $Cut'))
+            // [
+            //   {
+            //     Cut: 'good'
+            //     diamnods: <dataset cut=good>
+            //   }
+            //   {
+            //     Cut: 'v good'
+            //     diamnods: <dataset cut=v good>
+            //   }
+            //   {
+            //     Cut: 'ideal'
+            //     diamnods: <dataset cut=ideal>
+            //   }
+            // ]
+
+
+            .def('Count', $('diamonds').count().divide('Count'))
+            .def('AvgPrice', '$diamonds.sum("price") / $diamonds.count()')
             .sort('AvgPrice', 'descending')
             .limit(10)
-            //.accumulate('AccAvgPrice', '$AvgPrice')
-            .def('stage', Layout.horizontal({ stage: use('stage'), gap: 3 }))
+            .def('AccAvgPrice', 'AvgPrice')
+            .def('stage', Layout.horizontal('stage', { gap: 3 }))
             .train('verticalScale', 'domain', '$AvgPrice')
             .train('verticalScale', 'range', '$stage.height')
             .train('color', 'domain', '$Cut')
             .def('barStage', function(d) {
-              return d.stage.margin({
+              return Transform.margin(d.stage, {
                 bottom: 0,
                 height: d.verticalScale(d.AvgPrice)
               })
             })
-            .def('barStage1', call('$stage', 'margin', {
+            .def('barStage1', Transform.margin('stage', {
                 bottom: 0,
                 height: '$verticalScale($AvgPrice)'
               })
             )
-            .def('barStage2', "$stage.margin(bottom=0, height=$verticalScale($AvgPrice))")
-            .def('Bars', mark({
+            .def('barStage2', "stage.margin(bottom=0, height=$verticalScale($AvgPrice))")
+            .def('Bars', Mark.box('barStage', {
               type: 'box',
-              stage: 'barStage',
               fill: '#f0f0f0',
               stroke: use('color')
             }))// access anchors via Bars.left e.t.c
-            .def('pointStage', function(d) {
-              return d.barStage.margin({
+            .def('pointStage', Transform.margin('barStage', {
                 bottom: 6
-              })
-            })
-            .def(mark({
-              type: 'label',
-              stage: 'pointStage',
-              text: use.prop('Cut'),
-              color: use.scale('color'),
+            }))
+            .def(Mark.label('pointStage', {
+              text: '$Cut',
+              color: '$color',
               anchor: 'middle',
               baseline: 'bottom'
             })) // Used without name

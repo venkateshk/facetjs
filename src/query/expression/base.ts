@@ -136,6 +136,20 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
   public getFn(): Function {
     throw new Error('should never be called directly');
   }
+
+  /* protected */
+  public _getRawFnJS(): string {
+    throw new Error('should never be called directly');
+  }
+
+  public getFnJS(wrap: boolean = true) {
+    var rawFnJS = this._getRawFnJS();
+    if (wrap) {
+      return 'function(d){return ' + rawFnJS + ';}';
+    } else {
+      return rawFnJS;
+    }
+  }
 }
 check = Expression;
 
@@ -177,7 +191,25 @@ export class UnaryExpression extends Expression {
   public getComplexity(): number {
     return 1 + this.operand.getComplexity()
   }
+
+  protected _makeFn(operandFn: Function): Function {
+    throw new Error("should never be called directly");
+  }
+
+  public getFn(): Function {
+    return this._makeFn(this.operand.getFn());
+  }
+
+  protected _makeFnJS(operandFnJS: string): string {
+    throw new Error("should never be called directly");
+  }
+
+  /* protected */
+  public _getRawFnJS(): string {
+    return this._makeFnJS(this.operand._getRawFnJS())
+  }
 }
+
 
 export class BinaryExpression extends Expression {
   static jsToValue(parameters: ExpressionJS): ExpressionValue {
@@ -234,7 +266,25 @@ export class BinaryExpression extends Expression {
   public getComplexity(): number {
     return 1 + this.lhs.getComplexity() + this.rhs.getComplexity()
   }
+
+  protected _makeFn(lhsFn: Function, rhsFn: Function): Function {
+    throw new Error("should never be called directly");
+  }
+
+  public getFn(): Function {
+    return this._makeFn(this.lhs.getFn(), this.rhs.getFn());
+  }
+
+  protected _makeFnJS(lhsFnJS: string, rhsFnJS: string): string {
+    throw new Error("should never be called directly");
+  }
+
+  /* protected */
+  public _getRawFnJS(): string {
+    return this._makeFnJS(this.lhs._getRawFnJS(), this.rhs._getRawFnJS())
+  }
 }
+
 
 export class NaryExpression extends Expression {
   static jsToValue(parameters: ExpressionJS): ExpressionValue {
@@ -282,5 +332,22 @@ export class NaryExpression extends Expression {
       complexity += operands[i].getComplexity();
     }
     return complexity;
+  }
+
+  protected _makeFn(operandFns: Function[]): Function {
+    throw new Error("should never be called directly");
+  }
+
+  public getFn(): Function {
+    return this._makeFn(this.operands.map((operand) => operand.getFn()));
+  }
+
+  protected _makeFnJS(operandFnJSs: string[]): string {
+    throw new Error("should never be called directly");
+  }
+
+  /* protected */
+  public _getRawFnJS(): string {
+    return this._makeFnJS(this.operands.map((operand) => operand._getRawFnJS()));
   }
 }

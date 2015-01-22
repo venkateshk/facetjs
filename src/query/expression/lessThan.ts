@@ -28,6 +28,10 @@ export class LessThanExpression extends BinaryExpression {
   public simplify(): LessThanExpression {
     return this
   }
+
+  protected _makeFn(lhsFn: Function, rhsFn: Function): Function {
+    return (d: any) => lhsFn(d) < rhsFn(d);
+  }
 }
 
 Expression.classMap["lessThan"] = LessThanExpression;

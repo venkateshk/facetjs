@@ -102,21 +102,17 @@
       ]
 
 
-
-
-
       facet() // [{}]
-        //.container('.example', 'svg')
+        .container('.example', 'svg')
         .def("diamonds",
           facet(sqlDriverClient)
             .filter("color = 'D")
-            .def("PriceOver2", "$price/2")
+            .def("priceOver2", "$price/2")
         )
         // [{ diamonds: <Dataset> }]
         .def('stage', Shape.rectangle(800, 600))
-        // [{ diamonds: <Dataset>, stage: '<shape>' }]
+        // [{ diamonds: <Dataset>, stage: '<shape 800x600>' }]
         .def('Count', '$diamonds.count()')
-        .def('Count', $('diamonds').count())
         // [{ diamonds: <Dataset>, stage: '<shape>', Count: 2342 }]
         .def('verticalScale', Scale.linear())
         .def('colorScale', Scale.color())
@@ -133,7 +129,7 @@
             //     Cut: 'ideal'
             //   }
             // ]
-            .def('diamonds', $('diamonds').filter('cut = $Cut'))
+            .def('diamonds', facet('diamonds').filter('cut = $Cut'))
             // [
             //   {
             //     Cut: 'good'
@@ -148,9 +144,7 @@
             //     diamnods: <dataset cut=ideal>
             //   }
             // ]
-
-
-            .def('Count', $('diamonds').count().divide('Count'))
+            .def('Count', facet('diamonds').count().divide('Count'))
             .def('AvgPrice', '$diamonds.sum("price") / $diamonds.count()')
             .sort('AvgPrice', 'descending')
             .limit(10)

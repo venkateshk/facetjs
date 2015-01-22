@@ -28,6 +28,10 @@ export class EqualsExpression extends BinaryExpression {
   public simplify(): EqualsExpression {
     return this
   }
+
+  protected _makeFn(lhsFn: Function, rhsFn: Function): Function {
+    return (d: any) => lhsFn(d) === rhsFn(d);
+  }
 }
 
 Expression.classMap["equals"] = EqualsExpression;

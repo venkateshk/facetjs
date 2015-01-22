@@ -28,6 +28,10 @@ export class LessThanOrEqualsExpression extends BinaryExpression {
   public simplify(): LessThanOrEqualsExpression {
     return this
   }
+
+  protected _makeFn(lhsFn: Function, rhsFn: Function): Function {
+    return (d: any) => lhsFn(d) <= rhsFn(d);
+  }
 }
 
 Expression.classMap["lessThanOrEquals"] = LessThanOrEqualsExpression;

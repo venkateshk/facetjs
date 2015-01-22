@@ -168,6 +168,15 @@ export class UnaryExpression extends Expression {
     js.operand = this.operand.toJS();
     return js;
   }
+
+  public equals(other: UnaryExpression): boolean {
+    return super.equals(other) &&
+      this.operand.equals(other.operand)
+  }
+
+  public getComplexity(): number {
+    return 1 + this.operand.getComplexity()
+  }
 }
 
 export class BinaryExpression extends Expression {
@@ -254,5 +263,24 @@ export class NaryExpression extends Expression {
     var js = super.toJS();
     js.operands = this.operands.map((operand) => operand.toJS());
     return js;
+  }
+
+  public equals(other: NaryExpression): boolean {
+    if (!(super.equals(other) && this.operands.length === other.operands.length)) return false;
+    var thisOperands = this.operands;
+    var otherOperands = other.operands;
+    for (var i = 0; i < thisOperands.length; i++) {
+      if (!thisOperands[i].equals(otherOperands[i])) return false;
+    }
+    return true;
+  }
+
+  public getComplexity(): number {
+    var complexity = 1;
+    var operands = this.operands;
+    for (var i = 0; i < operands.length; i++) {
+      complexity += operands[i].getComplexity();
+    }
+    return complexity;
   }
 }

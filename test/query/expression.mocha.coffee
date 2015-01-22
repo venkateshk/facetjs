@@ -58,6 +58,7 @@ describe "Expression", ->
       newThrows: true
     })
 
+
   describe "errors", ->
     it "does not like an expression without op", ->
       expect(->
@@ -96,3 +97,32 @@ describe "Expression", ->
           lhs: { op: 'literal', value: 5 }
         })
       ).to.throw('must have a rhs')
+
+
+  describe "#getComplexity", ->
+    it "gets the complexity correctly in a simple binary expression", ->
+      expect(Expression.fromJS({
+        op: 'equals'
+        lhs: { op: 'literal', value: 5 }
+        rhs: { op: 'literal', value: 8 }
+      }).getComplexity()).to.equal(3)
+
+  describe "#simplify", ->
+    it "simplifies to literals", ->
+      expect(Expression.fromJS({
+        op: 'equals'
+        lhs: { op: 'literal', value: 5 }
+        rhs: { op: 'literal', value: 8 }
+      }).simplify().toJS()).to.deep.equal({
+        op: 'literal'
+        value: false
+      })
+
+      expect(Expression.fromJS({
+        op: 'equals'
+        lhs: { op: 'literal', value: 5 }
+        rhs: { op: 'literal', value: 5 }
+      }).simplify().toJS()).to.deep.equal({
+        op: 'literal'
+        value: true
+      })

@@ -25,7 +25,7 @@ export class LessThanExpression extends BinaryExpression {
     return this.lhs.toString() + ' < ' + this.rhs.toString();
   }
 
-  public simplify(): LessThanExpression {
+  public simplify(): Expression {
     return this
   }
 

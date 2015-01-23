@@ -25,7 +25,7 @@ export class RangeExpression extends BinaryExpression {
     return this.lhs.toString() + ' = ' + this.rhs.toString();
   }
 
-  public simplify(): RangeExpression {
+  public simplify(): Expression {
     return this
   }
 

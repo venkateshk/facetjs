@@ -25,7 +25,7 @@ export class ActionsExpression extends UnaryExpression {
     return 'actions(' + this.operand.toString() + ')';
   }
 
-  public simplify(): ActionsExpression {
+  public simplify(): Expression {
     return this
   }
 

@@ -25,7 +25,7 @@ export class RegexpExpression extends UnaryExpression {
     return 'regexp(' + this.operand.toString() + ')';
   }
 
-  public simplify(): RegexpExpression {
+  public simplify(): Expression {
     return this
   }
 

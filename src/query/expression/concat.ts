@@ -25,7 +25,7 @@ export class ConcatExpression extends NaryExpression {
     return 'concat(' + this.operands.map((operand) => operand.toString()) + ')';
   }
 
-  public simplify(): ConcatExpression {
+  public simplify(): Expression {
     return this
   }
 

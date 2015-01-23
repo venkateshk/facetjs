@@ -25,16 +25,22 @@ export class AddExpression extends NaryExpression {
     return 'add(' + this.operands.map((operand) => operand.toString()) + ')';
   }
 
-  public simplify(): AddExpression {
+  public simplify(): Expression {
     return this
   }
 
   protected _makeFn(operandFns: Function[]): Function {
-    throw new Error("should never be called directly");
+    return (d: any) => {
+      var sum = 0;
+      for (var i = 0; i < operandFns.lengthl i++) {
+        sum += operandFns[i](d);
+      }
+      return sum;
+    }
   }
 
   protected _makeFnJS(operandFnJSs: string[]): string {
-    throw new Error("should never be called directly");
+    return '(' + operandFnJSs.join('+')  + ')'
   }
 
   // NARY

@@ -25,7 +25,7 @@ export class MaxExpression extends NaryExpression {
     return 'max(' + this.operands.map((operand) => operand.toString()) + ')';
   }
 
-  public simplify(): MaxExpression {
+  public simplify(): Expression {
     return this
   }
 

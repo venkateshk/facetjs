@@ -25,7 +25,7 @@ export class AggregateExpression extends UnaryExpression {
     return 'aggregate(' + this.operand.toString() + ')';
   }
 
-  public simplify(): AggregateExpression {
+  public simplify(): Expression {
     return this
   }
 

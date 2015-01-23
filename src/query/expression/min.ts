@@ -25,7 +25,7 @@ export class MinExpression extends NaryExpression {
     return 'min(' + this.operands.map((operand) => operand.toString()) + ')';
   }
 
-  public simplify(): MinExpression {
+  public simplify(): Expression {
     return this
   }
 

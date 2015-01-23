@@ -25,7 +25,7 @@ export class AlternativeExpression extends NaryExpression {
     return 'alternative(' + this.operands.map((operand) => operand.toString()) + ')';
   }
 
-  public simplify(): AlternativeExpression {
+  public simplify(): Expression {
     return this
   }
 

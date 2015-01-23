@@ -25,7 +25,7 @@ export class GreaterThanOrEqualsExpression extends BinaryExpression {
     return this.lhs.toString() + ' = ' + this.rhs.toString();
   }
 
-  public simplify(): GreaterThanOrEqualsExpression {
+  public simplify(): Expression {
     return this
   }
 

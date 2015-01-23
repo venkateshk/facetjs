@@ -25,7 +25,7 @@ export class InExpression extends BinaryExpression {
     return this.lhs.toString() + ' = ' + this.rhs.toString();
   }
 
-  public simplify(): InExpression {
+  public simplify(): Expression {
     return this
   }
 

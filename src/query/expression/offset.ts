@@ -25,7 +25,7 @@ export class OffsetExpression extends UnaryExpression {
     return 'offset(' + this.operand.toString() + ')';
   }
 
-  public simplify(): OffsetExpression {
+  public simplify(): Expression {
     return this
   }
 

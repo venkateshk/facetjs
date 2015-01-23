@@ -25,7 +25,7 @@ export class OrExpression extends NaryExpression {
     return 'or(' + this.operands.map((operand) => operand.toString()) + ')';
   }
 
-  public simplify(): OrExpression {
+  public simplify(): Expression {
     return this
   }
 

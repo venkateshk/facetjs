@@ -25,7 +25,7 @@ export class EqualsExpression extends BinaryExpression {
     return this.lhs.toString() + ' = ' + this.rhs.toString();
   }
 
-  public simplify(): EqualsExpression {
+  public simplify(): Expression {
     return this
   }
 

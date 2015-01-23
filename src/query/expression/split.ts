@@ -25,7 +25,7 @@ export class SplitExpression extends UnaryExpression {
     return 'split(' + this.operand.toString() + ')';
   }
 
-  public simplify(): SplitExpression {
+  public simplify(): Expression {
     return this
   }
 

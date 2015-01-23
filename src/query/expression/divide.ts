@@ -25,7 +25,7 @@ export class DivideExpression extends NaryExpression {
     return 'divide(' + this.operands.map((operand) => operand.toString()) + ')';
   }
 
-  public simplify(): DivideExpression {
+  public simplify(): Expression {
     return this
   }
 

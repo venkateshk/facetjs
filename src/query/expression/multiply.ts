@@ -25,7 +25,7 @@ export class MultiplyExpression extends NaryExpression {
     return 'multiply(' + this.operands.map((operand) => operand.toString()) + ')';
   }
 
-  public simplify(): MultiplyExpression {
+  public simplify(): Expression {
     return this
   }
 

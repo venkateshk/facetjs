@@ -25,7 +25,7 @@ export class AndExpression extends NaryExpression {
     return 'and(' + this.operands.map((operand) => operand.toString()) + ')';
   }
 
-  public simplify(): AndExpression {
+  public simplify(): Expression {
     return this
   }
 

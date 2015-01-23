@@ -25,7 +25,7 @@ export class SubtractExpression extends NaryExpression {
     return 'subtract(' + this.operands.map((operand) => operand.toString()) + ')';
   }
 
-  public simplify(): SubtractExpression {
+  public simplify(): Expression {
     return this
   }
 

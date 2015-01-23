@@ -25,7 +25,7 @@ export class NotExpression extends UnaryExpression {
     return 'not(' + this.operand.toString() + ')';
   }
 
-  public simplify(): NotExpression {
+  public simplify(): Expression {
     return this
   }
 

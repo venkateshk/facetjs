@@ -25,7 +25,7 @@ export class BucketExpression extends UnaryExpression {
     return 'bucket(' + this.operand.toString() + ')';
   }
 
-  public simplify(): BucketExpression {
+  public simplify(): Expression {
     return this
   }
 

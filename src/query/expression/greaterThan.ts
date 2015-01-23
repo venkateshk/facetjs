@@ -11,6 +11,9 @@ import ExpressionJS = BaseModule.ExpressionJS;
 import ExpressionValue = BaseModule.ExpressionValue;
 import BinaryExpression = BaseModule.BinaryExpression;
 
+import LessThanModule = require('./lessThan');
+import LessThanExpression = LessThanModule.LessThanExpression;
+
 export class GreaterThanExpression extends BinaryExpression {
   static fromJS(parameters: ExpressionJS): GreaterThanExpression {
     return new GreaterThanExpression(BinaryExpression.jsToValue(parameters));
@@ -22,19 +25,22 @@ export class GreaterThanExpression extends BinaryExpression {
   }
 
   public toString(): string {
-    return this.lhs.toString() + ' = ' + this.rhs.toString();
+    return this.lhs.toString() + ' > ' + this.rhs.toString();
   }
 
-  public simplify(): GreaterThanExpression {
-    return this
+  public simplify(): Expression {
+    return new LessThanExpression({
+      lhs: this.rhs,
+      rhs: this.lhs
+    })
   }
 
   protected _makeFn(lhsFn: Function, rhsFn: Function): Function {
-    return (d: any) => lhsFn(d) === rhsFn(d);
+    return (d: any) => lhsFn(d) > rhsFn(d);
   }
 
   protected _makeFnJS(lhsFnJS: string, rhsFnJS: string): string {
-    throw new Error("implement me!");
+    throw '(' + lhsFnJS + '>' + rhsFnJS + ')';
   }
 
   // BINARY

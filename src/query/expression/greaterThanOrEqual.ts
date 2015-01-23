@@ -11,14 +11,17 @@ import ExpressionJS = BaseModule.ExpressionJS;
 import ExpressionValue = BaseModule.ExpressionValue;
 import BinaryExpression = BaseModule.BinaryExpression;
 
-export class GreaterThanOrEqualsExpression extends BinaryExpression {
-  static fromJS(parameters: ExpressionJS): GreaterThanOrEqualsExpression {
-    return new GreaterThanOrEqualsExpression(BinaryExpression.jsToValue(parameters));
+import LessThanOrEqualModule = require('./lessThanOrEqual');
+import LessThanOrEqualExpression = LessThanOrEqualModule.LessThanOrEqualExpression;
+
+export class GreaterThanOrEqualExpression extends BinaryExpression {
+  static fromJS(parameters: ExpressionJS): GreaterThanOrEqualExpression {
+    return new GreaterThanOrEqualExpression(BinaryExpression.jsToValue(parameters));
   }
 
   constructor(parameters: ExpressionValue = {}) {
     super(parameters, dummyObject);
-    this._ensureOp("greaterThanOrEquals");
+    this._ensureOp("greaterThanOrEqual");
   }
 
   public toString(): string {
@@ -26,7 +29,10 @@ export class GreaterThanOrEqualsExpression extends BinaryExpression {
   }
 
   public simplify(): Expression {
-    return this
+    return new LessThanOrEqualExpression({
+      lhs: this.rhs,
+      rhs: this.lhs
+    })
   }
 
   protected _makeFn(lhsFn: Function, rhsFn: Function): Function {
@@ -40,4 +46,4 @@ export class GreaterThanOrEqualsExpression extends BinaryExpression {
   // BINARY
 }
 
-Expression.classMap["greaterThanOrEquals"] = GreaterThanOrEqualsExpression;
+Expression.classMap["greaterThanOrEqual"] = GreaterThanOrEqualExpression;

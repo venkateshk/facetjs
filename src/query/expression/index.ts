@@ -9,20 +9,20 @@ export import LiteralExpression = LiteralModule.LiteralExpression;
 import LookupModule = require("./lookup");
 export import LookupExpression = LookupModule.LookupExpression;
 
-import EqualsModule = require("./equals");
-export import EqualsExpression = EqualsModule.EqualsExpression;
+import IsModule = require("./is");
+export import IsExpression = IsModule.IsExpression;
 
 import LessThanModule = require("./lessThan");
 export import LessThanExpression = LessThanModule.LessThanExpression;
 
-import LessThanOrEqualsModule = require("./lessThanOrEquals");
-export import LessThanOrEqualsExpression = LessThanOrEqualsModule.LessThanOrEqualsExpression;
+import LessThanOrEqualModule = require("./lessThanOrEqual");
+export import LessThanOrEqualExpression = LessThanOrEqualModule.LessThanOrEqualExpression;
 
 import GreaterThanModule = require("./greaterThan");
 export import GreaterThanExpression = GreaterThanModule.GreaterThanExpression;
 
-import GreaterThanOrEqualsModule = require("./greaterThanOrEquals");
-export import GreaterThanOrEqualsExpression = GreaterThanOrEqualsModule.GreaterThanOrEqualsExpression;
+import GreaterThanOrEqualModule = require("./greaterThanOrEqual");
+export import GreaterThanOrEqualExpression = GreaterThanOrEqualModule.GreaterThanOrEqualExpression;
 
 import InModule = require("./in");
 export import InExpression = InModule.InExpression;

@@ -30,11 +30,11 @@ export class NotExpression extends UnaryExpression {
   }
 
   protected _makeFn(operandFn: Function): Function {
-    throw new Error("implement me");
+    return (d: any) => !operandFn(d);
   }
 
   protected _makeFnJS(operandFnJS: string): string {
-    throw new Error("implement me");
+    return "!(" + operandFnJS + ")"
   }
 
   // UNARY

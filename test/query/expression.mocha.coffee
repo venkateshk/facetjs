@@ -54,6 +54,26 @@ describe "Expression", ->
         lhs: { op: 'lookup', name: 'x' }
         rhs: { op: 'literal', value: 5 }
       }
+      {
+        op: 'greaterThan'
+        lhs: { op: 'literal', value: 5 }
+        rhs: { op: 'literal', value: 8 }
+      }
+      {
+        op: 'greaterThan'
+        lhs: { op: 'lookup', name: 'x' }
+        rhs: { op: 'literal', value: 5 }
+      }
+      {
+        op: 'greaterThanOrEquals'
+        lhs: { op: 'literal', value: 5 }
+        rhs: { op: 'literal', value: 8 }
+      }
+      {
+        op: 'greaterThanOrEquals'
+        lhs: { op: 'lookup', name: 'x' }
+        rhs: { op: 'literal', value: 5 }
+      }
     ], {
       newThrows: true
     })

@@ -11,18 +11,18 @@ import ExpressionJS = BaseModule.ExpressionJS;
 import ExpressionValue = BaseModule.ExpressionValue;
 import BinaryExpression = BaseModule.BinaryExpression;
 
-export class LessThanOrEqualsExpression extends BinaryExpression {
-  static fromJS(parameters: ExpressionJS): LessThanOrEqualsExpression {
-    return new LessThanOrEqualsExpression(BinaryExpression.jsToValue(parameters));
+export class IsExpression extends BinaryExpression {
+  static fromJS(parameters: ExpressionJS): IsExpression {
+    return new IsExpression(BinaryExpression.jsToValue(parameters));
   }
 
   constructor(parameters: ExpressionValue = {}) {
     super(parameters, dummyObject);
-    this._ensureOp("lessThanOrEquals");
+    this._ensureOp("is");
   }
 
   public toString(): string {
-    return this.lhs.toString() + ' <= ' + this.rhs.toString();
+    return this.lhs.toString() + ' = ' + this.rhs.toString();
   }
 
   public simplify(): Expression {
@@ -30,14 +30,14 @@ export class LessThanOrEqualsExpression extends BinaryExpression {
   }
 
   protected _makeFn(lhsFn: Function, rhsFn: Function): Function {
-    return (d: any) => lhsFn(d) <= rhsFn(d);
+    return (d: any) => lhsFn(d) === rhsFn(d);
   }
 
   protected _makeFnJS(lhsFnJS: string, rhsFnJS: string): string {
-    throw new Error("implement me!");
+    return '(' + lhsFnJS + '===' + rhsFnJS + ')';
   }
 
   // BINARY
 }
 
-Expression.classMap["lessThanOrEquals"] = LessThanOrEqualsExpression;
+Expression.classMap["is"] = IsExpression;

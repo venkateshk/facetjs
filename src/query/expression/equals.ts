@@ -32,6 +32,12 @@ export class EqualsExpression extends BinaryExpression {
   protected _makeFn(lhsFn: Function, rhsFn: Function): Function {
     return (d: any) => lhsFn(d) === rhsFn(d);
   }
+
+  protected _makeFnJS(lhsFnJS: string, rhsFnJS: string): string {
+    throw new Error("implement me!");
+  }
+
+  // BINARY
 }
 
 Expression.classMap["equals"] = EqualsExpression;

@@ -152,6 +152,23 @@ export interface SQLQueryBuilderParameters {
 }
 
 export class SQLQueryBuilder {
+  static timeWarpToSQL(expression: string, duration: Duration) {
+    // https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_date-add
+    var spans = duration.valueOf();
+    if (spans.week) {
+      return "DATE_ADD(" + expression + ", INTERVAL " + String(spans.week) + ' WEEK)';
+    }
+    if (spans.year || spans.month) {
+      var expr = String(spans.year || 0) + "-" + String(spans.month || 0);
+      expression = "DATE_ADD(" + expression + ", INTERVAL '" + expr + "' YEAR_MONTH)";
+    }
+    if (spans.day || spans.hour || spans.minute || spans.second) {
+      var expr = String(spans.day || 0) + " " + [spans.hour || 0, spans.minute || 0, spans.second || 0].join(':');
+      expression = "DATE_ADD(" + expression + ", INTERVAL '" + expr + "' DAY_SECOND)";
+    }
+    return expression
+  }
+
   public commonSplitSelectParts: string[] = [];
   public commonApplySelectParts: string[] = [];
   public datasets: string[] = [];
@@ -282,6 +299,11 @@ export class SQLQueryBuilder {
           var sqlAttribute = this.escapeAttribute(split.attribute);
         } else {
           sqlAttribute = "CONVERT_TZ(" + (this.escapeAttribute(split.attribute)) + ", '+0:00', " + bucketTimezone + ")";
+        }
+
+        var warp = (<TimePeriodSplit>split).warp;
+        if (warp) {
+          sqlAttribute = SQLQueryBuilder.timeWarpToSQL(sqlAttribute, warp);
         }
 
         return {

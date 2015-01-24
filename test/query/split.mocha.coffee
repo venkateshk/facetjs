@@ -54,6 +54,14 @@ describe "FacetSplit", ->
         timezone: 'America/Los_Angeles'
       }
       {
+        name: 'TimeWithWarp'
+        bucket: 'timePeriod'
+        attribute: 'time'
+        period: 'P1D'
+        warp: 'P4D'
+        timezone: 'America/Los_Angeles'
+      }
+      {
         attribute: "timestamp"
         bucket: "timePeriod"
         name: "time_hour"

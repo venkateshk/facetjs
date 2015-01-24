@@ -18,6 +18,8 @@ if not WallTime.rules
 { sqlDriver } = require('../../build/driver/sqlDriver')
 { druidDriver } = require('../../build/driver/druidDriver')
 
+locations = require('../locations')
+
 # Set up drivers
 driverFns = {}
 verbose = false
@@ -44,7 +46,7 @@ driverFns.mySql = sqlDriver({
 
 # # Druid
 druidPass = druidRequester({
-  locator: simpleLocator('10.186.40.119')
+  locator: simpleLocator(locations.druid)
 })
 
 druidPass = utils.wrapVerbose(druidPass, 'Druid') if verbose
@@ -141,6 +143,15 @@ describe "Wikipedia day dataset", ->
       drivers: ['druid', 'mySql']
       query: [
         { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', timezone: 'Etc/UTC' }
+        { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
+      ]
+    }
+
+  describe "split time (with warp); combine time", ->
+    it "should have the same results for different drivers", testEquality {
+      drivers: ['druid', 'mySql']
+      query: [
+        { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'time', period: 'PT1H', warp: 'PT1H', timezone: 'Etc/UTC' }
         { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending' } }
       ]
     }

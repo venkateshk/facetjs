@@ -11,12 +11,14 @@ hadoopDriver = require('../../src_old/driver/hadoopDriver')
 
 verbose = false
 
+locations = require('../locations')
+
 describe "Hadoop driver", ->
   @timeout(15 * 60 * 1000)
 
   describe "specific queries", ->
     hadoopPass = hadoopRequester({
-      locator: simpleLocator('10.186.40.119')
+      locator: simpleLocator(locations.hadoop)
     })
 
     driver = hadoopDriver({

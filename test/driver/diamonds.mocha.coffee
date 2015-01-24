@@ -13,6 +13,8 @@ utils = require('../utils')
 { druidDriver } = require('../../build/driver/druidDriver')
 # hadoopDriver = require('../../src_old/driver/hadoopDriver')
 
+locations = require('../locations')
+
 # Set up drivers
 driverFns = {}
 verbose = false
@@ -39,7 +41,7 @@ driverFns.mySql = sqlDriver({
 
 # # Druid
 # druidPass = druidRequester({
-#   locator: simpleLocator('10.186.40.119')
+#   locator: simpleLocator(locations.druid)
 #   port: 8080
 # })
 

@@ -14,6 +14,9 @@ sqlDriver = require('./driver/sqlDriver')
 data = {}
 data.diamonds = require('../data/diamonds.js')
 
+locations = {
+  druid: '10.169.208.51'
+}
 
 app = express()
 
@@ -85,7 +88,7 @@ app.post '/pass/druid', (req, res) ->
   {context, query} = req.body
 
   {resource} = context or {}
-  resource or= '10.186.40.119'
+  resource or= locations.druid
   druidPass = druidRequester({
     locator: simpleLocator(resource)
   })
@@ -102,7 +105,7 @@ app.post '/driver/druid', (req, res) ->
     return
 
   {resource} = context or {}
-  resource or= '10.186.40.119'
+  resource or= locations.druid
   druidPass = druidRequester({
     locator: simpleLocator(resource)
   })
@@ -112,11 +115,6 @@ app.post '/driver/druid', (req, res) ->
     dataSource: context.dataSource
   })({context, query}, respondWithResult(res))
   return
-
-# Druid notes:
-# http://10.186.40.119:8080/druid/v2/datasources/
-# http://10.186.40.119:8080/druid/v2/datasources/wikipedia_editstream
-# http://10.186.40.119:8080/druid/v2/datasources/wikipedia_editstream/dimensions
 
 app.listen(9876)
 console.log('Listening on port 9876')

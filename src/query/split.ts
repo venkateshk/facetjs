@@ -51,6 +51,7 @@ export interface FacetSplitJS {
   upperLimit?: number;
   timezone?: string;
   period?: string;
+  warp?: string;
   splits?: FacetSplitJS[];
 }
 
@@ -67,6 +68,7 @@ export interface FacetSplitValue {
   upperLimit?: number;
   timezone?: Timezone;
   period?: Duration;
+  warp?: Duration;
   splits?: FacetSplit[];
 }
 
@@ -289,7 +291,7 @@ export class IdentitySplit extends FacetSplit {
   public getFilterFor(prop: Prop): FacetFilter {
     return new IsFilter({
       attribute: this.attribute,
-      value: <any>(prop[this.name]) // ToDo: resolve this
+      value: <any>(prop[this.name])
     });
   }
 }
@@ -390,6 +392,9 @@ export class TimePeriodSplit extends FacetSplit {
     } else {
       throw new Error("Must have period");
     }
+    if (parameters.warp) {
+      splitValue.warp = Duration.fromJS(parameters.warp);
+    }
     if (parameters.timezone) {
       splitValue.timezone = Timezone.fromJS(parameters.timezone);
     } else {
@@ -400,10 +405,12 @@ export class TimePeriodSplit extends FacetSplit {
 
   public timezone: Timezone;
   public period: Duration;
+  public warp: Duration;
 
   constructor(parameters: FacetSplitValue) {
     super(parameters, dummyObject);
     this.period = parameters.period;
+    this.warp = parameters.warp;
     this.timezone = parameters.timezone;
 
     if (!Duration.isDuration(this.period)) {
@@ -421,17 +428,22 @@ export class TimePeriodSplit extends FacetSplit {
   }
 
   public toString(): string {
-    return this._addName(this.bucket + "(`" + this.attribute + "`, " + this.period + ", " + this.timezone + ")");
+    var warpStr = this.warp ? (', ' + this.warp.toString()) : '';
+    return this._addName(this.bucket + "(`" + this.attribute + "`, " + this.period.toString() + warpStr + ", " + this.timezone + ")");
   }
 
   public toHash(): string {
-    return "TP:" + this.attribute + ":" + this.period + ":" + this.timezone;
+    var warpStr = this.warp ? (':' + this.warp.toString()) : '';
+    return "TP:" + this.attribute + ":" + this.period + ":" + this.timezone + warpStr;
   }
 
   public valueOf(): FacetSplitValue {
     var split = super.valueOf();
     split.period = this.period;
     split.timezone = this.timezone;
+    if (this.warp) {
+      split.warp = this.warp;
+    }
     return split;
   }
 
@@ -439,11 +451,19 @@ export class TimePeriodSplit extends FacetSplit {
     var split = super.toJS();
     split.period = this.period.toJS();
     split.timezone = this.timezone.toJS();
+    if (this.warp) {
+      split.warp = this.warp.toJS();
+    }
     return split;
   }
 
   public getFilterFor(prop: Prop): FacetFilter {
     var propRange: any[] = <any>prop[this.name];
+    var warp = this.warp;
+    if (warp) {
+      var timezone = this.timezone;
+      propRange = propRange.map((d) => warp.move(d, timezone, 1));
+    }
     return new WithinFilter({
       attribute: this.attribute,
       range: propRange
@@ -453,7 +473,9 @@ export class TimePeriodSplit extends FacetSplit {
   public equals(other: FacetSplit, compareSegmentFilter: boolean = false): boolean {
     return super.equals(other, compareSegmentFilter) &&
            this.period.equals((<TimePeriodSplit>other).period) &&
-           this.timezone.equals((<TimePeriodSplit>other).timezone);
+           this.timezone.equals((<TimePeriodSplit>other).timezone) &&
+           Boolean(this.warp) === Boolean((<TimePeriodSplit>other).warp) &&
+           (!this.warp || this.warp.equals((<TimePeriodSplit>other).warp));
   }
 }
 

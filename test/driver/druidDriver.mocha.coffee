@@ -20,6 +20,8 @@ if not WallTime.rules
 { druidRequester } = require('../../build/requester/druidRequester')
 { druidDriver, DruidQueryBuilder } = require('../../build/driver/druidDriver')
 
+locations = require('../locations')
+
 verbose = false
 
 describe "Druid driver", ->
@@ -494,7 +496,7 @@ describe "Druid driver", ->
 
   describe "introspects", ->
     druidPass = druidRequester({
-      locator: simpleLocator('10.186.40.119')
+      locator: simpleLocator(locations.druid)
     })
 
     wikiDriver = druidDriver({
@@ -701,7 +703,7 @@ describe "Druid driver", ->
 
   describe "should work with driver level filter", ->
     druidPass = druidRequester({
-      locator: simpleLocator('10.186.40.119')
+      locator: simpleLocator(locations.druid)
     })
 
     noFilter = druidDriver({
@@ -759,7 +761,7 @@ describe "Druid driver", ->
 
   describe "should work with nothingness", ->
     druidPass = druidRequester({
-      locator: simpleLocator('10.186.40.119')
+      locator: simpleLocator(locations.druid)
     })
 
     wikiDriver = druidDriver({
@@ -816,7 +818,7 @@ describe "Druid driver", ->
 
   describe "should work with inferred nothingness", ->
     druidPass = druidRequester({
-      locator: simpleLocator('10.186.40.119')
+      locator: simpleLocator(locations.druid)
     })
 
     wikiDriver = druidDriver({
@@ -859,7 +861,7 @@ describe "Druid driver", ->
 
   describe "specific queries", ->
     druidPass = druidRequester({
-      locator: simpleLocator('10.186.40.119')
+      locator: simpleLocator(locations.druid)
     })
 
     driver = druidDriver({

@@ -82,11 +82,17 @@ splitFnFactories['timePeriod'] = (split: TimePeriodSplit): SplitFn => {
   var attribute = split.attribute;
   var period = split.period;
   var timezone = split.timezone;
+  var warp = split.warp;
   return (d: Datum) => {
     var ds = new Date(d[attribute]);
     if (isNaN(ds.valueOf())) return null;
     ds = period.floor(ds, timezone);
-    return [ds, period.move(ds, timezone, 1)];
+    var de = period.move(ds, timezone, 1);
+    if (warp) {
+      ds = warp.move(ds, timezone, 1);
+      de = warp.move(de, timezone, 1);
+    }
+    return [ds, de];
   };
 };
 splitFnFactories['tuple'] = (split: TupleSplit): SplitFn => {

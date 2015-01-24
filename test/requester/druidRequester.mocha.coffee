@@ -3,8 +3,10 @@
 { simpleLocator } = require('../../build/locator/simpleLocator')
 { druidRequester } = require('../../build/requester/druidRequester')
 
+locations = require('../locations')
+
 druidPass = druidRequester({
-  locator: simpleLocator('10.186.40.119')
+  locator: simpleLocator(locations.druid)
 })
 
 describe "Druid requester", ->

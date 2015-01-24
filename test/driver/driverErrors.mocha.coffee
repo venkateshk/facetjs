@@ -13,6 +13,8 @@ utils = require('../utils')
 { sqlDriver } = require('../../build/driver/sqlDriver')
 { druidDriver } = require('../../build/driver/druidDriver')
 
+locations = require('../locations')
+
 # Set up drivers
 driverFns = {}
 
@@ -36,7 +38,7 @@ driverFns.mySql = sqlDriver({
 
 # # Druid
 druidPass = druidRequester({
-  locator: simpleLocator('10.186.40.119')
+  locator: simpleLocator(locations.druid)
 })
 
 driverFns.druid = druidDriver({

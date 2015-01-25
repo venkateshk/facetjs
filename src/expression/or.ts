@@ -1,28 +1,24 @@
 "use strict";
 
-import CommonModule = require("../common");
-import specialJoin = CommonModule.specialJoin;
-import find = CommonModule.find;
-import dummyObject = CommonModule.dummyObject;
-
 import BaseModule = require('./base');
+import dummyObject = BaseModule.dummyObject;
 import Expression = BaseModule.Expression;
 import ExpressionJS = BaseModule.ExpressionJS;
 import ExpressionValue = BaseModule.ExpressionValue;
 import NaryExpression = BaseModule.NaryExpression;
 
-export class ConcatExpression extends NaryExpression {
-  static fromJS(parameters: ExpressionJS): ConcatExpression {
-    return new ConcatExpression(NaryExpression.jsToValue(parameters));
+export class OrExpression extends NaryExpression {
+  static fromJS(parameters: ExpressionJS): OrExpression {
+    return new OrExpression(NaryExpression.jsToValue(parameters));
   }
 
   constructor(parameters: ExpressionValue = {}) {
     super(parameters, dummyObject);
-    this._ensureOp("concat");
+    this._ensureOp("or");
   }
 
   public toString(): string {
-    return 'concat(' + this.operands.map((operand) => operand.toString()) + ')';
+    return 'or(' + this.operands.map((operand) => operand.toString()) + ')';
   }
 
   public simplify(): Expression {
@@ -40,4 +36,4 @@ export class ConcatExpression extends NaryExpression {
   // NARY
 }
 
-Expression.classMap["concat"] = ConcatExpression;
+Expression.classMap["or"] = OrExpression;

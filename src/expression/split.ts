@@ -1,28 +1,24 @@
 "use strict";
 
-import CommonModule = require("../common");
-import specialJoin = CommonModule.specialJoin;
-import find = CommonModule.find;
-import dummyObject = CommonModule.dummyObject;
-
 import BaseModule = require('./base');
+import dummyObject = BaseModule.dummyObject;
 import Expression = BaseModule.Expression;
 import ExpressionJS = BaseModule.ExpressionJS;
 import ExpressionValue = BaseModule.ExpressionValue;
 import UnaryExpression = BaseModule.UnaryExpression;
 
-export class AggregateExpression extends UnaryExpression {
-  static fromJS(parameters: ExpressionJS): AggregateExpression {
-    return new AggregateExpression(UnaryExpression.jsToValue(parameters));
+export class SplitExpression extends UnaryExpression {
+  static fromJS(parameters: ExpressionJS): SplitExpression {
+    return new SplitExpression(UnaryExpression.jsToValue(parameters));
   }
 
   constructor(parameters: ExpressionValue = {}) {
     super(parameters, dummyObject);
-    this._ensureOp("aggregate");
+    this._ensureOp("split");
   }
 
   public toString(): string {
-    return 'aggregate(' + this.operand.toString() + ')';
+    return 'split(' + this.operand.toString() + ')';
   }
 
   public simplify(): Expression {
@@ -40,4 +36,4 @@ export class AggregateExpression extends UnaryExpression {
   // UNARY
 }
 
-Expression.classMap["aggregate"] = AggregateExpression;
+Expression.classMap["split"] = SplitExpression;

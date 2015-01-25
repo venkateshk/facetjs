@@ -1,28 +1,24 @@
 "use strict";
 
-import CommonModule = require("../common");
-import specialJoin = CommonModule.specialJoin;
-import find = CommonModule.find;
-import dummyObject = CommonModule.dummyObject;
-
 import BaseModule = require('./base');
+import dummyObject = BaseModule.dummyObject;
 import Expression = BaseModule.Expression;
 import ExpressionJS = BaseModule.ExpressionJS;
 import ExpressionValue = BaseModule.ExpressionValue;
 import NaryExpression = BaseModule.NaryExpression;
 
-export class DivideExpression extends NaryExpression {
-  static fromJS(parameters: ExpressionJS): DivideExpression {
-    return new DivideExpression(NaryExpression.jsToValue(parameters));
+export class SubtractExpression extends NaryExpression {
+  static fromJS(parameters: ExpressionJS): SubtractExpression {
+    return new SubtractExpression(NaryExpression.jsToValue(parameters));
   }
 
   constructor(parameters: ExpressionValue = {}) {
     super(parameters, dummyObject);
-    this._ensureOp("divide");
+    this._ensureOp("subtract");
   }
 
   public toString(): string {
-    return 'divide(' + this.operands.map((operand) => operand.toString()) + ')';
+    return 'subtract(' + this.operands.map((operand) => operand.toString()) + ')';
   }
 
   public simplify(): Expression {
@@ -40,4 +36,4 @@ export class DivideExpression extends NaryExpression {
   // NARY
 }
 
-Expression.classMap["divide"] = DivideExpression;
+Expression.classMap["subtract"] = SubtractExpression;

@@ -1,7 +1,7 @@
-/// <reference path="../../../typings/tsd.d.ts" />
+/// <reference path="../../typings/tsd.d.ts" />
 "use strict";
 
-import Basics = require("../../basics") // Prop up
+import Basics = require("../basics") // Prop up
 import Lookup = Basics.Lookup;
 
 import HigherObjectModule = require("higher-object");
@@ -9,11 +9,8 @@ import isInstanceOf = HigherObjectModule.isInstanceOf;
 import ImmutableClass = HigherObjectModule.ImmutableClass;
 import ImmutableInstance = HigherObjectModule.ImmutableInstance;
 
-import CommonModule = require("../common");
-import specialJoin = CommonModule.specialJoin;
-import find = CommonModule.find;
-import dummyObject = CommonModule.dummyObject;
-import Dummy = CommonModule.Dummy;
+export interface Dummy {}
+export var dummyObject: Dummy = {};
 
 export interface ExpressionJS {
   op?: string;

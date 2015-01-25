@@ -1,28 +1,24 @@
 "use strict";
 
-import CommonModule = require("../common");
-import specialJoin = CommonModule.specialJoin;
-import find = CommonModule.find;
-import dummyObject = CommonModule.dummyObject;
-
 import BaseModule = require('./base');
+import dummyObject = BaseModule.dummyObject;
 import Expression = BaseModule.Expression;
 import ExpressionJS = BaseModule.ExpressionJS;
 import ExpressionValue = BaseModule.ExpressionValue;
 import UnaryExpression = BaseModule.UnaryExpression;
 
-export class ActionsExpression extends UnaryExpression {
-  static fromJS(parameters: ExpressionJS): ActionsExpression {
-    return new ActionsExpression(UnaryExpression.jsToValue(parameters));
+export class AggregateExpression extends UnaryExpression {
+  static fromJS(parameters: ExpressionJS): AggregateExpression {
+    return new AggregateExpression(UnaryExpression.jsToValue(parameters));
   }
 
   constructor(parameters: ExpressionValue = {}) {
     super(parameters, dummyObject);
-    this._ensureOp("actions");
+    this._ensureOp("aggregate");
   }
 
   public toString(): string {
-    return 'actions(' + this.operand.toString() + ')';
+    return 'aggregate(' + this.operand.toString() + ')';
   }
 
   public simplify(): Expression {
@@ -40,4 +36,4 @@ export class ActionsExpression extends UnaryExpression {
   // UNARY
 }
 
-Expression.classMap["actions"] = ActionsExpression;
+Expression.classMap["aggregate"] = AggregateExpression;

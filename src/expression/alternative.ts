@@ -1,28 +1,24 @@
 "use strict";
 
-import CommonModule = require("../common");
-import specialJoin = CommonModule.specialJoin;
-import find = CommonModule.find;
-import dummyObject = CommonModule.dummyObject;
-
 import BaseModule = require('./base');
+import dummyObject = BaseModule.dummyObject;
 import Expression = BaseModule.Expression;
 import ExpressionJS = BaseModule.ExpressionJS;
 import ExpressionValue = BaseModule.ExpressionValue;
 import NaryExpression = BaseModule.NaryExpression;
 
-export class MultiplyExpression extends NaryExpression {
-  static fromJS(parameters: ExpressionJS): MultiplyExpression {
-    return new MultiplyExpression(NaryExpression.jsToValue(parameters));
+export class AlternativeExpression extends NaryExpression {
+  static fromJS(parameters: ExpressionJS): AlternativeExpression {
+    return new AlternativeExpression(NaryExpression.jsToValue(parameters));
   }
 
   constructor(parameters: ExpressionValue = {}) {
     super(parameters, dummyObject);
-    this._ensureOp("multiply");
+    this._ensureOp("alternative");
   }
 
   public toString(): string {
-    return 'multiply(' + this.operands.map((operand) => operand.toString()) + ')';
+    return 'alternative(' + this.operands.map((operand) => operand.toString()) + ')';
   }
 
   public simplify(): Expression {
@@ -40,4 +36,4 @@ export class MultiplyExpression extends NaryExpression {
   // NARY
 }
 
-Expression.classMap["multiply"] = MultiplyExpression;
+Expression.classMap["alternative"] = AlternativeExpression;

@@ -1,28 +1,24 @@
 "use strict";
 
-import CommonModule = require("../common");
-import specialJoin = CommonModule.specialJoin;
-import find = CommonModule.find;
-import dummyObject = CommonModule.dummyObject;
-
 import BaseModule = require('./base');
+import dummyObject = BaseModule.dummyObject;
 import Expression = BaseModule.Expression;
 import ExpressionJS = BaseModule.ExpressionJS;
 import ExpressionValue = BaseModule.ExpressionValue;
 import UnaryExpression = BaseModule.UnaryExpression;
 
-export class SplitExpression extends UnaryExpression {
-  static fromJS(parameters: ExpressionJS): SplitExpression {
-    return new SplitExpression(UnaryExpression.jsToValue(parameters));
+export class NotExpression extends UnaryExpression {
+  static fromJS(parameters: ExpressionJS): NotExpression {
+    return new NotExpression(UnaryExpression.jsToValue(parameters));
   }
 
   constructor(parameters: ExpressionValue = {}) {
     super(parameters, dummyObject);
-    this._ensureOp("split");
+    this._ensureOp("not");
   }
 
   public toString(): string {
-    return 'split(' + this.operand.toString() + ')';
+    return 'not(' + this.operand.toString() + ')';
   }
 
   public simplify(): Expression {
@@ -30,14 +26,14 @@ export class SplitExpression extends UnaryExpression {
   }
 
   protected _makeFn(operandFn: Function): Function {
-    throw new Error("implement me");
+    return (d: any) => !operandFn(d);
   }
 
   protected _makeFnJS(operandFnJS: string): string {
-    throw new Error("implement me");
+    return "!(" + operandFnJS + ")"
   }
 
   // UNARY
 }
 
-Expression.classMap["split"] = SplitExpression;
+Expression.classMap["not"] = NotExpression;

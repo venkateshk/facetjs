@@ -1,28 +1,24 @@
 "use strict";
 
-import CommonModule = require("../common");
-import specialJoin = CommonModule.specialJoin;
-import find = CommonModule.find;
-import dummyObject = CommonModule.dummyObject;
-
 import BaseModule = require('./base');
+import dummyObject = BaseModule.dummyObject;
 import Expression = BaseModule.Expression;
 import ExpressionJS = BaseModule.ExpressionJS;
 import ExpressionValue = BaseModule.ExpressionValue;
 import UnaryExpression = BaseModule.UnaryExpression;
 
-export class BucketExpression extends UnaryExpression {
-  static fromJS(parameters: ExpressionJS): BucketExpression {
-    return new BucketExpression(UnaryExpression.jsToValue(parameters));
+export class ActionsExpression extends UnaryExpression {
+  static fromJS(parameters: ExpressionJS): ActionsExpression {
+    return new ActionsExpression(UnaryExpression.jsToValue(parameters));
   }
 
   constructor(parameters: ExpressionValue = {}) {
     super(parameters, dummyObject);
-    this._ensureOp("bucket");
+    this._ensureOp("actions");
   }
 
   public toString(): string {
-    return 'bucket(' + this.operand.toString() + ')';
+    return 'actions(' + this.operand.toString() + ')';
   }
 
   public simplify(): Expression {
@@ -40,4 +36,4 @@ export class BucketExpression extends UnaryExpression {
   // UNARY
 }
 
-Expression.classMap["bucket"] = BucketExpression;
+Expression.classMap["actions"] = ActionsExpression;

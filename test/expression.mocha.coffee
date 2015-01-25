@@ -2,7 +2,7 @@
 
 { testHigherObjects } = require("higher-object/build/tester")
 
-{ Expression } = require('../../build/query/expression')
+{ Expression } = require('../build/expression')
 
 describe "Expression", ->
   it "passes higher object tests", ->

@@ -1,28 +1,24 @@
 "use strict";
 
-import CommonModule = require("../common");
-import specialJoin = CommonModule.specialJoin;
-import find = CommonModule.find;
-import dummyObject = CommonModule.dummyObject;
-
 import BaseModule = require('./base');
+import dummyObject = BaseModule.dummyObject;
 import Expression = BaseModule.Expression;
 import ExpressionJS = BaseModule.ExpressionJS;
 import ExpressionValue = BaseModule.ExpressionValue;
 import UnaryExpression = BaseModule.UnaryExpression;
 
-export class RegexpExpression extends UnaryExpression {
-  static fromJS(parameters: ExpressionJS): RegexpExpression {
-    return new RegexpExpression(UnaryExpression.jsToValue(parameters));
+export class OffsetExpression extends UnaryExpression {
+  static fromJS(parameters: ExpressionJS): OffsetExpression {
+    return new OffsetExpression(UnaryExpression.jsToValue(parameters));
   }
 
   constructor(parameters: ExpressionValue = {}) {
     super(parameters, dummyObject);
-    this._ensureOp("regexp");
+    this._ensureOp("offset");
   }
 
   public toString(): string {
-    return 'regexp(' + this.operand.toString() + ')';
+    return 'offset(' + this.operand.toString() + ')';
   }
 
   public simplify(): Expression {
@@ -40,4 +36,4 @@ export class RegexpExpression extends UnaryExpression {
   // UNARY
 }
 
-Expression.classMap["regexp"] = RegexpExpression;
+Expression.classMap["offset"] = OffsetExpression;

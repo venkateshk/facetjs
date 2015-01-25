@@ -1,28 +1,24 @@
 "use strict";
 
-import CommonModule = require("../common");
-import specialJoin = CommonModule.specialJoin;
-import find = CommonModule.find;
-import dummyObject = CommonModule.dummyObject;
-
 import BaseModule = require('./base');
+import dummyObject = BaseModule.dummyObject;
 import Expression = BaseModule.Expression;
 import ExpressionJS = BaseModule.ExpressionJS;
 import ExpressionValue = BaseModule.ExpressionValue;
 import BinaryExpression = BaseModule.BinaryExpression;
 
-export class InExpression extends BinaryExpression {
-  static fromJS(parameters: ExpressionJS): InExpression {
-    return new InExpression(BinaryExpression.jsToValue(parameters));
+export class LessThanOrEqualExpression extends BinaryExpression {
+  static fromJS(parameters: ExpressionJS): LessThanOrEqualExpression {
+    return new LessThanOrEqualExpression(BinaryExpression.jsToValue(parameters));
   }
 
   constructor(parameters: ExpressionValue = {}) {
     super(parameters, dummyObject);
-    this._ensureOp("in");
+    this._ensureOp("lessThanOrEqual");
   }
 
   public toString(): string {
-    return this.lhs.toString() + ' = ' + this.rhs.toString();
+    return this.lhs.toString() + ' <= ' + this.rhs.toString();
   }
 
   public simplify(): Expression {
@@ -30,7 +26,7 @@ export class InExpression extends BinaryExpression {
   }
 
   protected _makeFn(lhsFn: Function, rhsFn: Function): Function {
-    return (d: any) => lhsFn(d) === rhsFn(d);
+    return (d: any) => lhsFn(d) <= rhsFn(d);
   }
 
   protected _makeFnJS(lhsFnJS: string, rhsFnJS: string): string {
@@ -40,4 +36,4 @@ export class InExpression extends BinaryExpression {
   // BINARY
 }
 
-Expression.classMap["in"] = InExpression;
+Expression.classMap["lessThanOrEqual"] = LessThanOrEqualExpression;

@@ -1,28 +1,24 @@
 "use strict";
 
-import CommonModule = require("../common");
-import specialJoin = CommonModule.specialJoin;
-import find = CommonModule.find;
-import dummyObject = CommonModule.dummyObject;
-
 import BaseModule = require('./base');
+import dummyObject = BaseModule.dummyObject;
 import Expression = BaseModule.Expression;
 import ExpressionJS = BaseModule.ExpressionJS;
 import ExpressionValue = BaseModule.ExpressionValue;
 import NaryExpression = BaseModule.NaryExpression;
 
-export class SubtractExpression extends NaryExpression {
-  static fromJS(parameters: ExpressionJS): SubtractExpression {
-    return new SubtractExpression(NaryExpression.jsToValue(parameters));
+export class MinExpression extends NaryExpression {
+  static fromJS(parameters: ExpressionJS): MinExpression {
+    return new MinExpression(NaryExpression.jsToValue(parameters));
   }
 
   constructor(parameters: ExpressionValue = {}) {
     super(parameters, dummyObject);
-    this._ensureOp("subtract");
+    this._ensureOp("min");
   }
 
   public toString(): string {
-    return 'subtract(' + this.operands.map((operand) => operand.toString()) + ')';
+    return 'min(' + this.operands.map((operand) => operand.toString()) + ')';
   }
 
   public simplify(): Expression {
@@ -40,4 +36,4 @@ export class SubtractExpression extends NaryExpression {
   // NARY
 }
 
-Expression.classMap["subtract"] = SubtractExpression;
+Expression.classMap["min"] = MinExpression;

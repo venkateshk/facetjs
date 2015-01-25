@@ -36,6 +36,9 @@ mkdir -p package
 echo "Compiling TypeScript basics"
 node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/*.ts
 
+echo "Compiling expression"
+node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/expression/*.ts
+
 echo "Compiling query"
 node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/query/*.ts
 

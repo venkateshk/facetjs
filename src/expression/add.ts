@@ -1,11 +1,7 @@
 "use strict";
 
-import CommonModule = require("../common");
-import specialJoin = CommonModule.specialJoin;
-import find = CommonModule.find;
-import dummyObject = CommonModule.dummyObject;
-
 import BaseModule = require('./base');
+import dummyObject = BaseModule.dummyObject;
 import Expression = BaseModule.Expression;
 import ExpressionJS = BaseModule.ExpressionJS;
 import ExpressionValue = BaseModule.ExpressionValue;
@@ -32,7 +28,7 @@ export class AddExpression extends NaryExpression {
   protected _makeFn(operandFns: Function[]): Function {
     return (d: any) => {
       var sum = 0;
-      for (var i = 0; i < operandFns.lengthl i++) {
+      for (var i = 0; i < operandFns.length; i++) {
         sum += operandFns[i](d);
       }
       return sum;

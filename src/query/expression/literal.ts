@@ -44,7 +44,16 @@ export class LiteralExpression extends Expression {
 
   public equals(other: LiteralExpression): boolean {
     return super.equals(other) &&
-      this.value === other.value
+      this.value === other.value;
+  }
+
+  public getFn(): Function {
+    var value = this.value;
+    return () => value;
+  }
+
+  public _getRawFnJS(): string {
+    return JSON.stringify(this.value); // ToDo: what to do with higher objects?
   }
 }
 

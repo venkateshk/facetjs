@@ -25,7 +25,7 @@ import SegmentTreeModule = require("../query/segmentTree");
 import SegmentTree = SegmentTreeModule.SegmentTree;
 import SegmentTreeJS = SegmentTreeModule.SegmentTreeJS;
 
-import ShapeModule = require("./shape");
+import ShapeModule = require("./../datatype/shape");
 import Shape = ShapeModule.Shape;
 import RectangularShape = ShapeModule.RectangularShape;
 
@@ -40,44 +40,6 @@ export interface FacetVisValue {
   renderType?: string;
   split?: FacetSplit;
   splitName?: string;
-}
-
-export interface Stat {
-  [name: string]: any;
-}
-
-function statToJS(stat: Stat): Stat {
-  var js: Stat = {};
-  for (var k in stat) {
-    if (!stat.hasOwnProperty(k)) continue;
-    var v: any = stat[k];
-    js[k] = Array.isArray(v) ? v.map(statToJS) : (typeof v.toJS === 'function' ? v.toJS() : v);
-  }
-  return js;
-}
-
-export class StatBase implements Stat {
-  [name: string]: any;
-
-  // Future static fromJS
-  //protoLink = (object, parent = null) ->
-  //  return object unless typeof object is 'object'
-  //  if Array.isArray(object)
-  //    return object.map((o) -> protoLink(o, parent))
-  //  newObject = new Object(parent)
-  //  for own k, v of object
-  //    console.log("k", k);
-  //    newObject[k] = protoLink(v, newObject)
-  //  return newObject
-
-
-  public toJS(): any {
-    return statToJS(this)
-  }
-
-  public toString(): string {
-    return 'Stat'
-  }
 }
 
 interface Def {

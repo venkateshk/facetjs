@@ -36,7 +36,7 @@ export class AddExpression extends NaryExpression {
   }
 
   protected _makeFnJS(operandFnJSs: string[]): string {
-    return '(' + operandFnJSs.join('+')  + ')'
+    return '(' + operandFnJSs.join('+')  + ')';
   }
 
   // NARY

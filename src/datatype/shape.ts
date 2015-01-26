@@ -3,6 +3,8 @@
 
 import Basics = require("../basics") // Prop up
 import Lookup = Basics.Lookup;
+import dummyObject = Basics.dummyObject;
+import Dummy = Basics.Dummy;
 
 import HigherObjectModule = require("higher-object");
 import isInstanceOf = HigherObjectModule.isInstanceOf;
@@ -76,7 +78,10 @@ export class Shape implements ImmutableInstance<ShapeJS, ShapeJS> {
   public x: number;
   public y: number;
 
-  constructor(parameters: ShapeJS) {
+  constructor(parameters: ShapeJS, dummy: Dummy = null) {
+    if (dummy !== dummyObject) {
+      throw new TypeError("can not call `new Shape` directly use Shape.fromJS instead");
+    }
     this.x = parameters.x;
     this.y = parameters.y;
   }
@@ -107,6 +112,10 @@ export class Shape implements ImmutableInstance<ShapeJS, ShapeJS> {
     return this.valueOf();
   }
 
+  public toString(): string {
+    return "Shape(" + this.x + ',' + this.y + ")";
+  }
+
   public equals(other: Shape): boolean {
     return Shape.isShape(other) &&
       this.shape === other.shape &&
@@ -134,7 +143,7 @@ export class RectangleShape extends Shape {
   public height: any;
 
   constructor(parameters: ShapeJS) {
-    super(parameters);
+    super(parameters, dummyObject);
     this.width = parameters.width;
     this.height = parameters.height;
     this._ensureShape('rectangle');
@@ -145,6 +154,10 @@ export class RectangleShape extends Shape {
     value.width = this.width;
     value.height = this.height;
     return value;
+  }
+
+  public toString(): string {
+    return "RectangleShape(" + this.width + ',' + this.height + ")";
   }
 
   public equals(other: RectangleShape): boolean {

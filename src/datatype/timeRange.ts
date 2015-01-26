@@ -3,71 +3,59 @@
 
 import Basics = require("../basics") // Prop up
 import Lookup = Basics.Lookup;
-import dummyObject = Basics.dummyObject;
-import Dummy = Basics.Dummy;
 
 import HigherObjectModule = require("higher-object");
 import isInstanceOf = HigherObjectModule.isInstanceOf;
 import ImmutableClass = HigherObjectModule.ImmutableClass;
 import ImmutableInstance = HigherObjectModule.ImmutableInstance;
 
+export interface TimeRangeValue {
+  type?: string;
+  start?: Date;
+  end?: Date;
+}
+
 export interface TimeRangeJS {
   type?: string;
   start?: any;
-  end?: any
+  end?: any;
 }
 
-var check: ImmutableClass<TimeRangeJS, TimeRangeJS>;
-export class TimeRange implements ImmutableInstance<TimeRangeJS, TimeRangeJS> {
-  static classMap: any = {};
-  static fromJS(parameters: TimeRangeJS): TimeRange {
-    if (typeof parameters !== "object") {
-      throw new Error("unrecognizable shape");
-    }
-    if (!parameters.hasOwnProperty("shape")) {
-      throw new Error("shape must be defined");
-    }
-    if (typeof parameters.shape !== "string") {
-      throw new Error("shape must be a string");
-    }
-    var ClassFn = TimeRange.classMap[parameters.shape];
-    if (!ClassFn) {
-      throw new Error("unsupported shape '" + parameters.shape + "'");
-    }
-    return ClassFn.fromJS(parameters);
-  }
+function getDate(date: any, name: string): Date {
+  if (!date) throw new TypeError('timeRange must have a `' + name + '`');
+  if (typeof date === 'string') date = new Date(date);
+  if (!date.getDay) throw new TypeError('timeRange must have a `' + name + '` that is a Date');
+  return date;
+}
 
+var check: ImmutableClass<TimeRangeValue, TimeRangeJS>;
+export class TimeRange implements ImmutableInstance<TimeRangeValue, TimeRangeJS> {
   static isTimeRange(candidate: any): boolean {
     return isInstanceOf(candidate, TimeRange);
   }
 
-  public shape: string;
-  public x: number;
-  public y: number;
-
-  constructor(parameters: TimeRangeJS, dummy: Dummy = null) {
-    if (dummy !== dummyObject) {
-      throw new TypeError("can not call `new TimeRange` directly use TimeRange.fromJS instead");
+  static fromJS(parameters: TimeRangeJS): TimeRange {
+    if (typeof parameters !== "object") {
+      throw new Error("unrecognizable timeRange");
     }
-    this.x = parameters.x;
-    this.y = parameters.y;
+    return new TimeRange({
+      start: getDate(parameters.start, 'start'),
+      end: getDate(parameters.end, 'end')
+    });
   }
 
-  public _ensureTimeRange(shape: string): void {
-    if (!this.shape) {
-      this.shape = shape;
-      return;
-    }
-    if (this.shape !== shape) {
-      throw new TypeError("incorrect shape '" + this.shape + "' (needs to be: '" + shape + "')");
-    }
+  public start: Date;
+  public end: Date;
+
+  constructor(parameters: TimeRangeJS) {
+    this.start = parameters.start;
+    this.end = parameters.end;
   }
 
-  public valueOf(): TimeRangeJS {
+  public valueOf(): TimeRangeValue {
     return {
-      shape: this.shape,
-      x: this.x,
-      y: this.y
+      start: this.start,
+      end: this.end
     };
   }
 
@@ -80,14 +68,13 @@ export class TimeRange implements ImmutableInstance<TimeRangeJS, TimeRangeJS> {
   }
 
   public toString(): string {
-    return "TimeRange(" + this.x + ',' + this.y + ")";
+    return "[" + this.start.toISOString() + ',' + this.end.toISOString() + ")";
   }
 
   public equals(other: TimeRange): boolean {
     return TimeRange.isTimeRange(other) &&
-      this.shape === other.shape &&
-      this.x === other.x &&
-      this.y === other.y;
+      this.start.valueOf() === other.start.valueOf() &&
+      this.end.valueOf() === other.end.valueOf();
   }
 }
 check = TimeRange;

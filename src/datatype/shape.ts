@@ -43,6 +43,10 @@ export interface ShapeJS {
 
 var check: ImmutableClass<ShapeJS, ShapeJS>;
 export class Shape implements ImmutableInstance<ShapeJS, ShapeJS> {
+  static isShape(candidate: any): boolean {
+    return isInstanceOf(candidate, Shape);
+  }
+
   static rectangle(width: number, height: number): RectangleShape {
     return new RectangleShape({
       x: 0,
@@ -68,10 +72,6 @@ export class Shape implements ImmutableInstance<ShapeJS, ShapeJS> {
       throw new Error("unsupported shape '" + parameters.shape + "'");
     }
     return ClassFn.fromJS(parameters);
-  }
-
-  static isShape(candidate: any): boolean {
-    return isInstanceOf(candidate, Shape);
   }
 
   public shape: string;

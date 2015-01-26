@@ -1,10 +1,32 @@
 { expect } = require("chai")
 
-{ Shape, RectangularShape } = require('../../build/datatype/shape')
+{ testHigherObjects } = require("higher-object/build/tester")
+
+{ Shape } = require('../../build/datatype/shape')
 
 describe "Shape", ->
+  it "passes higher object tests", ->
+    testHigherObjects(Shape, [
+      {
+        shape: 'rectangle'
+        x: 0
+        y: 0
+        width: 800
+        height: 600
+      }
+      {
+        shape: 'rectangle'
+        x: 0
+        y: 0
+        width: 300
+        height: 200
+      }
+    ], {
+      newThrows: true
+    })
+
   describe "RectangularShape#margin", ->
-    shape = RectangularShape.base(800, 600)
+    shape = Shape.rectangle(800, 600)
 
     it "works in basic case", ->
       newShape = shape.margin({

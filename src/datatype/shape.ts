@@ -31,7 +31,8 @@ function margin1d(left: any, width: any, right: any, parentWidth: any): any[] {
 }
 
 export interface ShapeJS {
-  shape: string;
+  type?: string;
+  shape?: string;
   x: number;
   y: number;
   width?: number;
@@ -40,32 +41,77 @@ export interface ShapeJS {
 
 var check: ImmutableClass<ShapeJS, ShapeJS>;
 export class Shape implements ImmutableInstance<ShapeJS, ShapeJS> {
-  static rectangle(width: number, height: number): RectangularShape {
-    return new RectangularShape(0, 0, width, height);
+  static rectangle(width: number, height: number): RectangleShape {
+    return new RectangleShape({
+      x: 0,
+      y: 0,
+      width: width,
+      height: height
+    });
   }
 
-
-  static fromJS(paramaters: ShapeJS): Shape {
-
+  static classMap: any = {};
+  static fromJS(parameters: ShapeJS): Shape {
+    if (typeof parameters !== "object") {
+      throw new Error("unrecognizable shape");
+    }
+    if (!parameters.hasOwnProperty("shape")) {
+      throw new Error("shape must be defined");
+    }
+    if (typeof parameters.shape !== "string") {
+      throw new Error("shape must be a string");
+    }
+    var ClassFn = Shape.classMap[parameters.shape];
+    if (!ClassFn) {
+      throw new Error("unsupported shape '" + parameters.shape + "'");
+    }
+    return ClassFn.fromJS(parameters);
   }
 
   static isShape(candidate: any): boolean {
     return isInstanceOf(candidate, Shape);
   }
 
-  public x: any;
-  public y: any;
+  public shape: string;
+  public x: number;
+  public y: number;
 
-  constructor(x: any, y: any) {
-    this.x = x;
-    this.y = y;
+  constructor(parameters: ShapeJS) {
+    this.x = parameters.x;
+    this.y = parameters.y;
   }
 
-  public toJS(): ShapeJS {
+  public _ensureShape(shape: string): void {
+    if (!this.shape) {
+      this.shape = shape;
+      return;
+    }
+    if (this.shape !== shape) {
+      throw new TypeError("incorrect shape '" + this.shape + "' (needs to be: '" + shape + "')");
+    }
+  }
+
+  public valueOf(): ShapeJS {
     return {
+      shape: this.shape,
       x: this.x,
       y: this.y
     };
+  }
+
+  public toJS(): ShapeJS {
+    return this.valueOf();
+  }
+
+  public toJSON(): ShapeJS {
+    return this.valueOf();
+  }
+
+  public equals(other: Shape): boolean {
+    return Shape.isShape(other) &&
+      this.shape === other.shape &&
+      this.x === other.x &&
+      this.y === other.y;
   }
 }
 check = Shape;
@@ -79,25 +125,32 @@ export interface MarginParameters {
   bottom: any;
 }
 
-export class RectangularShape extends Shape {
+export class RectangleShape extends Shape {
+  static fromJS(parameters: ShapeJS): RectangleShape {
+    return new RectangleShape(parameters);
+  }
+
   public width: any;
   public height: any;
 
-  static base(width: number, height: number): RectangularShape {
-    return new RectangularShape(0, 0, width, height);
+  constructor(parameters: ShapeJS) {
+    super(parameters);
+    this.width = parameters.width;
+    this.height = parameters.height;
+    this._ensureShape('rectangle');
   }
 
-  constructor(x: any, y: any, width: any, height: any) {
-    super(x, y);
-    this.width = width;
-    this.height = height;
+  public valueOf(): ShapeJS {
+    var value = super.valueOf();
+    value.width = this.width;
+    value.height = this.height;
+    return value;
   }
 
-  public toJS(): ShapeJS {
-    var js = super.toJS();
-    js.width = this.width;
-    js.height = this.height;
-    return js;
+  public equals(other: RectangleShape): boolean {
+    return super.equals(other) &&
+      this.width === other.width &&
+      this.height === other.height;
   }
 
   public margin(parameters: MarginParameters) {
@@ -110,6 +163,13 @@ export class RectangularShape extends Shape {
 
     var xw = margin1d(left, width, right, this.width);
     var yh = margin1d(top, height, bottom, this.height);
-    return new RectangularShape(xw[0], yh[0], xw[1], yh[1]);
+    return new RectangleShape({
+      x: xw[0],
+      y: yh[0],
+      width: xw[1],
+      height: yh[1]
+    });
   }
 }
+
+Shape.classMap['rectangle'] = RectangleShape;

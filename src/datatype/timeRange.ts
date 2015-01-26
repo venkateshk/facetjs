@@ -10,7 +10,6 @@ import ImmutableClass = HigherObjectModule.ImmutableClass;
 import ImmutableInstance = HigherObjectModule.ImmutableInstance;
 
 export interface TimeRangeValue {
-  type?: string;
   start?: Date;
   end?: Date;
 }
@@ -21,7 +20,7 @@ export interface TimeRangeJS {
   end?: any;
 }
 
-function getDate(date: any, name: string): Date {
+function toDate(date: any, name: string): Date {
   if (!date) throw new TypeError('timeRange must have a `' + name + '`');
   if (typeof date === 'string') date = new Date(date);
   if (!date.getDay) throw new TypeError('timeRange must have a `' + name + '` that is a Date');
@@ -39,8 +38,8 @@ export class TimeRange implements ImmutableInstance<TimeRangeValue, TimeRangeJS>
       throw new Error("unrecognizable timeRange");
     }
     return new TimeRange({
-      start: getDate(parameters.start, 'start'),
-      end: getDate(parameters.end, 'end')
+      start: toDate(parameters.start, 'start'),
+      end: toDate(parameters.end, 'end')
     });
   }
 
@@ -59,12 +58,19 @@ export class TimeRange implements ImmutableInstance<TimeRangeValue, TimeRangeJS>
     };
   }
 
-  public toJS(): TimeRangeJS {
-    return this.valueOf();
+  public toJS(addType: boolean = false): TimeRangeJS {
+    var js: TimeRangeJS = {
+      start: this.start,
+      end: this.end
+    };
+    if (addType) {
+      js.type = 'timeRange'
+    }
+    return js;
   }
 
   public toJSON(): TimeRangeJS {
-    return this.valueOf();
+    return this.toJS();
   }
 
   public toString(): string {

@@ -27,7 +27,6 @@ import SegmentTreeJS = SegmentTreeModule.SegmentTreeJS;
 
 import ShapeModule = require("./../datatype/shape");
 import Shape = ShapeModule.Shape;
-import RectangularShape = ShapeModule.RectangularShape;
 
 import ScaleModule = require("./scale");
 import Scale = ScaleModule.Scale;

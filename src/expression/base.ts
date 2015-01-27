@@ -40,6 +40,29 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
     return isInstanceOf(candidate, Expression);
   }
 
+  static facet(input: any = null): Expression {
+    var expressionJS: ExpressionJS;
+    if (input) {
+      if (typeof input === 'string') {
+        expressionJS = {
+          op: 'lookup',
+          name: input
+        };
+      } else {
+        expressionJS = {
+          op: 'literal',
+          value: input
+        };
+      }
+    } else {
+      expressionJS = {
+        op: 'literal',
+        value: "<Dataset>" // ToDo: lol fix this
+      };
+    }
+    return Expression.fromJS(expressionJS);
+  }
+
   static classMap: Lookup<typeof Expression> = {};
   static fromJS(expressionJS: string): Expression;
   static fromJS(expressionJS: ExpressionJS): Expression;

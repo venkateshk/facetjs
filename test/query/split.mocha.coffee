@@ -62,6 +62,15 @@ describe "FacetSplit", ->
         timezone: 'America/Los_Angeles'
       }
       {
+        name: 'TimeWithNegativeWarp'
+        bucket: 'timePeriod'
+        attribute: 'time'
+        period: 'P1D'
+        warp: 'P4D'
+        warpDirection: -1
+        timezone: 'America/Los_Angeles'
+      }
+      {
         attribute: "timestamp"
         bucket: "timePeriod"
         name: "time_hour"
@@ -130,6 +139,14 @@ describe "FacetSplit", ->
     it "fails on bad timezone in timePeriod", ->
       splitSpec = { name: 'stuff', attribute: 'something', bucket: "timePeriod", period: 'P1D', timezone: 'UTC' }
       expect(-> FacetSplit.fromJS(splitSpec)).to.throw(Error, "Unable to find time zone named UTC")
+
+    it "fails on bad warp in timePeriod", ->
+      splitSpec = { name: 'stuff', attribute: 'something', bucket: "timePeriod", period: 'P1D', timezone: 'Etc/UTC', warp: 'P1K' }
+      expect(-> FacetSplit.fromJS(splitSpec)).to.throw(Error, "Can not parse duration 'P1K'")
+
+    it "fails on bad warpDirection in timePeriod", ->
+      splitSpec = { name: 'stuff', attribute: 'something', bucket: "timePeriod", period: 'P1D', timezone: 'Etc/UTC', warp: 'P1D', warpDirection: 2 }
+      expect(-> FacetSplit.fromJS(splitSpec)).to.throw(Error, "warpDirection must be 1 or -1")
 
   describe "dataset", ->
     it "returns main", ->

@@ -152,19 +152,20 @@ export interface SQLQueryBuilderParameters {
 }
 
 export class SQLQueryBuilder {
-  static timeWarpToSQL(expression: string, duration: Duration) {
+  static timeWarpToSQL(expression: string, warp: Duration, warpDirection: number) {
     // https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_date-add
-    var spans = duration.valueOf();
+    var sqlFn = warpDirection > 0 ? "DATE_ADD(" : "DATE_SUB(";
+    var spans = warp.valueOf();
     if (spans.week) {
-      return "DATE_ADD(" + expression + ", INTERVAL " + String(spans.week) + ' WEEK)';
+      return sqlFn + expression + ", INTERVAL " + String(spans.week) + ' WEEK)';
     }
     if (spans.year || spans.month) {
       var expr = String(spans.year || 0) + "-" + String(spans.month || 0);
-      expression = "DATE_ADD(" + expression + ", INTERVAL '" + expr + "' YEAR_MONTH)";
+      expression = sqlFn + expression + ", INTERVAL '" + expr + "' YEAR_MONTH)";
     }
     if (spans.day || spans.hour || spans.minute || spans.second) {
       var expr = String(spans.day || 0) + " " + [spans.hour || 0, spans.minute || 0, spans.second || 0].join(':');
-      expression = "DATE_ADD(" + expression + ", INTERVAL '" + expr + "' DAY_SECOND)";
+      expression = sqlFn + expression + ", INTERVAL '" + expr + "' DAY_SECOND)";
     }
     return expression
   }
@@ -303,7 +304,7 @@ export class SQLQueryBuilder {
 
         var warp = (<TimePeriodSplit>split).warp;
         if (warp) {
-          sqlAttribute = SQLQueryBuilder.timeWarpToSQL(sqlAttribute, warp);
+          sqlAttribute = SQLQueryBuilder.timeWarpToSQL(sqlAttribute, warp, (<TimePeriodSplit>split).warpDirection);
         }
 
         return {

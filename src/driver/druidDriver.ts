@@ -964,6 +964,7 @@ DruidQueryBuilder.queryFns = {
       var timezone = split.timezone;
       var splitDuration = split.period;
       var warp = split.warp;
+      var warpDirection = split.warpDirection;
       var canonicalDurationLengthAndThenSome = splitDuration.getCanonicalLength() * 1.5;
       var props = ds.map((d: any, i: number) => {
         var rangeStart = new Date(d.timestamp);
@@ -976,8 +977,8 @@ DruidQueryBuilder.queryFns = {
                         next : splitDuration.move(rangeStart, timezone, 1);
 
         if (warp) {
-          rangeStart = warp.move(rangeStart, timezone, 1);
-          rangeEnd = warp.move(rangeEnd, timezone, 1);
+          rangeStart = warp.move(rangeStart, timezone, warpDirection);
+          rangeEnd = warp.move(rangeEnd, timezone, warpDirection);
         }
 
         var prop = d.result;

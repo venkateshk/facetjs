@@ -83,14 +83,15 @@ splitFnFactories['timePeriod'] = (split: TimePeriodSplit): SplitFn => {
   var period = split.period;
   var timezone = split.timezone;
   var warp = split.warp;
+  var warpDirection = split.warpDirection;
   return (d: Datum) => {
     var ds = new Date(d[attribute]);
     if (isNaN(ds.valueOf())) return null;
     ds = period.floor(ds, timezone);
     var de = period.move(ds, timezone, 1);
     if (warp) {
-      ds = warp.move(ds, timezone, 1);
-      de = warp.move(de, timezone, 1);
+      ds = warp.move(ds, timezone, warpDirection);
+      de = warp.move(de, timezone, warpDirection);
     }
     return [ds, de];
   };

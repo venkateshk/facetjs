@@ -17,16 +17,16 @@ describe "Expression", ->
         value: 'facet'
       }
       {
-        op: 'lookup'
+        op: 'ref'
         name: 'hello'
       }
       {
-        op: 'lookup'
+        op: 'ref'
         name: 'goodbye'
       }
       {
         op: 'is'
-        lhs: { op: 'lookup', name: 'hello' }
+        lhs: { op: 'ref', name: 'hello' }
         rhs: { op: 'literal', value: 5 }
       }
       {
@@ -41,7 +41,7 @@ describe "Expression", ->
       }
       {
         op: 'lessThan'
-        lhs: { op: 'lookup', name: 'x' }
+        lhs: { op: 'ref', name: 'x' }
         rhs: { op: 'literal', value: 5 }
       }
       {
@@ -51,7 +51,7 @@ describe "Expression", ->
       }
       {
         op: 'lessThanOrEqual'
-        lhs: { op: 'lookup', name: 'x' }
+        lhs: { op: 'ref', name: 'x' }
         rhs: { op: 'literal', value: 5 }
       }
       {
@@ -61,7 +61,7 @@ describe "Expression", ->
       }
       {
         op: 'greaterThan'
-        lhs: { op: 'lookup', name: 'x' }
+        lhs: { op: 'ref', name: 'x' }
         rhs: { op: 'literal', value: 5 }
       }
       {
@@ -71,13 +71,13 @@ describe "Expression", ->
       }
       {
         op: 'greaterThanOrEqual'
-        lhs: { op: 'lookup', name: 'x' }
+        lhs: { op: 'ref', name: 'x' }
         rhs: { op: 'literal', value: 5 }
       }
 
       {
         op: 'actions'
-        operand: { op: 'lookup', name: 'diamonds' }
+        operand: { op: 'ref', name: 'diamonds' }
         actions: [
           {
             action: 'def'
@@ -95,7 +95,7 @@ describe "Expression", ->
     it "does not like an expression without op", ->
       expect(->
         Expression.fromJS({
-          lhs: { op: 'lookup', name: 'hello' }
+          lhs: { op: 'ref', name: 'hello' }
           rhs: { op: 'literal', value: 5 }
         })
       ).to.throw('op must be defined')

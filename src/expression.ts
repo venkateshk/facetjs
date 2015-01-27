@@ -456,9 +456,9 @@ Expression.classMap["literal"] = LiteralExpression;
 // =====================================================================================
 
 
-export class LookupExpression extends Expression {
-  static fromJS(parameters: ExpressionJS): LookupExpression {
-    return new LookupExpression(<ExpressionValue>parameters);
+export class RefExpression extends Expression {
+  static fromJS(parameters: ExpressionJS): RefExpression {
+    return new RefExpression(<ExpressionValue>parameters);
   }
 
   public generations: string;
@@ -473,7 +473,7 @@ export class LookupExpression extends Expression {
     } else {
       throw new Error("invalid name '" + parameters.name + "'");
     }
-    this._ensureOp("lookup");
+    this._ensureOp("ref");
     if (typeof this.name !== 'string' || this.name.length === 0) {
       throw new TypeError("must have a nonempty `name`");
     }
@@ -495,7 +495,7 @@ export class LookupExpression extends Expression {
     return '$' + this.generations + this.name;
   }
 
-  public equals(other: LookupExpression): boolean {
+  public equals(other: RefExpression): boolean {
     return super.equals(other) &&
       this.name === other.name &&
       this.generations === other.generations;
@@ -516,7 +516,7 @@ export class LookupExpression extends Expression {
   }
 }
 
-Expression.classMap["lookup"] = LookupExpression;
+Expression.classMap["ref"] = RefExpression;
 
 // =====================================================================================
 // =====================================================================================

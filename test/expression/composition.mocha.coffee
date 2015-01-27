@@ -12,10 +12,10 @@ describe "composition", ->
       "value": "<Dataset>" # ToDo: fix this
     })
 
-  it "works in lookup case", ->
+  it "works in ref case", ->
     ex = facet("diamonds")
     expect(ex.toJS()).to.deep.equal({
-      "op": "lookup"
+      "op": "ref"
       "name": "diamonds"
     })
 

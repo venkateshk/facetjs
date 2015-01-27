@@ -51,6 +51,11 @@ export class LiteralExpression extends Expression {
   public _getRawFnJS(): string {
     return JSON.stringify(this.value); // ToDo: what to do with higher objects?
   }
+
+  public def(name: string, ex: any) {
+    if (!Expression.isExpression(ex)) ex = Expression.fromJS(ex);
+
+  }
 }
 
 Expression.classMap["literal"] = LiteralExpression;

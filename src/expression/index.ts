@@ -2,6 +2,8 @@
 
 import BaseModule = require("./base");
 export import Expression = BaseModule.Expression;
+export import ExpressionValue = BaseModule.ExpressionValue;
+export import ExpressionJS = BaseModule.ExpressionJS;
 
 import LiteralModule = require("./literal");
 export import LiteralExpression = LiteralModule.LiteralExpression;

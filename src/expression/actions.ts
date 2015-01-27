@@ -1,5 +1,8 @@
 "use strict";
 
+import ActionModule = require('../action/index');
+import Action = ActionModule.Action;
+
 import BaseModule = require('./base');
 import dummyObject = BaseModule.dummyObject;
 import Expression = BaseModule.Expression;
@@ -9,8 +12,12 @@ import UnaryExpression = BaseModule.UnaryExpression;
 
 export class ActionsExpression extends UnaryExpression {
   static fromJS(parameters: ExpressionJS): ActionsExpression {
-    return new ActionsExpression(UnaryExpression.jsToValue(parameters));
+    var value = UnaryExpression.jsToValue(parameters);
+    value.actions = parameters.actions.map(Action.fromJS);
+    return new ActionsExpression(value);
   }
+
+  public actions: Action[];
 
   constructor(parameters: ExpressionValue = {}) {
     super(parameters, dummyObject);

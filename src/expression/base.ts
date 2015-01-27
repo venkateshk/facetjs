@@ -4,6 +4,10 @@
 import Basics = require("../basics") // Prop up
 import Lookup = Basics.Lookup;
 
+import ActionModule = require('../action/index');
+import Action = ActionModule.Action;
+import ActionJS = ActionModule.ActionJS;
+
 import HigherObjectModule = require("higher-object");
 import isInstanceOf = HigherObjectModule.isInstanceOf;
 import ImmutableClass = HigherObjectModule.ImmutableClass;
@@ -11,17 +15,6 @@ import ImmutableInstance = HigherObjectModule.ImmutableInstance;
 
 export interface Dummy {}
 export var dummyObject: Dummy = {};
-
-export interface ExpressionJS {
-  op?: string;
-  attribute?: string;
-  value?: any;
-  name?: string;
-  lhs?: ExpressionJS;
-  rhs?: ExpressionJS;
-  operand?: ExpressionJS;
-  operands?: ExpressionJS[];
-}
 
 export interface ExpressionValue {
   op?: string;
@@ -32,6 +25,19 @@ export interface ExpressionValue {
   rhs?: Expression;
   operand?: Expression;
   operands?: Expression[];
+  actions?: Action[];
+}
+
+export interface ExpressionJS {
+  op?: string;
+  attribute?: string;
+  value?: any;
+  name?: string;
+  lhs?: ExpressionJS;
+  rhs?: ExpressionJS;
+  operand?: ExpressionJS;
+  operands?: ExpressionJS[];
+  actions?: ActionJS[];
 }
 
 var check: ImmutableClass<ExpressionValue, ExpressionJS>;

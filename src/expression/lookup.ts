@@ -16,7 +16,7 @@ export class LookupExpression extends Expression {
 
   constructor(parameters: ExpressionValue = {}) {
     super(parameters, dummyObject);
-    var match = parameters.name.match(/^(\^*)([a-z_]\w+)$/i);
+    var match = parameters.name.match(/^(\^*)([a-z_]\w*)$/i);
     if (match) {
       this.generations = match[1];
       this.name = match[2];

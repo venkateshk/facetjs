@@ -446,7 +446,18 @@ export class LiteralExpression extends Expression {
 
   public def(name: string, ex: any) {
     if (!Expression.isExpression(ex)) ex = Expression.fromJS(ex);
+    return new ActionsExpression({
+      operand: this,
+      actions: [new DefAction({ name: name, expression: ex })]
+    })
+  }
 
+  public filter(ex: any) {
+    if (!Expression.isExpression(ex)) ex = Expression.fromJS(ex);
+    return new ActionsExpression({
+      operand: this,
+      actions: [new FilterAction({ expression: ex })]
+    })
   }
 }
 
@@ -1271,6 +1282,7 @@ export class ActionsExpression extends UnaryExpression {
     throw new Error("implement me");
   }
 
+
   // UNARY
 }
 
@@ -1370,8 +1382,6 @@ checkAction = Action;
 
 export class DefAction extends Action {
   static fromJS(parameters: ActionJS): DefAction {
-    // ToDo:
-    // Here Expression is undefined
     return new DefAction({
       action: parameters.action,
       name: parameters.name,
@@ -1417,3 +1427,7 @@ Action.classMap["def"] = DefAction;
 
 // =====================================================================================
 // =====================================================================================
+
+export class FilterAction extends Action {
+
+}

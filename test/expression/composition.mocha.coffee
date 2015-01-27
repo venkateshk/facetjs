@@ -25,6 +25,9 @@ describe "composition", ->
       .def('nine', 9)
 
     console.log(ex.toJS())
+    expect(ex.toJS()).to.deep.equal({
+      "?": "?"
+    })
 
   it "works in semi-realistic case", ->
     someDriver = {} # ToDo: fix this
@@ -39,3 +42,6 @@ describe "composition", ->
       .def('TotalPrice', facet('diamonds').sum('$priceOver2'))
 
     console.log(ex.toJS())
+    expect(ex.toJS()).to.deep.equal({
+      "?": "?"
+    })

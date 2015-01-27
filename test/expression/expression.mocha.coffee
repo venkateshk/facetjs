@@ -6,7 +6,6 @@
 
 describe "Expression", ->
   it "passes higher object tests", ->
-
     testHigherObjects(Expression, [
       {
         op: 'literal'
@@ -138,6 +137,32 @@ describe "Expression", ->
         lhs: { op: 'literal', value: 5 }
         rhs: { op: 'literal', value: 8 }
       }).getComplexity()).to.equal(3)
+
+
+  describe.skip "#getFn", ->
+    it "works in a simple case of IS", ->
+      ex = Expression.fromJS({
+        op: 'is'
+        lhs: { op: 'ref', name: x }
+        rhs: { op: 'literal', value: 8 }
+      })
+      exFn = ex.getFn()
+      expect(exFn({x: 5})).to.equal(false)
+      expect(exFn({x: 8})).to.equal(false)
+
+    it "works in a simple case of addition", ->
+      ex = Expression.fromJS({
+        op: 'addition'
+        operands: [
+          { op: 'ref', name: x }
+          { op: 'ref', name: y }
+          { op: 'literal', value: 5 }
+        ]
+      })
+      exFn = ex.getFn()
+      expect(exFn({x: 5, y: 1})).to.equal(11)
+      expect(exFn({x: 8, y: -3})).to.equal(10)
+
 
   describe.skip "#simplify", ->
     it "simplifies to literals", ->

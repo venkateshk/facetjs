@@ -1055,8 +1055,6 @@ describe "Druid driver", ->
           name: 'robots'
           source: 'base'
           filter: {
-            operation: 'filter'
-            dataset: 'robots'
             type: 'is'
             attribute: 'robot'
             value: '1'
@@ -1067,8 +1065,6 @@ describe "Druid driver", ->
           name: 'humans'
           source: 'base'
           filter: {
-            operation: 'filter'
-            dataset: 'robots'
             type: 'is'
             attribute: 'robot'
             value: '0'

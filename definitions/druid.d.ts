@@ -131,7 +131,7 @@ declare module Druid {
   interface LimitSpec {
     type: string;
     limit: number;
-    columns: any; // ToDo: Array<string | OrderByColumnSpec>
+    columns: Array<string|OrderByColumnSpec>;
   }
 
   // http://druid.io/docs/0.6.158/Having.html
@@ -197,7 +197,7 @@ declare module Druid {
     type: string;
 
     // Specific to type: "numeric" | "inverted"
-    metric?: any; // ToDo: string | TopNMetricSpec
+    metric?: string|TopNMetricSpec;
 
     // Specific to type: "lexicographic" | "alphaNumeric"
     previousStop?: any;
@@ -226,16 +226,16 @@ declare module Druid {
   // http://druid.io/docs/0.6.158/Querying.html
   interface Query {
     queryType: string;
-    dataSource: any; // ToDo: string | DataSource
+    dataSource: string|DataSource;
     context?: Context;
     intervals?: string[];
     filter?: Filter;
     aggregations?: Aggregation[];
     postAggregations?: PostAggregation[];
-    granularity?: any; // ToDo: string | Granularity
+    granularity?: string|Granularity;
 
     // Used by queryType: "groupBy" and "select";
-    dimensions?: any[]; // ToDo: Array<string | DimensionSpec>
+    dimensions?: Array<string|DimensionSpec>;
 
     // Specific to queryType: "groupBy"
     // http://druid.io/docs/0.6.158/GroupByQuery.html
@@ -263,9 +263,9 @@ declare module Druid {
 
     // Specific to queryType: "topN"
     // http://druid.io/docs/0.6.158/TopNQuery.html
-    dimension?: any; // ToDo: string | DimensionSpec
+    dimension?: string|DimensionSpec;
     threshold?: number;
-    metric?: any; // ToDo: string | TopNMetricSpec
+    metric?: string|TopNMetricSpec;
 
     // Specific to queryType: "select"
     // http://druid.io/docs/0.6.158/SelectQuery.html

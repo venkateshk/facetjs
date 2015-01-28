@@ -15,6 +15,17 @@ export interface DruidRequesterParameters {
   timeout: number;
 }
 
+function getDataSourcesFromQuery(query: Druid.Query): string[] {
+  var queryDataSource = query.dataSource;
+  if (typeof queryDataSource === 'string') {
+    return [queryDataSource];
+  } else if (queryDataSource.type === "union") {
+    return queryDataSource.dataSources;
+  } else {
+    throw new Error("unsupported datasource type '" + queryDataSource.type + "'");
+  }
+}
+
 export function druidRequester(parameters: DruidRequesterParameters): Requester.FacetRequester<Druid.Query> {
   var locator = parameters.locator;
   var timeout = parameters.timeout;
@@ -41,10 +52,9 @@ export function druidRequester(parameters: DruidRequesterParameters): Requester.
       var url = "http://" + location.host + ":" + (location.port || 8080) + "/druid/v2/";
       var param: request.Options;
       if (query.queryType === "introspect") {
-        var dataSourceString = query.dataSource.type === "union" ? query.dataSource.dataSources[0] : query.dataSource;
         param = {
           method: "GET",
-          url: url + ("datasources/" + dataSourceString),
+          url: url + ("datasources/" + getDataSourcesFromQuery(query)[0]),
           json: true,
           timeout: timeout
         };
@@ -114,10 +124,7 @@ export function druidRequester(parameters: DruidRequesterParameters): Requester.
               return;
             }
 
-            var queryDataSources: string[] = query.dataSource.type === "union" ?
-                                               query.dataSource.dataSources :
-                                               [query.dataSource];
-            if (queryDataSources.every((dataSource) => body.indexOf(dataSource) < 0)) {
+            if (getDataSourcesFromQuery(query).every((dataSource) => body.indexOf(dataSource) < 0)) {
               err = new Error("No such datasource");
               err.dataSource = query.dataSource;
               callback(err);

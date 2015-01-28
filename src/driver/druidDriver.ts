@@ -1100,7 +1100,7 @@ DruidQueryBuilder.queryFns = {
 
     var props: Prop[] = [];
     var done = false;
-    queryObj.metric.previousStop = null;
+    (<Druid.TopNMetricSpec>queryObj.metric).previousStop = null;
     async.whilst(() => !done, (callback: (error?: Error) => void) => {
       requester({
         query: queryObj
@@ -1122,7 +1122,7 @@ DruidQueryBuilder.queryFns = {
         if (myProps.length < allDataChunks) {
           done = true;
         } else {
-          queryObj.metric.previousStop = myProps[allDataChunks - 1][condensedCommand.split.name];
+          (<Druid.TopNMetricSpec>queryObj.metric).previousStop = myProps[allDataChunks - 1][condensedCommand.split.name];
         }
         return callback();
       });
@@ -1493,9 +1493,7 @@ function multiDatasetQuery(parameters: MultiDatasetQueryParameters, callback: Qu
   });
 
   var driverQueries = driverUtil.filterMap(perDatasetInfo, (info) => {
-    if (info.driven) {
-      return;
-    }
+    if (info.driven) return;
     return (callback: QueryFunctionCallback) => DruidQueryBuilder.makeSingleQuery({
       parentSegment: parentSegment,
       filter: parentSegment.meta['filtersByDataset'][info.dataset],
@@ -1517,9 +1515,7 @@ function multiDatasetQuery(parameters: MultiDatasetQueryParameters, callback: Qu
       var splitName = split.name;
 
       var drivenQueries = driverUtil.filterMap(perDatasetInfo, (info) => {
-        if (!info.driven) {
-          return;
-        }
+        if (!info.driven) return;
 
         if (info.condensedCommand.split.bucket !== "identity") {
           throw new Error("This (" + split.bucket + ") split not implemented yet");
@@ -1529,13 +1525,15 @@ function multiDatasetQuery(parameters: MultiDatasetQueryParameters, callback: Qu
           values: <any>(driverResult.map((prop) => prop[splitName]))
         });
 
-        return (callback: QueryFunctionCallback) => DruidQueryBuilder.makeSingleQuery({
-          parentSegment: parentSegment,
-          filter: new AndFilter([parentSegment.meta['filtersByDataset'][info.dataset], driverFilter]),
-          condensedCommand: info.condensedCommand,
-          queryBuilder: new DruidQueryBuilder(builderSettings),
-          requester: requester
-        }, callback);
+        return (callback: QueryFunctionCallback) => {
+          DruidQueryBuilder.makeSingleQuery({
+            parentSegment: parentSegment,
+            filter: new AndFilter([parentSegment.meta['filtersByDataset'][info.dataset], driverFilter]),
+            condensedCommand: info.condensedCommand,
+            queryBuilder: new DruidQueryBuilder(builderSettings),
+            requester: requester
+          }, callback);
+        }
       });
 
       async.parallel(drivenQueries, (err: Error, drivenResults: Prop[][]) => {

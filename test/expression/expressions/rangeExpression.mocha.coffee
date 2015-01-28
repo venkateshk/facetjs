@@ -1,6 +1,5 @@
 { expect } = require("chai")
 
-
 tests = require './sharedTests'
 
 describe 'RangeExpression with number', ->

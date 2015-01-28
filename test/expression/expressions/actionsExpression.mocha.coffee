@@ -13,3 +13,13 @@ describe 'ActionsExpression', ->
     }
 
   tests.complexityIs(2)
+  tests.simplifiedExpressionIs({
+    op: 'actions'
+    operand: {
+      op: 'ref'
+      name: 'diamonds'
+    }
+    actions: [
+      { action: 'apply', name: 'five', expression: { op: 'literal', value: 5 } }
+    ]
+  })

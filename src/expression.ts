@@ -914,7 +914,28 @@ export class AddExpression extends NaryExpression {
   }
 
   public simplify(): Expression {
-    return this
+    var newOperands: Expression[] = [];
+    var literalValue: number = 0;
+    for (var i = 0; i < this.operands.length; i++) {
+      var simplifiedOperand: Expression = this.operands[i].simplify();
+      if (simplifiedOperand.op === 'literal') {
+        literalValue += (<LiteralExpression>simplifiedOperand).value;
+      } else {
+        newOperands.push(simplifiedOperand);
+      }
+    }
+
+    if (newOperands.length === 0) {
+      return Expression.fromJS(literalValue);
+    } else {
+      if (literalValue) {
+        newOperands.push(Expression.fromJS(literalValue));
+      }
+      return Expression.fromJS({
+        op: 'add',
+        operands: newOperands
+      })
+    }
   }
 
   protected _makeFn(operandFns: Function[]): Function {

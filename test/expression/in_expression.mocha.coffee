@@ -13,6 +13,6 @@ describe 'InExpression', ->
     sharedTest(3)
 
   describe 'InExpression with number', ->
-    beforeEach -> this.expression = Expression.fromJS({ op: 'in', lhs: { op: 'literal', value: 5 }, rhs: { op: { 'literal', value: [0.05, 0.1] } }})
+    beforeEach -> this.expression = Expression.fromJS({ op: 'in', lhs: { op: 'literal', value: 5 }, rhs: { op: 'literal', value: [0.05, 0.1] }})
 
     sharedTest(3)

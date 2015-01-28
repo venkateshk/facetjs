@@ -175,6 +175,37 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
       return rawFnJS;
     }
   }
+
+  public apply(name: string, ex: any) {
+    if (!Expression.isExpression(ex)) ex = Expression.fromJS(ex);
+    return new ActionsExpression({
+      operand: this,
+      actions: [new ApplyAction({ name: name, expression: ex })]
+    });
+  }
+
+  public filter(ex: any) {
+    if (!Expression.isExpression(ex)) ex = Expression.fromJS(ex);
+    return new ActionsExpression({
+      operand: this,
+      actions: [new FilterAction({ expression: ex })]
+    });
+  }
+
+  public sort(ex: any, direction: string) {
+    if (!Expression.isExpression(ex)) ex = Expression.fromJS(ex);
+    return new ActionsExpression({
+      operand: this,
+      actions: [new SortAction({ expression: ex, direction: direction })]
+    });
+  }
+
+  public limit(limit: number) {
+    return new ActionsExpression({
+      operand: this,
+      actions: [new LimitAction({ limit: limit })]
+    });
+  }
 }
 check = Expression;
 
@@ -442,22 +473,6 @@ export class LiteralExpression extends Expression {
 
   public _getRawFnJS(): string {
     return JSON.stringify(this.value); // ToDo: what to do with higher objects?
-  }
-
-  public def(name: string, ex: any) {
-    if (!Expression.isExpression(ex)) ex = Expression.fromJS(ex);
-    return new ActionsExpression({
-      operand: this,
-      actions: [new DefAction({ name: name, expression: ex })]
-    })
-  }
-
-  public filter(ex: any) {
-    if (!Expression.isExpression(ex)) ex = Expression.fromJS(ex);
-    return new ActionsExpression({
-      operand: this,
-      actions: [new FilterAction({ expression: ex })]
-    })
   }
 }
 
@@ -1295,12 +1310,16 @@ export interface ActionValue {
   action?: string;
   name?: string;
   expression?: Expression;
+  direction?: string;
+  limit?: number;
 }
 
 export interface ActionJS {
   action?: string;
   name?: string;
   expression?: ExpressionJS;
+  direction?: string;
+  limit?: number;
 }
 
 // =====================================================================================
@@ -1330,9 +1349,11 @@ export class Action implements ImmutableInstance<ActionValue, ActionJS> {
   }
 
   public action: string;
+  public expression: Expression;
 
   constructor(parameters: ActionValue, dummy: Dummy = null) {
     this.action = parameters.action;
+    this.expression = parameters.expression;
     if (dummy !== dummyObject) {
       throw new TypeError("can not call `new Action` directly use Action.fromJS instead");
     }
@@ -1349,15 +1370,23 @@ export class Action implements ImmutableInstance<ActionValue, ActionJS> {
   }
 
   public valueOf(): ActionValue {
-    return {
+    var value: ActionValue = {
       action: this.action
     };
+    if (this.expression) {
+      value.expression = this.expression;
+    }
+    return value;
   }
 
   public toJS(): ActionJS {
-    return {
+    var js: ActionJS = {
       action: this.action
     };
+    if (this.expression) {
+      js.expression = this.expression.toJS();
+    }
+    return js;
   }
 
   public toJSON(): ActionJS {
@@ -1370,7 +1399,7 @@ export class Action implements ImmutableInstance<ActionValue, ActionJS> {
   }
 
   public getComplexity(): number {
-    return 1;
+    return 1 + (this.expression ? this.expression.getComplexity() : 0);
   }
 
   public simplify(): Action {
@@ -1379,10 +1408,12 @@ export class Action implements ImmutableInstance<ActionValue, ActionJS> {
 }
 checkAction = Action;
 
+// =====================================================================================
+// =====================================================================================
 
-export class DefAction extends Action {
-  static fromJS(parameters: ActionJS): DefAction {
-    return new DefAction({
+export class ApplyAction extends Action {
+  static fromJS(parameters: ActionJS): ApplyAction {
+    return new ApplyAction({
       action: parameters.action,
       name: parameters.name,
       expression: Expression.fromJS(parameters.expression)
@@ -1390,44 +1421,164 @@ export class DefAction extends Action {
   }
 
   public name: string;
-  public expression: Expression;
 
   constructor(parameters: ActionValue = {}) {
     super(parameters, dummyObject);
     this.name = parameters.name;
-    this.expression = parameters.expression;
-    this._ensureAction("def");
+    this._ensureAction("apply");
   }
 
   public valueOf(): ActionValue {
     var value = super.valueOf();
     value.name = this.name;
-    value.expression = this.expression;
     return value;
   }
 
   public toJS(): ActionJS {
     var js = super.toJS();
     js.name = this.name;
-    js.expression = this.expression.toJS();
     return js;
   }
 
   public toString(): string {
-    return 'DefAction';
+    return 'Apply(' + this.name + ', ' + this.expression.toString() + ')';
   }
 
-  public equals(other: DefAction): boolean {
+  public equals(other: ApplyAction): boolean {
     return super.equals(other) &&
       this.name === other.name;
   }
 }
 
-Action.classMap["def"] = DefAction;
+Action.classMap["apply"] = ApplyAction;
 
 // =====================================================================================
 // =====================================================================================
 
 export class FilterAction extends Action {
+  static fromJS(parameters: ActionJS): FilterAction {
+    return new FilterAction({
+      action: parameters.action,
+      name: parameters.name,
+      expression: Expression.fromJS(parameters.expression)
+    });
+  }
 
+  constructor(parameters: ActionValue = {}) {
+    super(parameters, dummyObject);
+    this._ensureAction("filter");
+  }
+
+  public toString(): string {
+    return 'Filter(' + this.expression.toString() + ')';
+  }
 }
+
+Action.classMap["filter"] = FilterAction;
+
+// =====================================================================================
+// =====================================================================================
+
+export interface DirectionFn {
+  (a: any, b: any): number;
+}
+
+var directionFns: Lookup<DirectionFn> = {
+  ascending: (a: any, b: any): number => {
+    if (Array.isArray(a)) a = a[0];
+    if (Array.isArray(b)) b = b[0];
+    return a < b ? -1 : a > b ? 1 : a >= b ? 0 : NaN;
+  },
+  descending: (a: any, b: any): number => {
+    if (Array.isArray(a)) a = a[0];
+    if (Array.isArray(b)) b = b[0];
+    return b < a ? -1 : b > a ? 1 : b >= a ? 0 : NaN;
+  }
+};
+
+export class SortAction extends Action {
+  static fromJS(parameters: ActionJS): SortAction {
+    return new SortAction({
+      action: parameters.action,
+      expression: Expression.fromJS(parameters.expression),
+      direction: parameters.direction
+    });
+  }
+
+  public direction: string;
+
+  constructor(parameters: ActionValue = {}) {
+    super(parameters, dummyObject);
+    this.direction = parameters.direction;
+    this._ensureAction("sort");
+    if (!directionFns[this.direction]) {
+      throw new Error("direction must be 'descending' or 'ascending'");
+    }
+  }
+
+  public valueOf(): ActionValue {
+    var value = super.valueOf();
+    value.direction = this.direction;
+    return value;
+  }
+
+  public toJS(): ActionJS {
+    var js = super.toJS();
+    js.direction = this.direction;
+    return js;
+  }
+
+  public toString(): string {
+    return 'Sort(' + this.expression.toString() + ', ' + this.direction + ')';
+  }
+
+  public equals(other: SortAction): boolean {
+    return super.equals(other) &&
+      this.direction === other.direction;
+  }
+}
+
+Action.classMap["sort"] = SortAction;
+
+// =====================================================================================
+// =====================================================================================
+
+export class LimitAction extends Action {
+  static fromJS(parameters: ActionJS): LimitAction {
+    return new LimitAction({
+      action: parameters.action,
+      limit: parameters.limit
+    });
+  }
+
+  public limit: number;
+
+  constructor(parameters: ActionValue = {}) {
+    super(parameters, dummyObject);
+    this.limit = parameters.limit;
+    this._ensureAction("limit");
+  }
+
+  public valueOf(): ActionValue {
+    var value = super.valueOf();
+    value.limit = this.limit;
+    return value;
+  }
+
+  public toJS(): ActionJS {
+    var js = super.toJS();
+    js.limit = this.limit;
+    return js;
+  }
+
+  public toString(): string {
+    return 'Limit(' + this.limit + ')';
+  }
+
+  public equals(other: LimitAction): boolean {
+    return super.equals(other) &&
+      this.limit === other.limit;
+  }
+}
+
+Action.classMap["limit"] = LimitAction;

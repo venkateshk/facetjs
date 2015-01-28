@@ -2,7 +2,7 @@
 
 { testHigherObjects } = require("higher-object/build/tester")
 
-{ Expression } = require('../../build/expression')
+{ Expression } = require('../../../build/expression')
 
 sharedTest = require './shared_test'
 

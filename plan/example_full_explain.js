@@ -5,9 +5,9 @@ myDiamonds = new Dataset([
 ]);
 
 facet() // [{}]
-  .def("diamonds",
+  .apply("diamonds",
     facet(myDiamonds)
-      .def("priceOver2", "$price/2")
+      .apply("priceOver2", "$price/2")
   )
   // [{
   //   diamonds: [
@@ -17,7 +17,7 @@ facet() // [{}]
   //   ]
   // }]
 
-  .def('Count', '$diamonds.count()')
+  .apply('Count', '$diamonds.count()')
   // [{
   //   diamonds: [
   //     { "carat": 0.23, "cut": "Ideal",   "color": "E", "clarity": "SI2", "price": 326, priceOver2: 163 },
@@ -27,8 +27,8 @@ facet() // [{}]
   //   Count: 3
   // }]
 
-  .def('TotalPrice', facet('diamonds').sum('$priceOver2'))
-  .def('TotalPrice', facet('diamonds').sum('$price * $carat'))
+  .apply('TotalPrice', facet('diamonds').sum('$priceOver2'))
+  .apply('TotalPrice', facet('diamonds').sum('$price * $carat'))
   // [{
   //   diamonds: [
   //     { "carat": 0.23, "cut": "Ideal",   "color": "E", "clarity": "SI2", "price": 326, priceOver2: 163 },
@@ -39,7 +39,7 @@ facet() // [{}]
   //   TotalPrice: 490
   // }]
 
-  .def('Cuts',
+  .apply('Cuts',
     facet("diamonds").split("$cut", 'Cut')
       // [
       //   {
@@ -53,7 +53,7 @@ facet() // [{}]
       //   }
       // ]
 
-      .def('diamonds', facet('diamonds').filter('$cut = $^Cut'))
+      .apply('diamonds', facet('diamonds').filter('$cut = $^Cut'))
       // [
       //   {
       //     Cut: 'good'
@@ -69,7 +69,7 @@ facet() // [{}]
       //   }
       // ]
 
-      .def('Count', facet('diamonds').count())
+      .apply('Count', facet('diamonds').count())
       // [
       //   {
       //     Cut: 'good'
@@ -88,9 +88,9 @@ facet() // [{}]
       //   }
       // ]
 
-      .def('AvgPrice', '$diamonds.sum($price) / $diamonds.count()')
+      .apply('AvgPrice', '$diamonds.sum($price) / $diamonds.count()')
       .sort('$AvgPrice', 'descending')
       .limit(3)
-      .def('somethingElse', '$diamonds.sum($x)')
+      .apply('somethingElse', '$diamonds.sum($x)')
   )
   .compute()

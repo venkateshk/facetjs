@@ -1,25 +1,25 @@
 facet(someDriverReference)
   .filter("$color = 'D'")
-  .def("priceOver2", "$price/2")
+  .apply("priceOver2", "$price/2")
   .compute(true)
 
 
 facet() // [{}]
-  .def("Diamonds",
+  .apply("Diamonds",
     facet(someDriverReference)
       .filter("$color = 'D'")
-      .def("priceOver2", "$price/2")
+      .apply("priceOver2", "$price/2")
   )
   // [{ Diamonds: <Dataset> }]
 
-  .def('Count', '$Diamonds.count()')
+  .apply('Count', '$Diamonds.count()')
   // [{ diamonds: <Dataset>, Count: 2342 }]
 
-  //.def('TotalPrice', '$diamonds.sum($priceOver2 * 2)')
-  .def('TotalPrice', facet('Diamonds').sum('$priceOver2 * 2'))
+  //.apply('TotalPrice', '$diamonds.sum($priceOver2 * 2)')
+  .apply('TotalPrice', facet('Diamonds').sum('$priceOver2 * 2'))
   // [{ diamonds: <Dataset>, Count: 2342, TotalPrice: 234534 }]
 
-  .def('Cuts',
+  .apply('Cuts',
     facet("Diamonds").split("$cut", 'Cut')
       // [
       //   {
@@ -33,7 +33,7 @@ facet() // [{}]
       //   }
       // ]
 
-      .def('Diamonds', facet('Diamonds').filter('$cut = $^Cut'))
+      .apply('Diamonds', facet('Diamonds').filter('$cut = $^Cut'))
       // [
       //   {
       //     Cut: 'good'
@@ -49,7 +49,7 @@ facet() // [{}]
       //   }
       // ]
 
-      .def('Count', facet('Diamonds').count())
+      .apply('Count', facet('Diamonds').count())
       // [
       //   {
       //     Cut: 'good'
@@ -67,8 +67,8 @@ facet() // [{}]
       //     Count: 13
       //   }
       // ]
-      .def('AvgPrice', '$diamonds.sum($price) / $diamonds.count()')
+      .apply('AvgPrice', '$diamonds.sum($price) / $diamonds.count()')
       .sort('$Time', 'ascending')
-      .def('somthingElse', '$diamonds.sum($x)')
+      .apply('somethingElse', '$diamonds.sum($x)')
   )
     .compute()

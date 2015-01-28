@@ -1,16 +1,16 @@
 facet()
   // [{}]
 
-  .def("wiki",
+  .apply("wiki",
     facet(wikipediaDriver)
       .filter("$language = 'en'")
   )
   // [{ wiki: { type: 'dataset' } }]
 
-  .def('Count', '$wiki.count()')
+  .apply('Count', '$wiki.count()')
   // [{ wiki: { type: 'dataset' }, Count: 2342 }]
 
-  .def('Hours',
+  .apply('Hours',
     facet("wiki").split("bucket($timestamp, PT1H, Etc/UTC)", 'TimeByHour')
     facet("wiki").split("$timestamp.bucket(PT1H, Etc/UTC)", 'TimeByHour')
     facet("wiki").split(facet("timestamp").bucket(PT1H, Etc/UTC)", 'TimeByHour')
@@ -25,7 +25,7 @@ facet()
       //     TimeByHour: { type: 'timeRange', start: '2015-01-01T02:00:00Z', end: '2015-01-01T03:00:00Z' }
       //   }
       // ]
-      .def('wiki', facet('wiki').filter('$timestamp in $TimeByHour'))
+      .apply('wiki', facet('wiki').filter('$timestamp in $TimeByHour'))
       // [
       //   {
       //     TimeByHour: { type: 'timeRange', start: '2015-01-01T00:00:00Z', end: '2015-01-01T01:00:00Z' }
@@ -40,7 +40,7 @@ facet()
       //     wiki: <dataset>
       //   }
       // ]
-      .def('Count', facet('wiki').count())
+      .apply('Count', facet('wiki').count())
       // [
       //   {
       //     TimeByHour: { type: 'timeRange', start: '2015-01-01T00:00:00Z', end: '2015-01-01T01:00:00Z' }

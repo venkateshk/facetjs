@@ -1,20 +1,20 @@
 facet() // [{}]
   .container('div.example')
 
-  .def("Diamonds", facet(sqlDriverClient).filter("$color = 'D'"))
+  .apply("Diamonds", facet(sqlDriverClient).filter("$color = 'D'"))
   // [{ Diamonds: <Dataset> }]
 
-  .def('Stage', Shape.rectangle(800, 600))
+  .apply('Stage', Shape.rectangle(800, 600))
   // [{ Diamonds: <Dataset>, stage: { type: 'shape', shape: 'rectangle', width: 800, height: 600 } }]
 
-  .def('Count', '$Diamonds.count()')
+  .apply('Count', '$Diamonds.count()')
   // [{ Diamonds: <Dataset>, stage: '<shape>', Count: 2342 }]
 
-  .def('VerticalScale', Scale.linear())
+  .apply('VerticalScale', Scale.linear())
 
-  .def('ColorScale', Scale.color())
+  .apply('ColorScale', Scale.color())
 
-  .def('Cuts',
+  .apply('Cuts',
     facet("Diamonds").split("$cut", 'Cut')
       // [
       //   {
@@ -28,7 +28,7 @@ facet() // [{}]
       //   }
       // ]
 
-      .def('Diamonds', facet('^Diamonds').filter('$cut = $^Cut'))
+      .apply('Diamonds', facet('^Diamonds').filter('$cut = $^Cut'))
       // [
       //   {
       //     Cut: 'good'
@@ -44,33 +44,33 @@ facet() // [{}]
       //   }
       // ]
 
-      .def('Count', facet('diamonds').count())
-      .def('AvgPrice', '$diamonds.sum("price") / $diamonds.count()')
+      .apply('Count', facet('diamonds').count())
+      .apply('AvgPrice', '$diamonds.sum("price") / $diamonds.count()')
       .sort('AvgPrice', 'descending')
       .limit(10)
-      .def('AccAvgPrice', 'AvgPrice')
-      .def('stage', Layout.horizontal('$stage', { gap: 3 }))
+      .apply('AccAvgPrice', 'AvgPrice')
+      .apply('stage', Layout.horizontal('$stage', { gap: 3 }))
       .train('verticalScale', 'domain', '$AvgPrice')
       .train('verticalScale', 'range', '$stage.height')
       .train('color', 'domain', '$Cut')
-      .def('maxPrice', '$self.max($price)')
-      .def('barStage', function(d) {
+      .apply('maxPrice', '$self.max($price)')
+      .apply('barStage', function(d) {
         return Transform.margin(d.stage, {
           bottom: 0,
           height: d.verticalScale(d.AvgPrice)
         })
       })
-      .def('barStage1', Transform.margin('stage', {
+      .apply('barStage1', Transform.margin('stage', {
         bottom: 0,
         height: '$verticalScale($AvgPrice)'
       }))
-      .def('barStage2', "stage.margin(bottom=0, height=$verticalScale($AvgPrice))")
+      .apply('barStage2', "stage.margin(bottom=0, height=$verticalScale($AvgPrice))")
       .render(Mark.box('barStage', {
         type: 'box',
         fill: '#f0f0f0',
         stroke: use('color')
       }))
-      .def('pointStage', Transform.margin('barStage', {
+      .apply('pointStage', Transform.margin('barStage', {
         bottom: 6
       }))
       .render(Mark.label('$pointStage', {

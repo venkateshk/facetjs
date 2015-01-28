@@ -82,7 +82,7 @@ Expression {
 }
 
 Actions {
-  { action: 'def', name: 'blah', expression: Expression }
+  { action: 'apply', name: 'blah', expression: Expression }
   { action: 'filter', expression: Expression }
   { action: 'sort', expression: Expression, direction: 'ascending' }
 }
@@ -91,14 +91,14 @@ Actions {
 
 $color = 'D' and $cut = 'good' and $language = 'en'
 
-def colorPart, $color = 'D'
-def nonColorPart, $cut = 'good' and $language = 'en'
+apply colorPart, $color = 'D'
+apply nonColorPart, $cut = 'good' and $language = 'en'
 colorPart and nonColorPart
 
 
 
-def _ds1_stuff, $ds1.count()
-def _ds2_stuff, $ds2.count()
+apply _ds1_stuff, $ds1.count()
+apply _ds2_stuff, $ds2.count()
 
 $ds1.count() / $ds2.count()
 
@@ -117,7 +117,7 @@ query = {
   op: 'actions',
   actions: [
     {
-      action: "def",
+      action: "apply",
       name: "diamonds",
       expression: {
         op: 'actions',
@@ -138,7 +138,7 @@ query = {
       }
     }
     {
-      action: "def",
+      action: "apply",
       name: "SumAdded",
       expression: {
         op: 'aggregate',
@@ -154,7 +154,7 @@ query = {
       }
     }
     {
-      action: "def",
+      action: "apply",
       name: "Count",
       expression: {
         op: 'aggregate',
@@ -179,9 +179,9 @@ query = {
           name: 'Language'
         }
         actions: [
-          {action: "def", name: "diamonds", expression: "map(.added) | add"}
-          {action: "def", name: "SumAdded", expression: "map(.added) | add"}
-          {action: "def", name: "Count", expression: "length"}
+          {action: "apply", name: "diamonds", expression: "map(.added) | add"}
+          {action: "apply", name: "SumAdded", expression: "map(.added) | add"}
+          {action: "apply", name: "Count", expression: "length"}
           {action: "sort", sort: 'Count', direction: 'descending'}
           {action: "limit", limit: 10}
         ]

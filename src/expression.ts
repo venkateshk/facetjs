@@ -176,35 +176,30 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
     }
   }
 
-  public apply(name: string, ex: any) {
-    if (!Expression.isExpression(ex)) ex = Expression.fromJS(ex);
+  protected _performAction(action: Action): Expression {
     return new ActionsExpression({
       operand: this,
-      actions: [new ApplyAction({ name: name, expression: ex })]
+      actions: [action]
     });
   }
 
-  public filter(ex: any) {
+  public apply(name: string, ex: any): Expression {
     if (!Expression.isExpression(ex)) ex = Expression.fromJS(ex);
-    return new ActionsExpression({
-      operand: this,
-      actions: [new FilterAction({ expression: ex })]
-    });
+    return this._performAction(new ApplyAction({ name: name, expression: ex }))
   }
 
-  public sort(ex: any, direction: string) {
+  public filter(ex: any): Expression {
     if (!Expression.isExpression(ex)) ex = Expression.fromJS(ex);
-    return new ActionsExpression({
-      operand: this,
-      actions: [new SortAction({ expression: ex, direction: direction })]
-    });
+    return this._performAction(new FilterAction({ expression: ex }))
   }
 
-  public limit(limit: number) {
-    return new ActionsExpression({
-      operand: this,
-      actions: [new LimitAction({ limit: limit })]
-    });
+  public sort(ex: any, direction: string): Expression {
+    if (!Expression.isExpression(ex)) ex = Expression.fromJS(ex);
+    return this._performAction(new SortAction({ expression: ex, direction: direction }))
+  }
+
+  public limit(limit: number): Expression {
+    return this._performAction(new LimitAction({ limit: limit }))
   }
 }
 check = Expression;
@@ -1297,6 +1292,12 @@ export class ActionsExpression extends UnaryExpression {
     throw new Error("implement me");
   }
 
+  protected _performAction(action: Action): Expression {
+    return new ActionsExpression({
+      operand: this.operand,
+      actions: this.actions.concat(action)
+    });
+  }
 
   // UNARY
 }

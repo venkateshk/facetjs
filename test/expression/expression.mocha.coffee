@@ -58,7 +58,7 @@ describe "Expression", ->
       { op: 'divide', operands: [{ op: 'literal', value: 5 }, { op: 'literal', value: -12 }, { op: 'literal', value: 0.4 }] }
       { op: 'concat', operands: [{ op: 'literal', value: 'Honda' }, { op: 'literal', value: 'BMW' }, { op: 'literal', value: 'Suzuki' } ]}
       { op: 'range', lhs: { op: 'literal', value: 5 }, rhs: { op: 'literal', value: 5 } }
-      { op: 'actions', operand: { op: 'ref', name: 'diamonds' }, actions: [ { action: 'def', name: 'five', expression: { op: 'literal', value: 5 } } ] }
+      { op: 'actions', operand: { op: 'ref', name: 'diamonds' }, actions: [ { action: 'apply', name: 'five', expression: { op: 'literal', value: 5 } } ] }
     ], {
       newThrows: true
     })

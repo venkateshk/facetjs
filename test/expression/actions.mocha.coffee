@@ -8,7 +8,7 @@ describe "Actions", ->
   it "passes higher object tests", ->
     testHigherObjects(Actions, [
       {
-        action: 'def'
+        action: 'apply'
         name: 'five'
         expression: { op: 'literal', value: 5 }
       }

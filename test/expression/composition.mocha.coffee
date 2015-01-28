@@ -21,8 +21,8 @@ describe "composition", ->
 
   it "works in uber-basic case", ->
     ex = facet()
-      .def('five', 5)
-      .def('nine', 9)
+      .apply('five', 5)
+      .apply('nine', 9)
 
     console.log(ex.toJS())
     expect(ex.toJS()).to.deep.equal({
@@ -33,13 +33,13 @@ describe "composition", ->
     someDriver = {} # ToDo: fix this
 
     ex = facet()
-      .def("diamonds",
+      .apply("diamonds",
         facet(someDriver)
           .filter("$color = 'D'")
-          .def("priceOver2", "$price/2")
+          .apply("priceOver2", "$price/2")
       )
-      .def('Count', facet('diamonds').count())
-      .def('TotalPrice', facet('diamonds').sum('$priceOver2'))
+      .apply('Count', facet('diamonds').count())
+      .apply('TotalPrice', facet('diamonds').sum('$priceOver2'))
 
     console.log(ex.toJS())
     expect(ex.toJS()).to.deep.equal({

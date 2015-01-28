@@ -8,7 +8,7 @@ describe 'ActionsExpression', ->
       op: 'actions'
       operand: '$diamonds'
       actions: [
-        { action: 'def', name: 'five', expression: { op: 'literal', value: 5 } }
+        { action: 'apply', name: 'five', expression: { op: 'literal', value: 5 } }
       ]
     }
 

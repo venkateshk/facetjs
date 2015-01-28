@@ -1,12 +1,8 @@
 { expect } = require("chai")
 
-{ testHigherObjects } = require("higher-object/build/tester")
 
-{ Expression } = require('../../../build/expression')
-
-sharedTest = require './../shared_test'
-
+tests = require './sharedTests'
 describe 'AndExpression', ->
-  beforeEach -> this.expression = Expression.fromJS({ op: 'and', operands: [{ op: 'literal', value: true }, { op: 'literal', value: false }, { op: 'literal', value: false }] })
-
-  sharedTest(4)
+  beforeEach ->
+    this.expression = Expression.fromJS({ op: 'and', operands: [{ op: 'literal', value: true }, { op: 'literal', value: false }, { op: 'literal', value: false }] })
+  tests.complexityIs(4)

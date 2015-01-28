@@ -1,5 +1,6 @@
 { expect } = require("chai")
 
-module.exports = (expectedComplexity) ->
+exports.complexityIs = (expectedComplexity) ->
   describe '#getComplexty()', ->
-    it 'gets the complexity correctly', -> expect(@expression.getComplexity()).to.equal(expectedComplexity)
+    it 'gets the complexity correctly', ->
+      expect(@expression.getComplexity()).to.equal(expectedComplexity)

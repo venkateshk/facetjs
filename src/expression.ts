@@ -561,6 +561,10 @@ export class IsExpression extends BinaryExpression {
     return this
   }
 
+  public getComplextity(): number {
+    return 1 + this.lhs.getComplexity() + this.rhs.getComplexity();
+  }
+
   protected _makeFn(lhsFn: Function, rhsFn: Function): Function {
     return (d: any) => lhsFn(d) === rhsFn(d);
   }

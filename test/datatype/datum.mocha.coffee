@@ -2,7 +2,7 @@
 
 #{ testHigherObjects } = require("higher-object/build/tester")
 
-{ Datum } = require('../../build/datatype/datum')
+{ Datum } = require('../../build/datatype/dataset')
 { TimeRange } = require('../../build/datatype/timeRange')
 
 describe "Datum", ->

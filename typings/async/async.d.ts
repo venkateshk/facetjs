@@ -17,7 +17,7 @@ interface AsyncMemoIterator<T, R> { (memo: R, item: T, callback: AsyncResultCall
 
 interface AsyncWorker<T> { (task: T, callback: Function): void; }
 
-interface AsyncTask<T> { (callback: AsyncResultCallback<T>): void; }
+interface AsyncTaskFn<T> { (callback: AsyncResultCallback<T>): void; }
 
 interface AsyncQueue<T> {
     length(): number;
@@ -86,22 +86,22 @@ interface Async {
     concatSeries<T, R>(arr: T[], iterator: AsyncResultIterator<T, R[]>, callback: AsyncResultArrayCallback<R>): any;
 
     // Control Flow
-    series<T>(tasks: Array<AsyncTask<T>>, callback?: AsyncResultArrayCallback<T>): void;
-    series<T>(tasks: Dict<AsyncTask<T>>, callback?: AsyncResultDictCallback<T>): void;
-    parallel<T>(tasks: Array<AsyncTask<T>>, callback?: AsyncResultArrayCallback<T>): void;
-    parallel<T>(tasks: Dict<AsyncTask<T>>, callback?: AsyncResultDictCallback<T>): void;
-    parallelLimit<T>(tasks: Array<AsyncTask<T>>, limit: number, callback?: AsyncResultArrayCallback<T>): void;
-    parallelLimit<T>(tasks: Dict<AsyncTask<T>>, limit: number, callback?: AsyncResultDictCallback<T>): void;
+    series<T>(tasks: Array<AsyncTaskFn<T>>, callback?: AsyncResultArrayCallback<T>): void;
+    series<T>(tasks: Dict<AsyncTaskFn<T>>, callback?: AsyncResultDictCallback<T>): void;
+    parallel<T>(tasks: Array<AsyncTaskFn<T>>, callback?: AsyncResultArrayCallback<T>): void;
+    parallel<T>(tasks: Dict<AsyncTaskFn<T>>, callback?: AsyncResultDictCallback<T>): void;
+    parallelLimit<T>(tasks: Array<AsyncTaskFn<T>>, limit: number, callback?: AsyncResultArrayCallback<T>): void;
+    parallelLimit<T>(tasks: Dict<AsyncTaskFn<T>>, limit: number, callback?: AsyncResultDictCallback<T>): void;
     whilst(test: Function, fn: Function, callback: Function): void;
     until(test: Function, fn: Function, callback: Function): void;
-    waterfall<T>(tasks: T[], callback?: AsyncResultArrayCallback<T>): void;
-    waterfall<T>(tasks: T, callback?: AsyncResultArrayCallback<T>): void;
+    waterfall<T>(tasks: Function[], callback?: AsyncResultArrayCallback<T>): void;
+    waterfall<T>(tasks: Function, callback?: AsyncResultArrayCallback<T>): void;
     queue<T>(worker: AsyncWorker<T>, concurrency: number): AsyncQueue<T>;
     priorityQueue<T>(worker: AsyncWorker<T>, concurrency: number): AsyncPriorityQueue<T>;
     // auto(tasks: any[], callback?: AsyncResultArrayCallback<T>): void;
     auto(tasks: any, callback?: AsyncResultArrayCallback<any>): void;
     iterator(tasks: Function[]): Function;
-    apply(fn: Function, ...arguments: any[]): void;
+    apply<T>(fn: Function, ...arguments: any[]): AsyncTaskFn<T>;
     nextTick<T>(callback: Function): void;
 
     times<T> (n: number, callback: AsyncTimesCallback<T>): void;

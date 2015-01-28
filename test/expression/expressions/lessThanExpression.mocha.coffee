@@ -1,13 +1,13 @@
 { expect } = require("chai")
 
 
-sharedTest = require './shared_test'
+tests = require './sharedTests'
 describe 'LessThanExpression', ->
   describe 'LessThanExpression', ->
     beforeEach ->
-    this.expression = Expression.fromJS({ op: 'lessThan', lhs: { op: 'literal', value: 5 }, rhs: { op: 'literal', value: 5 } })
+    this.expression = { op: 'lessThan', lhs: { op: 'literal', value: 5 }, rhs: { op: 'literal', value: 5 } }
     tests.complexityIs(3)
   describe 'LessThanExpression with reference', ->
     beforeEach ->
-    this.expression = Expression.fromJS({ op: 'lessThan', lhs: { op: 'literal', value: 5 }, rhs: { op: 'literal', value: 5 } })
+    this.expression = { op: 'lessThan', lhs: { op: 'literal', value: 5 }, rhs: { op: 'literal', value: 5 } }
     tests.complexityIs(3)

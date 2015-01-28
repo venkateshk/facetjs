@@ -1,5 +1,5 @@
 { expect } = require("chai")
 
 
-sharedTest = require './shared_test'
+tests = require './sharedTests'
 # FILL ME

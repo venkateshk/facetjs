@@ -1,8 +1,8 @@
 { expect } = require("chai")
 
 
-sharedTest = require './shared_test'
+tests = require './sharedTests'
 describe 'RegexpExpression', ->
   beforeEach ->
-    this.expression = Expression.fromJS({ op: 'regexp', regexp: '^\d+', operand: { op: 'literal', value: 'Honda' } })
+    this.expression = { op: 'regexp', regexp: '^\d+', operand: { op: 'literal', value: 'Honda' } }
   tests.complexityIs(2)

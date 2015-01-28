@@ -50,7 +50,7 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
     if (input) {
       if (typeof input === 'string') {
         expressionJS = {
-          op: 'lookup',
+          op: 'ref',
           name: input
         };
       } else {
@@ -85,7 +85,7 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
 
       case 'string':
         if (param[0] === '$') {
-          expressionJS = { op: 'lookup', name: param.substring(1) };
+          expressionJS = { op: 'ref', name: param.substring(1) };
         } else {
           expressionJS = { op: 'literal', value: param };
         }

@@ -1,1 +1,1 @@
-exports.druid = '10.169.208.51'
+exports.druid = '10.153.211.100'

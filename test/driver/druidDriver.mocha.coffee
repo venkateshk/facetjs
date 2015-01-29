@@ -555,6 +555,10 @@ describe "Druid driver", ->
             "categorical": true
           },
           {
+            "name": "newPage"
+            "categorical": true
+          },
+          {
             "name": "newpage",
             "categorical": true
           },
@@ -1149,6 +1153,99 @@ describe "Druid driver", ->
                 "EditsDiff": 5212
               }
             }
+          ]
+        })
+        done()
+
+    it.only "should work with sort-by-delta on a timePeriod split", (done) ->
+      query = FacetQuery.fromJS([
+        {
+          operation: 'dataset'
+          name: 'prevDate'
+          source: 'base'
+          filter: {
+            operation: 'filter'
+            type: 'within'
+            attribute: 'time'
+            range: [
+              new Date("2013-02-26T00:00:00Z")
+              new Date("2013-02-26T12:00:00Z")
+            ]
+          }
+        }
+        {
+          operation: 'dataset'
+          name: 'currentData'
+          source: 'base'
+          filter: {
+            operation: 'filter'
+            type: 'within'
+            attribute: 'time'
+            range: [
+              new Date("2013-02-26T12:00:00Z")
+              new Date("2013-02-27T00:00:00Z")
+            ]
+          }
+        }
+        {
+          operation: 'split'
+          name: 'TimeByHour'
+          bucket: 'parallel'
+          splits: [
+            {
+              dataset: 'prevDate'
+              bucket: 'timePeriod'
+              attribute: 'time'
+              timezone: 'Etc/UTC'
+              period: 'PT1H'
+              warp: 'PT12H'
+            }
+            {
+              dataset: 'currentData'
+              bucket: 'timePeriod'
+              attribute: 'time'
+              timezone: 'Etc/UTC'
+              period: 'PT1H'
+            }
+          ]
+        }
+        {
+          operation: 'apply'
+          name: 'EditsDiff'
+          arithmetic: 'subtract'
+          operands: [
+            {
+              dataset: 'currentData'
+              arithmetic: 'divide'
+              operands: [
+                { aggregate: 'sum', attribute: 'count' }
+                { aggregate: 'constant', value: 2 }
+              ]
+            }
+            {
+              dataset: 'prevDate'
+              arithmetic: 'divide'
+              operands: [
+                { aggregate: 'sum', attribute: 'count' }
+                { aggregate: 'constant', value: 2 }
+              ]
+            }
+          ]
+        }
+        {
+          operation: 'combine'
+          method: 'slice'
+          sort: { prop: 'TimeByHour', compare: 'natural', direction: 'ascending' }
+          limit: 3
+        }
+      ])
+      driver {query}, (err, result) ->
+        expect(err).to.not.exist
+        console.log("result.toJS()", result.toJS());
+        expect(result.toJS()).to.deep.equal({
+          "prop": {},
+          "splits": [
+            # ToDo: fill this in
           ]
         })
         done()

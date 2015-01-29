@@ -514,17 +514,16 @@ export class TupleSplit extends FacetSplit {
     if (!(Array.isArray(this.splits) && this.splits.length)) {
       throw new TypeError("splits must be a non-empty array");
     }
-    this.splits = this.splits.map((splitSpec) => {
-      if (splitSpec.bucket === "tuple") {
+    this.splits.forEach((split) => {
+      if (split.bucket === "tuple") {
         throw new Error("tuple splits can not be nested");
       }
-      if (!splitSpec.hasOwnProperty("name")) {
+      if (!split.hasOwnProperty("name")) {
         throw new Error("a split within a tuple must have a name");
       }
-      if (splitSpec.hasOwnProperty("segmentFilter")) {
+      if (split.hasOwnProperty("segmentFilter")) {
         throw new Error("a split within a tuple should not have a segmentFilter");
       }
-      return FacetSplit.fromJS(splitSpec);
     });
     this._ensureBucket("tuple");
   }
@@ -582,17 +581,16 @@ export class ParallelSplit extends FacetSplit {
     if (!(Array.isArray(this.splits) && this.splits.length)) {
       throw new TypeError("splits must be a non-empty array");
     }
-    this.splits = this.splits.map((splitSpec) => {
-      if (splitSpec.bucket === "parallel") {
+    this.splits.forEach((split) => {
+      if (split.bucket === "parallel") {
         throw new Error("parallel splits can not be nested");
       }
-      if (splitSpec.hasOwnProperty("name")) {
+      if (split.hasOwnProperty("name")) {
         throw new Error("a split within a parallel must not have a name");
       }
-      if (splitSpec.hasOwnProperty("segmentFilter")) {
+      if (split.hasOwnProperty("segmentFilter")) {
         throw new Error("a split within a parallel should not have a segmentFilter");
       }
-      return FacetSplit.fromJS(splitSpec);
     });
     this._ensureBucket("parallel");
   }

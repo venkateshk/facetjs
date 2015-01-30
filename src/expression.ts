@@ -327,6 +327,16 @@ export class BinaryExpression extends Expression {
     return 1 + this.lhs.getComplexity() + this.rhs.getComplexity()
   }
 
+  public simplify(): Expression {
+    var simplifiedLeft = this.lhs.simplify();
+    var simplifiedRight = this.rhs.simplify();
+    return Expression.fromJS({
+      op: this.op,
+      lhs: simplifiedLeft,
+      rhs: simplifiedRight
+    })
+  }
+
   protected _makeFn(lhsFn: Function, rhsFn: Function): Function {
     throw new Error("should never be called directly");
   }
@@ -487,6 +497,7 @@ export class RefExpression extends Expression {
 
   constructor(parameters: ExpressionValue = {}) {
     super(parameters, dummyObject);
+
     var match = parameters.name.match(/^(\^*)([a-z_]\w*)$/i);
     if (match) {
       this.generations = match[1];
@@ -558,7 +569,14 @@ export class IsExpression extends BinaryExpression {
   }
 
   public simplify(): Expression {
-    return this
+    var simplerBinary = <BinaryExpression>super.simplify();
+    if (simplerBinary.lhs.op === 'literal' && simplerBinary.rhs.op === 'literal') {
+      return Expression.fromJS({
+        op: 'literal',
+        value: (<LiteralExpression>simplerBinary.lhs).value === (<LiteralExpression>simplerBinary.rhs).value
+      })
+    }
+    return simplerBinary;
   }
 
   public getComplextity(): number {
@@ -596,7 +614,14 @@ export class LessThanExpression extends BinaryExpression {
   }
 
   public simplify(): Expression {
-    return this
+    var simplerBinary = <BinaryExpression>super.simplify();
+    if (simplerBinary.lhs.op === 'literal' && simplerBinary.rhs.op === 'literal') {
+      return Expression.fromJS({
+        op: 'literal',
+        value: (<LiteralExpression>simplerBinary.lhs).value < (<LiteralExpression>simplerBinary.rhs).value
+      })
+    }
+    return simplerBinary;
   }
 
   protected _makeFn(lhsFn: Function, rhsFn: Function): Function {
@@ -630,7 +655,14 @@ export class LessThanOrEqualExpression extends BinaryExpression {
   }
 
   public simplify(): Expression {
-    return this
+    var simplerBinary = <BinaryExpression>super.simplify();
+    if (simplerBinary.lhs.op === 'literal' && simplerBinary.rhs.op === 'literal') {
+      return Expression.fromJS({
+        op: 'literal',
+        value: (<LiteralExpression>simplerBinary.lhs).value <= (<LiteralExpression>simplerBinary.rhs).value
+      })
+    }
+    return simplerBinary;
   }
 
   protected _makeFn(lhsFn: Function, rhsFn: Function): Function {
@@ -664,10 +696,10 @@ export class GreaterThanExpression extends BinaryExpression {
   }
 
   public simplify(): Expression {
-    return new LessThanExpression({
+    return (new LessThanExpression({
       lhs: this.rhs,
       rhs: this.lhs
-    })
+    })).simplify()
   }
 
   protected _makeFn(lhsFn: Function, rhsFn: Function): Function {
@@ -702,10 +734,10 @@ export class GreaterThanOrEqualExpression extends BinaryExpression {
   }
 
   public simplify(): Expression {
-    return new LessThanOrEqualExpression({
+    return (new LessThanOrEqualExpression({
       lhs: this.rhs,
       rhs: this.lhs
-    })
+    })).simplify()
   }
 
   protected _makeFn(lhsFn: Function, rhsFn: Function): Function {
@@ -740,7 +772,15 @@ export class InExpression extends BinaryExpression {
   }
 
   public simplify(): Expression {
-    return this
+    var simplerBinary = <BinaryExpression>super.simplify();
+    if (simplerBinary.lhs.op === 'literal' && simplerBinary.rhs.op === 'literal') {
+      return Expression.fromJS({
+        op: 'literal',
+        value: (<Array<any>>(<LiteralExpression>simplerBinary.rhs).value)
+          .indexOf((<LiteralExpression>simplerBinary.lhs).value) > -1
+      })
+    }
+    return simplerBinary;
   }
 
   protected _makeFn(lhsFn: Function, rhsFn: Function): Function {

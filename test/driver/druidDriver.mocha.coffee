@@ -1157,7 +1157,7 @@ describe "Druid driver", ->
         })
         done()
 
-    it.only "should work with sort-by-delta on a timePeriod split", (done) ->
+    it "should work with sort-by-delta on a timePeriod split", (done) ->
       query = FacetQuery.fromJS([
         {
           operation: 'dataset'
@@ -1169,7 +1169,7 @@ describe "Druid driver", ->
             attribute: 'time'
             range: [
               new Date("2013-02-26T00:00:00Z")
-              new Date("2013-02-26T12:00:00Z")
+              new Date("2013-02-26T03:00:00Z")
             ]
           }
         }
@@ -1182,7 +1182,7 @@ describe "Druid driver", ->
             type: 'within'
             attribute: 'time'
             range: [
-              new Date("2013-02-26T12:00:00Z")
+              new Date("2013-02-26T21:00:00Z")
               new Date("2013-02-27T00:00:00Z")
             ]
           }
@@ -1198,7 +1198,7 @@ describe "Druid driver", ->
               attribute: 'time'
               timezone: 'Etc/UTC'
               period: 'PT1H'
-              warp: 'PT12H'
+              warp: 'PT21H'
             }
             {
               dataset: 'currentData'
@@ -1236,16 +1236,40 @@ describe "Druid driver", ->
           operation: 'combine'
           method: 'slice'
           sort: { prop: 'TimeByHour', compare: 'natural', direction: 'ascending' }
-          limit: 3
         }
       ])
       driver {query}, (err, result) ->
         expect(err).to.not.exist
-        console.log("result.toJS()", result.toJS());
         expect(result.toJS()).to.deep.equal({
           "prop": {},
           "splits": [
-            # ToDo: fill this in
+            {
+              "prop": {
+                "EditsDiff": -551
+                "TimeByHour": [
+                  new Date("2013-02-26T21:00:00Z")
+                  new Date("2013-02-26T22:00:00Z")
+                ]
+              }
+            }
+            {
+              "prop": {
+                "EditsDiff": -5238
+                "TimeByHour": [
+                  new Date("2013-02-26T22:00:00Z")
+                  new Date("2013-02-26T23:00:00Z")
+                ]
+              }
+            }
+            {
+              "prop": {
+                "EditsDiff": 677
+                "TimeByHour": [
+                  new Date("2013-02-26T23:00:00Z")
+                  new Date("2013-02-27T00:00:00Z")
+                ]
+              }
+            }
           ]
         })
         done()

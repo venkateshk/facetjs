@@ -1,0 +1,27 @@
+#!/bin/bash
+
+if which convert > /dev/null; then
+  echo "Converting..."
+else
+  echo "Please install ImageMagic."
+  exit 1
+fi
+
+# Note: Look into filters (http://www.imagemagick.org/script/command-line-options.php?#filter)
+
+for type in blue-bg white-bg bw no-bg
+do
+  # Render the SVG into a big PNG
+  convert -background none -resize 512x512 facet-icon-$type.svg facet-icon-512-$type.png
+
+  # Down size the large PNG into other sizes
+  # Gamma correction from: http://www.4p8.com/eric.brasseur/gamma.html
+  # Thank you to Xavier Léauté (https://github.com/xvrl) for pointing it out.
+  convert facet-icon-512-$type.png -depth 16 -gamma 0.454545 -resize 400x400 -gamma 2.2 -depth 8 facet-icon-400-$type.png
+  convert facet-icon-512-$type.png -depth 16 -gamma 0.454545 -resize 128x128 -gamma 2.2 -depth 8 facet-icon-128-$type.png
+  convert facet-icon-512-$type.png -depth 16 -gamma 0.454545 -resize 64x64   -gamma 2.2 -depth 8 facet-icon-64-$type.png
+  convert facet-icon-512-$type.png -depth 16 -gamma 0.454545 -resize 32x32   -gamma 2.2 -depth 8 facet-icon-32-$type.png
+  convert facet-icon-512-$type.png -depth 16 -gamma 0.454545 -resize 16x16   -gamma 2.2 -depth 8 facet-icon-16-$type.png
+done
+
+echo "Done"

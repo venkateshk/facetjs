@@ -27,25 +27,25 @@
     "registry": "https://metamx.registry.nodejitsu.com/"
   },
   "dependencies": {
-    "higher-object": "~0.2.5",
+    "higher-object": "~0.2.6",
     "async": "~0.9.0",
-    "mysql": "2.0.0-alpha7",
-    "express": "3.1.0",
-    "node-zookeeper-client": "~0.2.0",
-    "request": "~2.34.0",
-    "backoff": "~2.3.0"
+    "mysql": "2.5.4",
+    "express": "4.11.1",
+    "node-zookeeper-client": "~0.2.2",
+    "request": "~2.51.0",
+    "backoff": "~2.4.1"
   },
   "peerDependencies": {
     "chronology": "0.6.x"
   },
   "devDependencies": {
-    "browserify": "~6.3.3",
+    "browserify": "~8.1.1",
     "chai": "~1.10.0",
-    "coffee-script": "1.8.0",
+    "coffee-script": "1.9.0",
     "dts-bundle": "~0.2.0",
-    "mocha": "~2.0.x",
+    "mocha": "~2.1.x",
     "pegjs": "0.8.0",
-    "tslint": "^1.0.1",
+    "tslint": "^1.2.0",
     "typescript": "~1.4.x",
     "underscore": "~1.7.0",
     "walltime-js": "0.1.2"

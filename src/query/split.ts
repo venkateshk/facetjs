@@ -238,7 +238,7 @@ export class FacetSplit implements ImmutableInstance<FacetSplitValue, FacetSplit
     return [this.dataset || "main"];
   }
 
-  public getFilterFor(prop: Prop): FacetFilter {
+  public getFilterFor(prop: Prop, fallbackName: string = null): FacetFilter {
     throw new Error("this method should never be called directly");
   }
 
@@ -290,10 +290,11 @@ export class IdentitySplit extends FacetSplit {
     return "ID:" + this.attribute;
   }
 
-  public getFilterFor(prop: Prop): FacetFilter {
+  public getFilterFor(prop: Prop, fallbackName: string = null): FacetFilter {
+    var name = this.name || fallbackName;
     return new IsFilter({
       attribute: this.attribute,
-      value: <any>(prop[this.name])
+      value: <any>(prop[name])
     });
   }
 }
@@ -369,8 +370,9 @@ export class ContinuousSplit extends FacetSplit {
     return split;
   }
 
-  public getFilterFor(prop: Prop): FacetFilter {
-    var propRange: any[] = <any>prop[this.name];
+  public getFilterFor(prop: Prop, fallbackName: string = null): FacetFilter {
+    var name = this.name || fallbackName;
+    var propRange: any[] = <any>prop[name];
     return new WithinFilter({
       attribute: this.attribute,
       range: propRange
@@ -476,8 +478,9 @@ export class TimePeriodSplit extends FacetSplit {
     return split;
   }
 
-  public getFilterFor(prop: Prop): FacetFilter {
-    var propRange: any[] = <any>prop[this.name];
+  public getFilterFor(prop: Prop, fallbackName: string = null): FacetFilter {
+    var name = this.name || fallbackName;
+    var propRange: any[] = <any>(prop[name]);
     var warp = this.warp;
     if (warp) {
       var timezone = this.timezone;
@@ -549,7 +552,8 @@ export class TupleSplit extends FacetSplit {
   }
 
   public getFilterFor(prop: Prop): FacetFilter {
-    return new AndFilter(this.splits.map((split) => split.getFilterFor(prop)));
+    var name = this.name;
+    return new AndFilter(this.splits.map((split) => split.getFilterFor(prop, name)));
   }
 
   public equals(other: FacetSplit, compareSegmentFilter: boolean = false): boolean {
@@ -615,9 +619,10 @@ export class ParallelSplit extends FacetSplit {
     return split;
   }
 
-  public getFilterFor(prop: Prop): FacetFilter {
+  public getFilterFor(prop: Prop, fallbackName: string = null): FacetFilter {
+    var name = this.name || fallbackName;
     var firstSplit = this.splits[0];
-    var value: any = <any>(prop[this.name]);
+    var value: any = <any>(prop[name]);
     switch (firstSplit.bucket) {
       case "identity":
         return new IsFilter({
@@ -636,8 +641,9 @@ export class ParallelSplit extends FacetSplit {
   }
 
   public getFilterByDatasetFor(prop: Prop): FiltersByDataset {
+    var name = this.name;
     var filterByDataset: FiltersByDataset = {};
-    this.splits.forEach((split) => filterByDataset[split.getDataset()] = split.getFilterFor(prop));
+    this.splits.forEach((split) => filterByDataset[split.getDataset()] = split.getFilterFor(prop, name));
     return filterByDataset;
   }
 

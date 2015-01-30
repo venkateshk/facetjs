@@ -583,15 +583,18 @@ function condensedCommandToSQL(properties: CondensedCommandToSQLParameters, call
     if (split) {
       var splitProp = split.name;
 
-      if (split.bucket === "continuous") {
-        var splitSize = (<ContinuousSplit>split).size;
+      var effectiveSplit = split;
+      if (effectiveSplit.bucket === 'parallel') effectiveSplit = (<ParallelSplit>effectiveSplit).splits[0];
+
+      if (effectiveSplit.bucket === "continuous") {
+        var splitSize = (<ContinuousSplit>effectiveSplit).size;
         ds.forEach((d: Lookup<any>) => {
           var start = d[splitProp];
           return d[splitProp] = [start, start + splitSize];
         });
-      } else if (split.bucket === "timePeriod") {
-        var timezone = (<TimePeriodSplit>split).timezone;
-        var splitDuration = (<TimePeriodSplit>split).period;
+      } else if (effectiveSplit.bucket === "timePeriod") {
+        var timezone = (<TimePeriodSplit>effectiveSplit).timezone;
+        var splitDuration = (<TimePeriodSplit>effectiveSplit).period;
         ds.forEach((d: Lookup<any>) => {
           var rangeStart = new Date(d[splitProp]);
           var range = [rangeStart, splitDuration.move(rangeStart, timezone, 1)];

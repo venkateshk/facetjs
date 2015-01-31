@@ -10,14 +10,13 @@ import ImmutableClass = HigherObjectModule.ImmutableClass;
 import ImmutableInstance = HigherObjectModule.ImmutableInstance;
 
 export interface TimeRangeValue {
-  start?: Date;
-  end?: Date;
+  start: Date;
+  end: Date;
 }
 
 export interface TimeRangeJS {
-  type?: string;
-  start?: any;
-  end?: any;
+  start: any;
+  end: any;
 }
 
 function toDate(date: any, name: string): Date {
@@ -29,6 +28,7 @@ function toDate(date: any, name: string): Date {
 
 var check: ImmutableClass<TimeRangeValue, TimeRangeJS>;
 export class TimeRange implements ImmutableInstance<TimeRangeValue, TimeRangeJS> {
+  static category = 'TIME_RANGE';
   static isTimeRange(candidate: any): boolean {
     return isInstanceOf(candidate, TimeRange);
   }
@@ -58,15 +58,11 @@ export class TimeRange implements ImmutableInstance<TimeRangeValue, TimeRangeJS>
     };
   }
 
-  public toJS(addType: boolean = false): TimeRangeJS {
-    var js: TimeRangeJS = {
+  public toJS(): TimeRangeJS {
+    return {
       start: this.start,
       end: this.end
     };
-    if (addType) {
-      js.type = 'timeRange'
-    }
-    return js;
   }
 
   public toJSON(): TimeRangeJS {

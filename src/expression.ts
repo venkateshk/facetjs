@@ -150,7 +150,7 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
 
   public equals(other: Expression): boolean {
     return Expression.isExpression(other) &&
-      this.op === other.op
+      this.op === other.op;
   }
 
   public getComplexity(): number {

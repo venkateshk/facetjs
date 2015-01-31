@@ -43,6 +43,7 @@ export interface ShapeJS {
 
 var check: ImmutableClass<ShapeJS, ShapeJS>;
 export class Shape implements ImmutableInstance<ShapeJS, ShapeJS> {
+  static category = 'SHAPE';
   static isShape(candidate: any): boolean {
     return isInstanceOf(candidate, Shape);
   }
@@ -135,6 +136,7 @@ export interface MarginParameters {
 }
 
 export class RectangleShape extends Shape {
+  static category = 'SHAPE';
   static fromJS(parameters: ShapeJS): RectangleShape {
     return new RectangleShape(parameters);
   }

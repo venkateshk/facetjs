@@ -71,7 +71,7 @@ Expression {
   { op: 'bucket', operand: NUMERIC, size: 0.05, offset: 0.01 }
 
   #TIME_RANGE
-  { op: 'literal', value: { start: ..., end: ...} }
+  { op: 'literal', value: { type: 'TIME_RANGE', start: ..., end: ...} }
   { op: 'ref', name: 'flight_time', options?: NativeOptions }
   { op: 'range', lhs: TIME, rhs: TIME }
   { op: 'bucket', operand: TIME, duration: 'P1D' }

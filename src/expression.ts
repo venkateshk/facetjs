@@ -1191,7 +1191,11 @@ export class RangeExpression extends BinaryExpression {
   }
 
   public simplify(): Expression {
-    return this
+    return new RangeExpression({
+      op: 'range',
+      lhs: this.lhs.simplify(),
+      rhs: this.rhs.simplify()
+    })
   }
 
   protected _makeFn(lhsFn: Function, rhsFn: Function): Function {

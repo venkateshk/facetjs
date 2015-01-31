@@ -484,7 +484,7 @@ export class TimePeriodSplit extends FacetSplit {
     var warp = this.warp;
     if (warp) {
       var timezone = this.timezone;
-      propRange = propRange.map((d) => warp.move(d, timezone, 1));
+      propRange = propRange.map((d) => warp.move(d, timezone, this.warpDirection));
     }
     return new WithinFilter({
       attribute: this.attribute,

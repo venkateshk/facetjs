@@ -842,4 +842,3 @@ describe "Wikipedia day dataset", ->
         }
       ]
     }
-    

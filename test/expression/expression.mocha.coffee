@@ -27,8 +27,8 @@ describe "Expression", ->
       { op: 'literal', value: true }
       { op: 'literal', value: 'Honda' }
       { op: 'literal', value: 6 }
-      { op: 'literal', value: ['Honda', 'BMW', 'Suzuki'] }
-      { op: 'literal', value: [0.05, 0.1] }
+      #{ op: 'literal', value: ['Honda', 'BMW', 'Suzuki'] }
+      #{ op: 'literal', value: [0.05, 0.1] }
       { op: 'literal', value: null }
       { op: 'ref', name: 'authors' }
       { op: 'ref', name: 'flight_time' }
@@ -36,7 +36,7 @@ describe "Expression", ->
       { op: 'ref', name: 'revenue' }
       { op: 'ref', name: 'revenue_range' }
       { op: 'ref', name: 'timestamp' }
-      { op: 'ref', type: 'categorical', name: 'make' }
+      #{ op: 'ref', type: 'categorical', name: 'make' }
       { op: 'is', lhs: { op: 'literal', value: 5 }, rhs: { op: 'literal', value: 5 } }
       { op: 'is', lhs: { op: 'literal', value: 5 }, rhs: { op: 'ref', name: 'flight_time' } }
       { op: 'lessThan', lhs: { op: 'literal', value: 5 }, rhs: { op: 'literal', value: 5 } }
@@ -46,8 +46,8 @@ describe "Expression", ->
       { op: 'greaterThan', lhs: { op: 'literal', value: 5 }, rhs: { op: 'ref', name: 'flight_time' } }
       { op: 'greaterThanOrEqual', lhs: { op: 'literal', value: 5 }, rhs: { op: 'literal', value: 5 } }
       { op: 'greaterThanOrEqual', lhs: { op: 'literal', value: 5 }, rhs: { op: 'ref', name: 'flight_time' } }
-      { op: 'in', lhs: { op: 'literal', value: 'Honda' }, rhs: { op: 'literal', value: ['Honda', 'BMW', 'Suzuki'] } }
-      { op: 'in', lhs: { op: 'literal', value: 5 }, rhs: { op: 'literal', value: [0.05, 0.1] } }
+      #{ op: 'in', lhs: { op: 'literal', value: 'Honda' }, rhs: { op: 'literal', value: ['Honda', 'BMW', 'Suzuki'] } }
+      #{ op: 'in', lhs: { op: 'literal', value: 5 }, rhs: { op: 'literal', value: [0.05, 0.1] } }
       { op: 'regexp', regexp: '^\d+', operand: { op: 'literal', value: 'Honda' } }
       { op: 'not', operand: { op: 'literal', value: true } }
       { op: 'and', operands: [{ op: 'literal', value: true }, { op: 'literal', value: false }, { op: 'literal', value: false }] }

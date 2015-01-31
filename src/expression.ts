@@ -13,8 +13,7 @@ export interface Dummy {}
 export var dummyObject: Dummy = {};
 
 export interface ExpressionValue {
-  op?: string;
-  attribute?: string;
+  op: string;
   value?: any;
   name?: string;
   lhs?: Expression;
@@ -22,11 +21,11 @@ export interface ExpressionValue {
   operand?: Expression;
   operands?: Expression[];
   actions?: Action[];
+  regexp?: string;
 }
 
 export interface ExpressionJS {
-  op?: string;
-  attribute?: string;
+  op: string;
   value?: any;
   name?: string;
   lhs?: ExpressionJS;
@@ -34,6 +33,7 @@ export interface ExpressionJS {
   operand?: ExpressionJS;
   operands?: ExpressionJS[];
   actions?: ActionJS[];
+  regexp?: string;
 }
 
 // =====================================================================================
@@ -68,10 +68,7 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
     return Expression.fromJS(expressionJS);
   }
 
-  static classMap: Lookup<typeof Expression> = {};
-  static fromJS(expressionJS: string): Expression;
-  static fromJS(expressionJS: ExpressionJS): Expression;
-  static fromJS(param: any): Expression {
+  static fromJSLoose(param: any): Expression {
     var expressionJS: ExpressionJS;
     // Quick parse simple expressions
     switch (typeof param) {
@@ -94,6 +91,12 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
       default:
         throw new Error("unrecognizable expression");
     }
+
+    return Expression.fromJS(expressionJS);
+  }
+
+  static classMap: Lookup<typeof Expression> = {};
+  static fromJS(expressionJS: ExpressionJS): Expression {
     if (!expressionJS.hasOwnProperty("op")) {
       throw new Error("op must be defined");
     }
@@ -178,23 +181,24 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
 
   protected _performAction(action: Action): Expression {
     return new ActionsExpression({
+      op: 'action',
       operand: this,
       actions: [action]
     });
   }
 
   public apply(name: string, ex: any): Expression {
-    if (!Expression.isExpression(ex)) ex = Expression.fromJS(ex);
+    if (!Expression.isExpression(ex)) ex = Expression.fromJSLoose(ex);
     return this._performAction(new ApplyAction({ name: name, expression: ex }))
   }
 
   public filter(ex: any): Expression {
-    if (!Expression.isExpression(ex)) ex = Expression.fromJS(ex);
+    if (!Expression.isExpression(ex)) ex = Expression.fromJSLoose(ex);
     return this._performAction(new FilterAction({ expression: ex }))
   }
 
   public sort(ex: any, direction: string): Expression {
-    if (!Expression.isExpression(ex)) ex = Expression.fromJS(ex);
+    if (!Expression.isExpression(ex)) ex = Expression.fromJSLoose(ex);
     return this._performAction(new SortAction({ expression: ex, direction: direction }))
   }
 
@@ -209,12 +213,11 @@ check = Expression;
 
 export class UnaryExpression extends Expression {
   static jsToValue(parameters: ExpressionJS): ExpressionValue {
-    var op = parameters.op;
     var value: ExpressionValue = {
-      op: op
+      op: parameters.op
     };
     if (parameters.operand) {
-      value.operand = Expression.fromJS(parameters.operand);
+      value.operand = Expression.fromJSLoose(parameters.operand);
     } else {
       throw new TypeError("must have a operand");
     }
@@ -236,7 +239,7 @@ export class UnaryExpression extends Expression {
   }
 
   public toJS(): ExpressionJS {
-    var js = super.toJS();
+    var js: ExpressionJS = super.toJS();
     js.operand = this.operand.toJS();
     return js;
   }
@@ -248,6 +251,22 @@ export class UnaryExpression extends Expression {
 
   public getComplexity(): number {
     return 1 + this.operand.getComplexity()
+  }
+
+  public simplify(): Expression {
+    var simplifiedOperand = this.operand.simplify();
+
+    if (simplifiedOperand.op === 'literal') {
+      return new LiteralExpression({
+        op: 'literal',
+        value: this._makeFn(simplifiedOperand.getFn())()
+      })
+    }
+
+    return new (Expression.classMap[this.op])({
+      op: this.op,
+      operand: simplifiedOperand
+    })
   }
 
   protected _makeFn(operandFn: Function): Function {
@@ -278,13 +297,13 @@ export class BinaryExpression extends Expression {
       op: op
     };
     if (parameters.lhs) {
-      value.lhs = Expression.fromJS(parameters.lhs);
+      value.lhs = Expression.fromJSLoose(parameters.lhs);
     } else {
       throw new TypeError("must have a lhs");
     }
 
     if (parameters.rhs) {
-      value.rhs = Expression.fromJS(parameters.rhs);
+      value.rhs = Expression.fromJSLoose(parameters.rhs);
     } else {
       throw new TypeError("must have a rhs");
     }
@@ -328,23 +347,20 @@ export class BinaryExpression extends Expression {
   }
 
   public simplify(): Expression {
-    var simplifiedLeft = this.lhs.simplify();
-    var simplifiedRight = this.rhs.simplify();
+    var simplifiedLhs = this.lhs.simplify();
+    var simplifiedRhs = this.rhs.simplify();
 
-    if (simplifiedLeft.op === 'literal' && simplifiedRight.op === 'literal') {
-      return Expression.fromJS({
+    if (simplifiedLhs.op === 'literal' && simplifiedRhs.op === 'literal') {
+      return new LiteralExpression({
         op: 'literal',
-        value: this._makeFn(
-          function() {return (<LiteralExpression>simplifiedLeft).value},
-          function() {return (<LiteralExpression>simplifiedRight).value}
-        )()
+        value: this._makeFn(simplifiedLhs.getFn(), simplifiedRhs.getFn())()
       })
     }
 
-    return Expression.fromJS({
+    return new (Expression.classMap[this.op])({
       op: this.op,
-      lhs: simplifiedLeft,
-      rhs: simplifiedRight
+      lhs: simplifiedLhs,
+      rhs: simplifiedRhs
     })
   }
 
@@ -377,7 +393,7 @@ export class NaryExpression extends Expression {
       op: op
     };
     if (Array.isArray(parameters.operands)) {
-      value.operands = parameters.operands.map((operand) => Expression.fromJS(operand));
+      value.operands = parameters.operands.map((operand) => Expression.fromJSLoose(operand));
     } else {
       throw new TypeError("must have a operands");
     }
@@ -446,18 +462,24 @@ export class NaryExpression extends Expression {
 
 
 export class LiteralExpression extends Expression {
-  static fromJS(parameters: ExpressionJS): LiteralExpression {
+  static fromJS(parameters: ExpressionJS): Expression {
     return new LiteralExpression(<ExpressionValue>parameters);
   }
 
   public value: any;
 
-  constructor(parameters: ExpressionValue = {}) {
+  constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this.value = parameters.value;
     this._ensureOp("literal");
     if (typeof this.value === 'undefined') {
       throw new TypeError("must have a `value`")
+    }
+    var typeofValue = typeof this.value;
+    if (typeofValue === 'object') {
+      // ToDo: add this
+    } else {
+      this.type = typeofValue.toUpperCase();
     }
   }
 
@@ -506,7 +528,7 @@ export class RefExpression extends Expression {
   public generations: string;
   public name: string;
 
-  constructor(parameters: ExpressionValue = {}) {
+  constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
 
     var match = parameters.name.match(/^(\^*)([a-z_]\w*)$/i);
@@ -570,16 +592,17 @@ export class IsExpression extends BinaryExpression {
     return new IsExpression(BinaryExpression.jsToValue(parameters));
   }
 
-  constructor(parameters: ExpressionValue = {}) {
+  constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this._ensureOp("is");
+    this.type = 'BOOLEAN';
   }
 
   public toString(): string {
     return this.lhs.toString() + ' = ' + this.rhs.toString();
   }
 
-  public getComplextity(): number {
+  public getComplexity(): number {
     return 1 + this.lhs.getComplexity() + this.rhs.getComplexity();
   }
 
@@ -604,9 +627,10 @@ export class LessThanExpression extends BinaryExpression {
     return new LessThanExpression(BinaryExpression.jsToValue(parameters));
   }
 
-  constructor(parameters: ExpressionValue = {}) {
+  constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this._ensureOp("lessThan");
+    this.type = 'BOOLEAN';
   }
 
   public toString(): string {
@@ -618,7 +642,7 @@ export class LessThanExpression extends BinaryExpression {
   }
 
   protected _makeFnJS(lhsFnJS: string, rhsFnJS: string): string {
-    throw new Error("implement me!");
+    return '(' + lhsFnJS + '<' + rhsFnJS + ')';
   }
 
   // BINARY
@@ -634,9 +658,10 @@ export class LessThanOrEqualExpression extends BinaryExpression {
     return new LessThanOrEqualExpression(BinaryExpression.jsToValue(parameters));
   }
 
-  constructor(parameters: ExpressionValue = {}) {
+  constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this._ensureOp("lessThanOrEqual");
+    this.type = 'BOOLEAN';
   }
 
   public toString(): string {
@@ -648,7 +673,7 @@ export class LessThanOrEqualExpression extends BinaryExpression {
   }
 
   protected _makeFnJS(lhsFnJS: string, rhsFnJS: string): string {
-    throw new Error("implement me!");
+    return '(' + lhsFnJS + '<=' + rhsFnJS + ')';
   }
 
   // BINARY
@@ -664,9 +689,10 @@ export class GreaterThanExpression extends BinaryExpression {
     return new GreaterThanExpression(BinaryExpression.jsToValue(parameters));
   }
 
-  constructor(parameters: ExpressionValue = {}) {
+  constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this._ensureOp("greaterThan");
+    this.type = 'BOOLEAN';
   }
 
   public toString(): string {
@@ -675,6 +701,7 @@ export class GreaterThanExpression extends BinaryExpression {
 
   public simplify(): Expression {
     return (new LessThanExpression({
+      op: 'lessThan',
       lhs: this.rhs,
       rhs: this.lhs
     })).simplify()
@@ -702,9 +729,10 @@ export class GreaterThanOrEqualExpression extends BinaryExpression {
     return new GreaterThanOrEqualExpression(BinaryExpression.jsToValue(parameters));
   }
 
-  constructor(parameters: ExpressionValue = {}) {
+  constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this._ensureOp("greaterThanOrEqual");
+    this.type = 'BOOLEAN';
   }
 
   public toString(): string {
@@ -713,6 +741,7 @@ export class GreaterThanOrEqualExpression extends BinaryExpression {
 
   public simplify(): Expression {
     return (new LessThanOrEqualExpression({
+      op: 'lessThanOrEqual',
       lhs: this.rhs,
       rhs: this.lhs
     })).simplify()
@@ -740,9 +769,10 @@ export class InExpression extends BinaryExpression {
     return new InExpression(BinaryExpression.jsToValue(parameters));
   }
 
-  constructor(parameters: ExpressionValue = {}) {
+  constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this._ensureOp("in");
+    this.type = 'BOOLEAN';
   }
 
   public toString(): string {
@@ -768,28 +798,43 @@ Expression.classMap["in"] = InExpression;
 
 export class RegexpExpression extends UnaryExpression {
   static fromJS(parameters: ExpressionJS): RegexpExpression {
-    return new RegexpExpression(UnaryExpression.jsToValue(parameters));
+    var value = UnaryExpression.jsToValue(parameters);
+    value.regexp = parameters.regexp;
+    return new RegexpExpression(value);
   }
 
-  constructor(parameters: ExpressionValue = {}) {
+  public regexp: string;
+
+  constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
+    this.regexp = parameters.regexp;
     this._ensureOp("regexp");
+    this.type = 'BOOLEAN';
+  }
+
+  public valueOf(): ExpressionValue {
+    var value = super.valueOf();
+    value.regexp = this.regexp;
+    return value;
+  }
+
+  public toJS(): ExpressionJS {
+    var js = super.toJS();
+    js.regexp = this.regexp;
+    return js;
   }
 
   public toString(): string {
-    return 'regexp(' + this.operand.toString() + ')';
-  }
-
-  public simplify(): Expression {
-    return this
+    return 'regexp(' + this.operand.toString() + ', /' + this.regexp + '/)';
   }
 
   protected _makeFn(operandFn: Function): Function {
-    throw new Error("implement me");
+    var re = new RegExp(this.regexp);
+    return (d: any) => re.test(operandFn(d));
   }
 
   protected _makeFnJS(operandFnJS: string): string {
-    throw new Error("implement me");
+    return "/" + this.regexp + "/.test(" + operandFnJS + ")";
   }
 
   // UNARY
@@ -800,15 +845,15 @@ Expression.classMap["regexp"] = RegexpExpression;
 // =====================================================================================
 // =====================================================================================
 
-
 export class NotExpression extends UnaryExpression {
   static fromJS(parameters: ExpressionJS): NotExpression {
     return new NotExpression(UnaryExpression.jsToValue(parameters));
   }
 
-  constructor(parameters: ExpressionValue = {}) {
+  constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this._ensureOp("not");
+    this.type = 'BOOLEAN';
   }
 
   public toString(): string {
@@ -840,9 +885,10 @@ export class AndExpression extends NaryExpression {
     return new AndExpression(NaryExpression.jsToValue(parameters));
   }
 
-  constructor(parameters: ExpressionValue = {}) {
+  constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this._ensureOp("and");
+    this.type = 'BOOLEAN';
   }
 
   public toString(): string {
@@ -869,19 +915,19 @@ Expression.classMap["and"] = AndExpression;
 // =====================================================================================
 // =====================================================================================
 
-
 export class OrExpression extends NaryExpression {
   static fromJS(parameters: ExpressionJS): OrExpression {
     return new OrExpression(NaryExpression.jsToValue(parameters));
   }
 
-  constructor(parameters: ExpressionValue = {}) {
+  constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this._ensureOp("or");
+    this.type = 'BOOLEAN';
   }
 
   public toString(): string {
-    return 'or(' + this.operands.map((operand) => operand.toString()) + ')';
+    return '(' + this.operands.map((operand) => operand.toString()).join('or') + ')';
   }
 
   public simplify(): Expression {
@@ -904,15 +950,15 @@ Expression.classMap["or"] = OrExpression;
 // =====================================================================================
 // =====================================================================================
 
-
 export class AddExpression extends NaryExpression {
   static fromJS(parameters: ExpressionJS): AddExpression {
     return new AddExpression(NaryExpression.jsToValue(parameters));
   }
 
-  constructor(parameters: ExpressionValue = {}) {
+  constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this._ensureOp("add");
+    this.type = 'NUMBER';
   }
 
   public toString(): string {
@@ -932,12 +978,12 @@ export class AddExpression extends NaryExpression {
     }
 
     if (newOperands.length === 0) {
-      return Expression.fromJS(literalValue);
+      return new LiteralExpression({ op: 'literal', value: literalValue });
     } else {
       if (literalValue) {
-        newOperands.push(Expression.fromJS(literalValue));
+        newOperands.push(new LiteralExpression({ op: 'literal', value: literalValue }));
       }
-      return Expression.fromJS({
+      return new AddExpression({
         op: 'add',
         operands: newOperands
       })
@@ -971,9 +1017,10 @@ export class SubtractExpression extends NaryExpression {
     return new SubtractExpression(NaryExpression.jsToValue(parameters));
   }
 
-  constructor(parameters: ExpressionValue = {}) {
+  constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this._ensureOp("subtract");
+    this.type = 'NUMBER';
   }
 
   public toString(): string {
@@ -1006,9 +1053,10 @@ export class MultiplyExpression extends NaryExpression {
     return new MultiplyExpression(NaryExpression.jsToValue(parameters));
   }
 
-  constructor(parameters: ExpressionValue = {}) {
+  constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this._ensureOp("multiply");
+    this.type = 'NUMBER';
   }
 
   public toString(): string {
@@ -1041,9 +1089,10 @@ export class DivideExpression extends NaryExpression {
     return new DivideExpression(NaryExpression.jsToValue(parameters));
   }
 
-  constructor(parameters: ExpressionValue = {}) {
+  constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this._ensureOp("divide");
+    this.type = 'NUMBER';
   }
 
   public toString(): string {
@@ -1070,15 +1119,15 @@ Expression.classMap["divide"] = DivideExpression;
 // =====================================================================================
 // =====================================================================================
 
-
 export class AggregateExpression extends UnaryExpression {
   static fromJS(parameters: ExpressionJS): AggregateExpression {
     return new AggregateExpression(UnaryExpression.jsToValue(parameters));
   }
 
-  constructor(parameters: ExpressionValue = {}) {
+  constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this._ensureOp("aggregate");
+    this.type = 'NUMBER';
   }
 
   public toString(): string {
@@ -1105,15 +1154,15 @@ Expression.classMap["aggregate"] = AggregateExpression;
 // =====================================================================================
 // =====================================================================================
 
-
 export class OffsetExpression extends UnaryExpression {
   static fromJS(parameters: ExpressionJS): OffsetExpression {
     return new OffsetExpression(UnaryExpression.jsToValue(parameters));
   }
 
-  constructor(parameters: ExpressionValue = {}) {
+  constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this._ensureOp("offset");
+    this.type = 'TIME';
   }
 
   public toString(): string {
@@ -1140,15 +1189,15 @@ Expression.classMap["offset"] = OffsetExpression;
 // =====================================================================================
 // =====================================================================================
 
-
 export class ConcatExpression extends NaryExpression {
   static fromJS(parameters: ExpressionJS): ConcatExpression {
     return new ConcatExpression(NaryExpression.jsToValue(parameters));
   }
 
-  constructor(parameters: ExpressionValue = {}) {
+  constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this._ensureOp("concat");
+    this.type = 'STRING';
   }
 
   public toString(): string {
@@ -1181,21 +1230,13 @@ export class RangeExpression extends BinaryExpression {
     return new RangeExpression(BinaryExpression.jsToValue(parameters));
   }
 
-  constructor(parameters: ExpressionValue = {}) {
+  constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this._ensureOp("range");
   }
 
   public toString(): string {
     return this.lhs.toString() + ' = ' + this.rhs.toString();
-  }
-
-  public simplify(): Expression {
-    return new RangeExpression({
-      op: 'range',
-      lhs: this.lhs.simplify(),
-      rhs: this.rhs.simplify()
-    })
   }
 
   protected _makeFn(lhsFn: Function, rhsFn: Function): Function {
@@ -1220,7 +1261,7 @@ export class BucketExpression extends UnaryExpression {
     return new BucketExpression(UnaryExpression.jsToValue(parameters));
   }
 
-  constructor(parameters: ExpressionValue = {}) {
+  constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this._ensureOp("bucket");
   }
@@ -1255,7 +1296,7 @@ export class SplitExpression extends UnaryExpression {
     return new SplitExpression(UnaryExpression.jsToValue(parameters));
   }
 
-  constructor(parameters: ExpressionValue = {}) {
+  constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this._ensureOp("split");
   }
@@ -1293,10 +1334,11 @@ export class ActionsExpression extends UnaryExpression {
 
   public actions: Action[];
 
-  constructor(parameters: ExpressionValue = {}) {
+  constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this.actions = parameters.actions;
     this._ensureOp("actions");
+    this.type = 'DATASET';
   }
 
   public valueOf(): ExpressionValue {
@@ -1329,6 +1371,7 @@ export class ActionsExpression extends UnaryExpression {
 
   protected _performAction(action: Action): Expression {
     return new ActionsExpression({
+      op: 'actions',
       operand: this.operand,
       actions: this.actions.concat(action)
     });

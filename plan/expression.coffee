@@ -17,6 +17,11 @@ value types:
   Scale
   Mark
 
+Add type that can potentially be resolved later
+Add methods:
+checkType({ sourceTypes })
+and .type instance variable
+optional type on refs
 Expression {
   #NULL
   { op: 'literal', value: null }
@@ -37,7 +42,7 @@ Expression {
   { op: 'and', operands: [BOOLEAN, BOOLEAN, ...] }
   { op: 'or', operands: [BOOLEAN, BOOLEAN, ...] }
 
-  #NUMERIC
+  #NUMBER
   { op: 'literal', value: 6 }
   { op: 'ref', name: 'revenue', options?: NativeOptions }
   { op: 'alternative', operands: [NUMERIC, NUMERIC, ...] }
@@ -54,12 +59,12 @@ Expression {
   { op: 'ref', name: 'timestamp', options?: NativeOptions }
   { op: 'offset', operand: TIME, offset: 'P1D' }
 
-  #CATEGORICAL
+  #STRING
   { op: 'literal', value: 'Honda' }
   { op: 'ref', type: 'categorical', name: 'make', options?: NativeOptions }
   { op: 'concat', operands: [CATEGORICAL, CATEGORICAL, ...] }
 
-  #NUMERIC_RANGE
+  #NUMBER_RANGE
   { op: 'literal', value: [0.05, 0.1] }
   { op: 'ref', name: 'revenue_range', options?: NativeOptions }
   { op: 'range', lhs: NUMERIC, rhs: NUMERIC }

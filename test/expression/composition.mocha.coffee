@@ -64,9 +64,75 @@ describe "composition", ->
       .apply('Count', facet('Diamonds').count())
       .apply('TotalPrice', facet('Diamonds').sum('$priceOver2'))
 
-    console.log(ex.toJS())
     expect(ex.toJS()).to.deep.equal({
-      "?": "?"
+      "op": "actions"
+      "operand": {
+        "op": "literal"
+        "type": "DATASET"
+        "value": {
+          "data": [
+            {}
+          ]
+          "dataset": "base"
+        }
+      }
+      "actions": [
+        {
+          "action": "apply"
+          "name": "Diamonds"
+          "expression": {
+            "op": "actions"
+            "operand": {
+              "op": "literal"
+              "type": "DATASET"
+              "value": { "dataset": "base", "data": [{}] }
+            }
+            "actions": [
+              {
+                "action": "filter"
+                "expression": {
+                  "lhs": { "name": "color", "op": "ref" }
+                  "op": "is"
+                  "rhs": { "op": "literal", "value": "D" }
+                }
+              }
+              {
+                "action": "apply"
+                "name": "priceOver2"
+                "expression": {
+                  "op": "divide"
+                  "operands": [
+                    { "op": "ref", "name": "price" }
+                    { "op": "literal", "value": 2 }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+        {
+          "action": "apply"
+          "name": "Count"
+          "expression": {
+            "fn": "count"
+            "op": "aggregate"
+            "operand": {
+              "name": "Diamonds"
+              "op": "ref"
+            }
+          }
+        }
+        {
+          "action": "apply"
+          "name": "TotalPrice"
+          "expression": {
+            "op": "aggregate"
+            "operand": { "op": "ref", "name": "Diamonds" }
+            "fn": "count"
+            "attribute": { "op": "ref", "name": "priceOver2" }
+          }
+        }
+      ]
     })
 
   it.skip "works in semi-realistic case (using parser)", ->

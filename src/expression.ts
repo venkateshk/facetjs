@@ -11,6 +11,7 @@ import ImmutableInstance = HigherObjectModule.ImmutableInstance;
 
 import DatasetModule = require("./datatype/dataset");
 import Dataset = DatasetModule.Dataset;
+import Datum = DatasetModule.Datum;
 
 export interface Dummy {}
 export var dummyObject: Dummy = {};
@@ -26,6 +27,8 @@ export interface ExpressionValue {
   operands?: Expression[];
   actions?: Action[];
   regexp?: string;
+  fn?: string;
+  attribute?: Expression;
 }
 
 export interface ExpressionJS {
@@ -39,6 +42,8 @@ export interface ExpressionJS {
   operands?: ExpressionJS[];
   actions?: ActionJS[];
   regexp?: string;
+  fn?: string;
+  attribute?: ExpressionJS;
 }
 
 // =====================================================================================
@@ -220,6 +225,19 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
 
   public not() { return this._performUnaryExpression({ op: 'not' }); }
   public match(re: string) { return this._performUnaryExpression({ op: 'match', regexp: re }); }
+
+  // Aggregators
+  protected _performAggregate(fn: string, attribute: any): Expression {
+    if (attribute && !Expression.isExpression(attribute)) attribute = Expression.fromJSLoose(attribute);
+    return this._performUnaryExpression({
+      op: 'aggregate',
+      fn: fn,
+      attribute: attribute
+    });
+  }
+
+  public count() { return this._performAggregate('count', null); }
+  public sum(attr: any) { return this._performAggregate('count', attr); }
 
   // Expression constructors (Binary)
   protected _performBinaryExpression(newValue: ExpressionValue, otherEx: any): Expression {
@@ -574,7 +592,6 @@ Expression.classMap["literal"] = LiteralExpression;
 // =====================================================================================
 // =====================================================================================
 
-
 export class RefExpression extends Expression {
   static fromJS(parameters: ExpressionJS): RefExpression {
     return new RefExpression(<any>parameters);
@@ -624,7 +641,7 @@ export class RefExpression extends Expression {
   public getFn(): Function {
     var len = this.generations.length;
     var name = this.name;
-    return (d: any) => {
+    return (d: Datum) => {
       for (var i = 0; i < len; i++) d = Object.getPrototypeOf(d);
       return d[name];
     }
@@ -662,7 +679,7 @@ export class IsExpression extends BinaryExpression {
   }
 
   protected _makeFn(lhsFn: Function, rhsFn: Function): Function {
-    return (d: any) => lhsFn(d) === rhsFn(d);
+    return (d: Datum) => lhsFn(d) === rhsFn(d);
   }
 
   protected _makeFnJS(lhsFnJS: string, rhsFnJS: string): string {
@@ -693,7 +710,7 @@ export class LessThanExpression extends BinaryExpression {
   }
 
   protected _makeFn(lhsFn: Function, rhsFn: Function): Function {
-    return (d: any) => lhsFn(d) < rhsFn(d);
+    return (d: Datum) => lhsFn(d) < rhsFn(d);
   }
 
   protected _makeFnJS(lhsFnJS: string, rhsFnJS: string): string {
@@ -724,7 +741,7 @@ export class LessThanOrEqualExpression extends BinaryExpression {
   }
 
   protected _makeFn(lhsFn: Function, rhsFn: Function): Function {
-    return (d: any) => lhsFn(d) <= rhsFn(d);
+    return (d: Datum) => lhsFn(d) <= rhsFn(d);
   }
 
   protected _makeFnJS(lhsFnJS: string, rhsFnJS: string): string {
@@ -763,7 +780,7 @@ export class GreaterThanExpression extends BinaryExpression {
   }
 
   protected _makeFn(lhsFn: Function, rhsFn: Function): Function {
-    return (d: any) => lhsFn(d) > rhsFn(d);
+    return (d: Datum) => lhsFn(d) > rhsFn(d);
   }
 
   protected _makeFnJS(lhsFnJS: string, rhsFnJS: string): string {
@@ -803,7 +820,7 @@ export class GreaterThanOrEqualExpression extends BinaryExpression {
   }
 
   protected _makeFn(lhsFn: Function, rhsFn: Function): Function {
-    return (d: any) => lhsFn(d) >= rhsFn(d);
+    return (d: Datum) => lhsFn(d) >= rhsFn(d);
   }
 
   protected _makeFnJS(lhsFnJS: string, rhsFnJS: string): string {
@@ -835,7 +852,7 @@ export class InExpression extends BinaryExpression {
   }
 
   protected _makeFn(lhsFn: Function, rhsFn: Function): Function {
-    return (d: any) => rhsFn(d).indexOf(lhsFn(d)) > -1;
+    return (d: Datum) => rhsFn(d).indexOf(lhsFn(d)) > -1;
   }
 
   protected _makeFnJS(lhsFnJS: string, rhsFnJS: string): string {
@@ -885,7 +902,7 @@ export class MatchExpression extends UnaryExpression {
 
   protected _makeFn(operandFn: Function): Function {
     var re = new RegExp(this.regexp);
-    return (d: any) => re.test(operandFn(d));
+    return (d: Datum) => re.test(operandFn(d));
   }
 
   protected _makeFnJS(operandFnJS: string): string {
@@ -920,7 +937,7 @@ export class NotExpression extends UnaryExpression {
   }
 
   protected _makeFn(operandFn: Function): Function {
-    return (d: any) => !operandFn(d);
+    return (d: Datum) => !operandFn(d);
   }
 
   protected _makeFnJS(operandFnJS: string): string {
@@ -1046,7 +1063,7 @@ export class AddExpression extends NaryExpression {
   }
 
   protected _makeFn(operandFns: Function[]): Function {
-    return (d: any) => {
+    return (d: Datum) => {
       var sum = 0;
       for (var i = 0; i < operandFns.length; i++) {
         sum += operandFns[i](d);
@@ -1176,25 +1193,55 @@ Expression.classMap["divide"] = DivideExpression;
 
 export class AggregateExpression extends UnaryExpression {
   static fromJS(parameters: ExpressionJS): AggregateExpression {
-    return new AggregateExpression(UnaryExpression.jsToValue(parameters));
+    var value = UnaryExpression.jsToValue(parameters);
+    value.fn = parameters.fn;
+    if (parameters.attribute) {
+      value.attribute = Expression.fromJSLoose(parameters.attribute);
+    }
+    return new AggregateExpression(value);
   }
+
+  public fn: string;
+  public attribute: Expression;
 
   constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
+    this.fn = parameters.fn;
+    this.attribute = parameters.attribute;
+    // ToDo: add a this._checkOperandType(...) call (everywhere)
     this._ensureOp("aggregate");
-    this.type = 'NUMBER';
+    this.type = 'NUMBER'; // For now
+    if (this.fn !== 'count' && !this.attribute) {
+      throw new Error("non 'count' aggregates must have an 'attribute'");
+    }
+  }
+
+  public valueOf(): ExpressionValue {
+    var value = super.valueOf();
+    value.fn = this.fn;
+    if (this.attribute) {
+      value.attribute = this.attribute;
+    }
+    return value;
+  }
+
+  public toJS(): ExpressionJS {
+    var js = super.toJS();
+    js.fn = this.fn;
+    if (this.attribute) {
+      js.attribute = this.attribute.toJS();
+    }
+    return js;
   }
 
   public toString(): string {
-    return 'aggregate(' + this.operand.toString() + ')';
-  }
-
-  public simplify(): Expression {
-    return this
+    return 'agg_' + this.fn + '(' + this.operand.toString() + ')';
   }
 
   protected _makeFn(operandFn: Function): Function {
-    throw new Error("implement me");
+    var fn = this.fn;
+    var attributeFn = this.attribute ? this.attribute.getFn() : null;
+    return (d: Datum) => operandFn(d)[fn](attributeFn);
   }
 
   protected _makeFnJS(operandFnJS: string): string {
@@ -1295,7 +1342,7 @@ export class RangeExpression extends BinaryExpression {
   }
 
   protected _makeFn(lhsFn: Function, rhsFn: Function): Function {
-    return (d: any) => lhsFn(d) === rhsFn(d);
+    return (d: Datum) => lhsFn(d) === rhsFn(d);
   }
 
   protected _makeFnJS(lhsFnJS: string, rhsFnJS: string): string {

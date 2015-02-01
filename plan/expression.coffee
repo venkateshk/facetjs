@@ -52,7 +52,7 @@ Expression {
   { op: 'divide', operands: [NUMERIC, NUMERIC, ...] }
   { op: 'min', operands: [NUMERIC, NUMERIC, ...] }
   { op: 'max', operands: [NUMERIC, NUMERIC, ...] }
-  { op: 'aggregate', operand: DATASET, aggregate: 'sum', attribute: EXPRESSION }
+  { op: 'aggregate', operand: DATASET, fn: 'sum', attribute: EXPRESSION }
 
   #TIME
   { op: 'literal', value: Time }

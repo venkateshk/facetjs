@@ -17,6 +17,7 @@ export var dummyObject: Dummy = {};
 
 export interface ExpressionValue {
   op: string;
+  type?: string;
   value?: any;
   name?: string;
   lhs?: Expression;
@@ -29,6 +30,7 @@ export interface ExpressionValue {
 
 export interface ExpressionJS {
   op: string;
+  type?: string;
   value?: any;
   name?: string;
   lhs?: ExpressionJS;
@@ -182,9 +184,10 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
     }
   }
 
+  // Action constructors
   protected _performAction(action: Action): Expression {
     return new ActionsExpression({
-      op: 'action',
+      op: 'actions',
       operand: this,
       actions: [action]
     });
@@ -192,21 +195,35 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
 
   public apply(name: string, ex: any): Expression {
     if (!Expression.isExpression(ex)) ex = Expression.fromJSLoose(ex);
-    return this._performAction(new ApplyAction({ name: name, expression: ex }))
+    return this._performAction(new ApplyAction({ name: name, expression: ex }));
   }
 
   public filter(ex: any): Expression {
     if (!Expression.isExpression(ex)) ex = Expression.fromJSLoose(ex);
-    return this._performAction(new FilterAction({ expression: ex }))
+    return this._performAction(new FilterAction({ expression: ex }));
   }
 
   public sort(ex: any, direction: string): Expression {
     if (!Expression.isExpression(ex)) ex = Expression.fromJSLoose(ex);
-    return this._performAction(new SortAction({ expression: ex, direction: direction }))
+    return this._performAction(new SortAction({ expression: ex, direction: direction }));
   }
 
   public limit(limit: number): Expression {
-    return this._performAction(new LimitAction({ limit: limit }))
+    return this._performAction(new LimitAction({ limit: limit }));
+  }
+
+  // Expression constructors (Unary)
+
+  // Expression constructors (Binary)
+  public is(ex: any): Expression {
+    if (!Expression.isExpression(ex)) ex = Expression.fromJSLoose(ex);
+    return new IsExpression({ op: 'is', lhs: this, rhs: ex });
+  }
+
+  // Expression constructors (Nary)
+  public divide(ex: any): Expression {
+    if (!Expression.isExpression(ex)) ex = Expression.fromJSLoose(ex);
+    return new DivideExpression({ op: 'divide', operands: [this, ex] });
   }
 }
 check = Expression;
@@ -463,7 +480,6 @@ export class NaryExpression extends Expression {
 // =====================================================================================
 // =====================================================================================
 
-
 export class LiteralExpression extends Expression {
   static fromJS(parameters: ExpressionJS): Expression {
     return new LiteralExpression(<ExpressionValue>parameters);
@@ -473,14 +489,20 @@ export class LiteralExpression extends Expression {
 
   constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
-    this.value = parameters.value;
+    var value = parameters.value;
+    this.value = value;
     this._ensureOp("literal");
     if (typeof this.value === 'undefined') {
       throw new TypeError("must have a `value`")
     }
-    var typeofValue = typeof this.value;
+    var typeofValue = typeof value;
     if (typeofValue === 'object') {
-      // ToDo: add this
+      if (value === null) {
+        this.type = 'NULL';
+      } else {
+        this.type = value.constructor.type;
+        if (!this.type) throw new Error("can not have an object without a type");
+      }
     } else {
       this.type = typeofValue.toUpperCase();
     }
@@ -494,7 +516,12 @@ export class LiteralExpression extends Expression {
 
   public toJS(): ExpressionJS {
     var js = super.toJS();
-    js.value = this.value;
+    if (this.value.toJS) {
+      js.value = this.value.toJS();
+      js.type = this.type;
+    } else {
+      js.value = this.value;
+    }
     return js;
   }
 

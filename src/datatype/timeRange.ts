@@ -28,7 +28,7 @@ function toDate(date: any, name: string): Date {
 
 var check: ImmutableClass<TimeRangeValue, TimeRangeJS>;
 export class TimeRange implements ImmutableInstance<TimeRangeValue, TimeRangeJS> {
-  static category = 'TIME_RANGE';
+  static type = 'TIME_RANGE';
   static isTimeRange(candidate: any): boolean {
     return isInstanceOf(candidate, TimeRange);
   }

@@ -23,10 +23,14 @@ describe "Dataset", ->
             SoTrue: true
             NotSoTrue: false
             Count: 2353
-            HowAwesome: { cat: 'NUMBER', value: 'Infinity' }
-            HowLame: { cat: 'NUMBER', value: '-Infinity' }
-            SomeTime: {
-              cat: 'TIME_RANGE'
+            HowAwesome: { type: 'NUMBER', value: 'Infinity' }
+            HowLame: { type: 'NUMBER', value: '-Infinity' }
+            SomeDate: {
+              type: 'DATE'
+              value: new Date('2015-01-26T04:54:10Z')
+            }
+            SomeTimeRange: {
+              type: 'TIME_RANGE'
               start: new Date('2015-01-26T04:54:10Z')
               end:   new Date('2015-01-26T05:00:00Z')
             }

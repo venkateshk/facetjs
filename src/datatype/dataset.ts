@@ -15,6 +15,9 @@ import Expression = ExpressionModule.Expression;
 import TimeRangeModule = require('./timeRange');
 import TimeRange = TimeRangeModule.TimeRange;
 
+import ShapeModule = require('./shape');
+import Shape = ShapeModule.Shape;
+
 export interface Dummy {}
 export var dummyObject: Dummy = {};
 
@@ -37,7 +40,7 @@ export interface DatasetJS {
 
 var check: ImmutableClass<DatasetValue, DatasetJS>;
 export class Dataset implements ImmutableInstance<DatasetValue, DatasetJS> {
-  static category = 'DATASET';
+  static type = 'DATASET';
   static isDataset(candidate: any): boolean {
     return isInstanceOf(candidate, Dataset);
   }
@@ -149,11 +152,15 @@ function datumToJS(datum: Datum): Datum {
     } else {
       var typeofV = typeof v;
       if (typeofV === 'object') {
-        var cat = v.constructor.category;
-        v = v.toJS();
-        v.cat = cat;
+        if (v.toISOString) {
+          v = { type: 'DATE', value: v };
+        } else {
+          var type = v.constructor.type;
+          v = v.toJS();
+          v.type = type;
+        }
       } else if (typeofV === 'number' && !isFinite(v)) {
-        v = { cat: 'NUMBER', value: String(v) };
+        v = { type: 'NUMBER', value: String(v) };
       }
     }
     js[k] = v;
@@ -176,7 +183,7 @@ function datumFromJS(js: Datum): Datum {
         data: v
       })
     } else if (typeof v === 'object') {
-      switch (v.cat) {
+      switch (v.type) {
         case 'NUMBER':
           var infinityMatch = String(v.value).match(/^([-+]?)Infinity$/);
           if (infinityMatch) {
@@ -186,14 +193,22 @@ function datumFromJS(js: Datum): Datum {
           }
           break;
 
+        case 'DATE':
+          v = new Date(v.value);
+          break;
+
         case 'TIME_RANGE':
           v = TimeRange.fromJS(v);
           break;
 
-        // ToDo: fill this in.
+        case 'SHAPE':
+          v = Shape.fromJS(v);
+          break;
+
+        // ToDo: fill this in with the rest of the datatypes
 
         default:
-          throw new Error('can not have an object without a `cat` as a datum value')
+          throw new Error('can not have an object without a `type` as a datum value')
       }
     }
     datum[k] = v;
@@ -203,7 +218,7 @@ function datumFromJS(js: Datum): Datum {
 }
 
 export class BaseDataset extends Dataset {
-  static category = 'DATASET';
+  static type = 'DATASET';
   static fromJS(datasetJS: DatasetJS): BaseDataset {
     return new BaseDataset({
       dataset: datasetJS.dataset,

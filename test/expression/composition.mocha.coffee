@@ -9,7 +9,11 @@ describe "composition", ->
     ex = facet()
     expect(ex.toJS()).to.deep.equal({
       "op": "literal"
-      "value": "<Dataset>" # ToDo: fix this
+      "type": "DATASET"
+      "value": {
+        "dataset": "base"
+        "data": [{}]
+      }
     })
 
   it "works in ref case", ->
@@ -24,22 +28,58 @@ describe "composition", ->
       .apply('five', 5)
       .apply('nine', 9)
 
-    console.log(ex.toJS())
     expect(ex.toJS()).to.deep.equal({
-      "?": "?"
+      "op": "actions"
+      "operand": {
+        "op": "literal"
+        "type": "DATASET"
+        "value": {
+          "data": [{}]
+          "dataset": "base"
+        }
+      }
+      "actions": [
+        {
+          "action": "apply"
+          "name": "five"
+          "expression": { "op": "literal", "value": 5 }
+        }
+        {
+          "action": "apply"
+          "name": "nine"
+          "expression": { "op": "literal", "value": 9 }
+        }
+      ]
     })
 
   it "works in semi-realistic case", ->
     someDriver = {} # ToDo: fix this
 
     ex = facet()
-      .apply("diamonds",
+      .apply("Diamonds",
+        facet() # someDriver)
+          .filter(facet('color').is('D'))
+          .apply("priceOver2", facet("price").divide(2))
+      )
+      .apply('Count', facet('Diamonds').count())
+      .apply('TotalPrice', facet('Diamonds').sum('$priceOver2'))
+
+    console.log(ex.toJS())
+    expect(ex.toJS()).to.deep.equal({
+      "?": "?"
+    })
+
+  it.skip "works in semi-realistic case (using parser)", ->
+    someDriver = {} # ToDo: fix this
+
+    ex = facet()
+      .apply("Diamonds",
         facet(someDriver)
           .filter("$color = 'D'")
           .apply("priceOver2", "$price/2")
       )
-      .apply('Count', facet('diamonds').count())
-      .apply('TotalPrice', facet('diamonds').sum('$priceOver2'))
+      .apply('Count', facet('Diamonds').count())
+      .apply('TotalPrice', facet('Diamonds').sum('$priceOver2'))
 
     console.log(ex.toJS())
     expect(ex.toJS()).to.deep.equal({

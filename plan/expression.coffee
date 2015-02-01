@@ -37,7 +37,7 @@ Expression {
   { op: 'in', lhs: CATEGORICAL, rhs: CATEGORICAL_SET }
   { op: 'in', lhs: NUMERIC, rhs: NUMERIC_RANGE }
   { op: 'in', lhs: TIME, rhs: TIME_RANGE }
-  { op: 'regexp', regexp: '^\d+', operand: CATEGORICAL }
+  { op: 'match', regexp: '^\d+', operand: CATEGORICAL }
   { op: 'not', operand: BOOLEAN }
   { op: 'and', operands: [BOOLEAN, BOOLEAN, ...] }
   { op: 'or', operands: [BOOLEAN, BOOLEAN, ...] }
@@ -57,7 +57,7 @@ Expression {
   #TIME
   { op: 'literal', value: Time }
   { op: 'ref', name: 'timestamp', options?: NativeOptions }
-  { op: 'offset', operand: TIME, offset: 'P1D' }
+  { op: 'offset', operand: TIME, duration: 'P1D' }
 
   #STRING
   { op: 'literal', value: 'Honda' }

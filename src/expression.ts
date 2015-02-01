@@ -213,18 +213,43 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
   }
 
   // Expression constructors (Unary)
+  protected _performUnaryExpression(newValue: ExpressionValue): Expression {
+    newValue.operand = this;
+    return new (Expression.classMap[newValue.op])(newValue);
+  }
+
+  public not() { return this._performUnaryExpression({ op: 'not' }); }
+  public match(re: string) { return this._performUnaryExpression({ op: 'match', regexp: re }); }
 
   // Expression constructors (Binary)
-  public is(ex: any): Expression {
-    if (!Expression.isExpression(ex)) ex = Expression.fromJSLoose(ex);
-    return new IsExpression({ op: 'is', lhs: this, rhs: ex });
+  protected _performBinaryExpression(newValue: ExpressionValue, otherEx: any): Expression {
+    if (!Expression.isExpression(otherEx)) otherEx = Expression.fromJSLoose(otherEx);
+    newValue.lhs = this;
+    newValue.rhs = otherEx;
+    return new (Expression.classMap[newValue.op])(newValue);
   }
 
+  public is(ex: any) { return this._performBinaryExpression({ op: 'is' }, ex); }
+  public lessThan(ex: any) { return this._performBinaryExpression({ op: 'lessThan' }, ex); }
+  public lessThanOrEqual(ex: any) { return this._performBinaryExpression({ op: 'lessThanOrEqual' }, ex); }
+  public greaterThan(ex: any) { return this._performBinaryExpression({ op: 'greaterThan' }, ex); }
+  public greaterThanOrEqual(ex: any) { return this._performBinaryExpression({ op: 'greaterThanOrEqual' }, ex); }
+
   // Expression constructors (Nary)
-  public divide(ex: any): Expression {
-    if (!Expression.isExpression(ex)) ex = Expression.fromJSLoose(ex);
-    return new DivideExpression({ op: 'divide', operands: [this, ex] });
+  protected _performNaryExpression(newValue: ExpressionValue, otherExs: any[]): Expression {
+    for (var i = 0; i < otherExs.length; i++) {
+      var otherEx = otherExs[i];
+      if (Expression.isExpression(otherEx)) continue;
+      otherExs[i] = Expression.fromJSLoose(otherEx);
+    }
+    newValue.operands = [this].concat(otherExs);
+    return new (Expression.classMap[newValue.op])(newValue);
   }
+
+  public add(...exs: any[]) { return this._performNaryExpression({ op: 'add' }, exs); }
+  public subtract(...exs: any[]) { return this._performNaryExpression({ op: 'subtract' }, exs); }
+  public multiply(...exs: any[]) { return this._performNaryExpression({ op: 'multiply' }, exs); }
+  public divide(...exs: any[]) { return this._performNaryExpression({ op: 'divide' }, exs); }
 }
 check = Expression;
 
@@ -482,7 +507,7 @@ export class NaryExpression extends Expression {
 
 export class LiteralExpression extends Expression {
   static fromJS(parameters: ExpressionJS): Expression {
-    return new LiteralExpression(<ExpressionValue>parameters);
+    return new LiteralExpression(<any>parameters);
   }
 
   public value: any;
@@ -552,7 +577,7 @@ Expression.classMap["literal"] = LiteralExpression;
 
 export class RefExpression extends Expression {
   static fromJS(parameters: ExpressionJS): RefExpression {
-    return new RefExpression(<ExpressionValue>parameters);
+    return new RefExpression(<any>parameters);
   }
 
   public generations: string;
@@ -826,11 +851,11 @@ Expression.classMap["in"] = InExpression;
 // =====================================================================================
 
 
-export class RegexpExpression extends UnaryExpression {
-  static fromJS(parameters: ExpressionJS): RegexpExpression {
+export class MatchExpression extends UnaryExpression {
+  static fromJS(parameters: ExpressionJS): MatchExpression {
     var value = UnaryExpression.jsToValue(parameters);
     value.regexp = parameters.regexp;
-    return new RegexpExpression(value);
+    return new MatchExpression(value);
   }
 
   public regexp: string;
@@ -838,7 +863,7 @@ export class RegexpExpression extends UnaryExpression {
   constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this.regexp = parameters.regexp;
-    this._ensureOp("regexp");
+    this._ensureOp("match");
     this.type = 'BOOLEAN';
   }
 
@@ -855,7 +880,7 @@ export class RegexpExpression extends UnaryExpression {
   }
 
   public toString(): string {
-    return 'regexp(' + this.operand.toString() + ', /' + this.regexp + '/)';
+    return 'match(' + this.operand.toString() + ', /' + this.regexp + '/)';
   }
 
   protected _makeFn(operandFn: Function): Function {
@@ -870,7 +895,7 @@ export class RegexpExpression extends UnaryExpression {
   // UNARY
 }
 
-Expression.classMap["regexp"] = RegexpExpression;
+Expression.classMap["match"] = MatchExpression;
 
 // =====================================================================================
 // =====================================================================================

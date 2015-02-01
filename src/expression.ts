@@ -9,6 +9,9 @@ import isInstanceOf = HigherObjectModule.isInstanceOf;
 import ImmutableClass = HigherObjectModule.ImmutableClass;
 import ImmutableInstance = HigherObjectModule.ImmutableInstance;
 
+import DatasetModule = require("./datatype/dataset");
+import Dataset = DatasetModule.Dataset;
+
 export interface Dummy {}
 export var dummyObject: Dummy = {};
 
@@ -62,7 +65,7 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
     } else {
       expressionJS = {
         op: 'literal',
-        value: "<Dataset>" // ToDo: lol fix this
+        value: Dataset.fromJS({ dataset: 'base', data: [{}] })
       };
     }
     return Expression.fromJS(expressionJS);
@@ -1558,23 +1561,6 @@ Action.classMap["filter"] = FilterAction;
 // =====================================================================================
 // =====================================================================================
 
-export interface DirectionFn {
-  (a: any, b: any): number;
-}
-
-var directionFns: Lookup<DirectionFn> = {
-  ascending: (a: any, b: any): number => {
-    if (Array.isArray(a)) a = a[0];
-    if (Array.isArray(b)) b = b[0];
-    return a < b ? -1 : a > b ? 1 : a >= b ? 0 : NaN;
-  },
-  descending: (a: any, b: any): number => {
-    if (Array.isArray(a)) a = a[0];
-    if (Array.isArray(b)) b = b[0];
-    return b < a ? -1 : b > a ? 1 : b >= a ? 0 : NaN;
-  }
-};
-
 export class SortAction extends Action {
   static fromJS(parameters: ActionJS): SortAction {
     return new SortAction({
@@ -1590,7 +1576,7 @@ export class SortAction extends Action {
     super(parameters, dummyObject);
     this.direction = parameters.direction;
     this._ensureAction("sort");
-    if (!directionFns[this.direction]) {
+    if (this.direction !== 'descending' && this.direction !== 'ascending') {
       throw new Error("direction must be 'descending' or 'ascending'");
     }
   }

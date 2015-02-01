@@ -9,6 +9,9 @@ import isInstanceOf = HigherObjectModule.isInstanceOf;
 import ImmutableClass = HigherObjectModule.ImmutableClass;
 import ImmutableInstance = HigherObjectModule.ImmutableInstance;
 
+import ExpressionModule = require('../expression');
+import Expression = ExpressionModule.Expression;
+
 import TimeRangeModule = require('./timeRange');
 import TimeRange = TimeRangeModule.TimeRange;
 
@@ -99,11 +102,42 @@ export class Dataset implements ImmutableInstance<DatasetValue, DatasetJS> {
     return Dataset.isDataset(other) &&
       this.dataset === other.dataset;
   }
+
+  public apply(name: string, ex: Expression): Dataset {
+    throw new Error('can not call this directly');
+  }
+
+  public filter(ex: Expression): Dataset {
+    throw new Error('can not call this directly');
+  }
+
+  public sort(ex: Expression, direction: string): Dataset {
+    throw new Error('can not call this directly');
+  }
+
+  public limit(limit: number): Dataset {
+    throw new Error('can not call this directly');
+  }
 }
 check = Dataset;
 
 // =====================================================================================
 // =====================================================================================
+
+export interface DirectionFn {
+  (a: any, b: any): number;
+}
+
+var directionFns: Lookup<DirectionFn> = {
+  ascending: (a: any, b: any): number => {
+    if (a.compare) return a.comapre(b);
+    return a < b ? -1 : a > b ? 1 : a >= b ? 0 : NaN;
+  },
+  descending: (a: any, b: any): number => {
+    if (b.compare) return b.comapre(a);
+    return b < a ? -1 : b > a ? 1 : b >= a ? 0 : NaN;
+  }
+};
 
 function datumToJS(datum: Datum): Datum {
   var js: Datum = {};
@@ -137,7 +171,10 @@ function datumFromJS(js: Datum): Datum {
     if (v == null) {
       v = null;
     } else if (Array.isArray(v)) {
-      // ToDo: parse it as a dataset
+      v = BaseDataset.fromJS({
+        dataset: 'base',
+        data: v
+      })
     } else if (typeof v === 'object') {
       switch (v.cat) {
         case 'NUMBER':
@@ -201,6 +238,41 @@ export class BaseDataset extends Dataset {
     return super.equals(other) &&
       this.data.length === other.data.length;
       // ToDo: probably add something else here?
+  }
+
+  public apply(name: string, ex: Expression): Dataset {
+    // Note this works in place, fix that later if needed.
+    var exFn = ex.getFn();
+    var data = this.data;
+    for (var i = 0; i < data.length; i++) {
+      var datum = data[i];
+      datum[name] = exFn(datum);
+    }
+    return this;
+  }
+
+  public filter(ex: Expression): Dataset {
+    var exFn = ex.getFn();
+    return new BaseDataset({
+      dataset: 'base',
+      data: this.data.filter((datum) => exFn(datum))
+    })
+  }
+
+  public sort(ex: Expression, direction: string): Dataset {
+    // Note this works in place, fix that later if needed.
+    var exFn = ex.getFn();
+    var directionFn = directionFns[direction];
+    this.data.sort((a, b) => directionFn(exFn(a), exFn(b)));
+    return this;
+  }
+
+  public limit(limit: number): Dataset {
+    if (this.data.length <= limit) return this;
+    return new BaseDataset({
+      dataset: 'base',
+      data: this.data.slice(0, limit)
+    })
   }
 }
 

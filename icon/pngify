@@ -9,11 +9,12 @@ fi
 
 # Note: Look into filters (http://www.imagemagick.org/script/command-line-options.php?#filter)
 
+rm *.png
 for type in blue-bg white-bg bw no-bg
 do
   # Render the SVG into a big PNG
-  convert facet-icon-$type.svg -background none -resize 1024x1024 facet-icon-1024-$type.png
-  convert facet-icon-$type.svg -background none -resize 800x800   facet-icon-800-$type.png
+  convert -background none facet-icon-$type.svg -resize 1024x1024 facet-icon-1024-$type.png
+  convert -background none facet-icon-$type.svg -resize 800x800   facet-icon-800-$type.png
 
   # Down size the large PNG into other sizes
   # Gamma correction from: http://www.4p8.com/eric.brasseur/gamma.html

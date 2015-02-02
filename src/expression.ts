@@ -1102,11 +1102,11 @@ export class AddExpression extends NaryExpression {
 
   protected _makeFn(operandFns: Function[]): Function {
     return (d: Datum) => {
-      var sum = 0;
+      var res = 0;
       for (var i = 0; i < operandFns.length; i++) {
-        sum += operandFns[i](d);
+        res += operandFns[i](d) || 0;
       }
-      return sum;
+      return res;
     }
   }
 
@@ -1136,16 +1136,18 @@ export class SubtractExpression extends NaryExpression {
     return 'subtract(' + this.operands.map((operand) => operand.toString()) + ')';
   }
 
-  public simplify(): Expression {
-    return this
-  }
-
   protected _makeFn(operandFns: Function[]): Function {
-    throw new Error("should never be called directly");
+    return (d: Datum) => {
+      var res = 0;
+      for (var i = 0; i < operandFns.length; i++) {
+        res += (i ? -1 : 1) * (operandFns[i](d) || 0);
+      }
+      return res;
+    }
   }
 
   protected _makeFnJS(operandFnJSs: string[]): string {
-    throw new Error("should never be called directly");
+    return '(' + operandFnJSs.join('-')  + ')';
   }
 
   // NARY
@@ -1171,16 +1173,18 @@ export class MultiplyExpression extends NaryExpression {
     return 'multiply(' + this.operands.map((operand) => operand.toString()) + ')';
   }
 
-  public simplify(): Expression {
-    return this
-  }
-
   protected _makeFn(operandFns: Function[]): Function {
-    throw new Error("should never be called directly");
+    return (d: Datum) => {
+      var res = 1;
+      for (var i = 0; i < operandFns.length; i++) {
+        res *= operandFns[i](d) || 0;
+      }
+      return res;
+    }
   }
 
   protected _makeFnJS(operandFnJSs: string[]): string {
-    throw new Error("should never be called directly");
+    return '(' + operandFnJSs.join('*')  + ')';
   }
 
   // NARY
@@ -1206,16 +1210,22 @@ export class DivideExpression extends NaryExpression {
     return 'divide(' + this.operands.map((operand) => operand.toString()) + ')';
   }
 
-  public simplify(): Expression {
-    return this
-  }
-
   protected _makeFn(operandFns: Function[]): Function {
-    throw new Error("should never be called directly");
+    return (d: Datum) => {
+      var res = 1;
+      for (var i = 0; i < operandFns.length; i++) {
+        if (i) {
+          res /= (operandFns[i](d) || 0);
+        } else {
+          res *= (operandFns[i](d) || 0);
+        }
+      }
+      return res;
+    }
   }
 
   protected _makeFnJS(operandFnJSs: string[]): string {
-    throw new Error("should never be called directly");
+    return '(' + operandFnJSs.join('-')  + ')';
   }
 
   // NARY

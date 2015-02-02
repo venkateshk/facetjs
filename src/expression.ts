@@ -11,10 +11,12 @@ import ImmutableInstance = HigherObjectModule.ImmutableInstance;
 
 import Q = require("q");
 
-import DatasetModule = require("./datatype/dataset");
-import Dataset = DatasetModule.Dataset;
-import NativeDataset = DatasetModule.NativeDataset;
-import Datum = DatasetModule.Datum;
+import DatatypeModule = require("./datatype/index");
+import Datum = DatatypeModule.Datum;
+import Dataset = DatatypeModule.Dataset;
+import NativeDataset = DatatypeModule.NativeDataset;
+import NumberRange = DatatypeModule.NumberRange;
+import TimeRange = DatatypeModule.TimeRange;
 
 export interface Dummy {}
 export var dummyObject: Dummy = {};
@@ -344,10 +346,9 @@ export class UnaryExpression extends Expression {
       })
     }
 
-    return new (Expression.classMap[this.op])({
-      op: this.op,
-      operand: simplifiedOperand
-    })
+    var value = this.valueOf();
+    value.operand = simplifiedOperand;
+    return new (Expression.classMap[this.op])(value);
   }
 
   protected _makeFn(operandFn: Function): Function {
@@ -438,11 +439,10 @@ export class BinaryExpression extends Expression {
       })
     }
 
-    return new (Expression.classMap[this.op])({
-      op: this.op,
-      lhs: simplifiedLhs,
-      rhs: simplifiedRhs
-    })
+    var value = this.valueOf();
+    value.lhs = simplifiedLhs;
+    value.rhs = simplifiedRhs;
+    return new (Expression.classMap[this.op])(value);
   }
 
   protected _makeFn(lhsFn: Function, rhsFn: Function): Function {
@@ -518,6 +518,21 @@ export class NaryExpression extends Expression {
       complexity += operands[i].getComplexity();
     }
     return complexity;
+  }
+
+  public simplify(): Expression {
+    var simplifiedOperands = this.operands.map((operand) => operand.simplify());
+
+    if (simplifiedOperands.every((operand) => operand.op === 'literal')) {
+      return new LiteralExpression({
+        op: 'literal',
+        value: this._makeFn(simplifiedOperands.map((operand) => operand.getFn()))()
+      })
+    }
+
+    var value = this.valueOf();
+    value.operands = simplifiedOperands;
+    return new (Expression.classMap[this.op])(value);
   }
 
   protected _makeFn(operandFns: Function[]): Function {
@@ -918,6 +933,11 @@ export class MatchExpression extends UnaryExpression {
     return 'match(' + this.operand.toString() + ', /' + this.regexp + '/)';
   }
 
+  public equals(other: MatchExpression): boolean {
+    return super.equals(other) &&
+      this.regexp === other.regexp;
+  }
+
   protected _makeFn(operandFn: Function): Function {
     var re = new RegExp(this.regexp);
     return (d: Datum) => re.test(operandFn(d));
@@ -951,7 +971,7 @@ export class NotExpression extends UnaryExpression {
   }
 
   public simplify(): Expression {
-    return this
+    return this // ToDo: handle not(not(*)) => *
   }
 
   protected _makeFn(operandFn: Function): Function {
@@ -1101,7 +1121,6 @@ Expression.classMap["add"] = AddExpression;
 // =====================================================================================
 // =====================================================================================
 
-
 export class SubtractExpression extends NaryExpression {
   static fromJS(parameters: ExpressionJS): SubtractExpression {
     return new SubtractExpression(NaryExpression.jsToValue(parameters));
@@ -1137,7 +1156,6 @@ Expression.classMap["subtract"] = SubtractExpression;
 // =====================================================================================
 // =====================================================================================
 
-
 export class MultiplyExpression extends NaryExpression {
   static fromJS(parameters: ExpressionJS): MultiplyExpression {
     return new MultiplyExpression(NaryExpression.jsToValue(parameters));
@@ -1172,7 +1190,6 @@ Expression.classMap["multiply"] = MultiplyExpression;
 
 // =====================================================================================
 // =====================================================================================
-
 
 export class DivideExpression extends NaryExpression {
   static fromJS(parameters: ExpressionJS): DivideExpression {
@@ -1252,6 +1269,13 @@ export class AggregateExpression extends UnaryExpression {
     return js;
   }
 
+  public equals(other: AggregateExpression): boolean {
+    return super.equals(other) &&
+      this.fn === other.fn &&
+      Boolean(this.attribute) === Boolean(other.attribute) &&
+      (!this.attribute || this.attribute.equals(other.attribute));
+  }
+
   public toString(): string {
     return 'agg_' + this.fn + '(' + this.operand.toString() + ')';
   }
@@ -1289,6 +1313,8 @@ export class OffsetExpression extends UnaryExpression {
     return 'offset(' + this.operand.toString() + ')';
   }
 
+  // ToDo: equals
+
   public simplify(): Expression {
     return this
   }
@@ -1324,16 +1350,14 @@ export class ConcatExpression extends NaryExpression {
     return 'concat(' + this.operands.map((operand) => operand.toString()) + ')';
   }
 
-  public simplify(): Expression {
-    return this
-  }
-
   protected _makeFn(operandFns: Function[]): Function {
-    throw new Error("should never be called directly");
+    return (d: Datum) => {
+      return operandFns.map((operandFn) => operandFn(d)).join('');
+    }
   }
 
   protected _makeFnJS(operandFnJSs: string[]): string {
-    throw new Error("should never be called directly");
+    return '(' + operandFnJSs.join('+') + ')';
   }
 
   // NARY
@@ -1360,7 +1384,22 @@ export class RangeExpression extends BinaryExpression {
   }
 
   protected _makeFn(lhsFn: Function, rhsFn: Function): Function {
-    return (d: Datum) => lhsFn(d) === rhsFn(d);
+    switch (this.type) {
+      case 'NUMBER_RANGE':
+        return (d: Datum) => new NumberRange({
+          start: lhsFn(d),
+          end: rhsFn(d)
+        });
+
+      case 'TIME_RANGE':
+        return (d: Datum) => new TimeRange({
+          start: lhsFn(d),
+          end: rhsFn(d)
+        });
+
+      default:
+        throw new Error("must determine type first");
+    }
   }
 
   protected _makeFnJS(lhsFnJS: string, rhsFnJS: string): string {
@@ -1413,16 +1452,42 @@ Expression.classMap["bucket"] = BucketExpression;
 
 export class SplitExpression extends UnaryExpression {
   static fromJS(parameters: ExpressionJS): SplitExpression {
-    return new SplitExpression(UnaryExpression.jsToValue(parameters));
+    var value = UnaryExpression.jsToValue(parameters);
+    value.attribute = Expression.fromJSLoose(parameters.attribute);
+    value.name = parameters.name;
+    return new SplitExpression(value);
   }
+
+  public attribute: Expression;
+  public name: string;
 
   constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this._ensureOp("split");
   }
 
+  public valueOf(): ExpressionValue {
+    var value = super.valueOf();
+    value.attribute = this.attribute;
+    value.name = this.name;
+    return value;
+  }
+
+  public toJS(): ExpressionJS {
+    var js = super.toJS();
+    js.attribute = this.attribute.toJS();
+    js.name = this.name;
+    return js;
+  }
+
   public toString(): string {
     return 'split(' + this.operand.toString() + ')';
+  }
+
+  public equals(other: SplitExpression): boolean {
+    return super.equals(other) &&
+      this.attribute.equals(other.attribute) &&
+      this.name === other.name;
   }
 
   public simplify(): Expression {
@@ -1477,12 +1542,43 @@ export class ActionsExpression extends UnaryExpression {
     return 'actions(' + this.operand.toString() + ')';
   }
 
-  public simplify(): Expression {
-    return this
+  public equals(other: ActionsExpression): boolean {
+    if (!super.equals(other)) return false;
+    var thisActions = this.actions;
+    var otherActions = other.actions;
+    if (thisActions.length !== otherActions.length) return false;
+    for (var i = 0; i < thisActions.length; i++) {
+      if (!thisActions[i].equals(otherActions[i])) return false;
+    }
+    return true;
   }
 
   protected _makeFn(operandFn: Function): Function {
-    throw new Error("implement me");
+    var actions = this.actions;
+    return (d: Datum) => {
+      var dataset = operandFn(d);
+      for (var i = 0; i < actions.length; i++) {
+        var action = actions[i];
+        switch (action.action) {
+          case 'filter':
+            dataset = dataset.filter(action.expression.getFn());
+            break;
+
+          case 'apply':
+            dataset = dataset.apply((<ApplyAction>action).name, action.expression.getFn());
+            break;
+
+          case 'sort':
+            dataset = dataset.sort(action.expression.getFn(), (<SortAction>action).direction);
+            break;
+
+          case 'limit':
+            dataset = dataset.limit((<LimitAction>action).limit);
+            break;
+        }
+      }
+      return dataset;
+    }
   }
 
   protected _makeFnJS(operandFnJS: string): string {

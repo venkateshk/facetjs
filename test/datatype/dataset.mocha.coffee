@@ -3,6 +3,7 @@
 { testHigherObjects } = require("higher-object/build/tester")
 
 { Dataset } = require('../../build/datatype/dataset')
+{ NumberRange } = require('../../build/datatype/numberRange')
 { TimeRange } = require('../../build/datatype/timeRange')
 
 describe "Dataset", ->
@@ -25,6 +26,16 @@ describe "Dataset", ->
             Count: 2353
             HowAwesome: { type: 'NUMBER', value: 'Infinity' }
             HowLame: { type: 'NUMBER', value: '-Infinity' }
+            HowMuch: {
+              type: 'NUMBER_RANGE'
+              start: 0
+              end: 7
+            }
+            ToInfinityAndBeyond: {
+              type: 'NUMBER_RANGE'
+              start: '-Infinity'
+              end: 'Infinity'
+            }
             SomeDate: {
               type: 'DATE'
               value: new Date('2015-01-26T04:54:10Z')

@@ -9,6 +9,9 @@ import isInstanceOf = HigherObjectModule.isInstanceOf;
 import ImmutableClass = HigherObjectModule.ImmutableClass;
 import ImmutableInstance = HigherObjectModule.ImmutableInstance;
 
+import NumberRangeModule = require('./numberRange');
+import NumberRange = NumberRangeModule.NumberRange;
+
 import TimeRangeModule = require('./timeRange');
 import TimeRange = TimeRangeModule.TimeRange;
 
@@ -172,6 +175,10 @@ function datumFromJS(js: Datum): Datum {
           } else {
             throw new Error("bad number value '" + String(v.value) + "'");
           }
+          break;
+
+        case 'NUMBER_RANGE':
+          v = NumberRange.fromJS(v);
           break;
 
         case 'DATE':

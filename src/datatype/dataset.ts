@@ -243,10 +243,12 @@ export class NativeDataset extends Dataset {
       // ToDo: probably add something else here?
   }
 
+  // Actions
   public apply(name: string, exFn: Function): Dataset {
     // Note this works in place, fix that later if needed.
     var data = this.data;
-    for (var i = 0; i < data.length; i++) {
+    var n = data.length;
+    for (var i = 0; i < n; i++) {
       var datum = data[i];
       datum[name] = exFn(datum);
     }
@@ -273,6 +275,63 @@ export class NativeDataset extends Dataset {
       dataset: 'native',
       data: this.data.slice(0, limit)
     })
+  }
+
+  // Aggregators
+  public count(): number {
+    return this.data.length;
+  }
+
+  public sum(attrFn: Function): number {
+    var sum = 0;
+    var data = this.data;
+    var n = data.length;
+    for (var i = 0; i < n; i++) {
+      sum += attrFn(data[i])
+    }
+    return sum;
+  }
+
+  public min(attrFn: Function): number {
+    var min = Infinity;
+    var data = this.data;
+    var n = data.length;
+    for (var i = 0; i < n; i++) {
+      var v = attrFn(data[i]);
+      if (v < min) min = v;
+    }
+    return min;
+  }
+
+  public max(attrFn: Function): number {
+    var max = Infinity;
+    var data = this.data;
+    var n = data.length;
+    for (var i = 0; i < n; i++) {
+      var v = attrFn(data[i]);
+      if (max < v) max = v;
+    }
+    return max;
+  }
+
+  // Split
+  public split(attrFn: Function, name: string): Dataset {
+    var splits: Lookup<any> = {};
+    var data = this.data;
+    var n = data.length;
+    for (var i = 0; i < n; i++) {
+      var datum = data[i];
+      var v: any = attrFn(datum);
+      splits[v] = v;
+    }
+    return new NativeDataset({
+      dataset: 'native',
+      data: Object.keys(splits).sort().map((k) => {
+        var datum: Datum = {};
+        datum[name] = splits[k];
+        return datum
+      })
+    });
   }
 }
 

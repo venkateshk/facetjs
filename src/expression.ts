@@ -9,6 +9,8 @@ import isInstanceOf = HigherObjectModule.isInstanceOf;
 import ImmutableClass = HigherObjectModule.ImmutableClass;
 import ImmutableInstance = HigherObjectModule.ImmutableInstance;
 
+import Q = require("q");
+
 import DatasetModule = require("./datatype/dataset");
 import Dataset = DatasetModule.Dataset;
 import NativeDataset = DatasetModule.NativeDataset;
@@ -57,26 +59,18 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
   }
 
   static facet(input: any = null): Expression {
-    var expressionJS: ExpressionJS;
     if (input) {
       if (typeof input === 'string') {
-        expressionJS = {
-          op: 'ref',
-          name: input
-        };
+        return new RefExpression({ op: 'ref', name: input });
       } else {
-        expressionJS = {
-          op: 'literal',
-          value: input
-        };
+        return new LiteralExpression({ op: 'literal', value: input });
       }
     } else {
-      expressionJS = {
+      return new LiteralExpression({
         op: 'literal',
         value: new NativeDataset({ dataset: 'native', data: [{}] })
-      };
+      });
     }
-    return Expression.fromJS(expressionJS);
   }
 
   static fromJSLoose(param: any): Expression {
@@ -280,6 +274,18 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
   public subtract(...exs: any[]) { return this._performNaryExpression({ op: 'subtract' }, exs); }
   public multiply(...exs: any[]) { return this._performNaryExpression({ op: 'multiply' }, exs); }
   public divide(...exs: any[]) { return this._performNaryExpression({ op: 'divide' }, exs); }
+
+  // Compute
+  public compute() {
+    var deferred: Q.Deferred<Dataset> = <Q.Deferred<Dataset>>Q.defer();
+    var simple = this.simplify();
+    if (simple.op === 'literal') {
+      deferred.resolve((<LiteralExpression>simple).value);
+    } else {
+      deferred.reject(new Error('can not handle that yet: ' + simple.op));
+    }
+    return deferred.promise;
+  }
 }
 check = Expression;
 

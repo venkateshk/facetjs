@@ -9,14 +9,14 @@ describe "Dataset", ->
   it "passes higher object tests", ->
     testHigherObjects(Dataset, [
       {
-        dataset: 'base'
+        dataset: 'native'
         data: [
           { x: 1, y: 2 }
           { x: 2, y: 3 }
         ]
       }
       {
-        dataset: 'base'
+        dataset: 'native'
         data: [
           {
             Void: null

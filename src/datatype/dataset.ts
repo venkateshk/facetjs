@@ -9,9 +9,6 @@ import isInstanceOf = HigherObjectModule.isInstanceOf;
 import ImmutableClass = HigherObjectModule.ImmutableClass;
 import ImmutableInstance = HigherObjectModule.ImmutableInstance;
 
-import ExpressionModule = require('../expression');
-import Expression = ExpressionModule.Expression;
-
 import TimeRangeModule = require('./timeRange');
 import TimeRange = TimeRangeModule.TimeRange;
 
@@ -105,22 +102,6 @@ export class Dataset implements ImmutableInstance<DatasetValue, DatasetJS> {
     return Dataset.isDataset(other) &&
       this.dataset === other.dataset;
   }
-
-  public apply(name: string, ex: Expression): Dataset {
-    throw new Error('can not call this directly');
-  }
-
-  public filter(ex: Expression): Dataset {
-    throw new Error('can not call this directly');
-  }
-
-  public sort(ex: Expression, direction: string): Dataset {
-    throw new Error('can not call this directly');
-  }
-
-  public limit(limit: number): Dataset {
-    throw new Error('can not call this directly');
-  }
 }
 check = Dataset;
 
@@ -178,7 +159,7 @@ function datumFromJS(js: Datum): Datum {
     if (v == null) {
       v = null;
     } else if (Array.isArray(v)) {
-      v = BaseDataset.fromJS({
+      v = NativeDataset.fromJS({
         dataset: 'base',
         data: v
       })
@@ -217,10 +198,10 @@ function datumFromJS(js: Datum): Datum {
   return datum;
 }
 
-export class BaseDataset extends Dataset {
+export class NativeDataset extends Dataset {
   static type = 'DATASET';
-  static fromJS(datasetJS: DatasetJS): BaseDataset {
-    return new BaseDataset({
+  static fromJS(datasetJS: DatasetJS): NativeDataset {
+    return new NativeDataset({
       dataset: datasetJS.dataset,
       data: datasetJS.data.map(datumFromJS)
     })
@@ -231,7 +212,7 @@ export class BaseDataset extends Dataset {
   constructor(parameters: DatasetValue) {
     super(parameters, dummyObject);
     this.data = parameters.data;
-    this._ensureDataset("base");
+    this._ensureDataset("native");
     if (!Array.isArray(this.data)) {
       throw new TypeError("must have a `data` array")
     }
@@ -249,15 +230,14 @@ export class BaseDataset extends Dataset {
     return js;
   }
 
-  public equals(other: BaseDataset): boolean {
+  public equals(other: NativeDataset): boolean {
     return super.equals(other) &&
       this.data.length === other.data.length;
       // ToDo: probably add something else here?
   }
 
-  public apply(name: string, ex: Expression): Dataset {
+  public apply(name: string, exFn: Function): Dataset {
     // Note this works in place, fix that later if needed.
-    var exFn = ex.getFn();
     var data = this.data;
     for (var i = 0; i < data.length; i++) {
       var datum = data[i];
@@ -266,17 +246,15 @@ export class BaseDataset extends Dataset {
     return this;
   }
 
-  public filter(ex: Expression): Dataset {
-    var exFn = ex.getFn();
-    return new BaseDataset({
-      dataset: 'base',
+  public filter(exFn: Function): Dataset {
+    return new NativeDataset({
+      dataset: 'native',
       data: this.data.filter((datum) => exFn(datum))
     })
   }
 
-  public sort(ex: Expression, direction: string): Dataset {
+  public sort(exFn: Function, direction: string): Dataset {
     // Note this works in place, fix that later if needed.
-    var exFn = ex.getFn();
     var directionFn = directionFns[direction];
     this.data.sort((a, b) => directionFn(exFn(a), exFn(b)));
     return this;
@@ -284,14 +262,14 @@ export class BaseDataset extends Dataset {
 
   public limit(limit: number): Dataset {
     if (this.data.length <= limit) return this;
-    return new BaseDataset({
-      dataset: 'base',
+    return new NativeDataset({
+      dataset: 'native',
       data: this.data.slice(0, limit)
     })
   }
 }
 
-Dataset.classMap['base'] = BaseDataset;
+Dataset.classMap['native'] = NativeDataset;
 
 // =====================================================================================
 // =====================================================================================

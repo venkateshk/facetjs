@@ -17,9 +17,18 @@ value types:
   Scale
   Mark
 
-Add type that can potentially be resolved later
+
+
+public resolveType(typeInfo: TypeInfo): Expression {
+
+}
+
+
+Add type that can potentially be resolved later types can not resolve in place
+typeResolved == (this.type != null)
+need global simple,
 Add methods:
-checkType({ sourceTypes })
+checkType(typeInfo: TypeInfo)
 and .type instance variable
 optional type on refs
 Expression {

@@ -11,6 +11,7 @@ import ImmutableInstance = HigherObjectModule.ImmutableInstance;
 
 import DatasetModule = require("./datatype/dataset");
 import Dataset = DatasetModule.Dataset;
+import NativeDataset = DatasetModule.NativeDataset;
 import Datum = DatasetModule.Datum;
 
 export interface Dummy {}
@@ -72,7 +73,7 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
     } else {
       expressionJS = {
         op: 'literal',
-        value: Dataset.fromJS({ dataset: 'base', data: [{}] })
+        value: new NativeDataset({ dataset: 'native', data: [{}] })
       };
     }
     return Expression.fromJS(expressionJS);
@@ -238,6 +239,17 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
 
   public count() { return this._performAggregate('count', null); }
   public sum(attr: any) { return this._performAggregate('count', attr); }
+  // ToDo: more...
+
+  // Split
+  public split(attribute: any, name: string): Expression {
+    if (!Expression.isExpression(attribute)) attribute = Expression.fromJSLoose(attribute);
+    return this._performUnaryExpression({
+      op: 'split',
+      attribute: attribute,
+      name: name
+    });
+  }
 
   // Expression constructors (Binary)
   protected _performBinaryExpression(newValue: ExpressionValue, otherEx: any): Expression {
@@ -1208,8 +1220,8 @@ export class AggregateExpression extends UnaryExpression {
     super(parameters, dummyObject);
     this.fn = parameters.fn;
     this.attribute = parameters.attribute;
-    // ToDo: add a this._checkOperandType(...) call (everywhere)
     this._ensureOp("aggregate");
+    // ToDo: add a this._checkOperandType(...) call (everywhere)
     this.type = 'NUMBER'; // For now
     if (this.fn !== 'count' && !this.attribute) {
       throw new Error("non 'count' aggregates must have an 'attribute'");

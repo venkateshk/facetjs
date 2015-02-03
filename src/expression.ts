@@ -178,7 +178,7 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
   }
 
   public canHaveType(wantedType: string): boolean {
-    return !this.type || this.type !== wantedType;
+    return !this.type || this.type === wantedType;
   }
 
   public getComplexity(): number {
@@ -428,7 +428,7 @@ export class UnaryExpression extends Expression {
   }
 
   protected _checkTypeOfOperand(wantedType: string): void {
-    if (this.operand.canHaveType(wantedType)) {
+    if (!this.operand.canHaveType(wantedType)) {
       throw new TypeError(this.op + ' expression must have an operand of type ' + wantedType);
     }
   }
@@ -541,7 +541,7 @@ export class BinaryExpression extends Expression {
 
   protected _checkTypeOf(lhsRhs: string, wantedType: string): void {
     var operand: Expression = (<any>this)[lhsRhs];
-    if (operand.canHaveType(wantedType)) {
+    if (!operand.canHaveType(wantedType)) {
       throw new TypeError(this.op + ' ' + lhsRhs + ' must be of type ' + wantedType);
     }
   }
@@ -652,7 +652,7 @@ export class NaryExpression extends Expression {
   protected _checkTypeOfOperands(wantedType: string): void {
     var operands = this.operands;
     for (var i = 0; i < operands.length; i++) {
-      if (operands[i].canHaveType(wantedType)) {
+      if (!operands[i].canHaveType(wantedType)) {
         throw new TypeError(this.op + ' must have an operand of type ' + wantedType + ' at position ' + i);
       }
     }

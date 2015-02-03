@@ -53,12 +53,12 @@ Expression {
 
   #NUMBER
   { op: 'literal', value: 6 }
+  { op: 'negate', operand: NUMERIC }
+  { op: 'reciprocal', operand: NUMERIC }
   { op: 'ref', name: 'revenue', options?: NativeOptions }
   { op: 'alternative', operands: [NUMERIC, NUMERIC, ...] }
   { op: 'add', operands: [NUMERIC, NUMERIC, ...] }
-  { op: 'subtract', operands: [NUMERIC, NUMERIC, ...] }
   { op: 'multiply', operands: [NUMERIC, NUMERIC, ...] }
-  { op: 'divide', operands: [NUMERIC, NUMERIC, ...] }
   { op: 'min', operands: [NUMERIC, NUMERIC, ...] }
   { op: 'max', operands: [NUMERIC, NUMERIC, ...] }
   { op: 'aggregate', operand: DATASET, fn: 'sum', attribute: EXPRESSION }

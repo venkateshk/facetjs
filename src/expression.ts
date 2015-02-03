@@ -1002,6 +1002,69 @@ export class NotExpression extends UnaryExpression {
 }
 
 Expression.classMap["not"] = NotExpression;
+
+// =====================================================================================
+// =====================================================================================
+
+export class NegateExpression extends UnaryExpression {
+  static fromJS(parameters: ExpressionJS): NegateExpression {
+    return new NegateExpression(UnaryExpression.jsToValue(parameters));
+  }
+
+  constructor(parameters: ExpressionValue) {
+    super(parameters, dummyObject);
+    this._ensureOp("negate");
+    this.type = 'NUMBER';
+  }
+
+  public toString(): string {
+    return 'negate(' + this.operand.toString() + ')';
+  }
+
+  protected _makeFn(operandFn: Function): Function {
+    return (d: Datum) => -operandFn(d);
+  }
+
+  protected _makeFnJS(operandFnJS: string): string {
+    return "-(" + operandFnJS + ")"
+  }
+
+  // UNARY
+}
+
+Expression.classMap["negate"] = NegateExpression;
+
+// =====================================================================================
+// =====================================================================================
+
+export class ReciprocalExpression extends UnaryExpression {
+  static fromJS(parameters: ExpressionJS): ReciprocalExpression {
+    return new ReciprocalExpression(UnaryExpression.jsToValue(parameters));
+  }
+
+  constructor(parameters: ExpressionValue) {
+    super(parameters, dummyObject);
+    this._ensureOp("reciprocal");
+    this.type = 'NUMBER';
+  }
+
+  public toString(): string {
+    return '1/(' + this.operand.toString() + ')';
+  }
+
+  protected _makeFn(operandFn: Function): Function {
+    return (d: Datum) => 1/operandFn(d);
+  }
+
+  protected _makeFnJS(operandFnJS: string): string {
+    return "1/(" + operandFnJS + ")"
+  }
+
+  // UNARY
+}
+
+Expression.classMap["reciprocal"] = ReciprocalExpression;
+
 // =====================================================================================
 // =====================================================================================
 
@@ -1137,90 +1200,6 @@ Expression.classMap["add"] = AddExpression;
 // =====================================================================================
 // =====================================================================================
 
-export class SubtractExpression extends NaryExpression { //TODO: Turn it into NegateExpression and update example.coffee
-  static fromJS(parameters: ExpressionJS): SubtractExpression {
-    return new SubtractExpression(NaryExpression.jsToValue(parameters));
-  }
-
-  constructor(parameters: ExpressionValue) {
-    super(parameters, dummyObject);
-    this._ensureOp("subtract");
-    this.type = 'NUMBER';
-  }
-
-  public toString(): string {
-    return 'subtract(' + this.operands.map((operand) => operand.toString()) + ')';
-  }
-
-  public simplify(): Expression {
-    if (this.operands.length === 0) {
-      return new LiteralExpression({
-        op: 'literal',
-        value: 0
-      });
-    }
-
-    var firstOperand = this.operands[0].simplify();
-    var literalValue: number = 0;
-    var newOperands: Expression[] = [];
-
-    for (var i = 1; i < this.operands.length; i++) {
-      var simplifiedOperand: Expression = this.operands[i].simplify();
-      if (simplifiedOperand.isOp('literal')) {
-        literalValue += (<LiteralExpression>simplifiedOperand).value;
-      } else {
-        newOperands.push(simplifiedOperand);
-      }
-    }
-
-    if (firstOperand.isOp('literal')) {
-      literalValue -= (<LiteralExpression>firstOperand).value;
-      literalValue = -literalValue;
-      if (newOperands.length === 0) {
-        return new LiteralExpression({ op: 'literal', value: literalValue });
-      } else {
-        newOperands.unshift(new LiteralExpression({ op: 'literal', value: literalValue }));
-
-        return new SubtractExpression({
-          op: 'subtract',
-          operands: newOperands
-        })
-      }
-    } else {
-      newOperands.unshift(firstOperand)
-
-      if (literalValue) {
-        newOperands.push(new LiteralExpression({ op: 'literal', value: literalValue }));
-      }
-      return new SubtractExpression({
-        op: 'subtract',
-        operands: newOperands
-      })
-    }
-  }
-
-  protected _makeFn(operandFns: Function[]): Function {
-    return (d: Datum) => {
-      var res = 0;
-      for (var i = 0; i < operandFns.length; i++) {
-        res += (i ? -1 : 1) * (operandFns[i](d) || 0);
-      }
-      return res;
-    }
-  }
-
-  protected _makeFnJS(operandFnJSs: string[]): string {
-    return '(' + operandFnJSs.join('-')  + ')';
-  }
-
-  // NARY
-}
-
-Expression.classMap["subtract"] = SubtractExpression;
-
-// =====================================================================================
-// =====================================================================================
-
 export class MultiplyExpression extends NaryExpression {
   static fromJS(parameters: ExpressionJS): MultiplyExpression {
     return new MultiplyExpression(NaryExpression.jsToValue(parameters));
@@ -1254,51 +1233,6 @@ export class MultiplyExpression extends NaryExpression {
 }
 
 Expression.classMap["multiply"] = MultiplyExpression;
-
-// =====================================================================================
-// =====================================================================================
-
-export class DivideExpression extends NaryExpression { //TODO: Turn it into ReciprocalExpression and update example.coffee
-  static fromJS(parameters: ExpressionJS): DivideExpression {
-    return new DivideExpression(NaryExpression.jsToValue(parameters));
-  }
-
-  constructor(parameters: ExpressionValue) {
-    super(parameters, dummyObject);
-    this._ensureOp("divide");
-    this.type = 'NUMBER';
-  }
-
-  public toString(): string {
-    return 'divide(' + this.operands.map((operand) => operand.toString()) + ')';
-  }
-
-  public simplify(): Expression {
-    return this //TODO
-  }
-
-  protected _makeFn(operandFns: Function[]): Function {
-    return (d: Datum) => {
-      var res = 1;
-      for (var i = 0; i < operandFns.length; i++) {
-        if (i) {
-          res /= (operandFns[i](d) || 0);
-        } else {
-          res *= (operandFns[i](d) || 0);
-        }
-      }
-      return res;
-    }
-  }
-
-  protected _makeFnJS(operandFnJSs: string[]): string {
-    return '(' + operandFnJSs.join('-')  + ')';
-  }
-
-  // NARY
-}
-
-Expression.classMap["divide"] = DivideExpression;
 
 // =====================================================================================
 // =====================================================================================

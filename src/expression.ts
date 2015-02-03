@@ -21,6 +21,18 @@ import TimeRange = DatatypeModule.TimeRange;
 export interface Dummy {}
 export var dummyObject: Dummy = {};
 
+var possibleTypes: Lookup<number> = {
+  'NULL': 1,
+  'BOOLEAN': 2,
+  'NUMBER': 3,
+  'TIME': 4,
+  'STRING': 5,
+  'NUMBER_RANGE': 6,
+  'TIME_RANGE': 7,
+  'STRING_SET': 8,
+  'DATASET': 9
+};
+
 export interface ExpressionValue {
   op: string;
   type?: string;
@@ -139,16 +151,16 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
     }
   }
 
-  public valueOf(): ExpressionValue {
-    return {
-      op: this.op
-    };
+  public valueOf(suppressType: boolean = false): ExpressionValue {
+    var value: ExpressionValue = { op: this.op };
+    if (this.type && !suppressType) value.type = this.type;
+    return value;
   }
 
-  public toJS(): ExpressionJS {
-    return {
-      op: this.op
-    };
+  public toJS(suppressType: boolean = false): ExpressionJS {
+    var js: ExpressionJS = { op: this.op };
+    if (this.type && !suppressType) js.type = this.type;
+    return js;
   }
 
   public toJSON(): ExpressionJS {
@@ -157,7 +169,12 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
 
   public equals(other: Expression): boolean {
     return Expression.isExpression(other) &&
-      this.op === other.op;
+      this.op === other.op &&
+      this.type === other.type;
+  }
+
+  public canHaveType(wantedType: string): boolean {
+    return !this.type || this.type === wantedType;
   }
 
   public getComplexity(): number {
@@ -382,6 +399,12 @@ export class UnaryExpression extends Expression {
   public _getRawFnJS(): string {
     return this._makeFnJS(this.operand._getRawFnJS())
   }
+
+  protected _checkTypeOfOperand(wantedType: string): void {
+    if (this.operand.canHaveType(wantedType)) {
+      throw new TypeError(this.op + ' expression must have an operand of type ' + wantedType);
+    }
+  }
 }
 
 // =====================================================================================
@@ -476,6 +499,13 @@ export class BinaryExpression extends Expression {
   public _getRawFnJS(): string {
     return this._makeFnJS(this.lhs._getRawFnJS(), this.rhs._getRawFnJS())
   }
+
+  protected _checkTypeOf(lhsRhs: string, wantedType: string): void {
+    var operand: Expression = (<any>this)[lhsRhs];
+    if (operand.canHaveType(wantedType)) {
+      throw new TypeError(this.op + ' ' + lhsRhs + ' must be of type ' + wantedType);
+    }
+  }
 }
 
 // =====================================================================================
@@ -569,6 +599,15 @@ export class NaryExpression extends Expression {
   public _getRawFnJS(): string {
     return this._makeFnJS(this.operands.map((operand) => operand._getRawFnJS()));
   }
+
+  protected _checkTypeOfOperands(wantedType: string): void {
+    var operands = this.operands;
+    for (var i = 0; i < operands.length; i++) {
+      if (operands[i].canHaveType(wantedType)) {
+        throw new TypeError(this.op + ' must have an operand of type ' + wantedType + ' at position ' + i);
+      }
+    }
+  }
 }
 
 // =====================================================================================
@@ -593,14 +632,16 @@ export class LiteralExpression extends Expression {
     if (typeofValue === 'object') {
       if (value === null) {
         this.type = 'NULL';
+      } else if (value.toISOString) {
+        this.type = 'TIME';
       } else {
         this.type = value.constructor.type;
         if (!this.type) throw new Error("can not have an object without a type");
       }
     } else {
       this.type = typeofValue.toUpperCase();
+      if (!possibleTypes[this.type]) throw new TypeError('unsupported type ' + this.type)
     }
-    // ToDo: support date!!
   }
 
   public valueOf(): ExpressionValue {
@@ -666,6 +707,10 @@ export class RefExpression extends Expression {
     if (typeof this.name !== 'string' || this.name.length === 0) {
       throw new TypeError("must have a nonempty `name`");
     }
+    if (parameters.type) {
+      this.type = parameters.type;
+      if (!possibleTypes[this.type]) throw new TypeError('unsupported type ' + this.type)
+    }
   }
 
   public valueOf(): ExpressionValue {
@@ -718,6 +763,11 @@ export class IsExpression extends BinaryExpression {
   constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this._ensureOp("is");
+    var lhsType = this.lhs.type;
+    var rhsType = this.rhs.type;
+    if (lhsType && rhsType && lhsType !== rhsType) {
+      throw new TypeError('is expression must have matching types, (are: ' + lhsType + ', ' + rhsType + ')');
+    }
     this.type = 'BOOLEAN';
   }
 
@@ -754,6 +804,8 @@ export class LessThanExpression extends BinaryExpression {
   constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this._ensureOp("lessThan");
+    this._checkTypeOf('lhs', 'NUMBER');
+    this._checkTypeOf('rhs', 'NUMBER');
     this.type = 'BOOLEAN';
   }
 
@@ -785,6 +837,8 @@ export class LessThanOrEqualExpression extends BinaryExpression {
   constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this._ensureOp("lessThanOrEqual");
+    this._checkTypeOf('lhs', 'NUMBER');
+    this._checkTypeOf('rhs', 'NUMBER');
     this.type = 'BOOLEAN';
   }
 
@@ -816,6 +870,8 @@ export class GreaterThanExpression extends BinaryExpression {
   constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this._ensureOp("greaterThan");
+    this._checkTypeOf('lhs', 'NUMBER');
+    this._checkTypeOf('rhs', 'NUMBER');
     this.type = 'BOOLEAN';
   }
 
@@ -856,6 +912,8 @@ export class GreaterThanOrEqualExpression extends BinaryExpression {
   constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this._ensureOp("greaterThanOrEqual");
+    this._checkTypeOf('lhs', 'NUMBER');
+    this._checkTypeOf('rhs', 'NUMBER');
     this.type = 'BOOLEAN';
   }
 
@@ -887,7 +945,6 @@ Expression.classMap["greaterThanOrEqual"] = GreaterThanOrEqualExpression;
 // =====================================================================================
 // =====================================================================================
 
-
 export class InExpression extends BinaryExpression {
   static fromJS(parameters: ExpressionJS): InExpression {
     return new InExpression(BinaryExpression.jsToValue(parameters));
@@ -896,6 +953,15 @@ export class InExpression extends BinaryExpression {
   constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this._ensureOp("in");
+    var lhs = this.lhs;
+    var rhs = this.rhs;
+
+    if(!((lhs.canHaveType('CATEGORICAL') && rhs.canHaveType('STRING_SET'))
+      || (lhs.canHaveType('NUMERIC') && rhs.canHaveType('NUMERIC_RANGE'))
+      || (lhs.canHaveType('TIME') && rhs.canHaveType('TIME_RANGE')))) {
+      throw new TypeError('in expression has a bad type combo');
+    }
+
     this.type = 'BOOLEAN';
   }
 
@@ -919,7 +985,6 @@ Expression.classMap["in"] = InExpression;
 // =====================================================================================
 // =====================================================================================
 
-
 export class MatchExpression extends UnaryExpression {
   static fromJS(parameters: ExpressionJS): MatchExpression {
     var value = UnaryExpression.jsToValue(parameters);
@@ -933,6 +998,7 @@ export class MatchExpression extends UnaryExpression {
     super(parameters, dummyObject);
     this.regexp = parameters.regexp;
     this._ensureOp("match");
+    this._checkTypeOfOperand('STRING');
     this.type = 'BOOLEAN';
   }
 
@@ -982,7 +1048,7 @@ export class NotExpression extends UnaryExpression {
   constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this._ensureOp("not");
-    // ToDo: this._checkOperandType('BOOLEAN');
+    this._checkTypeOfOperand('BOOLEAN');
     this.type = 'BOOLEAN';
   }
 
@@ -1077,6 +1143,7 @@ export class AndExpression extends NaryExpression {
   constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this._ensureOp("and");
+    this._checkTypeOfOperands('BOOLEAN');
     this.type = 'BOOLEAN';
   }
 
@@ -1112,6 +1179,7 @@ export class OrExpression extends NaryExpression {
   constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this._ensureOp("or");
+    this._checkTypeOfOperands('BOOLEAN');
     this.type = 'BOOLEAN';
   }
 
@@ -1147,6 +1215,7 @@ export class AddExpression extends NaryExpression {
   constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this._ensureOp("add");
+    this._checkTypeOfOperands('NUMBER');
     this.type = 'NUMBER';
   }
 
@@ -1208,6 +1277,7 @@ export class MultiplyExpression extends NaryExpression {
   constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this._ensureOp("multiply");
+    this._checkTypeOfOperands('NUMBER');
     this.type = 'NUMBER';
   }
 
@@ -1255,7 +1325,7 @@ export class AggregateExpression extends UnaryExpression {
     this.fn = parameters.fn;
     this.attribute = parameters.attribute;
     this._ensureOp("aggregate");
-    // ToDo: add a this._checkOperandType(...) call (everywhere)
+    this._checkTypeOfOperand('DATASET');
     this.type = 'NUMBER'; // For now
     if (this.fn !== 'count' && !this.attribute) {
       throw new Error(this.fn + " aggregate must have an 'attribute'");
@@ -1321,6 +1391,7 @@ export class OffsetExpression extends UnaryExpression {
   constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this._ensureOp("offset");
+    this._checkTypeOfOperand('TYPE');
     this.type = 'TIME';
   }
 
@@ -1358,6 +1429,7 @@ export class ConcatExpression extends NaryExpression {
   constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this._ensureOp("concat");
+    this._checkTypeOfOperands('STRING');
     this.type = 'STRING';
   }
 
@@ -1387,7 +1459,6 @@ Expression.classMap["concat"] = ConcatExpression;
 // =====================================================================================
 // =====================================================================================
 
-
 export class RangeExpression extends BinaryExpression {
   static fromJS(parameters: ExpressionJS): RangeExpression {
     return new RangeExpression(BinaryExpression.jsToValue(parameters));
@@ -1396,6 +1467,13 @@ export class RangeExpression extends BinaryExpression {
   constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this._ensureOp("range");
+    var lhs = this.lhs;
+    var rhs = this.rhs;
+    if ((lhs.type === 'NUMBER' && rhs.canHaveType('NUMBER')) || (rhs.type === 'NUMBER' && lhs.canHaveType('NUMBER'))) {
+      this.type = 'NUMBER';
+    } else if ((lhs.type === 'TIME' && rhs.canHaveType('TIME')) || (rhs.type === 'TIME' && lhs.canHaveType('TIME'))) {
+      this.type = 'TIME';
+    }
   }
 
   public toString(): string {
@@ -1437,7 +1515,6 @@ Expression.classMap["range"] = RangeExpression;
 // =====================================================================================
 // =====================================================================================
 
-
 export class BucketExpression extends UnaryExpression {
   static fromJS(parameters: ExpressionJS): BucketExpression {
     return new BucketExpression(UnaryExpression.jsToValue(parameters));
@@ -1446,6 +1523,7 @@ export class BucketExpression extends UnaryExpression {
   constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this._ensureOp("bucket");
+    // ToDo: fill with type info?
   }
 
   public toString(): string {
@@ -1472,7 +1550,6 @@ Expression.classMap["bucket"] = BucketExpression;
 // =====================================================================================
 // =====================================================================================
 
-
 export class SplitExpression extends UnaryExpression {
   static fromJS(parameters: ExpressionJS): SplitExpression {
     var value = UnaryExpression.jsToValue(parameters);
@@ -1487,6 +1564,8 @@ export class SplitExpression extends UnaryExpression {
   constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this._ensureOp("split");
+    this._checkTypeOfOperand('DATASET');
+    this.type = 'DATASET';
   }
 
   public valueOf(): ExpressionValue {
@@ -1546,6 +1625,7 @@ export class ActionsExpression extends UnaryExpression {
     super(parameters, dummyObject);
     this.actions = parameters.actions;
     this._ensureOp("actions");
+    this._checkTypeOfOperand('DATASET');
     this.type = 'DATASET';
   }
 

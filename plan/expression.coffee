@@ -43,7 +43,7 @@ Expression {
   { op: 'lessThanOrEqual', lhs: NUMERIC, rhs: NUMERIC }
   { op: 'greaterThan', lhs: NUMERIC, rhs: NUMERIC }
   { op: 'greaterThanOrEqual', lhs: NUMERIC, rhs: NUMERIC }
-  { op: 'in', lhs: CATEGORICAL, rhs: CATEGORICAL_SET }
+  { op: 'in', lhs: CATEGORICAL, rhs: STRING_SET }
   { op: 'in', lhs: NUMERIC, rhs: NUMERIC_RANGE }
   { op: 'in', lhs: TIME, rhs: TIME_RANGE }
   { op: 'match', regexp: '^\d+', operand: CATEGORICAL }
@@ -85,7 +85,7 @@ Expression {
   { op: 'range', lhs: TIME, rhs: TIME }
   { op: 'bucket', operand: TIME, duration: 'P1D' }
 
-  #CATEGORICAL_SET
+  #STRING_SET
   { op: 'literal', value: ['Honda', 'BMW', 'Suzuki'] }
   { op: 'ref', name: 'authors', options?: NativeOptions }
 

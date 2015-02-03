@@ -280,11 +280,14 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
   // Compute
   public compute() {
     var deferred: Q.Deferred<Dataset> = <Q.Deferred<Dataset>>Q.defer();
+    // ToDo: typecheck the expression
     var simple = this.simplify();
     if (simple.op === 'literal') {
+      // If this is a literal then just resolve with its value
       deferred.resolve((<LiteralExpression>simple).value);
     } else {
       deferred.reject(new Error('can not handle that yet: ' + simple.op));
+      // ToDo: implement logic
     }
     return deferred.promise;
   }
@@ -421,7 +424,7 @@ export class BinaryExpression extends Expression {
   public equals(other: BinaryExpression): boolean {
     return super.equals(other) &&
       this.lhs.equals(other.lhs) &&
-      this.rhs.equals(other.rhs)
+      this.rhs.equals(other.rhs);
   }
 
   public getComplexity(): number {
@@ -465,7 +468,6 @@ export class BinaryExpression extends Expression {
 
 // =====================================================================================
 // =====================================================================================
-
 
 export class NaryExpression extends Expression {
   static jsToValue(parameters: ExpressionJS): ExpressionValue {
@@ -691,7 +693,6 @@ Expression.classMap["ref"] = RefExpression;
 // =====================================================================================
 // =====================================================================================
 
-
 export class IsExpression extends BinaryExpression {
   static fromJS(parameters: ExpressionJS): IsExpression {
     return new IsExpression(BinaryExpression.jsToValue(parameters));
@@ -723,6 +724,7 @@ export class IsExpression extends BinaryExpression {
 }
 
 Expression.classMap["is"] = IsExpression;
+
 // =====================================================================================
 // =====================================================================================
 
@@ -785,9 +787,9 @@ export class LessThanOrEqualExpression extends BinaryExpression {
 }
 
 Expression.classMap["lessThanOrEqual"] = LessThanOrEqualExpression;
-// =====================================================================================
-// =====================================================================================
 
+// =====================================================================================
+// =====================================================================================
 
 export class GreaterThanExpression extends BinaryExpression {
   static fromJS(parameters: ExpressionJS): GreaterThanExpression {
@@ -971,7 +973,7 @@ export class NotExpression extends UnaryExpression {
   }
 
   public simplify(): Expression {
-    return this // ToDo: handle not(not(*)) => *
+    return this; // ToDo: handle not(not(*)) => *
   }
 
   protected _makeFn(operandFn: Function): Function {
@@ -1257,7 +1259,7 @@ export class AggregateExpression extends UnaryExpression {
     // ToDo: add a this._checkOperandType(...) call (everywhere)
     this.type = 'NUMBER'; // For now
     if (this.fn !== 'count' && !this.attribute) {
-      throw new Error("non 'count' aggregates must have an 'attribute'");
+      throw new Error(this.fn + " aggregate must have an 'attribute'");
     }
   }
 

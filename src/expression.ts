@@ -168,6 +168,10 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
     return this;
   }
 
+  public isOp(op: string): boolean {
+    return this.op === op;
+  }
+
   public getFn(): Function {
     throw new Error('should never be called directly');
   }
@@ -291,8 +295,7 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
     var deferred: Q.Deferred<Dataset> = <Q.Deferred<Dataset>>Q.defer();
     // ToDo: typecheck2 the expression
     var simple = this.simplify();
-    if (simple.op === 'literal') {
-      // If this is a literal then just resolve with its value
+    if (simple.isOp('literal')) {
       deferred.resolve((<LiteralExpression>simple).value);
     } else {
       deferred.reject(new Error('can not handle that yet: ' + simple.op));
@@ -351,7 +354,7 @@ export class UnaryExpression extends Expression {
   public simplify(): Expression {
     var simplifiedOperand = this.operand.simplify();
 
-    if (simplifiedOperand.op === 'literal') {
+    if (simplifiedOperand.isOp('literal')) {
       return new LiteralExpression({
         op: 'literal',
         value: this._makeFn(simplifiedOperand.getFn())()
@@ -444,7 +447,7 @@ export class BinaryExpression extends Expression {
     var simplifiedLhs = this.lhs.simplify();
     var simplifiedRhs = this.rhs.simplify();
 
-    if (simplifiedLhs.op === 'literal' && simplifiedRhs.op === 'literal') {
+    if (simplifiedLhs.isOp('literal') && simplifiedRhs.isOp('literal')) {
       return new LiteralExpression({
         op: 'literal',
         value: this._makeFn(simplifiedLhs.getFn(), simplifiedRhs.getFn())()
@@ -533,17 +536,21 @@ export class NaryExpression extends Expression {
 
   public simplify(): Expression {
     var simplifiedOperands = this.operands.map((operand) => operand.simplify());
+    var literalOperands = simplifiedOperands.filter((operand) => operand.isOp('literal'));
+    var nonLiteralOperands = simplifiedOperands.filter((operand) => !operand.isOp('literal'));
+    var literalExpression = new LiteralExpression({
+      op: 'literal',
+      value: this._makeFn(literalOperands.map((operand) => operand.getFn()))()
+    });
 
-    if (simplifiedOperands.every((operand) => operand.op === 'literal')) {
-      return new LiteralExpression({
-        op: 'literal',
-        value: this._makeFn(simplifiedOperands.map((operand) => operand.getFn()))()
-      })
+    if (nonLiteralOperands.length) {
+      nonLiteralOperands.push(literalExpression);
+      var value = this.valueOf();
+      value.operands = nonLiteralOperands;
+      return new (Expression.classMap[this.op])(value);
+    } else {
+      return literalExpression
     }
-
-    var value = this.valueOf();
-    value.operands = simplifiedOperands;
-    return new (Expression.classMap[this.op])(value);
   }
 
   protected _makeFn(operandFns: Function[]): Function {
@@ -983,10 +990,6 @@ export class NotExpression extends UnaryExpression {
     return 'not(' + this.operand.toString() + ')';
   }
 
-  public simplify(): Expression {
-    return this; // ToDo: handle not(not(*)) => *
-  }
-
   protected _makeFn(operandFn: Function): Function {
     return (d: Datum) => !operandFn(d);
   }
@@ -1019,7 +1022,7 @@ export class AndExpression extends NaryExpression {
   }
 
   public simplify(): Expression {
-    return this
+    return this //TODO
   }
 
   protected _makeFn(operandFns: Function[]): Function {
@@ -1054,7 +1057,7 @@ export class OrExpression extends NaryExpression {
   }
 
   public simplify(): Expression {
-    return this
+    return this //TODO
   }
 
   protected _makeFn(operandFns: Function[]): Function {
@@ -1093,7 +1096,7 @@ export class AddExpression extends NaryExpression {
     var literalValue: number = 0;
     for (var i = 0; i < this.operands.length; i++) {
       var simplifiedOperand: Expression = this.operands[i].simplify();
-      if (simplifiedOperand.op === 'literal') {
+      if (simplifiedOperand.isOp('literal')) {
         literalValue += (<LiteralExpression>simplifiedOperand).value;
       } else {
         newOperands.push(simplifiedOperand);
@@ -1134,7 +1137,7 @@ Expression.classMap["add"] = AddExpression;
 // =====================================================================================
 // =====================================================================================
 
-export class SubtractExpression extends NaryExpression {
+export class SubtractExpression extends NaryExpression { //TODO: Turn it into NegateExpression and update example.coffee
   static fromJS(parameters: ExpressionJS): SubtractExpression {
     return new SubtractExpression(NaryExpression.jsToValue(parameters));
   }
@@ -1147,6 +1150,53 @@ export class SubtractExpression extends NaryExpression {
 
   public toString(): string {
     return 'subtract(' + this.operands.map((operand) => operand.toString()) + ')';
+  }
+
+  public simplify(): Expression {
+    if (this.operands.length === 0) {
+      return new LiteralExpression({
+        op: 'literal',
+        value: 0
+      });
+    }
+
+    var firstOperand = this.operands[0].simplify();
+    var literalValue: number = 0;
+    var newOperands: Expression[] = [];
+
+    for (var i = 1; i < this.operands.length; i++) {
+      var simplifiedOperand: Expression = this.operands[i].simplify();
+      if (simplifiedOperand.isOp('literal')) {
+        literalValue += (<LiteralExpression>simplifiedOperand).value;
+      } else {
+        newOperands.push(simplifiedOperand);
+      }
+    }
+
+    if (firstOperand.isOp('literal')) {
+      literalValue -= (<LiteralExpression>firstOperand).value;
+      literalValue = -literalValue;
+      if (newOperands.length === 0) {
+        return new LiteralExpression({ op: 'literal', value: literalValue });
+      } else {
+        newOperands.unshift(new LiteralExpression({ op: 'literal', value: literalValue }));
+
+        return new SubtractExpression({
+          op: 'subtract',
+          operands: newOperands
+        })
+      }
+    } else {
+      newOperands.unshift(firstOperand)
+
+      if (literalValue) {
+        newOperands.push(new LiteralExpression({ op: 'literal', value: literalValue }));
+      }
+      return new SubtractExpression({
+        op: 'subtract',
+        operands: newOperands
+      })
+    }
   }
 
   protected _makeFn(operandFns: Function[]): Function {
@@ -1208,7 +1258,7 @@ Expression.classMap["multiply"] = MultiplyExpression;
 // =====================================================================================
 // =====================================================================================
 
-export class DivideExpression extends NaryExpression {
+export class DivideExpression extends NaryExpression { //TODO: Turn it into ReciprocalExpression and update example.coffee
   static fromJS(parameters: ExpressionJS): DivideExpression {
     return new DivideExpression(NaryExpression.jsToValue(parameters));
   }
@@ -1221,6 +1271,10 @@ export class DivideExpression extends NaryExpression {
 
   public toString(): string {
     return 'divide(' + this.operands.map((operand) => operand.toString()) + ')';
+  }
+
+  public simplify(): Expression {
+    return this //TODO
   }
 
   protected _makeFn(operandFns: Function[]): Function {
@@ -1303,6 +1357,10 @@ export class AggregateExpression extends UnaryExpression {
     return 'agg_' + this.fn + '(' + this.operand.toString() + ')';
   }
 
+  public simplify(): Expression {
+    return this //TODO
+  }
+
   protected _makeFn(operandFn: Function): Function {
     var fn = this.fn;
     var attributeFn = this.attribute ? this.attribute.getFn() : null;
@@ -1339,7 +1397,7 @@ export class OffsetExpression extends UnaryExpression {
   // ToDo: equals
 
   public simplify(): Expression {
-    return this
+    return this //ToDo
   }
 
   protected _makeFn(operandFn: Function): Function {
@@ -1373,6 +1431,10 @@ export class ConcatExpression extends NaryExpression {
     return 'concat(' + this.operands.map((operand) => operand.toString()) + ')';
   }
 
+  public simplify(): Expression {
+    return this //TODO
+  }
+
   protected _makeFn(operandFns: Function[]): Function {
     return (d: Datum) => {
       return operandFns.map((operandFn) => operandFn(d)).join('');
@@ -1404,6 +1466,10 @@ export class RangeExpression extends BinaryExpression {
 
   public toString(): string {
     return this.lhs.toString() + ' = ' + this.rhs.toString();
+  }
+
+  public simplify(): Expression {
+    return this //TODO
   }
 
   protected _makeFn(lhsFn: Function, rhsFn: Function): Function {
@@ -1453,7 +1519,7 @@ export class BucketExpression extends UnaryExpression {
   }
 
   public simplify(): Expression {
-    return this
+    return this //ToDo
   }
 
   protected _makeFn(operandFn: Function): Function {
@@ -1514,7 +1580,7 @@ export class SplitExpression extends UnaryExpression {
   }
 
   public simplify(): Expression {
-    return this
+    return this //ToDo
   }
 
   protected _makeFn(operandFn: Function): Function {
@@ -1574,6 +1640,10 @@ export class ActionsExpression extends UnaryExpression {
       if (!thisActions[i].equals(otherActions[i])) return false;
     }
     return true;
+  }
+
+  public simplify(): Expression {
+    return this //TODO
   }
 
   protected _makeFn(operandFn: Function): Function {

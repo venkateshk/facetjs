@@ -33,6 +33,10 @@ var possibleTypes: Lookup<number> = {
   'DATASET': 9
 };
 
+export interface SubstitutionFn {
+  (ex: Expression): Expression;
+}
+
 export interface ExpressionValue {
   op: string;
   type?: string;
@@ -181,12 +185,25 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
     return 1;
   }
 
+  public isOp(op: string): boolean {
+    return this.op === op;
+  }
+
+
   public simplify(): Expression {
     return this;
   }
 
-  public isOp(op: string): boolean {
-    return this.op === op;
+  /**
+   * Performs a substitution by recursively applying the given substitutionFn to every sub-expression
+   * if substitutionFn returns an expression than it is replaced; if null is returned no action is taken.
+   *
+   * @param substitutionFn
+   */
+  public substitute(substitutionFn: SubstitutionFn): Expression {
+    var sub = substitutionFn(this);
+    if (sub) return sub;
+    return this;
   }
 
   public getFn(): Function {
@@ -383,6 +400,16 @@ export class UnaryExpression extends Expression {
     return new (Expression.classMap[this.op])(value);
   }
 
+  public substitute(substitutionFn: SubstitutionFn): Expression {
+    var sub = substitutionFn(this);
+    if (sub) return sub;
+    var subOperand = this.operand.substitute(substitutionFn);
+    if (this.operand === subOperand) return this;
+    var value = this.valueOf();
+    value.operand = subOperand;
+    return new (Expression.classMap[this.op])(value);
+  }
+
   protected _makeFn(operandFn: Function): Function {
     throw new Error("should never be called directly");
   }
@@ -480,6 +507,18 @@ export class BinaryExpression extends Expression {
     var value = this.valueOf();
     value.lhs = simplifiedLhs;
     value.rhs = simplifiedRhs;
+    return new (Expression.classMap[this.op])(value);
+  }
+
+  public substitute(substitutionFn: SubstitutionFn): Expression {
+    var sub = substitutionFn(this);
+    if (sub) return sub;
+    var subLhs = this.lhs.substitute(substitutionFn);
+    var subRhs = this.rhs.substitute(substitutionFn);
+    if (this.lhs === subLhs && this.rhs === subRhs) return this;
+    var value = this.valueOf();
+    value.lhs = subLhs;
+    value.rhs = subRhs;
     return new (Expression.classMap[this.op])(value);
   }
 
@@ -581,6 +620,16 @@ export class NaryExpression extends Expression {
     } else {
       return literalExpression
     }
+  }
+
+  public substitute(substitutionFn: SubstitutionFn): Expression {
+    var sub = substitutionFn(this);
+    if (sub) return sub;
+    var subOperands = this.operands.map((operand) => operand.substitute(substitutionFn));
+    if (this.operands.every((op, i) => op === subOperands[i])) return this;
+    var value = this.valueOf();
+    value.operands = subOperands;
+    return new (Expression.classMap[this.op])(value);
   }
 
   protected _makeFn(operandFns: Function[]): Function {

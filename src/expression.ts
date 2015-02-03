@@ -195,6 +195,13 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
     });
   }
 
+  /**
+   * Apply some expression to the dataset
+   *
+   * @param name The name of the...
+   * @param ex
+   * @returns {Expression}
+   */
   public apply(name: string, ex: any): Expression {
     if (!Expression.isExpression(ex)) ex = Expression.fromJSLoose(ex);
     return this._performAction(new ApplyAction({ name: name, expression: ex }));
@@ -235,6 +242,8 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
 
   public count() { return this._performAggregate('count', null); }
   public sum(attr: any) { return this._performAggregate('count', attr); }
+  public min(attr: any) { return this._performAggregate('min', attr); }
+  public max(attr: any) { return this._performAggregate('max', attr); }
   // ToDo: more...
 
   // Split
@@ -280,7 +289,7 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
   // Compute
   public compute() {
     var deferred: Q.Deferred<Dataset> = <Q.Deferred<Dataset>>Q.defer();
-    // ToDo: typecheck the expression
+    // ToDo: typecheck2 the expression
     var simple = this.simplify();
     if (simple.op === 'literal') {
       // If this is a literal then just resolve with its value
@@ -584,6 +593,7 @@ export class LiteralExpression extends Expression {
     } else {
       this.type = typeofValue.toUpperCase();
     }
+    // ToDo: support date!!
   }
 
   public valueOf(): ExpressionValue {
@@ -965,6 +975,7 @@ export class NotExpression extends UnaryExpression {
   constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this._ensureOp("not");
+    // ToDo: this._checkOperandType('BOOLEAN');
     this.type = 'BOOLEAN';
   }
 

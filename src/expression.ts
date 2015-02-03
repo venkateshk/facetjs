@@ -178,7 +178,7 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
   }
 
   public canHaveType(wantedType: string): boolean {
-    return !this.type || this.type === wantedType;
+    return !this.type || this.type !== wantedType;
   }
 
   public getComplexity(): number {
@@ -1392,7 +1392,9 @@ export class AggregateExpression extends UnaryExpression {
 
   public toJS(): ExpressionJS {
     var js = super.toJS();
-    js.fn = this.fn;
+    if (this.fn) {
+      js.fn = this.fn;
+    }
     if (this.attribute) {
       js.attribute = this.attribute.toJS();
     }
@@ -1410,8 +1412,15 @@ export class AggregateExpression extends UnaryExpression {
     return 'agg_' + this.fn + '(' + this.operand.toString() + ')';
   }
 
+  public getComplexity(): number {
+    return 1 + this.operand.getComplexity() + this.attribute.getComplexity();
+  }
+
   public simplify(): Expression {
-    return this //TODO
+    var value = this.valueOf();
+    value.operand = this.operand.simplify();
+    value.attribute = this.attribute.simplify();
+    return new AggregateExpression(value)
   }
 
   protected _makeFn(operandFn: Function): Function {

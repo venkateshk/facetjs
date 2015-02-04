@@ -290,6 +290,7 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
 
   // Expression constructors (Binary)
   protected _performBinaryExpression(newValue: ExpressionValue, otherEx: any): Expression {
+    if (typeof otherEx === 'undefined') new Error('must have argument');
     if (!Expression.isExpression(otherEx)) otherEx = Expression.fromJSLoose(otherEx);
     newValue.lhs = this;
     newValue.rhs = otherEx;
@@ -304,6 +305,7 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
 
   // Expression constructors (Nary)
   protected _performNaryExpression(newValue: ExpressionValue, otherExs: any[]): Expression {
+    if (!otherExs.length) throw new Error('must have at least one argument');
     for (var i = 0; i < otherExs.length; i++) {
       var otherEx = otherExs[i];
       if (Expression.isExpression(otherEx)) continue;
@@ -314,9 +316,34 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
   }
 
   public add(...exs: any[]) { return this._performNaryExpression({ op: 'add' }, exs); }
-  public subtract(...exs: any[]) { return this._performNaryExpression({ op: 'subtract' }, exs); }
+  public subtract(...exs: any[]) {
+    if (!exs.length) throw new Error('must have at least one argument');
+    for (var i = 0; i < exs.length; i++) {
+      var ex = exs[i];
+      if (Expression.isExpression(ex)) continue;
+      exs[i] = Expression.fromJSLoose(ex);
+    }
+    var newExpression: Expression = exs.length === 1 ? exs[0] : new AddExpression({ op: 'add', operands: exs });
+    return this._performNaryExpression(
+      { op: 'add' },
+      [new NegateExpression({ op: 'negate', operand: newExpression})]
+    );
+  }
+
   public multiply(...exs: any[]) { return this._performNaryExpression({ op: 'multiply' }, exs); }
-  public divide(...exs: any[]) { return this._performNaryExpression({ op: 'divide' }, exs); }
+  public divide(...exs: any[]) {
+    if (!exs.length) throw new Error('must have at least one argument');
+    for (var i = 0; i < exs.length; i++) {
+      var ex = exs[i];
+      if (Expression.isExpression(ex)) continue;
+      exs[i] = Expression.fromJSLoose(ex);
+    }
+    var newExpression: Expression = exs.length === 1 ? exs[0] : new MultiplyExpression({ op: 'add', operands: exs });
+    return this._performNaryExpression(
+      { op: 'add' },
+      [new ReciprocateExpression({ op: 'reciprocate', operand: newExpression})]
+    );
+  }
 
   // Compute
   public compute() {
@@ -949,7 +976,6 @@ Expression.register(GreaterThanExpression);
 // =====================================================================================
 // =====================================================================================
 
-
 export class GreaterThanOrEqualExpression extends BinaryExpression {
   static fromJS(parameters: ExpressionJS): GreaterThanOrEqualExpression {
     return new GreaterThanOrEqualExpression(BinaryExpression.jsToValue(parameters));
@@ -1135,7 +1161,7 @@ export class AndExpression extends NaryExpression {
   }
 
   public simplify(): Expression {
-    return this //TODO
+    return this; //TODO
   }
 
   protected _makeFn(operandFns: Function[]): Function {

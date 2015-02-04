@@ -1518,6 +1518,10 @@ export class NumberBucketExpression extends UnaryExpression {
     return 'numberBucket(' + this.operand.toString() + ')';
   }
 
+  public simplify(): Expression {
+    return this //TODO
+  }
+
   protected _makeFn(operandFn: Function): Function {
     throw new Error("implement me");
   }
@@ -1624,6 +1628,10 @@ export class TimeBucketExpression extends UnaryExpression {
 
   public toString(): string {
     return 'timeBucket(' + this.operand.toString() + ')';
+  }
+
+  public simplify(): Expression {
+    return this //TODO
   }
 
   protected _makeFn(operandFn: Function): Function {

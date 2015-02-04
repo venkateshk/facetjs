@@ -30,13 +30,17 @@ describe "Expression", ->
       #{ op: 'literal', value: ['Honda', 'BMW', 'Suzuki'] }
       #{ op: 'literal', value: [0.05, 0.1] }
       { op: 'literal', value: null }
+
       { op: 'ref', name: 'authors' }
       { op: 'ref', name: 'flight_time' }
       { op: 'ref', name: 'is_robot' }
       { op: 'ref', name: 'revenue' }
       { op: 'ref', name: 'revenue_range' }
       { op: 'ref', name: 'timestamp' }
-      #{ op: 'ref', type: 'categorical', name: 'make' }
+      { op: 'ref', name: '^timestamp' }
+      { op: 'ref', name: '^^timestamp' }
+      { op: 'ref', type: 'STRING', name: 'make' }
+
       { op: 'is', lhs: { op: 'literal', value: 5 }, rhs: { op: 'literal', value: 5 } }
       { op: 'is', lhs: { op: 'literal', value: 5 }, rhs: { op: 'ref', name: 'flight_time' } }
       { op: 'lessThan', lhs: { op: 'literal', value: 5 }, rhs: { op: 'literal', value: 5 } }
@@ -52,12 +56,15 @@ describe "Expression", ->
       { op: 'not', operand: { op: 'literal', value: true } }
       { op: 'and', operands: [{ op: 'literal', value: true }, { op: 'literal', value: false }, { op: 'literal', value: false }] }
       { op: 'or', operands: [{ op: 'literal', value: true }, { op: 'literal', value: false }, { op: 'literal', value: false }] }
+
       { op: 'add', operands: [{ op: 'literal', value: 5 }, { op: 'literal', value: -12 }, { op: 'literal', value: 0.4 }] }
-      { op: 'subtract', operands: [{ op: 'literal', value: 5 }, { op: 'literal', value: -12 }, { op: 'literal', value: 0.4 }] }
+      { op: 'negate', operand: { op: 'literal', value: 5 } }
       { op: 'multiply', operands: [{ op: 'literal', value: 5 }, { op: 'literal', value: -12 }, { op: 'literal', value: 0.4 }] }
-      { op: 'divide', operands: [{ op: 'literal', value: 5 }, { op: 'literal', value: -12 }, { op: 'literal', value: 0.4 }] }
+      { op: 'reciprocate', operand: { op: 'literal', value: 5 } }
+      { op: 'numberRange', lhs: { op: 'literal', value: 5 }, rhs: { op: 'literal', value: 7 } }
+
       { op: 'concat', operands: [{ op: 'literal', value: 'Honda' }, { op: 'literal', value: 'BMW' }, { op: 'literal', value: 'Suzuki' } ]}
-      { op: 'range', lhs: { op: 'literal', value: 5 }, rhs: { op: 'literal', value: 5 } }
+
       { op: 'actions', operand: { op: 'ref', name: 'diamonds' }, actions: [ { action: 'apply', name: 'five', expression: { op: 'literal', value: 5 } } ] }
     ], {
       newThrows: true

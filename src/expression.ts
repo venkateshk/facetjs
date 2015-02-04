@@ -1121,69 +1121,6 @@ Expression.classMap["not"] = NotExpression;
 // =====================================================================================
 // =====================================================================================
 
-export class NegateExpression extends UnaryExpression {
-  static fromJS(parameters: ExpressionJS): NegateExpression {
-    return new NegateExpression(UnaryExpression.jsToValue(parameters));
-  }
-
-  constructor(parameters: ExpressionValue) {
-    super(parameters, dummyObject);
-    this._ensureOp("negate");
-    this.type = 'NUMBER';
-  }
-
-  public toString(): string {
-    return 'negate(' + this.operand.toString() + ')';
-  }
-
-  protected _makeFn(operandFn: Function): Function {
-    return (d: Datum) => -operandFn(d);
-  }
-
-  protected _makeFnJS(operandFnJS: string): string {
-    return "-(" + operandFnJS + ")"
-  }
-
-  // UNARY
-}
-
-Expression.classMap["negate"] = NegateExpression;
-
-// =====================================================================================
-// =====================================================================================
-
-export class ReciprocalExpression extends UnaryExpression {
-  static fromJS(parameters: ExpressionJS): ReciprocalExpression {
-    return new ReciprocalExpression(UnaryExpression.jsToValue(parameters));
-  }
-
-  constructor(parameters: ExpressionValue) {
-    super(parameters, dummyObject);
-    this._ensureOp("reciprocal");
-    this.type = 'NUMBER';
-  }
-
-  public toString(): string {
-    return '1/(' + this.operand.toString() + ')';
-  }
-
-  protected _makeFn(operandFn: Function): Function {
-    return (d: Datum) => 1/operandFn(d);
-  }
-
-  protected _makeFnJS(operandFnJS: string): string {
-    return "1/(" + operandFnJS + ")"
-  }
-
-  // UNARY
-}
-
-Expression.classMap["reciprocal"] = ReciprocalExpression;
-
-// =====================================================================================
-// =====================================================================================
-
-
 export class AndExpression extends NaryExpression {
   static fromJS(parameters: ExpressionJS): AndExpression {
     return new AndExpression(NaryExpression.jsToValue(parameters));
@@ -1315,6 +1252,38 @@ export class AddExpression extends NaryExpression {
 }
 
 Expression.classMap["add"] = AddExpression;
+
+// =====================================================================================
+// =====================================================================================
+
+export class NegateExpression extends UnaryExpression {
+  static fromJS(parameters: ExpressionJS): NegateExpression {
+    return new NegateExpression(UnaryExpression.jsToValue(parameters));
+  }
+
+  constructor(parameters: ExpressionValue) {
+    super(parameters, dummyObject);
+    this._ensureOp("negate");
+    this.type = 'NUMBER';
+  }
+
+  public toString(): string {
+    return 'negate(' + this.operand.toString() + ')';
+  }
+
+  protected _makeFn(operandFn: Function): Function {
+    return (d: Datum) => -operandFn(d);
+  }
+
+  protected _makeFnJS(operandFnJS: string): string {
+    return "-(" + operandFnJS + ")"
+  }
+
+  // UNARY
+}
+
+Expression.classMap["negate"] = NegateExpression;
+
 // =====================================================================================
 // =====================================================================================
 
@@ -1352,6 +1321,37 @@ export class MultiplyExpression extends NaryExpression {
 }
 
 Expression.classMap["multiply"] = MultiplyExpression;
+
+// =====================================================================================
+// =====================================================================================
+
+export class ReciprocateExpression extends UnaryExpression {
+  static fromJS(parameters: ExpressionJS): ReciprocateExpression {
+    return new ReciprocateExpression(UnaryExpression.jsToValue(parameters));
+  }
+
+  constructor(parameters: ExpressionValue) {
+    super(parameters, dummyObject);
+    this._ensureOp("reciprocate");
+    this.type = 'NUMBER';
+  }
+
+  public toString(): string {
+    return '1/(' + this.operand.toString() + ')';
+  }
+
+  protected _makeFn(operandFn: Function): Function {
+    return (d: Datum) => 1 / operandFn(d);
+  }
+
+  protected _makeFnJS(operandFnJS: string): string {
+    return "1/(" + operandFnJS + ")"
+  }
+
+  // UNARY
+}
+
+Expression.classMap["reciprocate"] = ReciprocateExpression;
 
 // =====================================================================================
 // =====================================================================================
@@ -1441,20 +1441,90 @@ Expression.classMap["aggregate"] = AggregateExpression;
 // =====================================================================================
 // =====================================================================================
 
-export class OffsetExpression extends UnaryExpression {
-  static fromJS(parameters: ExpressionJS): OffsetExpression {
-    return new OffsetExpression(UnaryExpression.jsToValue(parameters));
+export class NumberRangeExpression extends BinaryExpression {
+  static fromJS(parameters: ExpressionJS): NumberRangeExpression {
+    return new NumberRangeExpression(BinaryExpression.jsToValue(parameters));
   }
 
   constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
-    this._ensureOp("offset");
+    this._ensureOp("numberRange");
+    var lhs = this.lhs;
+    var rhs = this.rhs;
+    if (!((lhs.type === 'NUMBER' && rhs.canHaveType('NUMBER')) || (rhs.type === 'NUMBER' && lhs.canHaveType('NUMBER')))) {
+      throw new TypeError("unbalanced type attributes to numberRange");
+    }
+    this.type = 'NUMBER_RANGE';
+  }
+
+  public toString(): string {
+    return '[' + this.lhs.toString() + ', ' + this.rhs.toString() + ')';
+  }
+
+  protected _makeFn(lhsFn: Function, rhsFn: Function): Function {
+    return (d: Datum) => new NumberRange({
+      start: lhsFn(d),
+      end: rhsFn(d)
+    });
+  }
+
+  protected _makeFnJS(lhsFnJS: string, rhsFnJS: string): string {
+    throw new Error("implement me!");
+  }
+
+  // BINARY
+}
+
+Expression.classMap["numberRange"] = NumberRangeExpression;
+
+// =====================================================================================
+// =====================================================================================
+
+export class NumberBucketExpression extends UnaryExpression {
+  static fromJS(parameters: ExpressionJS): NumberBucketExpression {
+    return new NumberBucketExpression(UnaryExpression.jsToValue(parameters));
+  }
+
+  constructor(parameters: ExpressionValue) {
+    super(parameters, dummyObject);
+    this._ensureOp("numberBucket");
+    // ToDo: fill with type info?
+  }
+
+  public toString(): string {
+    return 'numberBucket(' + this.operand.toString() + ')';
+  }
+
+  protected _makeFn(operandFn: Function): Function {
+    throw new Error("implement me");
+  }
+
+  protected _makeFnJS(operandFnJS: string): string {
+    throw new Error("implement me");
+  }
+
+  // UNARY
+}
+
+Expression.classMap["numberBucket"] = NumberBucketExpression;
+
+// =====================================================================================
+// =====================================================================================
+
+export class TimeOffsetExpression extends UnaryExpression {
+  static fromJS(parameters: ExpressionJS): TimeOffsetExpression {
+    return new TimeOffsetExpression(UnaryExpression.jsToValue(parameters));
+  }
+
+  constructor(parameters: ExpressionValue) {
+    super(parameters, dummyObject);
+    this._ensureOp("timeOffset");
     this._checkTypeOfOperand('TYPE');
     this.type = 'TIME';
   }
 
   public toString(): string {
-    return 'offset(' + this.operand.toString() + ')';
+    return 'timeOffset(' + this.operand.toString() + ')';
   }
 
   // ToDo: equals
@@ -1474,7 +1544,77 @@ export class OffsetExpression extends UnaryExpression {
   // UNARY
 }
 
-Expression.classMap["offset"] = OffsetExpression;
+Expression.classMap["timeOffset"] = TimeOffsetExpression;
+
+// =====================================================================================
+// =====================================================================================
+
+export class TimeRangeExpression extends BinaryExpression {
+  static fromJS(parameters: ExpressionJS): TimeRangeExpression {
+    return new TimeRangeExpression(BinaryExpression.jsToValue(parameters));
+  }
+
+  constructor(parameters: ExpressionValue) {
+    super(parameters, dummyObject);
+    this._ensureOp("timeRange");
+    var lhs = this.lhs;
+    var rhs = this.rhs;
+    if (!((lhs.type === 'TIME' && rhs.canHaveType('TIME')) || (rhs.type === 'TIME' && lhs.canHaveType('TIME')))) {
+      throw new TypeError("unbalanced type attributes to timeRange");
+    }
+    this.type = 'TIME_RANGE';
+  }
+
+  public toString(): string {
+    return '[' + this.lhs.toString() + ', ' + this.rhs.toString() + ')';
+  }
+
+  protected _makeFn(lhsFn: Function, rhsFn: Function): Function {
+    return (d: Datum) => new TimeRange({
+      start: lhsFn(d),
+      end: rhsFn(d)
+    });
+  }
+
+  protected _makeFnJS(lhsFnJS: string, rhsFnJS: string): string {
+    throw new Error("implement me!");
+  }
+
+  // BINARY
+}
+
+Expression.classMap["timeRange"] = TimeRangeExpression;
+
+// =====================================================================================
+// =====================================================================================
+
+export class TimeBucketExpression extends UnaryExpression {
+  static fromJS(parameters: ExpressionJS): TimeBucketExpression {
+    return new TimeBucketExpression(UnaryExpression.jsToValue(parameters));
+  }
+
+  constructor(parameters: ExpressionValue) {
+    super(parameters, dummyObject);
+    this._ensureOp("timeBucket");
+    this.type = 'TIME_RANGE';
+  }
+
+  public toString(): string {
+    return 'timeBucket(' + this.operand.toString() + ')';
+  }
+
+  protected _makeFn(operandFn: Function): Function {
+    throw new Error("implement me");
+  }
+
+  protected _makeFnJS(operandFnJS: string): string {
+    throw new Error("implement me");
+  }
+
+  // UNARY
+}
+
+Expression.classMap["timeBucket"] = TimeBucketExpression;
 
 // =====================================================================================
 // =====================================================================================
@@ -1538,97 +1678,6 @@ export class ConcatExpression extends NaryExpression {
 }
 
 Expression.classMap["concat"] = ConcatExpression;
-
-// =====================================================================================
-// =====================================================================================
-
-export class RangeExpression extends BinaryExpression {
-  static fromJS(parameters: ExpressionJS): RangeExpression {
-    return new RangeExpression(BinaryExpression.jsToValue(parameters));
-  }
-
-  constructor(parameters: ExpressionValue) {
-    super(parameters, dummyObject);
-    this._ensureOp("range");
-    var lhs = this.lhs;
-    var rhs = this.rhs;
-    if ((lhs.type === 'NUMBER' && rhs.canHaveType('NUMBER')) || (rhs.type === 'NUMBER' && lhs.canHaveType('NUMBER'))) {
-      this.type = 'NUMBER';
-    } else if ((lhs.type === 'TIME' && rhs.canHaveType('TIME')) || (rhs.type === 'TIME' && lhs.canHaveType('TIME'))) {
-      this.type = 'TIME';
-    }
-  }
-
-  public toString(): string {
-    return this.lhs.toString() + ' = ' + this.rhs.toString();
-  }
-
-  public simplify(): Expression {
-    return this //TODO
-  }
-
-  protected _makeFn(lhsFn: Function, rhsFn: Function): Function {
-    switch (this.type) {
-      case 'NUMBER_RANGE':
-        return (d: Datum) => new NumberRange({
-          start: lhsFn(d),
-          end: rhsFn(d)
-        });
-
-      case 'TIME_RANGE':
-        return (d: Datum) => new TimeRange({
-          start: lhsFn(d),
-          end: rhsFn(d)
-        });
-
-      default:
-        throw new Error("must determine type first");
-    }
-  }
-
-  protected _makeFnJS(lhsFnJS: string, rhsFnJS: string): string {
-    throw new Error("implement me!");
-  }
-
-  // BINARY
-}
-
-Expression.classMap["range"] = RangeExpression;
-
-// =====================================================================================
-// =====================================================================================
-
-export class BucketExpression extends UnaryExpression {
-  static fromJS(parameters: ExpressionJS): BucketExpression {
-    return new BucketExpression(UnaryExpression.jsToValue(parameters));
-  }
-
-  constructor(parameters: ExpressionValue) {
-    super(parameters, dummyObject);
-    this._ensureOp("bucket");
-    // ToDo: fill with type info?
-  }
-
-  public toString(): string {
-    return 'bucket(' + this.operand.toString() + ')';
-  }
-
-  public simplify(): Expression {
-    return this //ToDo
-  }
-
-  protected _makeFn(operandFn: Function): Function {
-    throw new Error("implement me");
-  }
-
-  protected _makeFnJS(operandFnJS: string): string {
-    throw new Error("implement me");
-  }
-
-  // UNARY
-}
-
-Expression.classMap["bucket"] = BucketExpression;
 
 // =====================================================================================
 // =====================================================================================

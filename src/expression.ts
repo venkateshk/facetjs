@@ -110,7 +110,7 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
 
   static classMap: Lookup<typeof Expression> = {};
   static register(ex: typeof Expression): void {
-    var op = (<any>ex).name.replace('Expression', '').replace(/^\w/, (s: string) => s.toLocaleLowerCase());
+    var op = (<any>ex).name.replace('Expression', '').replace(/^\w/, (s: string) => s.toLowerCase());
     Expression.classMap[op] = ex;
   }
   static fromJS(expressionJS: ExpressionJS): Expression {
@@ -1747,8 +1747,16 @@ export class SplitExpression extends UnaryExpression {
       this.name === other.name;
   }
 
-  public simplify(): Expression {
-    return this //ToDo
+  public substitute(substitutionFn: SubstitutionFn): Expression {
+    var sub = substitutionFn(this);
+    if (sub) return sub;
+    var subOperand = this.operand.substitute(substitutionFn);
+    var subAttribute = this.attribute.substitute(substitutionFn);
+    if (this.operand === subOperand && this.attribute === subAttribute) return this;
+    var value = this.valueOf();
+    value.operand = subOperand;
+    value.attribute = subAttribute;
+    return new SplitExpression(value);
   }
 
   protected _makeFn(operandFn: Function): Function {
@@ -1811,8 +1819,16 @@ export class ActionsExpression extends UnaryExpression {
     return true;
   }
 
-  public simplify(): Expression {
-    return this //TODO
+  public substitute(substitutionFn: SubstitutionFn): Expression {
+    var sub = substitutionFn(this);
+    if (sub) return sub;
+    var subOperand = this.operand.substitute(substitutionFn);
+    var subActions = this.actions.map((action) => action.substitute(substitutionFn));
+    if (this.operand === subOperand && this.actions.every((action, i) => action === subActions[i])) return this;
+    var value = this.valueOf();
+    value.operand = subOperand;
+    value.actions = subActions;
+    return new ActionsExpression(value);
   }
 
   protected _makeFn(operandFn: Function): Function {
@@ -1889,6 +1905,10 @@ export class Action implements ImmutableInstance<ActionValue, ActionJS> {
   }
 
   static classMap: Lookup<typeof Action> = {};
+  static register(act: typeof Action): void {
+    var action = (<any>act).name.replace('Action', '').replace(/^\w/, (s: string) => s.toLowerCase());
+    Action.classMap[action] = act;
+  }
   static fromJS(actionJS: ActionJS): Action {
     if (!actionJS.hasOwnProperty("action")) {
       throw new Error("action must be defined");
@@ -1960,7 +1980,19 @@ export class Action implements ImmutableInstance<ActionValue, ActionJS> {
   }
 
   public simplify(): Action {
-    return this;
+    if (!this.expression) return this;
+    var value = this.valueOf();
+    value.expression = this.expression.simplify();
+    return new (Action.classMap[this.action])(value);
+  }
+
+  public substitute(substitutionFn: SubstitutionFn): Action {
+    if (!this.expression) return this;
+    var subExpression = this.expression.substitute(substitutionFn);
+    if (this.expression === subExpression) return this;
+    var value = this.valueOf();
+    value.expression = subExpression;
+    return new (Action.classMap[this.action])(value);
   }
 }
 checkAction = Action;
@@ -2007,7 +2039,7 @@ export class ApplyAction extends Action {
   }
 }
 
-Action.classMap["apply"] = ApplyAction;
+Action.register(ApplyAction);
 
 // =====================================================================================
 // =====================================================================================
@@ -2031,7 +2063,7 @@ export class FilterAction extends Action {
   }
 }
 
-Action.classMap["filter"] = FilterAction;
+Action.register(FilterAction);
 
 // =====================================================================================
 // =====================================================================================
@@ -2078,7 +2110,7 @@ export class SortAction extends Action {
   }
 }
 
-Action.classMap["sort"] = SortAction;
+Action.register(SortAction);
 
 // =====================================================================================
 // =====================================================================================
@@ -2121,4 +2153,4 @@ export class LimitAction extends Action {
   }
 }
 
-Action.classMap["limit"] = LimitAction;
+Action.register(LimitAction);

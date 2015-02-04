@@ -33,9 +33,6 @@ describe "Expression", ->
 
       { op: 'ref', name: 'authors' }
       { op: 'ref', name: 'flight_time' }
-      { op: 'ref', name: 'is_robot' }
-      { op: 'ref', name: 'revenue' }
-      { op: 'ref', name: 'revenue_range' }
       { op: 'ref', name: 'timestamp' }
       { op: 'ref', name: '^timestamp' }
       { op: 'ref', name: '^^timestamp' }
@@ -44,7 +41,7 @@ describe "Expression", ->
       { op: 'is', lhs: { op: 'literal', value: 5 }, rhs: { op: 'literal', value: 5 } }
       { op: 'is', lhs: { op: 'literal', value: 5 }, rhs: { op: 'ref', name: 'flight_time' } }
       { op: 'lessThan', lhs: { op: 'literal', value: 5 }, rhs: { op: 'literal', value: 5 } }
-      { op: 'lessThan', lhs: { op: 'literal', value: 5 }, rhs: { op: 'literal', value: 5 } }
+      { op: 'lessThan', lhs: { op: 'literal', value: 5 }, rhs: { op: 'literal', value: 6 } }
       { op: 'lessThanOrEqual', lhs: { op: 'literal', value: 5 }, rhs: { op: 'ref', name: 'flight_time' } }
       { op: 'greaterThan', lhs: { op: 'literal', value: 5 }, rhs: { op: 'literal', value: 5 } }
       { op: 'greaterThan', lhs: { op: 'literal', value: 5 }, rhs: { op: 'ref', name: 'flight_time' } }
@@ -111,23 +108,23 @@ describe "Expression", ->
       ).to.throw('must have a rhs')
 
 
-  describe.skip "#getFn", ->
+  describe "#getFn", ->
     it "works in a simple case of IS", ->
       ex = Expression.fromJS({
         op: 'is'
-        lhs: { op: 'ref', name: x }
+        lhs: { op: 'ref', name: 'x' }
         rhs: { op: 'literal', value: 8 }
       })
       exFn = ex.getFn()
       expect(exFn({x: 5})).to.equal(false)
-      expect(exFn({x: 8})).to.equal(false)
+      expect(exFn({x: 8})).to.equal(true)
 
     it "works in a simple case of addition", ->
       ex = Expression.fromJS({
-        op: 'addition'
+        op: 'add'
         operands: [
-          { op: 'ref', name: x }
-          { op: 'ref', name: y }
+          { op: 'ref', name: 'x' }
+          { op: 'ref', name: 'y' }
           { op: 'literal', value: 5 }
         ]
       })
@@ -136,7 +133,7 @@ describe "Expression", ->
       expect(exFn({x: 8, y: -3})).to.equal(10)
 
 
-  describe.skip "#simplify", ->
+  describe "#simplify", ->
     it "simplifies to literals", ->
       expect(Expression.fromJS({
         op: 'is'

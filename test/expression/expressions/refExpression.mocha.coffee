@@ -31,7 +31,7 @@ describe 'RefExpression', ->
     tests.complexityIs(1)
     tests.simplifiedExpressionIs({op: 'ref', name: 'revenue'})
 
-  describe 'RefExpression with numberical range', ->
+  describe 'RefExpression with numerical range', ->
     beforeEach ->
       this.expression = { op: 'ref', name: 'revenue_range' }
 
@@ -47,7 +47,7 @@ describe 'RefExpression', ->
 
   describe 'RefExpression with category', ->
     beforeEach ->
-      this.expression = { op: 'ref', type: 'categorical', name: 'make' }
+      this.expression = { op: 'ref', type: 'STRING', name: 'make' }
 
     tests.complexityIs(1)
     tests.simplifiedExpressionIs({op: 'ref', name: 'make'})

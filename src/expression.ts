@@ -55,13 +55,13 @@ export interface ExpressionJS {
   attribute?: ExpressionJS;
 }
 
+// Possible types: ['NULL', 'BOOLEAN', 'NUMBER', 'TIME', 'STRING', 'NUMBER_RANGE', 'TIME_RANGE', 'STRING_SET', 'DATASET']
+
 // =====================================================================================
 // =====================================================================================
 
 var check: ImmutableClass<ExpressionValue, ExpressionJS>;
 export class Expression implements ImmutableInstance<ExpressionValue, ExpressionJS> {
-  static types = ['NULL', 'BOOLEAN', 'NUMBER', 'TIME', 'STRING', 'NUMBER_RANGE', 'TIME_RANGE', 'STRING_SET', 'DATASET'];
-  static op = '';
   static isExpression(candidate: any): boolean {
     return isInstanceOf(candidate, Expression);
   }
@@ -110,7 +110,8 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
 
   static classMap: Lookup<typeof Expression> = {};
   static register(ex: typeof Expression): void {
-    Expression.classMap[ex.op] = ex;
+    var op = (<any>ex).name.replace('Expression', '').replace(/^\w/, (s: string) => s.toLocaleLowerCase());
+    Expression.classMap[op] = ex;
   }
   static fromJS(expressionJS: ExpressionJS): Expression {
     if (!expressionJS.hasOwnProperty("op")) {
@@ -148,16 +149,16 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
     }
   }
 
-  public valueOf(suppressType: boolean = false): ExpressionValue {
-    var value: ExpressionValue = { op: this.op };
-    if (this.type && !suppressType) value.type = this.type;
-    return value;
+  public valueOf(): ExpressionValue {
+    return {
+      op: this.op
+    };
   }
 
-  public toJS(suppressType: boolean = false): ExpressionJS {
-    var js: ExpressionJS = { op: this.op };
-    if (this.type && !suppressType) js.type = this.type;
-    return js;
+  public toJS(): ExpressionJS {
+    return {
+      op: this.op
+    };
   }
 
   public toJSON(): ExpressionJS {
@@ -656,8 +657,6 @@ export class NaryExpression extends Expression {
 // =====================================================================================
 
 export class LiteralExpression extends Expression {
-  static types = ['NULL', 'BOOLEAN', 'NUMBER', 'TIME', 'STRING', 'NUMBER_RANGE', 'TIME_RANGE', 'STRING_SET', 'DATASET'];
-  static op = 'literal';
   static fromJS(parameters: ExpressionJS): Expression {
     return new LiteralExpression(<any>parameters);
   }
@@ -693,12 +692,13 @@ export class LiteralExpression extends Expression {
   public valueOf(): ExpressionValue {
     var value = super.valueOf();
     value.value = this.value;
+    if (this.type) value.type = this.type;
     return value;
   }
 
   public toJS(): ExpressionJS {
     var js = super.toJS();
-    if (this.value.toJS) {
+    if (this.value && this.value.toJS) {
       js.value = this.value.toJS();
       js.type = this.type;
     } else {
@@ -732,8 +732,6 @@ Expression.register(LiteralExpression);
 // =====================================================================================
 
 export class RefExpression extends Expression {
-  static types = ['NULL', 'BOOLEAN', 'NUMBER', 'TIME', 'STRING', 'NUMBER_RANGE', 'TIME_RANGE', 'STRING_SET', 'DATASET'];
-  static op = 'ref';
   static fromJS(parameters: ExpressionJS): RefExpression {
     return new RefExpression(<any>parameters);
   }
@@ -754,17 +752,22 @@ export class RefExpression extends Expression {
     if (typeof this.name !== 'string' || this.name.length === 0) {
       throw new TypeError("must have a nonempty `name`");
     }
+    if (parameters.type) {
+      this.type = parameters.type;
+    }
   }
 
   public valueOf(): ExpressionValue {
     var value = super.valueOf();
     value.name = this.generations + this.name;
+    if (this.type) value.type = this.type;
     return value;
   }
 
   public toJS(): ExpressionJS {
     var js = super.toJS();
     js.name = this.generations + this.name;
+    if (this.type) js.type = this.type;
     return js;
   }
 
@@ -793,14 +796,12 @@ export class RefExpression extends Expression {
   }
 }
 
-Expression.classMap["ref"] = RefExpression;
+Expression.register(RefExpression);
 
 // =====================================================================================
 // =====================================================================================
 
 export class IsExpression extends BinaryExpression {
-  static types = ['BOOLEAN'];
-  static op = 'is';
   static fromJS(parameters: ExpressionJS): IsExpression {
     return new IsExpression(BinaryExpression.jsToValue(parameters));
   }
@@ -835,15 +836,13 @@ export class IsExpression extends BinaryExpression {
   // BINARY
 }
 
-Expression.classMap["is"] = IsExpression;
+Expression.register(IsExpression);
 
 // =====================================================================================
 // =====================================================================================
 
 
 export class LessThanExpression extends BinaryExpression {
-  static types = ['BOOLEAN'];
-  static op = 'lessThan';
   static fromJS(parameters: ExpressionJS): LessThanExpression {
     return new LessThanExpression(BinaryExpression.jsToValue(parameters));
   }
@@ -871,14 +870,12 @@ export class LessThanExpression extends BinaryExpression {
   // BINARY
 }
 
-Expression.classMap["lessThan"] = LessThanExpression;
+Expression.register(LessThanExpression);
 
 // =====================================================================================
 // =====================================================================================
 
 export class LessThanOrEqualExpression extends BinaryExpression {
-  static types = ['BOOLEAN'];
-  static op = 'lessThanOrEqual';
   static fromJS(parameters: ExpressionJS): LessThanOrEqualExpression {
     return new LessThanOrEqualExpression(BinaryExpression.jsToValue(parameters));
   }
@@ -906,7 +903,7 @@ export class LessThanOrEqualExpression extends BinaryExpression {
   // BINARY
 }
 
-Expression.classMap["lessThanOrEqual"] = LessThanOrEqualExpression;
+Expression.register(LessThanOrEqualExpression);
 
 // =====================================================================================
 // =====================================================================================
@@ -947,7 +944,7 @@ export class GreaterThanExpression extends BinaryExpression {
   // BINARY
 }
 
-Expression.classMap["greaterThan"] = GreaterThanExpression;
+Expression.register(GreaterThanExpression);
 
 // =====================================================================================
 // =====================================================================================
@@ -989,7 +986,7 @@ export class GreaterThanOrEqualExpression extends BinaryExpression {
   // BINARY
 }
 
-Expression.classMap["greaterThanOrEqual"] = GreaterThanOrEqualExpression;
+Expression.register(GreaterThanOrEqualExpression);
 
 // =====================================================================================
 // =====================================================================================
@@ -1029,7 +1026,7 @@ export class InExpression extends BinaryExpression {
   // BINARY
 }
 
-Expression.classMap["in"] = InExpression;
+Expression.register(InExpression);
 
 // =====================================================================================
 // =====================================================================================
@@ -1084,7 +1081,7 @@ export class MatchExpression extends UnaryExpression {
   // UNARY
 }
 
-Expression.classMap["match"] = MatchExpression;
+Expression.register(MatchExpression);
 
 // =====================================================================================
 // =====================================================================================
@@ -1116,7 +1113,7 @@ export class NotExpression extends UnaryExpression {
   // UNARY
 }
 
-Expression.classMap["not"] = NotExpression;
+Expression.register(NotExpression);
 
 // =====================================================================================
 // =====================================================================================
@@ -1152,7 +1149,7 @@ export class AndExpression extends NaryExpression {
   // NARY
 }
 
-Expression.classMap["and"] = AndExpression;
+Expression.register(AndExpression);
 
 // =====================================================================================
 // =====================================================================================
@@ -1188,7 +1185,7 @@ export class OrExpression extends NaryExpression {
   // NARY
 }
 
-Expression.classMap["or"] = OrExpression;
+Expression.register(OrExpression);
 
 // =====================================================================================
 // =====================================================================================
@@ -1251,7 +1248,7 @@ export class AddExpression extends NaryExpression {
   // NARY
 }
 
-Expression.classMap["add"] = AddExpression;
+Expression.register(AddExpression);
 
 // =====================================================================================
 // =====================================================================================
@@ -1282,7 +1279,7 @@ export class NegateExpression extends UnaryExpression {
   // UNARY
 }
 
-Expression.classMap["negate"] = NegateExpression;
+Expression.register(NegateExpression);
 
 // =====================================================================================
 // =====================================================================================
@@ -1320,7 +1317,7 @@ export class MultiplyExpression extends NaryExpression {
   // NARY
 }
 
-Expression.classMap["multiply"] = MultiplyExpression;
+Expression.register(MultiplyExpression);
 
 // =====================================================================================
 // =====================================================================================
@@ -1351,7 +1348,7 @@ export class ReciprocateExpression extends UnaryExpression {
   // UNARY
 }
 
-Expression.classMap["reciprocate"] = ReciprocateExpression;
+Expression.register(ReciprocateExpression);
 
 // =====================================================================================
 // =====================================================================================
@@ -1436,7 +1433,7 @@ export class AggregateExpression extends UnaryExpression {
   // UNARY
 }
 
-Expression.classMap["aggregate"] = AggregateExpression;
+Expression.register(AggregateExpression);
 
 // =====================================================================================
 // =====================================================================================
@@ -1475,7 +1472,7 @@ export class NumberRangeExpression extends BinaryExpression {
   // BINARY
 }
 
-Expression.classMap["numberRange"] = NumberRangeExpression;
+Expression.register(NumberRangeExpression);
 
 // =====================================================================================
 // =====================================================================================
@@ -1506,7 +1503,7 @@ export class NumberBucketExpression extends UnaryExpression {
   // UNARY
 }
 
-Expression.classMap["numberBucket"] = NumberBucketExpression;
+Expression.register(NumberBucketExpression);
 
 // =====================================================================================
 // =====================================================================================
@@ -1544,7 +1541,7 @@ export class TimeOffsetExpression extends UnaryExpression {
   // UNARY
 }
 
-Expression.classMap["timeOffset"] = TimeOffsetExpression;
+Expression.register(TimeOffsetExpression);
 
 // =====================================================================================
 // =====================================================================================
@@ -1583,7 +1580,7 @@ export class TimeRangeExpression extends BinaryExpression {
   // BINARY
 }
 
-Expression.classMap["timeRange"] = TimeRangeExpression;
+Expression.register(TimeRangeExpression);
 
 // =====================================================================================
 // =====================================================================================
@@ -1614,7 +1611,7 @@ export class TimeBucketExpression extends UnaryExpression {
   // UNARY
 }
 
-Expression.classMap["timeBucket"] = TimeBucketExpression;
+Expression.register(TimeBucketExpression);
 
 // =====================================================================================
 // =====================================================================================
@@ -1677,7 +1674,7 @@ export class ConcatExpression extends NaryExpression {
   // NARY
 }
 
-Expression.classMap["concat"] = ConcatExpression;
+Expression.register(ConcatExpression);
 
 // =====================================================================================
 // =====================================================================================
@@ -1739,7 +1736,7 @@ export class SplitExpression extends UnaryExpression {
   // UNARY
 }
 
-Expression.classMap["split"] = SplitExpression;
+Expression.register(SplitExpression);
 
 // =====================================================================================
 // =====================================================================================
@@ -1835,7 +1832,7 @@ export class ActionsExpression extends UnaryExpression {
   // UNARY
 }
 
-Expression.classMap["actions"] = ActionsExpression;
+Expression.register(ActionsExpression);
 
 // =====================================================================================
 // =====================================================================================

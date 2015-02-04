@@ -1718,8 +1718,12 @@ export class SplitExpression extends UnaryExpression {
 
   constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
+    this.attribute = parameters.attribute;
+    this.name = parameters.name;
     this._ensureOp("split");
     this._checkTypeOfOperand('DATASET');
+    if (!this.attribute) throw new Error('split must have attribute expression');
+    if (!this.name) throw new Error('split must have a name');
     this.type = 'DATASET';
   }
 
@@ -1760,7 +1764,9 @@ export class SplitExpression extends UnaryExpression {
   }
 
   protected _makeFn(operandFn: Function): Function {
-    throw new Error("implement me");
+    var attributeFn = this.attribute.getFn();
+    var name = this.name;
+    return (d: Datum) => operandFn(d).split(attributeFn, name);
   }
 
   protected _makeFnJS(operandFnJS: string): string {
@@ -1806,6 +1812,13 @@ export class ActionsExpression extends UnaryExpression {
 
   public toString(): string {
     return 'actions(' + this.operand.toString() + ')';
+  }
+
+  public simplify(): Expression {
+    var value = this.valueOf();
+    value.operand = this.operand.simplify();
+    value.actions = this.actions.map((action) => action.simplify());
+    return new ActionsExpression(value);
   }
 
   public equals(other: ActionsExpression): boolean {

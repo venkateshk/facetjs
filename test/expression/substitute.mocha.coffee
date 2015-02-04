@@ -3,7 +3,7 @@
 { Expression } = require('../../build/expression')
 
 describe "substitute", ->
-  it "should substitute on unbalanced IS", ->
+  it "should substitute on IS", ->
     ex = Expression.fromJS({
       op: 'is'
       lhs: 5
@@ -19,7 +19,6 @@ describe "substitute", ->
     expect(ex.substitute(subs).toJS()).to.deep.equal({
       "lhs": {
         "op": "literal"
-        "type": "NUMBER"
         "value": 15
       }
       "op": "is"
@@ -27,7 +26,6 @@ describe "substitute", ->
         "name": "hello"
         "op": "ref"
       }
-      "type": "BOOLEAN"
     })
 
 

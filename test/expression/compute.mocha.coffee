@@ -6,6 +6,14 @@
 describe "composition", ->
   facet = Expression.facet
 
+  data = [
+    { cut: 'Good',  price: 400 }
+    { cut: 'Good',  price: 300 }
+    { cut: 'Great', price: 124 }
+    { cut: 'Wow',   price: 160 }
+    { cut: 'Wow',   price: 100 }
+  ]
+
   it "works in uber-basic case", (done) ->
     ex = facet()
       .apply('five', 5)
@@ -45,27 +53,75 @@ describe "composition", ->
       done()
     ).done()
 
-  it "works with split", (done) ->
+  it "works with simple split", (done) ->
     ds = Dataset.fromJS({
       dataset: 'native'
-      data: [
-        { cut: 'Good',  price: 400 }
-        { cut: 'Good',  price: 300 }
-        { cut: 'Great', price: 124 }
-        { cut: 'Wow',   price: 160 }
-        { cut: 'Wow',   price: 100 }
-      ]
+      data: data
     })
 
-    ex = facet(ds)
-      .split('priceX2', facet('price').multiply(2))
+    ex = facet()
+      .apply('Data', facet(ds))
+      .apply('Cuts'
+        facet('Data').split('$cut', 'Cut')
+      )
 
     p = ex.compute()
     p.then((v) ->
       expect(v.toJS().data).to.deep.equal([
-        { cut: 'Good',  price: 400, priceX2: 800 }
-        { cut: 'Great', price: 124, priceX2: 248 }
-        { cut: 'Wow',   price: 160, priceX2: 320 }
+        {
+          "Data": {
+            "data": data
+            "dataset": "native"
+            "type": "DATASET"
+          }
+          "Cuts": {
+            "data": [
+              { "Cut": "Good" }
+              { "Cut": "Great" }
+              { "Cut": "Wow" }
+            ]
+            "dataset": "native"
+            "type": "DATASET"
+          }
+        }
+      ])
+      done()
+    ).done()
+
+  it "works with simple split and subData filter", (done) ->
+    ds = Dataset.fromJS({
+      dataset: 'native'
+      data: data
+    })
+
+    ex = facet()
+      .apply('Data', facet(ds))
+      .apply('Cuts'
+        facet('Data').split('$cut', 'Cut')
+          .apply('Data', facet('Data').filter(facet('cut').is('$^Cut')))
+      )
+
+    console.log("ex.toJS()", JSON.stringify(ex.toJS(), null, 2));
+    
+    p = ex.compute()
+    p.then((v) ->
+      expect(v.toJS().data).to.deep.equal([
+        {
+          "Data": {
+            "data": data
+            "dataset": "native"
+            "type": "DATASET"
+          }
+          "Cuts": {
+            "data": [
+              { "Cut": "Good" }
+              { "Cut": "Great" }
+              { "Cut": "Wow" }
+            ]
+            "dataset": "native"
+            "type": "DATASET"
+          }
+        }
       ])
       done()
     ).done()

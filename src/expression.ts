@@ -21,18 +21,6 @@ import TimeRange = DatatypeModule.TimeRange;
 export interface Dummy {}
 export var dummyObject: Dummy = {};
 
-var possibleTypes: Lookup<number> = {
-  'NULL': 1,
-  'BOOLEAN': 2,
-  'NUMBER': 3,
-  'TIME': 4,
-  'STRING': 5,
-  'NUMBER_RANGE': 6,
-  'TIME_RANGE': 7,
-  'STRING_SET': 8,
-  'DATASET': 9
-};
-
 export interface SubstitutionFn {
   (ex: Expression): Expression;
 }
@@ -72,6 +60,8 @@ export interface ExpressionJS {
 
 var check: ImmutableClass<ExpressionValue, ExpressionJS>;
 export class Expression implements ImmutableInstance<ExpressionValue, ExpressionJS> {
+  static types = ['NULL', 'BOOLEAN', 'NUMBER', 'TIME', 'STRING', 'NUMBER_RANGE', 'TIME_RANGE', 'STRING_SET', 'DATASET'];
+  static op = '';
   static isExpression(candidate: any): boolean {
     return isInstanceOf(candidate, Expression);
   }
@@ -119,6 +109,9 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
   }
 
   static classMap: Lookup<typeof Expression> = {};
+  static register(ex: typeof Expression): void {
+    Expression.classMap[ex.op] = ex;
+  }
   static fromJS(expressionJS: ExpressionJS): Expression {
     if (!expressionJS.hasOwnProperty("op")) {
       throw new Error("op must be defined");
@@ -663,6 +656,8 @@ export class NaryExpression extends Expression {
 // =====================================================================================
 
 export class LiteralExpression extends Expression {
+  static types = ['NULL', 'BOOLEAN', 'NUMBER', 'TIME', 'STRING', 'NUMBER_RANGE', 'TIME_RANGE', 'STRING_SET', 'DATASET'];
+  static op = 'literal';
   static fromJS(parameters: ExpressionJS): Expression {
     return new LiteralExpression(<any>parameters);
   }
@@ -688,8 +683,10 @@ export class LiteralExpression extends Expression {
         if (!this.type) throw new Error("can not have an object without a type");
       }
     } else {
+      if (typeofValue !== 'boolean' && typeofValue !== 'number' && typeofValue !== 'string') {
+        throw new TypeError('unsupported type literal type ' + typeofValue);
+      }
       this.type = typeofValue.toUpperCase();
-      if (!possibleTypes[this.type]) throw new TypeError('unsupported type ' + this.type)
     }
   }
 
@@ -729,12 +726,14 @@ export class LiteralExpression extends Expression {
   }
 }
 
-Expression.classMap["literal"] = LiteralExpression;
+Expression.register(LiteralExpression);
 
 // =====================================================================================
 // =====================================================================================
 
 export class RefExpression extends Expression {
+  static types = ['NULL', 'BOOLEAN', 'NUMBER', 'TIME', 'STRING', 'NUMBER_RANGE', 'TIME_RANGE', 'STRING_SET', 'DATASET'];
+  static op = 'ref';
   static fromJS(parameters: ExpressionJS): RefExpression {
     return new RefExpression(<any>parameters);
   }
@@ -744,7 +743,7 @@ export class RefExpression extends Expression {
 
   constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
-
+    this._ensureOp("ref");
     var match = parameters.name.match(/^(\^*)([a-z_]\w*)$/i);
     if (match) {
       this.generations = match[1];
@@ -752,13 +751,8 @@ export class RefExpression extends Expression {
     } else {
       throw new Error("invalid name '" + parameters.name + "'");
     }
-    this._ensureOp("ref");
     if (typeof this.name !== 'string' || this.name.length === 0) {
       throw new TypeError("must have a nonempty `name`");
-    }
-    if (parameters.type) {
-      this.type = parameters.type;
-      if (!possibleTypes[this.type]) throw new TypeError('unsupported type ' + this.type)
     }
   }
 
@@ -805,6 +799,8 @@ Expression.classMap["ref"] = RefExpression;
 // =====================================================================================
 
 export class IsExpression extends BinaryExpression {
+  static types = ['BOOLEAN'];
+  static op = 'is';
   static fromJS(parameters: ExpressionJS): IsExpression {
     return new IsExpression(BinaryExpression.jsToValue(parameters));
   }
@@ -846,6 +842,8 @@ Expression.classMap["is"] = IsExpression;
 
 
 export class LessThanExpression extends BinaryExpression {
+  static types = ['BOOLEAN'];
+  static op = 'lessThan';
   static fromJS(parameters: ExpressionJS): LessThanExpression {
     return new LessThanExpression(BinaryExpression.jsToValue(parameters));
   }
@@ -874,11 +872,13 @@ export class LessThanExpression extends BinaryExpression {
 }
 
 Expression.classMap["lessThan"] = LessThanExpression;
-// =====================================================================================
-// =====================================================================================
 
+// =====================================================================================
+// =====================================================================================
 
 export class LessThanOrEqualExpression extends BinaryExpression {
+  static types = ['BOOLEAN'];
+  static op = 'lessThanOrEqual';
   static fromJS(parameters: ExpressionJS): LessThanOrEqualExpression {
     return new LessThanOrEqualExpression(BinaryExpression.jsToValue(parameters));
   }

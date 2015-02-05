@@ -183,6 +183,12 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
     return this.op === op;
   }
 
+  /**
+   * Introspects self to look for all references expressions and returns the alphabetically sorted list of the references
+   */
+  public getReferences(): string[] {
+    throw new Error('please implement');
+  }
 
   public simplify(): Expression {
     return this;
@@ -421,6 +427,10 @@ export class UnaryExpression extends Expression {
     return new (Expression.classMap[this.op])(value);
   }
 
+  public getReferences(): string[] {
+    return this.operand.simplify().getReferences();
+  }
+
   public substitute(substitutionFn: SubstitutionFn): Expression {
     var sub = substitutionFn(this);
     if (sub) return sub;
@@ -464,13 +474,13 @@ export class BinaryExpression extends Expression {
     var value: ExpressionValue = {
       op: op
     };
-    if (parameters.lhs) {
+    if (typeof parameters.lhs !== 'undefined' && parameters.lhs !== null) {
       value.lhs = Expression.fromJSLoose(parameters.lhs);
     } else {
       throw new TypeError("must have a lhs");
     }
 
-    if (parameters.rhs) {
+    if (typeof parameters.rhs !== 'undefined' && parameters.rhs !== null) {
       value.rhs = Expression.fromJSLoose(parameters.rhs);
     } else {
       throw new TypeError("must have a rhs");
@@ -529,6 +539,10 @@ export class BinaryExpression extends Expression {
     value.lhs = simplifiedLhs;
     value.rhs = simplifiedRhs;
     return new (Expression.classMap[this.op])(value);
+  }
+
+  public getReferences(): string[] {
+    return Array.prototype.concat.call(this.lhs.simplify().getReferences(), this.rhs.simplify().getReferences()).sort();
   }
 
   public substitute(substitutionFn: SubstitutionFn): Expression {
@@ -643,6 +657,10 @@ export class NaryExpression extends Expression {
     }
   }
 
+  public getReferences(): string[] {
+    return Array.prototype.concat.apply([], this.operands.map((operand) => operand.simplify().getReferences())).sort();
+  }
+
   public substitute(substitutionFn: SubstitutionFn): Expression {
     var sub = substitutionFn(this);
     if (sub) return sub;
@@ -743,6 +761,10 @@ export class LiteralExpression extends Expression {
       this.value === other.value;
   }
 
+  public getReferences(): string[] {
+    return [];
+  }
+
   public getFn(): Function {
     var value = this.value;
     return () => value;
@@ -806,6 +828,10 @@ export class RefExpression extends Expression {
     return super.equals(other) &&
       this.name === other.name &&
       this.generations === other.generations;
+  }
+
+  public getReferences(): string[] {
+    return [this.toString()];
   }
 
   public getFn(): Function {
@@ -1149,6 +1175,68 @@ export class AndExpression extends NaryExpression {
     return new AndExpression(NaryExpression.jsToValue(parameters));
   }
 
+  static _mergeExpressions(expressions: Expression[]): Expression {
+    var expression: Expression = expressions[0];
+    if (expression.isOp('match') || // strings
+       (expression.isOp('in') && (<InExpression>expression).rhs.type === 'STRING') ||
+       (expression.isOp('is') && (<IsExpression>expression).rhs.type === 'STRING')) {
+
+      for (var i = 1; i < expressions.length; i++) {
+        switch (expression.op) {
+          case "is":
+            var expressionValue = (<LiteralExpression>(<BinaryExpression>expression).rhs).value;
+            var mergingExpressionValue = (<LiteralExpression>(<BinaryExpression>expressions[i]).rhs).value;
+            switch (expressions[i].op) {
+              case "is":
+                if (expressionValue !== mergingExpressionValue) {
+                  return new LiteralExpression({
+                    op: 'literal',
+                    value: false
+                  })
+                }
+                break;
+              case "in":
+                if (mergingExpressionValue.indexOf(expressionValue) === 0) {
+                  return new LiteralExpression({
+                    op: 'literal',
+                    value: false
+                  })
+                } else {
+                  expression = expressions[i];
+                }
+                break;
+
+              default:
+
+
+            }
+        }
+      }
+    } else if (
+      (expression.isOp('is') && (<InExpression>expression).rhs.type === 'NUMBER') ||
+      (expression.isOp('in') && (<InExpression>expression).lhs.type === 'NUMBER') ||
+      expression.isOp('lessThan') ||
+      expression.isOp('lessThanOrEqual') ||
+      expression.isOp('greaterThan') ||
+      expression.isOp('greaterThanOrEqual')
+    ) {
+
+    } else if (expression.isOp('literal')) {
+      if (expressions.every((expression) => expression.isOp('literal') && (<LiteralExpression>expression).value)) {
+        return new LiteralExpression({
+          op: 'literal',
+          value: true
+        });
+      } else {
+        return new LiteralExpression({
+          op: 'literal',
+          value: false
+        });
+      }
+    }
+    return expression;
+  }
+
   constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
     this._ensureOp("and");
@@ -1160,8 +1248,56 @@ export class AndExpression extends NaryExpression {
     return 'and(' + this.operands.map((operand) => operand.toString()) + ')';
   }
 
-  public simplify(): Expression {
-    return this; //TODO
+  public simplify(): Expression { //TODO
+    var simplifiedOperands: Expression[] = this.operands.map((operand) => operand.simplify());
+
+    var mergedSimplifiedOperands: Expression[] = [];
+    for (var i = 0; i < simplifiedOperands.length; i++) {
+      if (simplifiedOperands[i].isOp('and')) {
+        mergedSimplifiedOperands = mergedSimplifiedOperands.concat((<AndExpression>simplifiedOperands[i]).operands);
+      } else {
+        mergedSimplifiedOperands.push(simplifiedOperands[i]);
+      }
+    }
+
+    var groupedOperands: { [key: string]: Expression[]; } = {};
+
+    for (var j = 0; j < mergedSimplifiedOperands.length; j++) {
+      var thisOperand = mergedSimplifiedOperands[j];
+      var referenceGroup = thisOperand.getReferences().toString();
+
+      if (groupedOperands[referenceGroup]) {
+        groupedOperands[referenceGroup].push(thisOperand);
+      } else {
+        groupedOperands[referenceGroup] = [thisOperand];
+      }
+    }
+
+    var finalOperands: Expression[] = [];
+    var sortedReferenceGroups = Object.keys(groupedOperands).sort()
+    for (var k = 0; k < sortedReferenceGroups.length; k++) {
+      if (groupedOperands[sortedReferenceGroups[k]].length > 1) {
+        finalOperands.push(AndExpression._mergeExpressions(groupedOperands[sortedReferenceGroups[k]]));
+      } else {
+        finalOperands = finalOperands.concat(groupedOperands[sortedReferenceGroups[k]]);
+      }
+    }
+
+    if (finalOperands.some((operand) => operand.isOp('literal') && (<LiteralExpression>operand).value === false)) {
+      return new LiteralExpression({
+        op: 'literal',
+        value: false
+      });
+    }
+
+    if (finalOperands.length === 1) {
+      return finalOperands[0];
+    }
+
+    return new AndExpression({
+      op: 'and',
+      operands: finalOperands
+    });
   }
 
   protected _makeFn(operandFns: Function[]): Function {

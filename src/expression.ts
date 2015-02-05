@@ -352,6 +352,10 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
   }
 
   // Compute
+  public evaluate(context: Lookup<any> = null) {
+
+  }
+
   public compute() {
     var deferred: Q.Deferred<Dataset> = <Q.Deferred<Dataset>>Q.defer();
     // ToDo: typecheck2 the expression

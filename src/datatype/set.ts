@@ -83,7 +83,7 @@ export class Set implements ImmutableInstance<SetValue, SetJS> {
   }
 
   public union(other: Set): Set {
-    var ret: { [k: string]: boolean } = {}
+    var ret: { [k: string]: boolean } = {};
     for (var k in this.valueOf().values) ret[k] = true;
     for (var k in other.valueOf().values) ret[k] = true;
     return new Set({values: ret});

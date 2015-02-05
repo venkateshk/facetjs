@@ -88,7 +88,7 @@ describe "composition", ->
       done()
     ).done()
 
-  it "works with simple split and subData filter", (done) ->
+  it "works with simple split followed by some simple applies", (done) ->
     ds = Dataset.fromJS({
       dataset: 'native'
       data: data
@@ -98,10 +98,61 @@ describe "composition", ->
       .apply('Data', facet(ds))
       .apply('Cuts'
         facet('Data').split('$cut', 'Cut')
-          .apply('Data', facet('Data').filter(facet('cut').is('$^Cut')))
+          .apply('Six', 6)
+          .apply('Seven', facet('Six').add(1))
       )
 
-    console.log("ex.toJS()", JSON.stringify(ex.toJS(), null, 2));
+    #console.log("ex.toJS()", JSON.stringify(ex.toJS(), null, 2));
+
+    p = ex.compute()
+    p.then((v) ->
+      expect(v.toJS().data).to.deep.equal([
+        {
+          "Data": {
+            "data": data
+            "dataset": "native"
+            "type": "DATASET"
+          }
+          "Cuts": {
+            "data": [
+              {
+                "Cut": "Good"
+                "Six": 6
+                "Seven": 7
+              }
+              {
+                "Cut": "Great"
+                "Six": 6
+                "Seven": 7
+              }
+              {
+                "Cut": "Wow"
+                "Six": 6
+                "Seven": 7
+              }
+            ]
+            "dataset": "native"
+            "type": "DATASET"
+          }
+        }
+      ])
+      done()
+    ).done()
+
+  it.only "works with simple split and subData filter", (done) ->
+    ds = Dataset.fromJS({
+      dataset: 'native'
+      data: data
+    })
+
+    ex = facet()
+      .apply('Data', facet(ds))
+      .apply('Cuts'
+        facet('Data').split('$cut', 'Cut')
+          .apply('Data', facet('^Data').filter(facet('cut').is('$^Cut')))
+      )
+
+    #console.log("ex.toJS()", JSON.stringify(ex.toJS(), null, 2));
     
     p = ex.compute()
     p.then((v) ->

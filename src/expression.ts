@@ -22,7 +22,7 @@ export interface Dummy {}
 export var dummyObject: Dummy = {};
 
 export interface SubstitutionFn {
-  (ex: Expression): Expression;
+  (ex: Expression, genDiff: number): Expression;
 }
 
 export interface ExpressionValue {
@@ -61,11 +61,25 @@ export interface ExpressionJS {
 // =====================================================================================
 
 var check: ImmutableClass<ExpressionValue, ExpressionJS>;
+
+/**
+ * Provides a way to express arithmetic operations, aggregations and database opperators.
+ * This class is the backbone of facetjs
+ */
 export class Expression implements ImmutableInstance<ExpressionValue, ExpressionJS> {
   static isExpression(candidate: any): boolean {
     return isInstanceOf(candidate, Expression);
   }
 
+  /**
+   * The expression starter function. Performs differnet operations depending on the type and value of the input
+   * facet() produces a native dataset with a singleton empty datum inside of it. This is usefule to descrive the base container
+   * fadet('blah') produces an reference lookup expression on 'blah'
+   * facet(driver) produces a remote dataset accessible via the driver
+   *
+   * @param input The input that can be nothing, a string, or a driver
+   * @returns {Expression}
+   */
   static facet(input: any = null): Expression {
     if (input) {
       if (typeof input === 'string') {
@@ -81,6 +95,12 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
     }
   }
 
+  /**
+   * Deserializes or parses an expression
+   *
+   * @param param The expression to parse
+   * @returns {Expression}
+   */
   static fromJSLoose(param: any): Expression {
     var expressionJS: ExpressionJS;
     // Quick parse simple expressions
@@ -113,6 +133,13 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
     var op = (<any>ex).name.replace('Expression', '').replace(/^\w/, (s: string) => s.toLowerCase());
     Expression.classMap[op] = ex;
   }
+
+  /**
+   * Deserializes the expression JSON
+   *
+   * @param expressionJS
+   * @returns {any}
+   */
   static fromJS(expressionJS: ExpressionJS): Expression {
     if (!expressionJS.hasOwnProperty("op")) {
       throw new Error("op must be defined");
@@ -155,30 +182,63 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
     };
   }
 
+  /**
+   * Serializes the expression into a simple JS object that can be passed to JSON.serialize
+   *
+   * @returns ExpressionJS
+   */
   public toJS(): ExpressionJS {
     return {
       op: this.op
     };
   }
 
+  /**
+   * Makes it safe to call JSON.serialize on expressions
+   *
+   * @returns ExpressionJS
+   */
   public toJSON(): ExpressionJS {
     return this.toJS();
   }
 
+  /**
+   * Validate that two expressions are equal in their meaning
+   *
+   * @param other
+   * @returns {boolean}
+   */
   public equals(other: Expression): boolean {
     return Expression.isExpression(other) &&
       this.op === other.op &&
       this.type === other.type;
   }
 
+  /**
+   * Check that the expression can potentially have the desired type
+   *
+   * @param wantedType
+   * @returns {boolean}
+   */
   public canHaveType(wantedType: string): boolean {
     return !this.type || this.type === wantedType;
   }
 
+  /**
+   * Compute the relative complexity of the expression
+   *
+   * @returns {number}
+   */
   public getComplexity(): number {
     return 1;
   }
 
+  /**
+   * Check if the expression has the given operation (op)
+   *
+   * @param op The operation to test
+   * @returns {boolean}
+   */
   public isOp(op: string): boolean {
     return this.op === op;
   }
@@ -190,6 +250,12 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
     throw new Error('please implement');
   }
 
+  /**
+   * Returns an expression that is equivalent but no more complex
+   * If no simplification can be done will return itself.
+   *
+   * @returns {Expression}
+   */
   public simplify(): Expression {
     return this;
   }
@@ -200,8 +266,8 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
    *
    * @param substitutionFn
    */
-  public substitute(substitutionFn: SubstitutionFn): Expression {
-    var sub = substitutionFn(this);
+  public substitute(substitutionFn: SubstitutionFn, genDiff: number): Expression {
+    var sub = substitutionFn(this, genDiff);
     if (sub) return sub;
     return this;
   }
@@ -234,10 +300,10 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
   }
 
   /**
-   * Apply some expression to the dataset
+   * Evaluate some expression on every datum in the dataset. Record the result as `name`
    *
-   * @param name The name of the...
-   * @param ex
+   * @param name The name of where to store the results
+   * @param ex The expression to evaluate
    * @returns {Expression}
    */
   public apply(name: string, ex: any): Expression {
@@ -245,11 +311,24 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
     return this._performAction(new ApplyAction({ name: name, expression: ex }));
   }
 
+  /**
+   * Filter the dataset with a boolean expression
+   * Only works on expressions that return DATASET
+   *
+   * @param ex A boolean expression to filter on
+   * @returns {Expression}
+   */
   public filter(ex: any): Expression {
     if (!Expression.isExpression(ex)) ex = Expression.fromJSLoose(ex);
     return this._performAction(new FilterAction({ expression: ex }));
   }
 
+  /**
+   *
+   * @param ex
+   * @param direction
+   * @returns {Expression}
+   */
   public sort(ex: any, direction: string): Expression {
     if (!Expression.isExpression(ex)) ex = Expression.fromJSLoose(ex);
     return this._performAction(new SortAction({ expression: ex, direction: direction }));
@@ -351,17 +430,14 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
     );
   }
 
-  // Compute
-  public evaluate(context: Lookup<any> = null) {
-
-  }
-
   public compute() {
     var deferred: Q.Deferred<Dataset> = <Q.Deferred<Dataset>>Q.defer();
     // ToDo: typecheck2 the expression
     var simple = this.simplify();
     if (simple.isOp('literal')) {
       deferred.resolve((<LiteralExpression>simple).value);
+    } else if (simple.isOp('actions')) {
+      deferred.resolve((<ActionsExpression>simple).evaluate());
     } else {
       deferred.reject(new Error('can not handle that yet: ' + simple.op));
       // ToDo: implement logic
@@ -432,13 +508,13 @@ export class UnaryExpression extends Expression {
   }
 
   public getReferences(): string[] {
-    return this.operand.simplify().getReferences();
+    return this.operand.getReferences();
   }
 
-  public substitute(substitutionFn: SubstitutionFn): Expression {
-    var sub = substitutionFn(this);
+  public substitute(substitutionFn: SubstitutionFn, genDiff: number): Expression {
+    var sub = substitutionFn(this, genDiff);
     if (sub) return sub;
-    var subOperand = this.operand.substitute(substitutionFn);
+    var subOperand = this.operand.substitute(substitutionFn, genDiff);
     if (this.operand === subOperand) return this;
     var value = this.valueOf();
     value.operand = subOperand;
@@ -546,14 +622,14 @@ export class BinaryExpression extends Expression {
   }
 
   public getReferences(): string[] {
-    return Array.prototype.concat.call(this.lhs.simplify().getReferences(), this.rhs.simplify().getReferences()).sort();
+    return this.lhs.getReferences().concat(this.rhs.getReferences()).sort();
   }
 
-  public substitute(substitutionFn: SubstitutionFn): Expression {
-    var sub = substitutionFn(this);
+  public substitute(substitutionFn: SubstitutionFn, genDiff: number): Expression {
+    var sub = substitutionFn(this, genDiff);
     if (sub) return sub;
-    var subLhs = this.lhs.substitute(substitutionFn);
-    var subRhs = this.rhs.substitute(substitutionFn);
+    var subLhs = this.lhs.substitute(substitutionFn, genDiff);
+    var subRhs = this.rhs.substitute(substitutionFn, genDiff);
     if (this.lhs === subLhs && this.rhs === subRhs) return this;
     var value = this.valueOf();
     value.lhs = subLhs;
@@ -662,13 +738,13 @@ export class NaryExpression extends Expression {
   }
 
   public getReferences(): string[] {
-    return Array.prototype.concat.apply([], this.operands.map((operand) => operand.simplify().getReferences())).sort();
+    return Array.prototype.concat.apply([], this.operands.map((operand) => operand.getReferences())).sort();
   }
 
-  public substitute(substitutionFn: SubstitutionFn): Expression {
-    var sub = substitutionFn(this);
+  public substitute(substitutionFn: SubstitutionFn, genDiff: number): Expression {
+    var sub = substitutionFn(this, genDiff);
     if (sub) return sub;
-    var subOperands = this.operands.map((operand) => operand.substitute(substitutionFn));
+    var subOperands = this.operands.map((operand) => operand.substitute(substitutionFn, genDiff));
     if (this.operands.every((op, i) => op === subOperands[i])) return this;
     var value = this.valueOf();
     value.operands = subOperands;
@@ -1870,6 +1946,7 @@ export class SplitExpression extends UnaryExpression {
     this.name = parameters.name;
     this._ensureOp("split");
     this._checkTypeOfOperand('DATASET');
+    if (!(this.operand.isOp('literal') || this.operand.isOp('ref'))) throw new Error('can only split on litral and ref')
     if (!this.attribute) throw new Error('split must have attribute expression');
     if (!this.name) throw new Error('split must have a name');
     this.type = 'DATASET';
@@ -1899,11 +1976,17 @@ export class SplitExpression extends UnaryExpression {
       this.name === other.name;
   }
 
-  public substitute(substitutionFn: SubstitutionFn): Expression {
-    var sub = substitutionFn(this);
+  public simplify(): Expression {
+    var value = this.valueOf();
+    value.operand = this.operand.simplify();
+    return new SplitExpression(value);
+  }
+
+  public substitute(substitutionFn: SubstitutionFn, genDiff: number): Expression {
+    var sub = substitutionFn(this, genDiff);
     if (sub) return sub;
-    var subOperand = this.operand.substitute(substitutionFn);
-    var subAttribute = this.attribute.substitute(substitutionFn);
+    var subOperand = this.operand.substitute(substitutionFn, genDiff);
+    var subAttribute = this.attribute.substitute(substitutionFn, genDiff + 1);
     if (this.operand === subOperand && this.attribute === subAttribute) return this;
     var value = this.valueOf();
     value.operand = subOperand;
@@ -1912,13 +1995,18 @@ export class SplitExpression extends UnaryExpression {
   }
 
   protected _makeFn(operandFn: Function): Function {
-    var attributeFn = this.attribute.getFn();
-    var name = this.name;
-    return (d: Datum) => operandFn(d).split(attributeFn, name);
+    throw new Error("can not call on split");
   }
 
   protected _makeFnJS(operandFnJS: string): string {
     throw new Error("implement me");
+  }
+
+  public evaluate(context: Lookup<any> = null): Dataset {
+    console.log("eval split", context);
+    var dataset: NativeDataset = this.operand.getFn()(context);
+    var attrFn = this.attribute.getFn();
+    return dataset.split(attrFn, this.name);
   }
 
   // UNARY
@@ -1980,11 +2068,11 @@ export class ActionsExpression extends UnaryExpression {
     return true;
   }
 
-  public substitute(substitutionFn: SubstitutionFn): Expression {
-    var sub = substitutionFn(this);
+  public substitute(substitutionFn: SubstitutionFn, genDiff: number): Expression {
+    var sub = substitutionFn(this, genDiff);
     if (sub) return sub;
-    var subOperand = this.operand.substitute(substitutionFn);
-    var subActions = this.actions.map((action) => action.substitute(substitutionFn));
+    var subOperand = this.operand.substitute(substitutionFn, genDiff);
+    var subActions = this.actions.map((action) => action.substitute(substitutionFn, genDiff + 1));
     if (this.operand === subOperand && this.actions.every((action, i) => action === subActions[i])) return this;
     var value = this.valueOf();
     value.operand = subOperand;
@@ -2030,6 +2118,74 @@ export class ActionsExpression extends UnaryExpression {
       operand: this.operand,
       actions: this.actions.concat(action)
     });
+  }
+
+  private _performActionsOnNativeDataset(dataset: NativeDataset, context: Lookup<any>): NativeDataset {
+    var actions = this.actions;
+    if (context) {
+      console.log("subs");
+      actions = actions.map((action) => {
+        return action.substitute((ex: Expression, genDiff: number) => {
+          if (genDiff === 0 && ex.isOp('ref') && (<RefExpression>ex).generations === '^') {
+            console.log("replace", ex.toJS());
+            console.log("with", context[(<RefExpression>ex).name]);
+            return new LiteralExpression({ op: 'literal', value: context[(<RefExpression>ex).name] });
+          } else {
+            return null;
+          }
+        }, 0); // ToDo: Remove this 0
+      });
+    }
+
+    for (var i = 0; i < actions.length; i++) {
+      var action = actions[i];
+      switch (action.action) {
+        case 'filter':
+          console.log("filter", action.expression.toJS());
+          dataset = dataset.filter(action.expression.getFn());
+          break;
+
+        case 'apply':
+          if (action.expression.isOp('actions')) {
+            dataset = dataset.apply((<ApplyAction>action).name, (d: Datum) => {
+              return (<ActionsExpression>action.expression).evaluate(d)
+            });
+          } else {
+            dataset = dataset.apply((<ApplyAction>action).name, action.expression.getFn());
+          }
+          break;
+
+        case 'sort':
+          dataset = dataset.sort(action.expression.getFn(), (<SortAction>action).direction);
+          break;
+
+        case 'limit':
+          dataset = dataset.limit((<LimitAction>action).limit);
+          break;
+      }
+    }
+
+    return dataset;
+  }
+
+  public evaluate(context: Lookup<any> = null): Dataset {
+    console.log("evaluate", context);
+    var operand = this.operand;
+
+    if (operand.isOp('split')) {
+      return this._performActionsOnNativeDataset(<NativeDataset>((<SplitExpression>operand).evaluate(context)), context);
+    }
+
+    if (operand.isOp('literal')) {
+      var ds = <Dataset>(<LiteralExpression>operand).value;
+      if (ds.dataset === 'native') {
+        return this._performActionsOnNativeDataset(<NativeDataset>ds, context);
+      } else {
+        throw new Error('can not support that yet (not native)');
+      }
+    } else {
+      throw new Error('can not support that yet (not literal)');
+    }
   }
 
   // UNARY
@@ -2147,9 +2303,9 @@ export class Action implements ImmutableInstance<ActionValue, ActionJS> {
     return new (Action.classMap[this.action])(value);
   }
 
-  public substitute(substitutionFn: SubstitutionFn): Action {
+  public substitute(substitutionFn: SubstitutionFn, genDiff: number): Action {
     if (!this.expression) return this;
-    var subExpression = this.expression.substitute(substitutionFn);
+    var subExpression = this.expression.substitute(substitutionFn, genDiff);
     if (this.expression === subExpression) return this;
     var value = this.valueOf();
     value.expression = subExpression;
@@ -2217,6 +2373,9 @@ export class FilterAction extends Action {
   constructor(parameters: ActionValue = {}) {
     super(parameters, dummyObject);
     this._ensureAction("filter");
+    if (this.expression.type !== 'BOOLEAN') {
+      throw new TypeError('must be a boolean expression')
+    }
   }
 
   public toString(): string {

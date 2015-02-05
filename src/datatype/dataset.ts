@@ -244,7 +244,7 @@ export class NativeDataset extends Dataset {
   }
 
   // Actions
-  public apply(name: string, exFn: Function): Dataset {
+  public apply(name: string, exFn: Function): NativeDataset {
     // Note this works in place, fix that later if needed.
     var data = this.data;
     var n = data.length;
@@ -255,21 +255,21 @@ export class NativeDataset extends Dataset {
     return this;
   }
 
-  public filter(exFn: Function): Dataset {
+  public filter(exFn: Function): NativeDataset {
     return new NativeDataset({
       dataset: 'native',
       data: this.data.filter((datum) => exFn(datum))
     })
   }
 
-  public sort(exFn: Function, direction: string): Dataset {
+  public sort(exFn: Function, direction: string): NativeDataset {
     // Note this works in place, fix that later if needed.
     var directionFn = directionFns[direction];
     this.data.sort((a, b) => directionFn(exFn(a), exFn(b)));
     return this;
   }
 
-  public limit(limit: number): Dataset {
+  public limit(limit: number): NativeDataset {
     if (this.data.length <= limit) return this;
     return new NativeDataset({
       dataset: 'native',

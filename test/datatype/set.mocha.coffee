@@ -17,3 +17,13 @@ describe "Set", ->
         values: ['2', '3']
       }
     ])
+
+  it "union", ->
+    expect(
+      Set.fromJS({values: ['1', '2']}).union(Set.fromJS({values: ['2', '3']})).toJS()
+    ).to.deep.equal({values: ['1', '2', '3']})
+
+  it "intersect", ->
+    expect(
+      Set.fromJS({values: ['1', '2']}).intersect(Set.fromJS({values: ['2', '3']})).toJS()
+    ).to.deep.equal({values: ['2']})

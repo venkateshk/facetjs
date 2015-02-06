@@ -81,5 +81,23 @@ export class Set implements ImmutableInstance<SetValue, SetJS> {
     var otherValues = other.toJS().values;
     return otherValues.every((value, index) => value === thisValues[index]);
   }
+
+  public union(other: Set): Set {
+    var ret: { [k: string]: boolean } = {}
+    for (var k in this.valueOf().values) ret[k] = true;
+    for (var k in other.valueOf().values) ret[k] = true;
+    return new Set({values: ret});
+  }
+
+  public intersect(other: Set): Set {
+    var ret: { [k: string]: boolean } = {};
+    var othersValues = other.valueOf().values;
+    for (var k in this.valueOf().values) {
+      if (othersValues[k]) {
+        ret[k] = true;
+      }
+    }
+    return new Set({values: ret});
+  }
 }
 check = Set;

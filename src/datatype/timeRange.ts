@@ -20,8 +20,8 @@ export interface TimeRangeJS {
 }
 
 function toDate(date: any, name: string): Date {
-  if (!date) throw new TypeError('timeRange must have a `' + name + '`');
-  if (typeof date === 'string') date = new Date(date);
+  if (typeof date === "undefined" || date === null) throw new TypeError('timeRange must have a `' + name + '`');
+  if (typeof date === 'string' || typeof date === 'number') date = new Date(date);
   if (!date.getDay) throw new TypeError('timeRange must have a `' + name + '` that is a Date');
   return date;
 }
@@ -77,6 +77,28 @@ export class TimeRange implements ImmutableInstance<TimeRangeValue, TimeRangeJS>
     return TimeRange.isTimeRange(other) &&
       this.start.valueOf() === other.start.valueOf() &&
       this.end.valueOf() === other.end.valueOf();
+  }
+
+  public union(other: TimeRange): TimeRange {
+    if ((this.start < other.start && (this.end <= other.start)) ||
+      (other.start < this.start) && (other.end <= this.start)) {
+      return null;
+    }
+    var start = Math.min(this.start, other.start);
+    var end = Math.max(this.end, other.end);
+
+    return new TimeRange({start: start, end: end});
+  }
+
+  public intersect(other: TimeRange): TimeRange {
+    if ((this.start < other.start && (this.end <= other.start)) ||
+      (other.start < this.start) && (other.end <= this.start)) {
+      return null;
+    }
+    var start = Math.max(this.start, other.start);
+    var end = Math.min(this.end, other.end);
+
+    return new TimeRange({start: start, end: end});
   }
 }
 check = TimeRange;

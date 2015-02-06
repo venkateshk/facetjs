@@ -25,3 +25,35 @@ describe "TimeRange", ->
       })
       expect(timeRange.start.valueOf()).to.equal(Date.parse('2015-01-26T04:54:10Z'))
       expect(timeRange.end.valueOf()  ).to.equal(Date.parse('2015-01-26T05:00:00Z'))
+
+  describe "#union()", ->
+    it 'works correctly with a non-disjoint set', ->
+      expect(
+        TimeRange.fromJS({ start: 0, end: 2 }).union(TimeRange.fromJS({ start: 1, end: 3 })).toJS()
+      ).to.deep.equal({ start: 0, end: 3 })
+
+    it 'works correctly with a disjoint set', ->
+      expect(
+        TimeRange.fromJS({ start: 0, end: 1 }).union(TimeRange.fromJS({ start: 2, end: 3 }))
+      ).to.deep.equal(null)
+
+    it 'works correctly with a close disjoint set', ->
+      expect(
+        TimeRange.fromJS({ start: 0, end: 1 }).union(TimeRange.fromJS({ start: 1, end: 2 }))
+      ).to.deep.equal(null)
+
+  describe "#intersect()", ->
+    it 'works correctly with a non-disjoint set', ->
+      expect(
+        TimeRange.fromJS({ start: 0, end: 2 }).intersect(TimeRange.fromJS({ start: 1, end: 3 })).toJS()
+      ).to.deep.equal({ start: 1, end: 2 })
+
+    it 'works correctly with a disjoint set', ->
+      expect(
+        TimeRange.fromJS({ start: 0, end: 1 }).intersect(TimeRange.fromJS({ start: 2, end: 3 }))
+      ).to.deep.equal(null)
+
+    it 'works correctly with a close disjoint set', ->
+      expect(
+        TimeRange.fromJS({ start: 0, end: 1 }).intersect(TimeRange.fromJS({ start: 1, end: 2 }))
+      ).to.deep.equal(null)

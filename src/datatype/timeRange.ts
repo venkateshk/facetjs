@@ -84,8 +84,8 @@ export class TimeRange implements ImmutableInstance<TimeRangeValue, TimeRangeJS>
       (other.start < this.start) && (other.end <= this.start)) {
       return null;
     }
-    var start = Math.min(this.start, other.start);
-    var end = Math.max(this.end, other.end);
+    var start = Math.min(this.start.valueOf(), other.start.valueOf());
+    var end = Math.max(this.end.valueOf(), other.end.valueOf());
 
     return new TimeRange({start: start, end: end});
   }
@@ -95,8 +95,8 @@ export class TimeRange implements ImmutableInstance<TimeRangeValue, TimeRangeJS>
       (other.start < this.start) && (other.end <= this.start)) {
       return null;
     }
-    var start = Math.max(this.start, other.start);
-    var end = Math.min(this.end, other.end);
+    var start = Math.max(this.start.valueOf(), other.start.valueOf());
+    var end = Math.min(this.end.valueOf(), other.end.valueOf());
 
     return new TimeRange({start: start, end: end});
   }

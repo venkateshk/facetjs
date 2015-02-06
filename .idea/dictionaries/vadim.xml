@@ -28,6 +28,7 @@
       <w>stringifier</w>
       <w>substr</w>
       <w>timeseries</w>
+      <w>tuples</w>
       <w>wickham</w>
     </words>
   </dictionary>

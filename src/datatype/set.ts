@@ -42,14 +42,14 @@ export class Set implements ImmutableInstance<SetValue, SetJS> {
 
   static fromJS(parameters: SetJS): Set {
     if (typeof parameters !== "object") {
-      throw new Error("unrecognizable numberRange");
+      throw new Error("unrecognizable set");
     }
     return new Set({
       values: arrayToHash(parameters.values)
     });
   }
 
-  private values: { [k: string]: boolean }
+  private values: Lookup<boolean>;
 
   constructor(parameters: SetValue) {
     this.values = parameters.values;

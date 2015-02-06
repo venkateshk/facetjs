@@ -5,9 +5,14 @@ facet(someDriverReference)
 
 
 facet() // [{}]
-  .apply("Diamonds",
+  .apply("DiamondsMain",
     facet(someDriverReference)
       .filter("$color = 'D'")
+      .apply("priceOver2", "$price/2")
+  )
+  .apply("DiamondsCmp",
+    facet(someDriverReference)
+      .filter("$color = 'H'")
       .apply("priceOver2", "$price/2")
   )
   // [{ Diamonds: <Dataset> }]
@@ -20,7 +25,11 @@ facet() // [{}]
   // [{ diamonds: <Dataset>, Count: 2342, TotalPrice: 234534 }]
 
   .apply('Cuts',
-    facet("Diamonds").split("$cut", 'Cut')
+    facet("DiamondsMain").split("$cut").union(facet("DiamondsCmp").split("$cut"))
+
+      // Set(['good', 'v good', 'ideal', 'bad'])
+      .name('Cut')
+
       // [
       //   {
       //     Cut: 'good'
@@ -33,7 +42,8 @@ facet() // [{}]
       //   }
       // ]
 
-      .apply('Diamonds', facet('Diamonds').filter('$cut = $^Cut'))
+      .apply('DiamondsMain', facet('DiamondsMain').filter('$cut = $^Cut'))
+      .apply('DiamondsCmp', facet('DiamondsCmp').filter('$cut = $^Cut'))
       // [
       //   {
       //     Cut: 'good'
@@ -49,7 +59,10 @@ facet() // [{}]
       //   }
       // ]
 
-      .apply('Count', facet('Diamonds').count())
+      .apply('Count', facet('DiamondsMain').count())
+      .apply('CountCmp', facet('DiamondsCmp').count())
+      .apply('CountDalta', '$Count - $CountCmp')
+
       // [
       //   {
       //     Cut: 'good'
@@ -72,3 +85,5 @@ facet() // [{}]
       .apply('somethingElse', '$diamonds.sum($x)')
   )
     .compute()
+
+

@@ -46,6 +46,11 @@ export class Dataset implements ImmutableInstance<DatasetValue, DatasetJS> {
   }
 
   static classMap: Lookup<typeof Dataset> = {};
+
+  static register(ex: typeof Dataset): void {
+    var op = (<any>ex).name.replace('Dataset', '').replace(/^\w/, (s: string) => s.toLowerCase());
+    Dataset.classMap[op] = ex;
+  }
   static fromJS(datasetJS: DatasetJS): Dataset {
     if (!datasetJS.hasOwnProperty("dataset")) {
       throw new Error("dataset must be defined");
@@ -335,7 +340,49 @@ export class NativeDataset extends Dataset {
   }
 }
 
-Dataset.classMap['native'] = NativeDataset;
+Dataset.register(NativeDataset);
 
 // =====================================================================================
 // =====================================================================================
+
+export class RemoteDataset extends Dataset {
+  static type = 'DATASET';
+
+  static fromJS(datasetJS: DatasetJS): RemoteDataset {
+    return new RemoteDataset({
+      dataset: datasetJS.dataset,
+      data: datasetJS.data.map(datumFromJS)
+    })
+  }
+
+  public data: Datum[];
+
+  constructor(parameters: DatasetValue) {
+    super(parameters, dummyObject);
+    this.data = parameters.data;
+    this._ensureDataset("native");
+    if (!Array.isArray(this.data)) {
+      throw new TypeError("must have a `data` array")
+    }
+  }
+
+  public valueOf(): DatasetValue {
+    var value = super.valueOf();
+    value.data = this.data;
+    return value;
+  }
+
+  public toJS(): DatasetJS {
+    var js = super.toJS();
+    js.data = this.data.map(datumToJS);
+    return js;
+  }
+
+  public equals(other: RemoteDataset): boolean {
+    return super.equals(other) &&
+      this.data.length === other.data.length;
+    // ToDo: probably add something else here?
+  }
+}
+
+Dataset.register(RemoteDataset);

@@ -4,10 +4,11 @@ myDiamonds = new Dataset([
   { "carat": 0.23, "cut": "Good",    "color": "E", "clarity": "VS1", "price": 328 }
 ]);
 
-facet() // [{}]
+facet() // [{} = base]
+  .apply('two', 2)
   .apply("diamonds",
     facet(myDiamonds)
-      .apply("priceOver2", "$price/2")
+      .apply("priceOver2", "$price / $two")
   )
   // [{
   //   diamonds: [
@@ -53,7 +54,7 @@ facet() // [{}]
       //   }
       // ]
 
-      .apply('diamonds', facet('diamonds').filter('$cut = $^Cut'))
+      .apply('POOP', facet('diamonds').filter('$cut = $^Cut'))
       // [
       //   {
       //     Cut: 'good'

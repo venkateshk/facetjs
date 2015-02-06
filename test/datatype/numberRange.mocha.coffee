@@ -29,3 +29,35 @@ describe "NumberRange", ->
           end:   'wat'
         })
       ).to.throw('`start` must be a number')
+
+  describe "#union()", ->
+    it 'works correctly with a non-disjoint set', ->
+      expect(
+        NumberRange.fromJS({ start: 0, end: 2 }).union(NumberRange.fromJS({ start: 1, end: 3 })).toJS()
+      ).to.deep.equal({ start: 0, end: 3 })
+
+    it 'works correctly with a disjoint set', ->
+      expect(
+        NumberRange.fromJS({ start: 0, end: 1 }).union(NumberRange.fromJS({ start: 2, end: 3 }))
+      ).to.deep.equal(null)
+
+    it 'works correctly with a close disjoint set', ->
+      expect(
+        NumberRange.fromJS({ start: 0, end: 1 }).union(NumberRange.fromJS({ start: 1, end: 2 }))
+      ).to.deep.equal(null)
+
+  describe "#intersect()", ->
+    it 'works correctly with a non-disjoint set', ->
+      expect(
+        NumberRange.fromJS({ start: 0, end: 2 }).intersect(NumberRange.fromJS({ start: 1, end: 3 })).toJS()
+      ).to.deep.equal({ start: 1, end: 2 })
+
+    it 'works correctly with a disjoint set', ->
+      expect(
+        NumberRange.fromJS({ start: 0, end: 1 }).intersect(NumberRange.fromJS({ start: 2, end: 3 }))
+      ).to.deep.equal(null)
+
+    it 'works correctly with a close disjoint set', ->
+      expect(
+        NumberRange.fromJS({ start: 0, end: 1 }).intersect(NumberRange.fromJS({ start: 1, end: 2 }))
+      ).to.deep.equal(null)

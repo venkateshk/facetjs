@@ -18,12 +18,14 @@ describe "Set", ->
       }
     ])
 
-  it "union", ->
-    expect(
-      Set.fromJS({values: ['1', '2']}).union(Set.fromJS({values: ['2', '3']})).toJS()
-    ).to.deep.equal({values: ['1', '2', '3']})
+  describe "#union()", ->
+    it 'works correctly', ->
+      expect(
+        Set.fromJS({values: ['1', '2']}).union(Set.fromJS({values: ['2', '3']})).toJS()
+      ).to.deep.equal({values: ['1', '2', '3']})
 
-  it "intersect", ->
-    expect(
-      Set.fromJS({values: ['1', '2']}).intersect(Set.fromJS({values: ['2', '3']})).toJS()
-    ).to.deep.equal({values: ['2']})
+  describe "#intersect()", ->
+    it 'works correctly', ->
+      expect(
+        Set.fromJS({values: ['1', '2']}).intersect(Set.fromJS({values: ['2', '3']})).toJS()
+      ).to.deep.equal({values: ['2']})

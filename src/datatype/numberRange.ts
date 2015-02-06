@@ -77,5 +77,27 @@ export class NumberRange implements ImmutableInstance<NumberRangeValue, NumberRa
       this.start === other.start &&
       this.end === other.end;
   }
+
+  public union(other: NumberRange): NumberRange {
+    if ((this.start < other.start && (this.end <= other.start)) ||
+      (other.start < this.start) && (other.end <= this.start)) {
+      return null;
+    }
+    var start = Math.min(this.start, other.start);
+    var end = Math.max(this.end, other.end);
+
+    return new NumberRange({start: start, end: end});
+  }
+
+  public intersect(other: NumberRange): NumberRange {
+    if ((this.start < other.start && (this.end <= other.start)) ||
+      (other.start < this.start) && (other.end <= this.start)) {
+      return null;
+    }
+    var start = Math.max(this.start, other.start);
+    var end = Math.min(this.end, other.end);
+
+    return new NumberRange({start: start, end: end});
+  }
 }
 check = NumberRange;

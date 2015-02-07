@@ -1,4 +1,4 @@
-module Expressions {
+module Facet {
   export class NotExpression extends UnaryExpression {
     static fromJS(parameters: ExpressionJS): NotExpression {
       return new NotExpression(UnaryExpression.jsToValue(parameters));

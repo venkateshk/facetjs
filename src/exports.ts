@@ -3,7 +3,5 @@ declare var module: {
 };
 
 if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
-  module.exports.Datatypes = Datatypes;
-  module.exports.Expressions = Expressions;
-  module.exports.Actions = Actions;
+  module.exports = Facet;
 }

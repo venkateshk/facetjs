@@ -1,4 +1,4 @@
-module Expressions {
+module Facet {
   export class AggregateExpression extends UnaryExpression {
     static fromJS(parameters: ExpressionJS): AggregateExpression {
       var value = UnaryExpression.jsToValue(parameters);

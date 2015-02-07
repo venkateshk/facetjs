@@ -1,32 +1,7 @@
 /// <reference path="../datatypes/dataset.ts" />
 /// <reference path="../actions/baseAction.ts" />
 
-module Expressions {
-  var isInstanceOf = HigherObject.isInstanceOf;
-
-  import ImmutableClass = HigherObject.ImmutableClass;
-  import ImmutableInstance = HigherObject.ImmutableInstance;
-
-  export import Lookup = Basics.Lookup;
-  export import Dummy = Basics.Dummy;
-  export var dummyObject = Basics.dummyObject;
-
-  // Import from brother modules
-  export import Datum = Datatypes.Datum;
-  export import Dataset = Datatypes.Dataset;
-  export import NativeDataset = Datatypes.NativeDataset;
-  export import NumberRange = Datatypes.NumberRange;
-  export import TimeRange = Datatypes.TimeRange;
-  export import Set = Datatypes.Set;
-
-  export import Action = Actions.Action;
-  export import ActionJS = Actions.ActionJS;
-  export import ActionValue = Actions.ActionValue;
-  export import ApplyAction = Actions.ApplyAction;
-  export import FilterAction = Actions.FilterAction;
-  export import SortAction = Actions.SortAction;
-  export import LimitAction = Actions.LimitAction;
-
+module Facet {
   export interface SubstitutionFn {
     (ex: Expression, genDiff: number): Expression;
   }
@@ -67,41 +42,41 @@ module Expressions {
     return a.every((item, i) =>  (item === b[i]));
   };
 
+  /**
+   * The expression starter function. Performs different operations depending on the type and value of the input
+   * facet() produces a native dataset with a singleton empty datum inside of it. This is useful to describe the base container
+   * facet('blah') produces an reference lookup expression on 'blah'
+   * facet(driver) produces a remote dataset accessible via the driver
+   *
+   * @param input The input that can be nothing, a string, or a driver
+   * @returns {Expression}
+   */
+  export function facet(input: any = null): Expression {
+    if (input) {
+      if (typeof input === 'string') {
+        return new RefExpression({ op: 'ref', name: input });
+      } else {
+        return new LiteralExpression({ op: 'literal', value: input });
+      }
+    } else {
+      return new LiteralExpression({
+        op: 'literal',
+        value: new NativeDataset({ dataset: 'native', data: [{}] })
+      });
+    }
+  }
+
   var check: ImmutableClass<ExpressionValue, ExpressionJS>;
 
   /**
-   * Provides a way to express arithmetic operations, aggregations and database opperators.
-   * This class is the backbone of facetjs
+   * Provides a way to express arithmetic operations, aggregations and database operators.
+   * This class is the backbone of facet.js
    */
   export class Expression implements ImmutableInstance<ExpressionValue, ExpressionJS> {
     static FALSE: LiteralExpression;
     static TRUE: LiteralExpression;
     static isExpression(candidate: any): boolean {
       return isInstanceOf(candidate, Expression);
-    }
-
-    /**
-     * The expression starter function. Performs differnet operations depending on the type and value of the input
-     * facet() produces a native dataset with a singleton empty datum inside of it. This is usefule to descrive the base container
-     * fadet('blah') produces an reference lookup expression on 'blah'
-     * facet(driver) produces a remote dataset accessible via the driver
-     *
-     * @param input The input that can be nothing, a string, or a driver
-     * @returns {Expression}
-     */
-    static facet(input: any = null): Expression {
-      if (input) {
-        if (typeof input === 'string') {
-          return new RefExpression({ op: 'ref', name: input });
-        } else {
-          return new LiteralExpression({ op: 'literal', value: input });
-        }
-      } else {
-        return new LiteralExpression({
-          op: 'literal',
-          value: new NativeDataset({ dataset: 'native', data: [{}] })
-        });
-      }
     }
 
     /**

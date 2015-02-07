@@ -1,4 +1,4 @@
-module Expressions {
+module Facet {
 
   export class LiteralExpression extends Expression {
     static fromJS(parameters: ExpressionJS): Expression {

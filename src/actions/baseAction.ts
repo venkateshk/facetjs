@@ -1,21 +1,7 @@
 /// <reference path="../datatypes/dataset.ts" />
 /// <reference path="../expressions/baseExpression.ts" />
 
-module Actions {
-  var isInstanceOf = HigherObject.isInstanceOf;
-
-  import ImmutableClass = HigherObject.ImmutableClass;
-  import ImmutableInstance = HigherObject.ImmutableInstance;
-
-  export import Lookup = Basics.Lookup;
-  export import Dummy = Basics.Dummy;
-  export var dummyObject = Basics.dummyObject;
-
-  // Import from brother modules
-  export import Expression = Expressions.Expression;
-  export import ExpressionJS = Expressions.ExpressionJS;
-  export import SubstitutionFn = Expressions.SubstitutionFn;
-
+module Facet {
   export interface ActionValue {
     action?: string;
     name?: string;

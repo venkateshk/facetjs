@@ -1,4 +1,4 @@
-module Expressions {
+module Facet {
   export class NegateExpression extends UnaryExpression {
     static fromJS(parameters: ExpressionJS): NegateExpression {
       return new NegateExpression(UnaryExpression.jsToValue(parameters));

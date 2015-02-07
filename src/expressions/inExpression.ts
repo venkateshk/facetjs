@@ -1,4 +1,4 @@
-module Expressions {
+module Facet {
   export class InExpression extends BinaryExpression {
     static fromJS(parameters: ExpressionJS): InExpression {
       return new InExpression(BinaryExpression.jsToValue(parameters));

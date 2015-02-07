@@ -1,4 +1,4 @@
-module Actions {
+module Facet {
   export class SortAction extends Action {
     static fromJS(parameters: ActionJS): SortAction {
       return new SortAction({

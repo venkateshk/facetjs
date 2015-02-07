@@ -1,4 +1,4 @@
-module Expressions {
+module Facet {
   export class GreaterThanExpression extends BinaryExpression {
     static fromJS(parameters: ExpressionJS): GreaterThanExpression {
       return new GreaterThanExpression(BinaryExpression.jsToValue(parameters));

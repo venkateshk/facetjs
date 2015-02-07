@@ -1,4 +1,4 @@
-module Expressions {
+module Facet {
   export class ConcatExpression extends NaryExpression {
     static fromJS(parameters: ExpressionJS): ConcatExpression {
       return new ConcatExpression(NaryExpression.jsToValue(parameters));

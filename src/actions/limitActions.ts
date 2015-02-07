@@ -1,4 +1,4 @@
-module Actions {
+module Facet {
 
   export class LimitAction extends Action {
     static fromJS(parameters: ActionJS): LimitAction {

@@ -1,4 +1,4 @@
-module Expressions {
+module Facet {
   export class TimeRangeExpression extends BinaryExpression {
     static fromJS(parameters: ExpressionJS): TimeRangeExpression {
       return new TimeRangeExpression(BinaryExpression.jsToValue(parameters));

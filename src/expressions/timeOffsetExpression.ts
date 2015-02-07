@@ -1,4 +1,4 @@
-module Expressions {
+module Facet {
   export class TimeOffsetExpression extends UnaryExpression {
     static fromJS(parameters: ExpressionJS): TimeOffsetExpression {
       return new TimeOffsetExpression(UnaryExpression.jsToValue(parameters));

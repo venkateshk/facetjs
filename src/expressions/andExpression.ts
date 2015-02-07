@@ -1,4 +1,4 @@
-module Expressions {
+module Facet {
   export class AndExpression extends NaryExpression {
     static fromJS(parameters: ExpressionJS): AndExpression {
       return new AndExpression(NaryExpression.jsToValue(parameters));

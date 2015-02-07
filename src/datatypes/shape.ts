@@ -1,12 +1,4 @@
-module Datatypes {
-  var isInstanceOf = HigherObject.isInstanceOf;
-  import ImmutableClass = HigherObject.ImmutableClass;
-  import ImmutableInstance = HigherObject.ImmutableInstance;
-
-  import Lookup = Basics.Lookup;
-  import Dummy = Basics.Dummy;
-  var dummyObject = Basics.dummyObject;
-
+module Facet {
   function margin1d(left: any, width: any, right: any, parentWidth: any): any[] {
     if (left != null) {
       if (width != null) {

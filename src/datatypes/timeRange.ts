@@ -1,10 +1,4 @@
-module Datatypes {
-  var isInstanceOf = HigherObject.isInstanceOf;
-  import ImmutableClass = HigherObject.ImmutableClass;
-  import ImmutableInstance = HigherObject.ImmutableInstance;
-
-  import Lookup = Basics.Lookup;
-
+module Facet {
   export interface TimeRangeValue {
     start: Date;
     end: Date;

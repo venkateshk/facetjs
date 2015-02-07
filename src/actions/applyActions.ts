@@ -1,4 +1,4 @@
-module Actions {
+module Facet {
   export class ApplyAction extends Action {
     static fromJS(parameters: ActionJS): ApplyAction {
       return new ApplyAction({

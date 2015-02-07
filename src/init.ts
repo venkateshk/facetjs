@@ -34,3 +34,22 @@
 
 var HigherObject = <HigherObject.Base>require("higher-object");
 //var Q = require("q");
+
+module  Facet {
+  export interface Lookup<T> {
+    [key: string]: T;
+  }
+
+  export interface Dummy {}
+
+  export var dummyObject: Dummy = {};
+
+  export var isInstanceOf = HigherObject.isInstanceOf;
+
+  export import ImmutableClass = HigherObject.ImmutableClass;
+  export import ImmutableInstance = HigherObject.ImmutableInstance;
+
+  export interface Datum {
+    [attribute: string]: any;
+  }
+}

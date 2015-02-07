@@ -1,17 +1,4 @@
-module Datatypes {
-  var isInstanceOf = HigherObject.isInstanceOf;
-
-  import ImmutableClass = HigherObject.ImmutableClass;
-  import ImmutableInstance = HigherObject.ImmutableInstance;
-
-  import Lookup = Basics.Lookup;
-  import Dummy = Basics.Dummy;
-  var dummyObject = Basics.dummyObject;
-
-  export interface Datum {
-    [name: string]: any;
-  }
-
+module Facet {
   export interface DatasetValue {
     dataset: string;
     data?: Datum[];

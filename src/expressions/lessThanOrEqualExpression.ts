@@ -1,4 +1,4 @@
-module Expressions {
+module Facet {
   export class LessThanOrEqualExpression extends BinaryExpression {
     static fromJS(parameters: ExpressionJS): LessThanOrEqualExpression {
       return new LessThanOrEqualExpression(BinaryExpression.jsToValue(parameters));

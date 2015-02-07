@@ -1,10 +1,4 @@
-module Expressions {
-  import Action = Actions.Action;
-  import ApplyAction = Actions.ApplyAction;
-  import FilterAction = Actions.FilterAction;
-  import SortAction = Actions.SortAction;
-  import LimitAction = Actions.LimitAction;
-
+module Facet {
   export class ActionsExpression extends UnaryExpression {
     static fromJS(parameters: ExpressionJS): ActionsExpression {
       var value = UnaryExpression.jsToValue(parameters);

@@ -1,4 +1,4 @@
-module Expressions {
+module Facet {
   export class MatchExpression extends UnaryExpression {
     static fromJS(parameters: ExpressionJS): MatchExpression {
       var value = UnaryExpression.jsToValue(parameters);

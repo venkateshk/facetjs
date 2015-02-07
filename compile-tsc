@@ -4,7 +4,45 @@ rm -rf build/*
 
 # TypeScript
 node_modules/.bin/tsc --noImplicitAny --noEmitOnError --declaration --out build/facet.js \
-  src/datatypes/* \
-  src/expressions/* \
-  src/actions/* \
+  src/init.ts \
+  \
+  src/datatypes/dataset.ts \
+  src/datatypes/numberRange.ts \
+  src/datatypes/set.ts \
+  src/datatypes/shape.ts \
+  src/datatypes/timeRange.ts \
+  \
+  src/expressions/baseExpression.ts \
+  src/expressions/actionsExpression.ts \
+  src/expressions/addExpression.ts \
+  src/expressions/aggregateExpression.ts \
+  src/expressions/andExpression.ts \
+  src/expressions/concatExpression.ts \
+  src/expressions/greaterThanExpression.ts \
+  src/expressions/greaterThanOrEqualExpression.ts \
+  src/expressions/inExpression.ts \
+  src/expressions/isExpression.ts \
+  src/expressions/labelExpression.ts \
+  src/expressions/lessThanExpression.ts \
+  src/expressions/lessThanOrEqualExpression.ts \
+  src/expressions/literalExpression.ts \
+  src/expressions/matchExpression.ts \
+  src/expressions/multiplyExpression.ts \
+  src/expressions/negateExpression.ts \
+  src/expressions/notExpression.ts \
+  src/expressions/numberBucketExpression.ts \
+  src/expressions/numberRangeExpression.ts \
+  src/expressions/orExpression.ts \
+  src/expressions/reciprocateExpression.ts \
+  src/expressions/refExpression.ts \
+  src/expressions/timeBucketExpression.ts \
+  src/expressions/timeOffsetExpression.ts \
+  src/expressions/timeRangeExpression.ts \
+  \
+  src/actions/baseAction.ts \
+  src/actions/applyActions.ts \
+  src/actions/filterActions.ts \
+  src/actions/limitActions.ts \
+  src/actions/sortActions.ts \
+  \
   src/exports.ts

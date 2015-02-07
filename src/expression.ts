@@ -17,6 +17,7 @@ import Dataset = DatatypeModule.Dataset;
 import NativeDataset = DatatypeModule.NativeDataset;
 import NumberRange = DatatypeModule.NumberRange;
 import TimeRange = DatatypeModule.TimeRange;
+import Set = DatatypeModule.Set;
 
 export interface Dummy {}
 export var dummyObject: Dummy = {};
@@ -60,6 +61,10 @@ export interface ExpressionJS {
 // =====================================================================================
 // =====================================================================================
 
+var checkArrayEquality = function(a: Array<any>, b: Array<any>) {
+  return a.every((item, i) =>  (item === b[i]));
+};
+
 var check: ImmutableClass<ExpressionValue, ExpressionJS>;
 
 /**
@@ -67,6 +72,8 @@ var check: ImmutableClass<ExpressionValue, ExpressionJS>;
  * This class is the backbone of facetjs
  */
 export class Expression implements ImmutableInstance<ExpressionValue, ExpressionJS> {
+  static FALSE: LiteralExpression;
+  static TRUE: LiteralExpression;
   static isExpression(candidate: any): boolean {
     return isInstanceOf(candidate, Expression);
   }
@@ -247,6 +254,24 @@ export class Expression implements ImmutableInstance<ExpressionValue, Expression
    * Introspects self to look for all references expressions and returns the alphabetically sorted list of the references
    */
   public getReferences(): string[] {
+    throw new Error('please implement');
+  }
+
+  /**
+   * Merge self with the provided expression for AND operation and returns a merged expression.
+   *
+   * @returns {Expression}
+   */
+  public mergeAnd(a: Expression): Expression {
+    throw new Error('please implement');
+  }
+
+  /**
+   * Merge self with the provided expression for OR operation and returns a merged expression.
+   *
+   * @returns {Expression}
+   */
+  public mergeOr(a: Expression): Expression {
     throw new Error('please implement');
   }
 
@@ -958,6 +983,81 @@ export class IsExpression extends BinaryExpression {
     return 1 + this.lhs.getComplexity() + this.rhs.getComplexity();
   }
 
+  public mergeAnd(exp: Expression): Expression {
+    var references = this.getReferences();
+
+    if (!checkArrayEquality(references, exp.getReferences())) throw new Error('cannot be merged');
+    if (this.type !== exp.type) return null;
+
+    if (exp instanceof IsExpression) {
+      if (references.length === 2) return this;
+      if (!(this.lhs instanceof RefExpression && exp.lhs instanceof RefExpression)) return null;
+
+      if (
+        (<LiteralExpression>(this.rhs)).value.valueOf &&
+        (<LiteralExpression>(exp).rhs).value.valueOf &&
+        (<LiteralExpression>(exp).rhs).value.valueOf() === (<LiteralExpression>(this.rhs)).value.valueOf()
+      ) return this; // for higher objects
+      if ((<LiteralExpression>(this.rhs)).value === (<LiteralExpression>(exp).rhs).value) return this; // for simple values;
+      return Expression.FALSE;
+
+    } else if (exp instanceof InExpression) {
+      if (references.length === 2) return null;
+      if (!(this.lhs instanceof RefExpression && exp.lhs instanceof RefExpression)) return null;
+
+      var expRhs = exp.rhs;
+      var thisValue = (<LiteralExpression>(this.rhs)).value;
+      var expRange: any;
+
+      if (expRhs instanceof LiteralExpression) {
+        var rValue = expRhs.value;
+        if (rValue instanceof Set) {
+          if (rValue.test(thisValue)) {
+            return exp;
+          } else {
+            return Expression.FALSE;
+          }
+        }
+      }
+
+      if (this.rhs.type === 'TIME') {
+        if (expRhs instanceof TimeRangeExpression) {
+
+          expRange = new TimeRange({
+            start: (<LiteralExpression>(expRhs.lhs)).value,
+            end: (<LiteralExpression>(expRhs.rhs)).value
+          });
+
+          if (expRange.test(thisValue)) {
+            return exp;
+          } else {
+            return Expression.FALSE;
+          }
+        }
+      }
+
+      if (this.rhs.type === 'NUMBER') {
+        if (expRhs instanceof NumberRangeExpression) {
+          thisValue = (<LiteralExpression>(this.rhs)).value;
+
+          expRange = new NumberRange({
+            start: (<LiteralExpression>(expRhs.lhs)).value,
+            end: (<LiteralExpression>(expRhs.rhs)).value
+          });
+
+          if (expRange.test(thisValue)) {
+            return exp;
+          } else {
+            return Expression.FALSE;
+          }
+        }
+      }
+      return null;
+    } else {
+      return null;
+    }
+  }
+
   protected _makeFn(lhsFn: Function, rhsFn: Function): Function {
     return (d: Datum) => lhsFn(d) === rhsFn(d);
   }
@@ -1134,8 +1234,8 @@ export class InExpression extends BinaryExpression {
     var lhs = this.lhs;
     var rhs = this.rhs;
 
-    if(!((lhs.canHaveType('CATEGORICAL') && rhs.canHaveType('STRING_SET'))
-      || (lhs.canHaveType('NUMERIC') && rhs.canHaveType('NUMERIC_RANGE'))
+    if(!(rhs.canHaveType('SET')
+      || (lhs.canHaveType('NUMBER') && rhs.canHaveType('NUMBER_RANGE'))
       || (lhs.canHaveType('TIME') && rhs.canHaveType('TIME_RANGE')))) {
       throw new TypeError('in expression has a bad type combo');
     }
@@ -2474,3 +2574,6 @@ export class LimitAction extends Action {
 }
 
 Action.register(LimitAction);
+
+Expression.FALSE = <LiteralExpression>(new LiteralExpression({op: 'literal', value: false}));
+Expression.TRUE = <LiteralExpression>(new LiteralExpression({op: 'literal', value: true}));

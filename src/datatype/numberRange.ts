@@ -99,5 +99,9 @@ export class NumberRange implements ImmutableInstance<NumberRangeValue, NumberRa
 
     return new NumberRange({start: start, end: end});
   }
+
+  public test(val: Number): boolean {
+    return this.start <= val && val < this.end;
+  }
 }
 check = NumberRange;

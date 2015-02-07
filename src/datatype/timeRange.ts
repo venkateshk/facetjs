@@ -100,5 +100,9 @@ export class TimeRange implements ImmutableInstance<TimeRangeValue, TimeRangeJS>
 
     return new TimeRange({start: start, end: end});
   }
+
+  public test(val: Date): boolean {
+    return this.start.valueOf() <= val.valueOf() && val.valueOf() < this.end.valueOf();
+  }
 }
 check = TimeRange;

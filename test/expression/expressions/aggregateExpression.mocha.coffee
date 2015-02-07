@@ -14,5 +14,4 @@ describe 'AggregateExpression', ->
       op: 'aggregate',
       operand: { op: 'ref', name: 'diamonds', type: 'DATASET' },
       attribute: { op: 'ref', name: 'added', type: 'DATASET' },
-      type: 'NUMBER'
     })

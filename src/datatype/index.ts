@@ -13,3 +13,6 @@ export import TimeRange = TimeRangeModule.TimeRange;
 
 import ShapeModule = require('./shape');
 export import Shape = ShapeModule.Shape;
+
+import SetModule = require('./set');
+export import Set = SetModule.Set;

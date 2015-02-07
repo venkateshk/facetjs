@@ -9,3 +9,10 @@ exports.complexityIs = (expectedComplexity) ->
 exports.simplifiedExpressionIs = (expectedSimplifiedExpression) ->
   it '#simplify() returns the correct simplified expression', ->
     expect(Expression.fromJS(@expression).simplify().toJS()).to.deep.equal(expectedSimplifiedExpression)
+
+exports.mergedAndWith = (testCaseTitle, mergingExpression) ->
+  return {
+    equals: (expectedExpression) ->
+      it testCaseTitle, ->
+        expect(Expression.fromJS(@expression).mergeAnd(Expression.fromJS(mergingExpression)).toJS()).to.deep.equal(expectedExpression)
+  }

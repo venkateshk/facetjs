@@ -7,14 +7,14 @@ module Actions {
   import ImmutableClass = HigherObject.ImmutableClass;
   import ImmutableInstance = HigherObject.ImmutableInstance;
 
-  import Lookup = Basics.Lookup;
-  import Dummy = Basics.Dummy;
+  export import Lookup = Basics.Lookup;
+  export import Dummy = Basics.Dummy;
   export var dummyObject = Basics.dummyObject;
 
   // Import from brother modules
-  import Expression = Expressions.Expression;
-  import ExpressionJS = Expressions.ExpressionJS;
-  import SubstitutionFn = Expressions.SubstitutionFn;
+  export import Expression = Expressions.Expression;
+  export import ExpressionJS = Expressions.ExpressionJS;
+  export import SubstitutionFn = Expressions.SubstitutionFn;
 
   export interface ActionValue {
     action?: string;

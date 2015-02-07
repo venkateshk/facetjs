@@ -7,25 +7,25 @@ module Expressions {
   import ImmutableClass = HigherObject.ImmutableClass;
   import ImmutableInstance = HigherObject.ImmutableInstance;
 
-  import Lookup = Basics.Lookup;
-  import Dummy = Basics.Dummy;
+  export import Lookup = Basics.Lookup;
+  export import Dummy = Basics.Dummy;
   export var dummyObject = Basics.dummyObject;
 
   // Import from brother modules
-  import Datum = Datatypes.Datum;
-  import Dataset = Datatypes.Dataset;
-  import NativeDataset = Datatypes.NativeDataset;
-  import NumberRange = Datatypes.NumberRange;
-  import TimeRange = Datatypes.TimeRange;
-  import Set = Datatypes.Set;
+  export import Datum = Datatypes.Datum;
+  export import Dataset = Datatypes.Dataset;
+  export import NativeDataset = Datatypes.NativeDataset;
+  export import NumberRange = Datatypes.NumberRange;
+  export import TimeRange = Datatypes.TimeRange;
+  export import Set = Datatypes.Set;
 
-  import Action = Actions.Action;
-  import ActionJS = Actions.ActionJS;
-  import ActionValue = Actions.ActionValue;
-  import ApplyAction = Actions.ApplyAction;
-  import FilterAction = Actions.FilterAction;
-  import SortAction = Actions.SortAction;
-  import LimitAction = Actions.LimitAction;
+  export import Action = Actions.Action;
+  export import ActionJS = Actions.ActionJS;
+  export import ActionValue = Actions.ActionValue;
+  export import ApplyAction = Actions.ApplyAction;
+  export import FilterAction = Actions.FilterAction;
+  export import SortAction = Actions.SortAction;
+  export import LimitAction = Actions.LimitAction;
 
   export interface SubstitutionFn {
     (ex: Expression, genDiff: number): Expression;

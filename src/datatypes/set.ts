@@ -1,6 +1,3 @@
-/// <reference path="../requires.ts" />
-/// <reference path="../basics.ts" />
-
 module Datatypes {
   var isInstanceOf = HigherObject.isInstanceOf;
   import ImmutableClass = HigherObject.ImmutableClass;

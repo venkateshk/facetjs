@@ -2,7 +2,7 @@
 
 echo "Compiling..."
 
-rm -r build/*
+rm -rf build/*
 
 mkdir -p build/parser
 mkdir -p build/package

@@ -33,5 +33,4 @@
  */
 
 var HigherObject = <HigherObject.Base>require("higher-object");
-
-
+//var Q = require("q");

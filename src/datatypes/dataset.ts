@@ -1,7 +1,3 @@
-/// <reference path="../requires.ts" />
-/// <reference path="../basics.ts" />
-/// <reference path="./numberRange.ts" />
-
 module Datatypes {
   var isInstanceOf = HigherObject.isInstanceOf;
 

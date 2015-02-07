@@ -2,9 +2,8 @@
 
 { testHigherObjects } = require("higher-object/build/tester")
 
-{ Dataset } = require('../../build/datatype/dataset')
-{ NumberRange } = require('../../build/datatype/numberRange')
-{ TimeRange } = require('../../build/datatype/timeRange')
+{ Datatypes } = require('../../build/facet')
+{ Dataset } = Datatypes
 
 describe "Dataset", ->
   it "passes higher object tests", ->

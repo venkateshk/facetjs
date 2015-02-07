@@ -1,5 +1,3 @@
-"use strict";
-
 module Basics {
   export interface Datum {
     [attribute: string]: any;
@@ -13,5 +11,3 @@ module Basics {
 
   export var dummyObject: Dummy = {};
 }
-
-export = Basics;

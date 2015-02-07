@@ -2029,69 +2029,43 @@ Expression.register(ConcatExpression);
 // =====================================================================================
 // =====================================================================================
 
-export class SplitExpression extends UnaryExpression {
-  static fromJS(parameters: ExpressionJS): SplitExpression {
+export class LabelExpression extends UnaryExpression {
+  static fromJS(parameters: ExpressionJS): LabelExpression {
     var value = UnaryExpression.jsToValue(parameters);
-    value.attribute = Expression.fromJSLoose(parameters.attribute);
     value.name = parameters.name;
-    return new SplitExpression(value);
+    return new LabelExpression(value);
   }
 
-  public attribute: Expression;
   public name: string;
 
   constructor(parameters: ExpressionValue) {
     super(parameters, dummyObject);
-    this.attribute = parameters.attribute;
     this.name = parameters.name;
-    this._ensureOp("split");
-    this._checkTypeOfOperand('DATASET');
-    if (!(this.operand.isOp('literal') || this.operand.isOp('ref'))) throw new Error('can only split on litral and ref')
-    if (!this.attribute) throw new Error('split must have attribute expression');
+    this._ensureOp("label");
+    this._checkTypeOfOperand('SET');
     if (!this.name) throw new Error('split must have a name');
     this.type = 'DATASET';
   }
 
   public valueOf(): ExpressionValue {
     var value = super.valueOf();
-    value.attribute = this.attribute;
     value.name = this.name;
     return value;
   }
 
   public toJS(): ExpressionJS {
     var js = super.toJS();
-    js.attribute = this.attribute.toJS();
     js.name = this.name;
     return js;
   }
 
   public toString(): string {
-    return 'split(' + this.operand.toString() + ')';
+    return 'label(' + this.operand.toString() + ' as ' + this.name + ')';
   }
 
-  public equals(other: SplitExpression): boolean {
+  public equals(other: LabelExpression): boolean {
     return super.equals(other) &&
-      this.attribute.equals(other.attribute) &&
       this.name === other.name;
-  }
-
-  public simplify(): Expression {
-    var value = this.valueOf();
-    value.operand = this.operand.simplify();
-    return new SplitExpression(value);
-  }
-
-  public substitute(substitutionFn: SubstitutionFn, genDiff: number): Expression {
-    var sub = substitutionFn(this, genDiff);
-    if (sub) return sub;
-    var subOperand = this.operand.substitute(substitutionFn, genDiff);
-    var subAttribute = this.attribute.substitute(substitutionFn, genDiff + 1);
-    if (this.operand === subOperand && this.attribute === subAttribute) return this;
-    var value = this.valueOf();
-    value.operand = subOperand;
-    value.attribute = subAttribute;
-    return new SplitExpression(value);
   }
 
   protected _makeFn(operandFn: Function): Function {
@@ -2103,16 +2077,14 @@ export class SplitExpression extends UnaryExpression {
   }
 
   public evaluate(context: Lookup<any> = null): Dataset {
-    console.log("eval split", context);
-    var dataset: NativeDataset = this.operand.getFn()(context);
-    var attrFn = this.attribute.getFn();
-    return dataset.split(attrFn, this.name);
+    var mySet: Set = this.operand.getFn()(context);
+    return mySet.label(this.name);
   }
 
   // UNARY
 }
 
-Expression.register(SplitExpression);
+Expression.register(LabelExpression);
 
 // =====================================================================================
 // =====================================================================================
@@ -2273,7 +2245,7 @@ export class ActionsExpression extends UnaryExpression {
     var operand = this.operand;
 
     if (operand.isOp('split')) {
-      return this._performActionsOnNativeDataset(<NativeDataset>((<SplitExpression>operand).evaluate(context)), context);
+      return this._performActionsOnNativeDataset(<NativeDataset>((<LabelExpression>operand).evaluate(context)), context);
     }
 
     if (operand.isOp('literal')) {

@@ -116,5 +116,9 @@ export class Set implements ImmutableInstance<SetValue, SetJS> {
   public test(value: string): boolean {
     return this.values[value];
   }
+
+  public label(name: string): boolean {
+    return true
+  }
 }
 check = Set;

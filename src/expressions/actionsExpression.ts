@@ -105,12 +105,11 @@ module Core {
     private _performActionsOnNativeDataset(dataset: NativeDataset, context: Lookup<any>): NativeDataset {
       var actions = this.actions;
       if (context) {
-        console.log("subs");
         actions = actions.map((action) => {
           return action.substitute((ex: Expression, genDiff: number) => {
             if (genDiff === 0 && ex.isOp('ref') && (<RefExpression>ex).generations === '^') {
-              console.log("replace", ex.toJS());
-              console.log("with", context[(<RefExpression>ex).name]);
+              //console.log("replace", ex.toJS());
+              //console.log("with", context[(<RefExpression>ex).name]);
               return new LiteralExpression({ op: 'literal', value: context[(<RefExpression>ex).name] });
             } else {
               return null;
@@ -123,7 +122,6 @@ module Core {
         var action = actions[i];
         switch (action.action) {
           case 'filter':
-            console.log("filter", action.expression.toJS());
             dataset = dataset.filter(action.expression.getFn());
             break;
 
@@ -151,10 +149,9 @@ module Core {
     }
 
     public evaluate(context: Lookup<any> = null): Dataset {
-      console.log("evaluate", context);
       var operand = this.operand;
 
-      if (operand.isOp('split')) {
+      if (operand.isOp('label')) {
         return this._performActionsOnNativeDataset(<NativeDataset>((<LabelExpression>operand).evaluate(context)), context);
       }
 

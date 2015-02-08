@@ -1,6 +1,6 @@
 /// <reference path="../definitions/require.d.ts" />
 /// <reference path="../definitions/higher-object.d.ts" />
-/// <reference path="../typings/q/Q.d.ts" />
+/// <reference path="../definitions/Q.d.ts" />
 
 /*========================================*\
  *                                        *
@@ -50,7 +50,7 @@
  */
 
 var HigherObject = <HigherObject.Base>require("higher-object");
-//var Q = require("q");
+var Q = <Q.Base>require("q");
 
 module Core {
   export interface Lookup<T> {

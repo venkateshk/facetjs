@@ -363,17 +363,26 @@ module Core {
     public sum(attr: any) { return this._performAggregate('count', attr); }
     public min(attr: any) { return this._performAggregate('min', attr); }
     public max(attr: any) { return this._performAggregate('max', attr); }
-    // ToDo: more...
+    public group(attr: any) { return this._performAggregate('group', attr); }
 
-    // Split
-    public split(attribute: any, name: string): Expression {
-      if (!Expression.isExpression(attribute)) attribute = Expression.fromJSLoose(attribute);
+    // Label
+    public label(name: string): Expression {
       return this._performUnaryExpression({
-        op: 'split',
-        attribute: attribute,
+        op: 'label',
         name: name
       });
     }
+
+    // ToDo: add split = group -> label -> def
+    // Split
+    //public split(attribute: any, name: string): Expression {
+    //  if (!Expression.isExpression(attribute)) attribute = Expression.fromJSLoose(attribute);
+    //  return this._performUnaryExpression({
+    //    op: 'split',
+    //    attribute: attribute,
+    //    name: name
+    //  });
+    //}
 
     // Expression constructors (Binary)
     protected _performBinaryExpression(newValue: ExpressionValue, otherEx: any): Expression {

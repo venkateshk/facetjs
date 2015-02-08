@@ -296,7 +296,7 @@ module Core {
       return max;
     }
 
-    public split(attrFn: Function): Set {
+    public group(attrFn: Function): Set {
       var splits: Lookup<any> = {};
       var data = this.data;
       var n = data.length;

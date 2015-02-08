@@ -3,5 +3,6 @@ declare var module: {
 };
 
 if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
-  module.exports = Facet;
+  module.exports = Facet.facet;
+  module.exports.Module = Facet;
 }

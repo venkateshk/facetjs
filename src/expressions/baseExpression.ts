@@ -36,7 +36,7 @@ module Facet {
     attribute?: ExpressionJS;
   }
 
-  // Possible types: ['NULL', 'BOOLEAN', 'NUMBER', 'TIME', 'STRING', 'NUMBER_RANGE', 'TIME_RANGE', 'SET', 'DATASET']
+  export var possibleTypes = ['NULL', 'BOOLEAN', 'NUMBER', 'TIME', 'STRING', 'NUMBER_RANGE', 'TIME_RANGE', 'SET', 'DATASET'];
 
   export var checkArrayEquality = function(a: Array<any>, b: Array<any>) {
     return a.every((item, i) =>  (item === b[i]));
@@ -427,7 +427,7 @@ module Facet {
       }
       var newExpression: Expression = exs.length === 1 ? exs[0] : new MultiplyExpression({ op: 'add', operands: exs });
       return this._performNaryExpression(
-        { op: 'add' },
+        { op: 'multiply' },
         [new ReciprocateExpression({ op: 'reciprocate', operand: newExpression})]
       );
     }

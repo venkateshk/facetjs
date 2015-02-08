@@ -30,32 +30,32 @@ node_modules/.bin/pegjs \
   build/parser/filter.js
 
 # Parts
-mkdir -p package
+#mkdir -p package
 
 # TypeScript
-echo "Compiling TypeScript basics"
-node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/*.ts
+#echo "Compiling TypeScript basics"
+#node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/*.ts
 
-echo "Compiling expression"
-node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/expression.ts
+#echo "Compiling expression"
+#node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/expression.ts
 
-echo "Compiling query"
-node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/query/*.ts
+#echo "Compiling query"
+#node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/query/*.ts
 
-echo "Compiling locators"
-node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/locator/*.ts
+#echo "Compiling locators"
+#node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/locator/*.ts
 
-echo "Compiling requesters"
-node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/requester/*.ts
+#echo "Compiling requesters"
+#node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/requester/*.ts
 
-echo "Compiling drivers"
-node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/driver/*.ts
+#echo "Compiling drivers"
+#node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/driver/*.ts
 
-#echo "Compiling render"
-#node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/render/*.ts
+##echo "Compiling render"
+##node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/render/*.ts
 
-echo "Compiling workers"
-node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/worker/*.ts
+#echo "Compiling workers"
+#node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/worker/*.ts
 
 # echo "Bundle type definitions"
 # node dts-bundle.js

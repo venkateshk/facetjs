@@ -46,3 +46,4 @@ node_modules/.bin/tsc --noImplicitAny --noEmitOnError --declaration --out build/
   src/actions/sortActions.ts \
   \
   src/exports.ts
+

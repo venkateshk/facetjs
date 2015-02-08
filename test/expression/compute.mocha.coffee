@@ -1,11 +1,9 @@
 { expect } = require("chai")
 
-{ Dataset } = require('../../build/datatype')
-{ Expression } = require('../../build/expression')
+facet = require('../../build/facet')
+{ Expression, Dataset } = facet.Module
 
 describe "composition", ->
-  facet = Expression.facet
-
   data = [
     { cut: 'Good',  price: 400 }
     { cut: 'Good',  price: 300 }

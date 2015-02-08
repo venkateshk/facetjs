@@ -1,6 +1,8 @@
 { expect } = require("chai")
-{ Expression } = require '../../../build/expression'
-{ Set } = require '../../../build/datatype'
+
+facet = require('../../../build/facet')
+{ Expression, Set } = facet.Module
+
 tests = require './sharedTests'
 
 describe 'IsExpression', ->

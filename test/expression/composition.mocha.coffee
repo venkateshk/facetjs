@@ -1,17 +1,15 @@
 { expect } = require("chai")
 
-{ Expression } = require('../../build/expression')
+facet = require('../../build/facet')
 
 describe "composition", ->
-  facet = Expression.facet
-
   it "works in blank case", ->
     ex = facet()
     expect(ex.toJS()).to.deep.equal({
       "op": "literal"
       "type": "DATASET"
       "value": {
-        "dataset": "base"
+        "dataset": "native"
         "data": [{}]
       }
     })
@@ -35,7 +33,7 @@ describe "composition", ->
         "type": "DATASET"
         "value": {
           "data": [{}]
-          "dataset": "base"
+          "dataset": "native"
         }
       }
       "actions": [
@@ -73,7 +71,7 @@ describe "composition", ->
           "data": [
             {}
           ]
-          "dataset": "base"
+          "dataset": "native"
         }
       }
       "actions": [
@@ -85,7 +83,7 @@ describe "composition", ->
             "operand": {
               "op": "literal"
               "type": "DATASET"
-              "value": { "dataset": "base", "data": [{}] }
+              "value": { "dataset": "native", "data": [{}] }
             }
             "actions": [
               {
@@ -100,10 +98,10 @@ describe "composition", ->
                 "action": "apply"
                 "name": "priceOver2"
                 "expression": {
-                  "op": "divide"
+                  "op": "multiply"
                   "operands": [
                     { "op": "ref", "name": "price" }
-                    { "op": "literal", "value": 2 }
+                    { "op": "reciprocate", "operand": { "op": "literal", "value": 2 } }
                   ]
                 }
               }

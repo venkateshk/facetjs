@@ -11,6 +11,7 @@
       <w>datatype</w>
       <w>datatypes</w>
       <w>defs</w>
+      <w>deserializes</w>
       <w>editstream</w>
       <w>etimedout</w>
       <w>guid</w>
@@ -30,6 +31,7 @@
       <w>substr</w>
       <w>timeseries</w>
       <w>tuples</w>
+      <w>typecheck</w>
       <w>wickham</w>
     </words>
   </dictionary>

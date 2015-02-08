@@ -1,6 +1,7 @@
 { expect } = require("chai")
 
-{ Expression } = require('../../build/expression')
+facet = require('../../build/facet')
+{ Expression } = facet.Module
 
 describe "typecheck1", ->
   it "should throw silly ref type", ->

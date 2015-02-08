@@ -2,8 +2,8 @@
 
 { testHigherObjects } = require("higher-object/build/tester")
 
-facet = require('../../build/facet')
-{ Expression } = facet.Module
+facet = require('../../../build/facet')
+{ Expression } = facet.Core
 
 # TODO: Make these as test cases too
 # describe 'LiteralExpression with dataset', -> beforeEach -> this.expression = Expression.fromJS({ op: 'literal', value: <Dataset> })

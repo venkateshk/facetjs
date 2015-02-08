@@ -1,4 +1,4 @@
-module Facet {
+module Core {
   export interface NumberRangeValue {
     start: number;
     end: number;

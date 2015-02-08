@@ -2,7 +2,8 @@
 
 { testHigherObjects } = require("higher-object/build/tester")
 
-{ Set } = require('../../build/datatype/set')
+facet = require('../../../build/facet')
+{ Set } = facet.Core
 
 describe "Set", ->
   it "passes higher object tests", ->

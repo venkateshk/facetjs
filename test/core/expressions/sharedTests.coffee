@@ -1,7 +1,7 @@
 { expect } = require("chai")
 
 facet = require('../../../build/facet')
-{ Expression } = facet.Module
+{ Expression } = facet.Core
 
 exports.complexityIs = (expectedComplexity) ->
   it '#getComplexty() gets the complexity correctly', ->

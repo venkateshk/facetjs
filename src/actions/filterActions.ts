@@ -1,4 +1,4 @@
-module Facet {
+module Core {
   export class FilterAction extends Action {
     static fromJS(parameters: ActionJS): FilterAction {
       return new FilterAction({

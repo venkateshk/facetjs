@@ -1,4 +1,4 @@
-module Facet {
+module Core {
   export class RefExpression extends Expression {
     static fromJS(parameters: ExpressionJS): RefExpression {
       return new RefExpression(<any>parameters);
@@ -20,10 +20,11 @@ module Facet {
       if (typeof this.name !== 'string' || this.name.length === 0) {
         throw new TypeError("must have a nonempty `name`");
       }
-      if (possibleTypes.indexOf(parameters.type) !== -1) {
+      if (parameters.type) {
+        if (possibleTypes.indexOf(parameters.type) === -1) {
+          throw new TypeError('unsupported type ' + parameters.type);
+        }
         this.type = parameters.type;
-      } else {
-        throw new TypeError('unsupported type ' + parameters.type);
       }
     }
 

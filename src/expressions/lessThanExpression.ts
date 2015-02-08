@@ -1,4 +1,4 @@
-module Facet {
+module Core {
   export class LessThanExpression extends BinaryExpression {
     static fromJS(parameters: ExpressionJS): LessThanExpression {
       return new LessThanExpression(BinaryExpression.jsToValue(parameters));

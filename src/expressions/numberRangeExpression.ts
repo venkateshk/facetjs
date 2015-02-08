@@ -1,4 +1,4 @@
-module Facet {
+module Core {
   export class NumberRangeExpression extends BinaryExpression {
     static fromJS(parameters: ExpressionJS): NumberRangeExpression {
       return new NumberRangeExpression(BinaryExpression.jsToValue(parameters));

@@ -1,4 +1,4 @@
-module Facet {
+module Core {
 
   export class IsExpression extends BinaryExpression {
     static fromJS(parameters: ExpressionJS): IsExpression {

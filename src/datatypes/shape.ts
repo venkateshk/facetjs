@@ -1,4 +1,4 @@
-module Facet {
+module Core {
   function margin1d(left: any, width: any, right: any, parentWidth: any): any[] {
     if (left != null) {
       if (width != null) {

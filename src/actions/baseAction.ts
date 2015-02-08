@@ -1,7 +1,7 @@
 /// <reference path="../datatypes/dataset.ts" />
 /// <reference path="../expressions/baseExpression.ts" />
 
-module Facet {
+module Core {
   export interface ActionValue {
     action?: string;
     name?: string;

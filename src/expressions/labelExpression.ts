@@ -1,4 +1,4 @@
-module Facet {
+module Core {
 
   export class LabelExpression extends UnaryExpression {
     static fromJS(parameters: ExpressionJS): LabelExpression {

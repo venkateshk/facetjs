@@ -1,4 +1,4 @@
-module Facet {
+module Core {
   export class ActionsExpression extends UnaryExpression {
     static fromJS(parameters: ExpressionJS): ActionsExpression {
       var value = UnaryExpression.jsToValue(parameters);

@@ -1,4 +1,4 @@
-module Facet {
+module Core {
   export class OrExpression extends NaryExpression {
     static fromJS(parameters: ExpressionJS): OrExpression {
       return new OrExpression(NaryExpression.jsToValue(parameters));

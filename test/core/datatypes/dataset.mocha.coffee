@@ -2,8 +2,8 @@
 
 { testHigherObjects } = require("higher-object/build/tester")
 
-{ Datatypes } = require('../../build/facet')
-{ Dataset } = Datatypes
+facet = require('../../../build/facet')
+{ Dataset } = facet.Core
 
 describe "Dataset", ->
   it "passes higher object tests", ->

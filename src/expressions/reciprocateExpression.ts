@@ -1,4 +1,4 @@
-module Facet {
+module Core {
 
   export class ReciprocateExpression extends UnaryExpression {
     static fromJS(parameters: ExpressionJS): ReciprocateExpression {

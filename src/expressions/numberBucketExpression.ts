@@ -1,4 +1,4 @@
-module Facet {
+module Core {
 
   export class NumberBucketExpression extends UnaryExpression {
     static fromJS(parameters: ExpressionJS): NumberBucketExpression {

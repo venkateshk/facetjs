@@ -2,7 +2,8 @@
 
 { testHigherObjects } = require("higher-object/build/tester")
 
-{ TimeRange } = require('../../build/datatype/timeRange')
+facet = require('../../../build/facet')
+{ TimeRange } = facet.Core
 
 describe "TimeRange", ->
   it "passes higher object tests", ->

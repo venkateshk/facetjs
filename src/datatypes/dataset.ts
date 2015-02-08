@@ -1,4 +1,4 @@
-module Facet {
+module Core {
   export interface DatasetValue {
     dataset: string;
     data?: Datum[];

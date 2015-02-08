@@ -1,4 +1,4 @@
-module Facet {
+module Core {
   export interface SetValue {
     values: { [k: string]: boolean }
   }

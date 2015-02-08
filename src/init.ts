@@ -52,7 +52,7 @@
 var HigherObject = <HigherObject.Base>require("higher-object");
 //var Q = require("q");
 
-module Facet {
+module Core {
   export interface Lookup<T> {
     [key: string]: T;
   }

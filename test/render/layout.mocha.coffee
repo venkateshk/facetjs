@@ -3,7 +3,7 @@ expect = chai.expect
 
 d3 = require("d3")
 
-facet = require('../../build/facet')
+facet = require('../../../build/facet')
 { filter, split, apply, layout, scale, plot, use, combine, sort, transform } = facet
 
 { simpleDriver } = require('../../build/driver/simpleDriver')

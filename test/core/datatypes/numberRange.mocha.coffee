@@ -2,7 +2,8 @@
 
 { testHigherObjects } = require("higher-object/build/tester")
 
-{ NumberRange } = require('../../build/datatype/numberRange')
+facet = require('../../../build/facet')
+{ NumberRange } = facet.Core
 
 describe "NumberRange", ->
   it "passes higher object tests", ->

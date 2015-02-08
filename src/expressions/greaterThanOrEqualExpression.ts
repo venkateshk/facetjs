@@ -1,4 +1,4 @@
-module Facet {
+module Core {
   export class GreaterThanOrEqualExpression extends BinaryExpression {
     static fromJS(parameters: ExpressionJS): GreaterThanOrEqualExpression {
       return new GreaterThanOrEqualExpression(BinaryExpression.jsToValue(parameters));

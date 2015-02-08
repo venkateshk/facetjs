@@ -3,6 +3,6 @@ declare var module: {
 };
 
 if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
-  module.exports = Facet.facet;
-  module.exports.Module = Facet;
+  module.exports = Core.facet;
+  module.exports.Core = Core;
 }

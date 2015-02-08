@@ -1,6 +1,6 @@
 { expect } = require("chai")
 
-facet = require('../../build/facet')
+facet = require('../../../build/facet')
 
 describe "composition", ->
   it "works in blank case", ->

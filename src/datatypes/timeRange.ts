@@ -1,4 +1,4 @@
-module Facet {
+module Core {
   export interface TimeRangeValue {
     start: Date;
     end: Date;

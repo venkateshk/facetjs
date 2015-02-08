@@ -1,7 +1,7 @@
 { expect } = require("chai")
 
-facet = require('../../build/facet')
-{ Expression, Dataset } = facet.Module
+facet = require('../../../build/facet')
+{ Expression, Dataset } = facet.Core
 
 describe "composition", ->
   data = [

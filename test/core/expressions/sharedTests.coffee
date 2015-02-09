@@ -15,5 +15,8 @@ exports.mergedAndWith = (testCaseTitle, mergingExpression) ->
   return {
     equals: (expectedExpression) ->
       it testCaseTitle, ->
-        expect(Expression.fromJS(@expression).mergeAnd(Expression.fromJS(mergingExpression)).toJS()).to.deep.equal(expectedExpression)
+        mergedExp = Expression.fromJS(@expression).mergeAnd(Expression.fromJS(mergingExpression))
+        expect(
+          if mergedExp? then mergedExp.toJS() else null
+        ).to.deep.equal(expectedExpression)
   }

@@ -1,6 +1,7 @@
 { expect } = require("chai")
 
 tests = require './sharedTests'
+{ Set } = require('../../../build/facet').Core
 
 describe 'AndExpression', ->
   describe 'with boolean expressions', ->
@@ -14,7 +15,7 @@ describe 'AndExpression', ->
     tests.complexityIs(4)
     tests.simplifiedExpressionIs({op: 'literal', value: false})
 
-  describe 'with is/in expressions', ->
+  describe 'with is expressions', ->
     beforeEach ->
       this.expression = { op: 'and', operands: [
         { op: 'is', lhs: "$test", rhs: "blah" },
@@ -23,6 +24,23 @@ describe 'AndExpression', ->
 
     tests.complexityIs(7)
     tests.simplifiedExpressionIs({op: 'literal', value: false})
+
+  describe 'with is/in expressions', ->
+    beforeEach ->
+      this.expression = { op: 'and', operands: [
+        { op: 'is', lhs: "$test", rhs: "blah" },
+        {
+          op: 'in',
+          lhs: "$test",
+          rhs: {
+            op: 'literal'
+            value: Set.fromJS({ values: ["blah", "test2"]})
+          }
+        }
+      ] }
+
+    tests.complexityIs(7)
+    tests.simplifiedExpressionIs({ op: 'is', lhs: { op: 'ref', name: "test" }, rhs: { op: 'literal', value: "blah" } })
 
   describe 'with number comparison expressions', ->
     beforeEach ->

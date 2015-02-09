@@ -170,11 +170,7 @@ describe 'IsExpression', ->
               rhs: { op: 'literal', value: Set.fromJS({values: ['ABC', 'DEF']}) }
             }
           )
-          .equals({
-            op: 'in'
-            lhs: { op: 'ref', name: 'flight_time', type: 'STRING' }
-            rhs: { op: 'literal', value: {values: ['ABC', 'DEF']}, type: 'SET' }
-          })
+          .equals({ op: 'is', lhs: { op: 'ref', name: 'flight_time' }, rhs: { op: 'literal', value: 'ABC' } })
 
   describe 'with complex values', ->
     beforeEach ->

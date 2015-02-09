@@ -54,7 +54,7 @@ module Core {
           var rValue = expRhs.value;
           if (rValue instanceof Set) {
             if (rValue.test(thisValue)) {
-              return exp;
+              return this;
             } else {
               return Expression.FALSE;
             }

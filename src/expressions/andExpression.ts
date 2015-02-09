@@ -15,6 +15,8 @@ module Core {
             return reducedExpression;
           }
         }
+        console.log(expression, reducedExpression)
+        console.log(expression.mergeAnd(reducedExpression))
         return expression.mergeAnd(reducedExpression);
       });
     }
@@ -30,10 +32,19 @@ module Core {
       return 'and(' + this.operands.map((operand) => operand.toString()) + ')';
     }
 
-    public simplify(): Expression { //TODO
-      var simplifiedOperands: Expression[] = this.operands.map((operand) => operand.simplify());
+    public simplify(): Expression {
+      var finalOperands: Expression[];
+      var groupedOperands: { [key: string]: Expression[]; };
+      var mergedExpression: Expression;
+      var mergedSimplifiedOperands: Expression[];
+      var referenceGroup: string;
+      var simplifiedOperands: Expression[];
+      var sortedReferenceGroups: string[];
+      var thisOperand: Expression;
 
-      var mergedSimplifiedOperands: Expression[] = [];
+      mergedSimplifiedOperands = [];
+      simplifiedOperands = this.operands.map((operand) => operand.simplify());
+
       for (var i = 0; i < simplifiedOperands.length; i++) {
         if (simplifiedOperands[i].isOp('and')) {
           mergedSimplifiedOperands = mergedSimplifiedOperands.concat((<AndExpression>simplifiedOperands[i]).operands);
@@ -42,11 +53,11 @@ module Core {
         }
       }
 
-      var groupedOperands: { [key: string]: Expression[]; } = {};
+      groupedOperands = {};
 
       for (var j = 0; j < mergedSimplifiedOperands.length; j++) {
-        var thisOperand = mergedSimplifiedOperands[j];
-        var referenceGroup = thisOperand.getReferences().toString();
+        thisOperand = mergedSimplifiedOperands[j];
+        referenceGroup = thisOperand.getReferences().toString();
 
         if (groupedOperands[referenceGroup]) {
           groupedOperands[referenceGroup].push(thisOperand);
@@ -55,15 +66,19 @@ module Core {
         }
       }
 
-      var finalOperands: Expression[] = [];
-      var sortedReferenceGroups = Object.keys(groupedOperands).sort();
+      finalOperands = [];
+      sortedReferenceGroups = Object.keys(groupedOperands).sort();
+
       for (var k = 0; k < sortedReferenceGroups.length; k++) {
-        if (groupedOperands[sortedReferenceGroups[k]].length > 1) {
-          finalOperands.push(AndExpression._mergeExpressions(groupedOperands[sortedReferenceGroups[k]]));
-        } else {
+        mergedExpression = AndExpression._mergeExpressions(groupedOperands[sortedReferenceGroups[k]]);
+        if (mergedExpression === null) {
           finalOperands = finalOperands.concat(groupedOperands[sortedReferenceGroups[k]]);
+        } else {
+          finalOperands.push(mergedExpression);
         }
       }
+
+      finalOperands = finalOperands.filter((operand) => !(operand.isOp('literal') && (<LiteralExpression>operand).value === true))
 
       if (finalOperands.some((operand) => operand.isOp('literal') && (<LiteralExpression>operand).value === false)) {
         return new LiteralExpression({

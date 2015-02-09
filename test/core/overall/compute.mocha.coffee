@@ -51,7 +51,7 @@ describe "composition", ->
       done()
     ).done()
 
-  it.skip "works with simple group aggregator", (done) ->
+  it "works with simple group aggregator", (done) ->
     ds = Dataset.fromJS({
       dataset: 'native'
       data: data
@@ -73,13 +73,8 @@ describe "composition", ->
             "type": "DATASET"
           }
           "Cuts": {
-            "data": [
-              { "Cut": "Good" }
-              { "Cut": "Great" }
-              { "Cut": "Wow" }
-            ]
-            "dataset": "native"
-            "type": "DATASET"
+            "type": "SET"
+            "values": ["Good", "Great", "Wow"]
           }
         }
       ])

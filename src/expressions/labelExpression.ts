@@ -1,5 +1,4 @@
 module Core {
-
   export class LabelExpression extends UnaryExpression {
     static fromJS(parameters: ExpressionJS): LabelExpression {
       var value = UnaryExpression.jsToValue(parameters);
@@ -40,7 +39,7 @@ module Core {
     }
 
     protected _makeFn(operandFn: Function): Function {
-      throw new Error("can not call on split");
+      throw new Error("can not call makeFn on label");
     }
 
     protected _makeFnJS(operandFnJS: string): string {

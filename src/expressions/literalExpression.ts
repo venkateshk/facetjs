@@ -72,6 +72,16 @@ module Core {
     public _getRawFnJS(): string {
       return JSON.stringify(this.value); // ToDo: what to do with higher objects?
     }
+
+    public mergeAnd(exp: Expression): Expression {
+      if (this.value === false) {
+        return this;
+      } else if (this.value === true) {
+        return exp;
+      } else {
+        return null;
+      }
+    }
   }
 
   Expression.register(LiteralExpression);

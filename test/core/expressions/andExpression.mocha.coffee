@@ -32,7 +32,7 @@ describe 'AndExpression', ->
       ] }
 
     tests.complexityIs(7)
-    tests.simplifiedExpressionIs({ op: 'lessThanOrEqual', lhs: "$test", rhs: 0 })
+    tests.simplifiedExpressionIs({ op: 'lessThanOrEqual', lhs: { op: 'ref', name: "test" }, rhs: { op: 'literal', value: 0 }})
 
   describe 'with and expressions', ->
     beforeEach ->

@@ -229,8 +229,20 @@ module Core {
 
     /**
      * Introspects self to look for all references expressions and returns the alphabetically sorted list of the references
+     *
+     * @returns {string[]}
      */
     public getReferences(): string[] {
+      throw new Error('please implement');
+    }
+
+    /**
+     * Sifts through operands to find all operands of a certain type
+     *
+     * @param type{string} Type of operand to look for
+     * @returns {Expression[]}
+     */
+    public getOperandOfType(type: string): Expression[] {
       throw new Error('please implement');
     }
 
@@ -537,6 +549,14 @@ module Core {
       return this.operand.getReferences();
     }
 
+    public getOperandOfType(type: string): Expression[] {
+      if (this.operand.isOp(type)) {
+        return [this.operand];
+      } else {
+        return []
+      }
+    }
+
     public substitute(substitutionFn: SubstitutionFn, genDiff: number): Expression {
       var sub = substitutionFn(this, genDiff);
       if (sub) return sub;
@@ -645,6 +665,22 @@ module Core {
       value.lhs = simplifiedLhs;
       value.rhs = simplifiedRhs;
       return new (Expression.classMap[this.op])(value);
+    }
+
+    public getOperandOfType(type: string): Expression[] {
+      var ret: Expression[] = [];
+
+      if (this.lhs.isOp(type)) ret.push(this.lhs);
+      if (this.rhs.isOp(type)) ret.push(this.rhs);
+      return ret;
+    }
+
+    public checkLefthandedness(): boolean {
+      if (this.lhs instanceof RefExpression && this.rhs instanceof RefExpression) return null;
+      if (this.lhs instanceof RefExpression) return true;
+      if (this.rhs instanceof RefExpression) return false;
+
+      return null;
     }
 
     public getReferences(): string[] {
@@ -765,6 +801,10 @@ module Core {
 
     public getReferences(): string[] {
       return Array.prototype.concat.apply([], this.operands.map((operand) => operand.getReferences())).sort();
+    }
+
+    public getOperandOfType(type: string): Expression[] {
+      return this.operands.filter((operand) => operand.isOp(type));
     }
 
     public substitute(substitutionFn: SubstitutionFn, genDiff: number): Expression {

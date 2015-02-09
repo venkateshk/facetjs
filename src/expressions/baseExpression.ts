@@ -314,6 +314,19 @@ module Core {
     }
 
     /**
+     * Evaluate some expression on every datum in the dataset. Temporarily record the result as `name`
+     * Same as `apply` but is better suited for temporary results.
+     *
+     * @param name The name of where to store the results
+     * @param ex The expression to evaluate
+     * @returns {Expression}
+     */
+    public def(name: string, ex: any): Expression {
+      if (!Expression.isExpression(ex)) ex = Expression.fromJSLoose(ex);
+      return this._performAction(new DefAction({ name: name, expression: ex }));
+    }
+
+    /**
      * Filter the dataset with a boolean expression
      * Only works on expressions that return DATASET
      *
@@ -441,7 +454,7 @@ module Core {
       );
     }
 
-    public compute() {
+    public compute(remote: boolean = false) {
       var deferred: Q.Deferred<Dataset> = <Q.Deferred<Dataset>>Q.defer();
       // ToDo: typecheck2 the expression
       var simple = this.simplify();
@@ -457,7 +470,6 @@ module Core {
     }
   }
   check = Expression;
-
 
 
 

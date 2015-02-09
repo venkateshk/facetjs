@@ -40,10 +40,11 @@ node_modules/.bin/tsc --noImplicitAny --noEmitOnError --declaration --out build/
   src/expressions/timeRangeExpression.ts \
   \
   src/actions/baseAction.ts \
-  src/actions/applyActions.ts \
-  src/actions/filterActions.ts \
-  src/actions/limitActions.ts \
-  src/actions/sortActions.ts \
+  src/actions/applyAction.ts \
+  src/actions/defAction.ts \
+  src/actions/filterAction.ts \
+  src/actions/limitAction.ts \
+  src/actions/sortAction.ts \
   \
   src/exports.ts
 

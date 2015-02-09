@@ -111,6 +111,7 @@ module Core {
     var js: Datum = {};
     for (var k in datum) {
       if (!datum.hasOwnProperty(k)) continue;
+      if (k[0] === '_') continue;
       var v: any = datum[k];
       if (v == null) {
         v = null;
@@ -118,14 +119,14 @@ module Core {
         var typeofV = typeof v;
         if (typeofV === 'object') {
           if (v.toISOString) {
-            v = {type: 'DATE', value: v};
+            v = { type: 'DATE', value: v };
           } else {
             var type = v.constructor.type;
             v = v.toJS();
             v.type = type;
           }
         } else if (typeofV === 'number' && !isFinite(v)) {
-          v = {type: 'NUMBER', value: String(v)};
+          v = { type: 'NUMBER', value: String(v) };
         }
       }
       js[k] = v;
@@ -235,6 +236,10 @@ module Core {
         datum[name] = exFn(datum);
       }
       return this;
+    }
+
+    public def(name: string, exFn: Function): NativeDataset {
+      return this.apply('_' + name, exFn);
     }
 
     public filter(exFn: Function): NativeDataset {

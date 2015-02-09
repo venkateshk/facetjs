@@ -26,7 +26,7 @@ describe 'LessThanExpression', ->
 
     describe '#mergeAnd', ->
       tests
-        .mergedAndWith(
+        .mergeAndWith(
           "merges with left-handed lessThan expression of smaller value",
           {
             op: 'lessThan',
@@ -40,7 +40,7 @@ describe 'LessThanExpression', ->
           })
 
       tests
-        .mergedAndWith(
+        .mergeAndWith(
           "merges with left-handed lessThan expression of equal value",
           {
             op: 'lessThan',
@@ -54,7 +54,7 @@ describe 'LessThanExpression', ->
           })
 
       tests
-        .mergedAndWith(
+        .mergeAndWith(
           "merges with left-handed lessThan expression of larger value",
           {
             op: 'lessThan',
@@ -68,7 +68,7 @@ describe 'LessThanExpression', ->
           })
 
       tests
-        .mergedAndWith(
+        .mergeAndWith(
           "merges with right-handed lessThan expression of smaller value",
           {
             op: 'lessThan',
@@ -78,7 +78,7 @@ describe 'LessThanExpression', ->
         .equals(null)
 
       tests
-        .mergedAndWith(
+        .mergeAndWith(
           "merges with right-handed lessThan expression of equal value",
           {
             op: 'lessThan',
@@ -91,7 +91,7 @@ describe 'LessThanExpression', ->
           })
 
       tests
-        .mergedAndWith(
+        .mergeAndWith(
           "merges with right-handed lessThan expression of larger value",
           {
             op: 'lessThan',
@@ -104,7 +104,7 @@ describe 'LessThanExpression', ->
           })
 
       tests
-        .mergedAndWith(
+        .mergeAndWith(
           "merges with left-handed lessThanOrEqual expression of smaller value",
           {
             op: 'lessThanOrEqual',
@@ -118,7 +118,7 @@ describe 'LessThanExpression', ->
           })
 
       tests
-        .mergedAndWith(
+        .mergeAndWith(
           "merges with left-handed lessThanOrEqual expression of equal value",
           {
             op: 'lessThanOrEqual',
@@ -132,7 +132,7 @@ describe 'LessThanExpression', ->
           })
 
       tests
-        .mergedAndWith(
+        .mergeAndWith(
           "merges with left-handed lessThanOrEqual expression of larger value",
           {
             op: 'lessThanOrEqual',
@@ -146,7 +146,7 @@ describe 'LessThanExpression', ->
           })
 
       tests
-        .mergedAndWith(
+        .mergeAndWith(
           "merges with right-handed lessThanOrEqual expression of smaller value",
           {
             op: 'lessThanOrEqual',
@@ -173,7 +173,7 @@ describe 'LessThanExpression', ->
           })
 
       tests
-        .mergedAndWith(
+        .mergeAndWith(
           "merges with right-handed lessThanOrEqual expression of equal value",
           {
             op: 'lessThanOrEqual',
@@ -186,7 +186,7 @@ describe 'LessThanExpression', ->
           })
 
       tests
-        .mergedAndWith(
+        .mergeAndWith(
           "merges with right-handed lessThanOrEqual expression of larger value",
           {
             op: 'lessThanOrEqual',
@@ -207,7 +207,7 @@ describe 'LessThanExpression', ->
 
     describe '#mergeAnd', ->
       tests
-        .mergedAndWith(
+        .mergeAndWith(
           "merges with left-handed lessThan expression of smaller value",
           {
             op: 'lessThan',
@@ -220,7 +220,7 @@ describe 'LessThanExpression', ->
           })
 
       tests
-        .mergedAndWith(
+        .mergeAndWith(
           "merges with left-handed lessThan expression of equal value",
           {
             op: 'lessThan',
@@ -230,7 +230,7 @@ describe 'LessThanExpression', ->
         .equals(null)
 
       tests
-        .mergedAndWith(
+        .mergeAndWith(
           "merges with left-handed lessThan expression of larger value",
           {
             op: 'lessThan',
@@ -240,7 +240,7 @@ describe 'LessThanExpression', ->
         .equals(null)
 
       tests
-        .mergedAndWith(
+        .mergeAndWith(
           "merges with right-handed lessThan expression of smaller value",
           {
             op: 'lessThan',
@@ -254,7 +254,7 @@ describe 'LessThanExpression', ->
         })
 
       tests
-        .mergedAndWith(
+        .mergeAndWith(
           "merges with right-handed lessThan expression of equal value",
           {
             op: 'lessThan',
@@ -268,7 +268,7 @@ describe 'LessThanExpression', ->
           })
 
       tests
-        .mergedAndWith(
+        .mergeAndWith(
           "merges with right-handed lessThan expression of larger value",
           {
             op: 'lessThan',
@@ -283,7 +283,7 @@ describe 'LessThanExpression', ->
 
 
       tests
-        .mergedAndWith(
+        .mergeAndWith(
           "merges with left-handed lessThanOrEqual expression of smaller value",
           {
             op: 'lessThanOrEqual',
@@ -296,7 +296,7 @@ describe 'LessThanExpression', ->
           })
 
       tests
-        .mergedAndWith(
+        .mergeAndWith(
           "merges with left-handed lessThanOrEqual expression of equal value",
           {
             op: 'lessThanOrEqual',
@@ -306,7 +306,7 @@ describe 'LessThanExpression', ->
         .equals(null)
 
       tests
-        .mergedAndWith(
+        .mergeAndWith(
           "merges with left-handed lessThanOrEqual expression of larger value",
           {
             op: 'lessThanOrEqual',
@@ -316,7 +316,7 @@ describe 'LessThanExpression', ->
         .equals(null)
 
       tests
-        .mergedAndWith(
+        .mergeAndWith(
           "merges with right-handed lessThanOrEqual expression of smaller value",
           {
             op: 'lessThanOrEqual',
@@ -330,7 +330,7 @@ describe 'LessThanExpression', ->
           })
 
       tests
-        .mergedAndWith(
+        .mergeAndWith(
           "merges with right-handed lessThanOrEqual expression of equal value",
           {
             op: 'lessThanOrEqual',
@@ -344,7 +344,7 @@ describe 'LessThanExpression', ->
           })
 
       tests
-        .mergedAndWith(
+        .mergeAndWith(
           "merges with right-handed lessThanOrEqual expression of larger value",
           {
             op: 'lessThanOrEqual',

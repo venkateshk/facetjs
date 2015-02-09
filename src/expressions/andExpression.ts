@@ -15,8 +15,6 @@ module Core {
             return reducedExpression;
           }
         }
-        console.log(expression, reducedExpression)
-        console.log(expression.mergeAnd(reducedExpression))
         return expression.mergeAnd(reducedExpression);
       });
     }

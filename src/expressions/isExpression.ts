@@ -27,7 +27,7 @@ module Core {
     public mergeAnd(exp: Expression): Expression {
       var references = this.getReferences();
 
-      if (!checkArrayEquality(references, exp.getReferences())) throw new Error('cannot be merged');
+      if (!checkArrayEquality(references, exp.getReferences())) return null;
       if (this.type !== exp.type) return null;
 
       if (exp instanceof IsExpression) {
@@ -63,14 +63,13 @@ module Core {
 
         if (this.rhs.type === 'TIME') {
           if (expRhs instanceof TimeRangeExpression) {
-
             expRange = new TimeRange({
               start: (<LiteralExpression>(expRhs.lhs)).value,
               end: (<LiteralExpression>(expRhs.rhs)).value
             });
 
             if (expRange.test(thisValue)) {
-              return exp;
+              return this;
             } else {
               return Expression.FALSE;
             }
@@ -79,8 +78,90 @@ module Core {
 
         if (this.rhs.type === 'NUMBER') {
           if (expRhs instanceof NumberRangeExpression) {
-            thisValue = (<LiteralExpression>(this.rhs)).value;
+            expRange = new NumberRange({
+              start: (<LiteralExpression>(expRhs.lhs)).value,
+              end: (<LiteralExpression>(expRhs.rhs)).value
+            });
 
+            if (expRange.test(thisValue)) {
+              return this;
+            } else {
+              return Expression.FALSE;
+            }
+          }
+        }
+        return null;
+      } else {
+        return null;
+      }
+    }
+
+    public mergeOr(exp: Expression): Expression {
+      var references = this.getReferences();
+
+      if (!checkArrayEquality(references, exp.getReferences())) return null;
+      if (this.type !== exp.type) return null;
+
+      if (exp instanceof IsExpression) {
+        if (references.length === 2) return this;
+        if (!(this.lhs instanceof RefExpression && exp.lhs instanceof RefExpression)) return null;
+
+        var thisValue = (<LiteralExpression>(this.rhs)).value;
+        var expValue = (<LiteralExpression>(exp.rhs)).value;
+
+        if (
+          thisValue.valueOf &&
+          expValue.valueOf &&
+          expValue.valueOf() === thisValue.valueOf()
+        ) return this; // for higher objects
+        if (thisValue === expValue) return this; // for simple values;
+        return new InExpression({
+          op: 'in',
+          lhs: this.lhs,
+          rhs: new LiteralExpression({
+            op: 'literal',
+            value: Set.fromJS({
+              values: [thisValue, expValue]
+            })
+          })
+        });
+
+      } else if (exp instanceof InExpression) {
+        if (references.length === 2) return null;
+        if (!(this.lhs instanceof RefExpression && exp.lhs instanceof RefExpression)) return null;
+
+        var expRhs = exp.rhs;
+        var thisValue = (<LiteralExpression>(this.rhs)).value;
+        var expRange: any;
+
+        if (expRhs instanceof LiteralExpression) {
+          var rValue = expRhs.value;
+          if (rValue instanceof Set) {
+            if (rValue.test(thisValue)) {
+              return exp;
+            } else {
+              return null;
+            }
+          }
+        }
+
+        if (this.rhs.type === 'TIME') {
+          if (expRhs instanceof TimeRangeExpression) {
+            expRange = new TimeRange({
+              start: (<LiteralExpression>(expRhs.lhs)).value,
+              end: (<LiteralExpression>(expRhs.rhs)).value
+            });
+
+            if (expRange.test(thisValue)) {
+              return exp;
+            } else {
+              return null;
+            }
+          }
+        }
+
+        if (this.rhs.type === 'NUMBER') {
+          if (expRhs instanceof NumberRangeExpression) {
             expRange = new NumberRange({
               start: (<LiteralExpression>(expRhs.lhs)).value,
               end: (<LiteralExpression>(expRhs.rhs)).value
@@ -89,7 +170,7 @@ module Core {
             if (expRange.test(thisValue)) {
               return exp;
             } else {
-              return Expression.FALSE;
+              return null;
             }
           }
         }

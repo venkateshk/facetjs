@@ -58,6 +58,31 @@ describe 'OrExpression', ->
       }
     })
 
+  describe 'with is/in expressions 2', ->
+    beforeEach ->
+      this.expression = { op: 'or', operands: [
+        {
+          op: 'in',
+          lhs: "$test",
+          rhs: {
+            op: 'literal'
+            value: Set.fromJS({ values: ["blah", "test2"]})
+          }
+        }
+        { op: 'is', lhs: "$test", rhs: "blah3" }
+      ] }
+
+    tests.complexityIs(7)
+    tests.simplifiedExpressionIs({
+      op: 'in',
+      lhs: { op: 'ref', name: 'test' },
+      rhs: {
+        op: 'literal'
+        value: { values: ["blah", "blah3", "test2"]}
+        type: 'SET'
+      }
+    })
+
   describe 'with number comparison expressions', ->
     beforeEach ->
       this.expression = { op: 'or', operands: [
@@ -68,7 +93,7 @@ describe 'OrExpression', ->
     tests.complexityIs(7)
     tests.simplifiedExpressionIs({ op: 'lessThan', lhs: { op: 'ref', name: "test" }, rhs: { op: 'literal', value: 1 }})
 
-  describe 'with and expressions', ->
+  describe 'with or expressions', ->
     beforeEach ->
       this.expression = { op: 'or', operands: [
         { op: 'or', operands: [{ op: 'lessThan', lhs: "$test1", rhs: 1 }, { op: 'lessThanOrEqual', lhs: "$test2", rhs: 0 }]}
@@ -82,3 +107,27 @@ describe 'OrExpression', ->
       { op: 'lessThan', lhs: { op: 'ref', name: "test3" }, rhs: { op: 'literal', value: 1 }}
       { op: 'lessThanOrEqual', lhs: { op: 'ref', name: "test4" }, rhs: { op: 'literal', value: 0 }}
     ] })
+
+  describe 'with irreducible expressions', ->
+    beforeEach ->
+      this.expression = { op: 'or', operands: [
+        { op: 'lessThan', lhs: "$test", rhs: 1 },
+        { op: 'lessThan', lhs: 2, rhs: "$test" }
+      ] }
+
+    tests.complexityIs(7)
+    tests.simplifiedExpressionIs({
+      op: 'or',
+      operands: [
+        {
+          op: 'lessThan'
+          lhs: { op: 'ref', name: 'test' }
+          rhs: { op: 'literal', value: 1 }
+        },
+        {
+          op: 'lessThan'
+          lhs: { op: 'literal', value: 2 }
+          rhs: { op: 'ref', name: 'test' }
+        }
+      ]
+    })

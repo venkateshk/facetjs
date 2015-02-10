@@ -42,6 +42,23 @@ describe 'AndExpression', ->
     tests.complexityIs(7)
     tests.simplifiedExpressionIs({ op: 'is', lhs: { op: 'ref', name: "test" }, rhs: { op: 'literal', value: "blah" } })
 
+  describe 'with is/in expressions 2', ->
+    beforeEach ->
+      this.expression = { op: 'and', operands: [
+        {
+          op: 'in',
+          lhs: "$test",
+          rhs: {
+            op: 'literal'
+            value: Set.fromJS({ values: ["blah", "test2"]})
+          }
+        }
+        { op: 'is', lhs: "$test", rhs: "blah" }
+      ] }
+
+    tests.complexityIs(7)
+    tests.simplifiedExpressionIs({ op: 'is', lhs: { op: 'ref', name: "test" }, rhs: { op: 'literal', value: "blah" } })
+
   describe 'with number comparison expressions', ->
     beforeEach ->
       this.expression = { op: 'and', operands: [
@@ -66,3 +83,27 @@ describe 'AndExpression', ->
       { op: 'lessThan', lhs: { op: 'ref', name: "test3" }, rhs: { op: 'literal', value: 1 }}
       { op: 'lessThanOrEqual', lhs: { op: 'ref', name: "test4" }, rhs: { op: 'literal', value: 0 }}
     ] })
+
+  describe 'with irreducible expressions', ->
+    beforeEach ->
+      this.expression = { op: 'and', operands: [
+        { op: 'lessThan', lhs: "$test", rhs: 1 },
+        { op: 'lessThan', lhs: 0, rhs: "$test" }
+      ] }
+
+    tests.complexityIs(7)
+    tests.simplifiedExpressionIs({
+      op: 'and',
+      operands: [
+        {
+          op: 'lessThan'
+          lhs: { op: 'ref', name: 'test' }
+          rhs: { op: 'literal', value: 1 }
+        },
+        {
+          op: 'lessThan'
+          lhs: { op: 'literal', value: 0 }
+          rhs: { op: 'ref', name: 'test' }
+        }
+      ]
+    })

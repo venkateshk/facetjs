@@ -1,6 +1,7 @@
 /// <reference path="../definitions/require.d.ts" />
 /// <reference path="../definitions/higher-object.d.ts" />
 /// <reference path="../definitions/Q.d.ts" />
+/// <reference path="../typings/async/async.d.ts" />
 
 /*========================================*\
  *                                        *
@@ -51,8 +52,32 @@
 
 var HigherObject = <HigherObject.Base>require("higher-object");
 var Q = <Q.Base>require("q");
+var async = <Async>require("async");
+
+//import async = require("async");
+
+//import chronology = require("chronology");
 
 module Core {
+  export interface Lookup<T> {
+    [key: string]: T;
+  }
+
+  export interface Dummy {}
+
+  export var dummyObject: Dummy = {};
+
+  export var isInstanceOf = HigherObject.isInstanceOf;
+
+  export import ImmutableClass = HigherObject.ImmutableClass;
+  export import ImmutableInstance = HigherObject.ImmutableInstance;
+
+  export interface Datum {
+    [attribute: string]: any;
+  }
+}
+
+module Legacy {
   export interface Lookup<T> {
     [key: string]: T;
   }

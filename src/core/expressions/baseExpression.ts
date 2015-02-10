@@ -1,6 +1,3 @@
-/// <reference path="../datatypes/dataset.ts" />
-/// <reference path="../actions/baseAction.ts" />
-
 module Core {
   export interface SubstitutionFn {
     (ex: Expression, genDiff: number): Expression;

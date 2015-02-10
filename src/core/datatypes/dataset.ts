@@ -374,7 +374,7 @@ module Core {
     leftOver?: Expression;
   }
 
-  some shit so that WebStorm does not auto compile
+  //some shit so that WebStorm does not auto compile
 
   function makeFacetFilter(expression: Expression): any {
     if (expression.type !== 'BOOLEAN') return null;
@@ -450,10 +450,11 @@ module Core {
         return { aggregate: 'count' }
       }
 
-      if (expression.attribute instanceof RefExpression) {
+      var attribute = expression.attribute;
+      if (attribute instanceof RefExpression) {
         return {
           aggregate: expression.fn,
-          attribute: expression.attribute.name
+          attribute: attribute.name
         }
       } else {
         return null;

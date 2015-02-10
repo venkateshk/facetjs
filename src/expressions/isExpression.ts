@@ -140,7 +140,14 @@ module Core {
             if (rValue.test(thisValue)) {
               return exp;
             } else {
-              return null;
+              return new InExpression({
+                op: 'in',
+                lhs: this.lhs,
+                rhs: new LiteralExpression({
+                  op: 'literal',
+                  value: rValue.add(thisValue)
+                })
+              });
             }
           }
         }

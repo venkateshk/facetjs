@@ -258,6 +258,17 @@ describe 'IsExpression', ->
           )
           .equals({ op: 'is', lhs: { op: 'ref', name: 'flight_time' }, rhs: { op: 'literal', value: 'ABC' } })
 
+        tests
+          .mergeAndWith(
+              "with exclusive InExpression",
+              {
+                op: 'in',
+                lhs: { op: 'ref', name: 'flight_time', type: 'STRING' },
+                rhs: { op: 'literal', value: Set.fromJS({values: ['DEF']}) }
+              }
+            )
+          .equals({ op: 'literal', value: false })
+
       describe '#mergeOr', ->
         tests
           .mergeOrWith(
@@ -299,6 +310,21 @@ describe 'IsExpression', ->
             lhs: { op: 'ref', name: 'flight_time', type: 'STRING' },
             rhs: { op: 'literal', value: { values: ['ABC', 'DEF']}, type: 'SET' }
           })
+
+        tests
+          .mergeOrWith(
+            "with exclusive InExpression",
+            {
+              op: 'in',
+              lhs: { op: 'ref', name: 'flight_time', type: 'STRING' },
+              rhs: { op: 'literal', value: Set.fromJS({values: ['DEF']}) }
+            }
+          )
+          .equals({
+              op: 'in',
+              lhs: { op: 'ref', name: 'flight_time' },
+              rhs: { op: 'literal', value: { values: ['ABC', 'DEF']}, type: 'SET' }
+            })
 
   describe 'with complex values', ->
     beforeEach ->

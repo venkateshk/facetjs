@@ -70,7 +70,9 @@ module Core {
       if (!Set.isSet(other)) return false;
       var thisValues = this.toJS().values;
       var otherValues = other.toJS().values;
-      return otherValues.every((value, index) => value === thisValues[index]);
+      var that = this;
+      return otherValues.every(function(value) { return that.test(value) }) &&
+        thisValues.every(function(value) { return other.test(value) });
     }
 
     public union(other: Set): Set {
@@ -106,6 +108,12 @@ module Core {
 
     public test(value: string): boolean {
       return this.values[value];
+    }
+
+    public add(value: string): Set {
+      var values = this.toJS().values;
+      values.push(value);
+      return Set.fromJS({values: values});
     }
 
     public label(name: string): Dataset {

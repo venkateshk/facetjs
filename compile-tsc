@@ -31,7 +31,6 @@ node_modules/.bin/tsc --noImplicitAny --noEmitOnError --declaration --out build/
   src/core/expressions/negateExpression.ts \
   src/core/expressions/notExpression.ts \
   src/core/expressions/numberBucketExpression.ts \
-  src/core/expressions/numberRangeExpression.ts \
   src/core/expressions/orExpression.ts \
   src/core/expressions/reciprocateExpression.ts \
   src/core/expressions/refExpression.ts \

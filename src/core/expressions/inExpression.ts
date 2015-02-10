@@ -67,7 +67,7 @@ module Core {
           case 'NUMBER_RANGE':
           case 'SET':
             var intersect = (<LiteralExpression>this.rhs).value.union((<LiteralExpression>exp.rhs).value);
-            if (intersect === null) return Expression.FALSE;
+            if (intersect === null) return null;
 
             return new InExpression({
               op: 'in',

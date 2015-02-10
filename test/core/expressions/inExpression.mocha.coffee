@@ -159,9 +159,9 @@ describe 'InExpression', ->
           )
           .equals(
             {
-              op: 'is',
+              op: 'in',
               lhs: { op: 'ref', name: 'test' },
-              rhs: { op: 'literal', value: 'A' }
+              rhs: { op: 'literal', value: {values: ['A']}, type: 'SET' }
             }
           )
 
@@ -176,8 +176,9 @@ describe 'InExpression', ->
           )
           .equals(
             {
-              op: 'literal',
-              value: false
+              op: 'in',
+              lhs: { op: 'ref', name: 'test' },
+              rhs: { op: 'literal', value: {values: ['A', 'B']}, type: 'SET' }
             }
           )
 
@@ -194,7 +195,7 @@ describe 'InExpression', ->
             {
               op: 'in',
               lhs: { op: 'ref', name: 'test' },
-              rhs: { op: 'literal', value: {values: []}, type: 'SET' }
+              rhs: { op: 'literal', value: {values: ['A', 'B', 'C']}, type: 'SET' }
             }
           )
 
@@ -211,7 +212,7 @@ describe 'InExpression', ->
             {
               op: 'in',
               lhs: { op: 'ref', name: 'test' },
-              rhs: { op: 'literal', value: {values: ['A']}, type: 'SET' }
+              rhs: { op: 'literal', value: {values: ['A', 'B', 'C']}, type: 'SET' }
             }
           )
 
@@ -309,9 +310,9 @@ describe 'InExpression', ->
           )
           .equals(
             {
-              op: 'is',
+              op: 'in',
               lhs: { op: 'ref', name: 'test' },
-              rhs: { op: 'literal', value: 0.5 }
+              rhs: { op: 'literal', value: {start: 0, end: 1}, type: 'NUMBER_RANGE' }
             }
           )
 
@@ -324,12 +325,7 @@ describe 'InExpression', ->
               rhs: { op: 'literal', value: 2 }
             }
           )
-          .equals(
-            {
-              op: 'literal',
-              value: false
-            }
-          )
+          .equals(null)
 
         tests
           .mergeOrWith(
@@ -340,12 +336,7 @@ describe 'InExpression', ->
               rhs: { op: 'literal', value: new NumberRange({start: 2, end: 3}) }
             }
           )
-          .equals(
-            {
-              op: 'literal',
-              value: false
-            }
-          )
+          .equals(null)
 
         tests
           .mergeOrWith(
@@ -360,7 +351,7 @@ describe 'InExpression', ->
             {
               op: 'in',
               lhs: { op: 'ref', name: 'test' },
-              rhs: { op: 'literal', value: {start: 0.5, end: 1}, type: 'NUMBER_RANGE' }
+              rhs: { op: 'literal', value: {start: 0, end: 1.5}, type: 'NUMBER_RANGE' }
             }
           )
 
@@ -458,9 +449,9 @@ describe 'InExpression', ->
           )
           .equals(
             {
-              op: 'is',
+              op: 'in',
               lhs: { op: 'ref', name: 'test' },
-              rhs: { op: 'literal', value: new Date(5) }
+              rhs: { op: 'literal', value: {start: new Date(0), end: new Date(10)}, type: 'TIME_RANGE' }
             }
           )
 
@@ -473,12 +464,7 @@ describe 'InExpression', ->
               rhs: { op: 'literal', value: new Date(20) }
             }
           )
-          .equals(
-            {
-              op: 'literal',
-              value: false
-            }
-          )
+          .equals(null)
 
         tests
           .mergeOrWith(
@@ -489,12 +475,7 @@ describe 'InExpression', ->
               rhs: { op: 'literal', value: new TimeRange({start: new Date(20), end: new Date(30)}) }
             }
           )
-          .equals(
-            {
-              op: 'literal',
-              value: false
-            }
-          )
+          .equals(null)
 
         tests
           .mergeOrWith(
@@ -509,6 +490,6 @@ describe 'InExpression', ->
             {
               op: 'in',
               lhs: { op: 'ref', name: 'test' },
-              rhs: { op: 'literal', value: {start: new Date(5), end: new Date(10)}, type: 'TIME_RANGE' }
+              rhs: { op: 'literal', value: {start: new Date(0), end: new Date(15)}, type: 'TIME_RANGE' }
             }
           )

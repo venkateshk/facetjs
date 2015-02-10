@@ -78,7 +78,7 @@ module Core {
       var start = Math.min(this.start.valueOf(), other.start.valueOf());
       var end = Math.max(this.end.valueOf(), other.end.valueOf());
 
-      return new TimeRange({start: start, end: end});
+      return new TimeRange({start: new Date(start), end: new Date(end)});
     }
 
     public intersect(other: TimeRange): TimeRange {

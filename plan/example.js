@@ -17,18 +17,18 @@ facet() // [{}]
   )
   // [{ Diamonds: <Dataset> }]
 
-  .apply('Count', '$Diamonds.count()')
+  .apply('Count', '$DiamondsMain.count()')
   // [{ diamonds: <Dataset>, Count: 2342 }]
 
   //.apply('TotalPrice', '$diamonds.sum($priceOver2 * 2)')
-  .apply('TotalPrice', facet('Diamonds').sum('$priceOver2 * 2'))
+  .apply('TotalPrice', facet('DiamondsMain').sum('$priceOver2 * 2'))
   // [{ diamonds: <Dataset>, Count: 2342, TotalPrice: 234534 }]
 
   .apply('Cuts',
     facet("DiamondsMain").split("$cut").union(facet("DiamondsCmp").split("$cut"))
 
       // Set(['good', 'v good', 'ideal', 'bad'])
-      .name('Cut')
+      .label('Cut')
 
       // [
       //   {

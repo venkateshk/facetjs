@@ -27,6 +27,33 @@ describe 'LessThanOrEqualExpression', ->
     describe '#mergeAnd', ->
       tests
         .mergeAndWith(
+          "merges with is expression of inside value",
+          {
+            op: 'is',
+            lhs: "$test",
+            rhs: 1
+          })
+        .equals({
+            op: 'is',
+            lhs: { op: 'ref', name: 'test' }
+            rhs: { op: 'literal', value: 1 }
+          })
+
+      tests
+        .mergeAndWith(
+          "merges with is expression of outside value",
+          {
+            op: 'is',
+            lhs: "$test",
+            rhs: 10
+          })
+        .equals({
+            op: 'literal',
+            value: false
+          })
+
+      tests
+        .mergeAndWith(
           "merges with left-handed lessThan expression of smaller value",
           {
             op: 'lessThan',
@@ -179,6 +206,30 @@ describe 'LessThanOrEqualExpression', ->
           })
 
     describe '#mergeOr', ->
+      tests
+        .mergeOrWith(
+          "merges with is expression of inside value",
+          {
+            op: 'is',
+            lhs: "$test",
+            rhs: 1
+          })
+        .equals({
+            op: 'lessThanOrEqual',
+            lhs: { op: 'ref', name: 'test' }
+            rhs: { op: 'literal', value: 5 }
+          })
+
+      tests
+        .mergeOrWith(
+          "merges with is expression of outside value",
+          {
+            op: 'is',
+            lhs: "$test",
+            rhs: 10
+          })
+        .equals(null)
+
       tests
         .mergeOrWith(
           "merges with left-handed lessThan expression of smaller value",
@@ -343,6 +394,33 @@ describe 'LessThanOrEqualExpression', ->
     tests.simplifiedExpressionIs({ op: 'lessThanOrEqual', lhs: { op: 'literal', value: 5 }, rhs: { op: 'ref', name: 'test' } })
 
     describe '#mergeAnd', ->
+      tests
+        .mergeAndWith(
+          "merges with is expression of inside value",
+          {
+            op: 'is',
+            lhs: "$test",
+            rhs: 10
+          })
+        .equals({
+            op: 'is',
+            lhs: { op: 'ref', name: 'test' }
+            rhs: { op: 'literal', value: 10 }
+          })
+
+      tests
+        .mergeAndWith(
+          "merges with is expression of inside value",
+          {
+            op: 'is',
+            lhs: "$test",
+            rhs: 1
+          })
+        .equals({
+            op: 'literal',
+            value: false
+          })
+
       tests
         .mergeAndWith(
           "merges with left-handed lessThan expression of smaller value",
@@ -517,6 +595,30 @@ describe 'LessThanOrEqualExpression', ->
           })
 
     describe '#mergeOr', ->
+      tests
+        .mergeOrWith(
+          "merges with is expression of inside value",
+          {
+            op: 'is',
+            lhs: "$test",
+            rhs: 10
+          })
+        .equals({
+            op: 'lessThanOrEqual',
+            lhs: { op: 'literal', value: 5 }
+            rhs: { op: 'ref', name: 'test' }
+          })
+
+      tests
+        .mergeOrWith(
+          "merges with is expression of outside value",
+          {
+            op: 'is',
+            lhs: "$test",
+            rhs: 1
+          })
+        .equals(null)
+
       tests
         .mergeOrWith(
           "merges with left-handed lessThan expression of smaller value",

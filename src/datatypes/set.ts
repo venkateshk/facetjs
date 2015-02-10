@@ -107,7 +107,8 @@ module Core {
     }
 
     public test(value: string): boolean {
-      return this.values[value];
+      if (this.values.hasOwnProperty(value)) return this.values[value];
+      return false;
     }
 
     public add(value: string): Set {

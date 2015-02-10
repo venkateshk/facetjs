@@ -61,7 +61,7 @@ module Core {
           }
         }
 
-        if (this.rhs.type === 'TIME') {
+        if (this.rhs.type === 'TIME_RANGE') {
           if (expRhs instanceof TimeRangeExpression) {
             expRange = new TimeRange({
               start: (<LiteralExpression>(expRhs.lhs)).value,
@@ -76,7 +76,7 @@ module Core {
           }
         }
 
-        if (this.rhs.type === 'NUMBER') {
+        if (this.rhs.type === 'NUMBER_RANGE') {
           if (expRhs instanceof NumberRangeExpression) {
             expRange = new NumberRange({
               start: (<LiteralExpression>(expRhs.lhs)).value,

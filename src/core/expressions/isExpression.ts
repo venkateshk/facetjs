@@ -48,42 +48,11 @@ module Core {
 
         var expRhs = exp.rhs;
         var thisValue = (<LiteralExpression>(this.rhs)).value;
-        var expRange: any;
 
         if (expRhs instanceof LiteralExpression) {
           var rValue = expRhs.value;
-          if (rValue instanceof Set) {
+          if (rValue instanceof Set || rValue instanceof TimeRange || rValue instanceof NumberRange) {
             if (rValue.test(thisValue)) {
-              return this;
-            } else {
-              return Expression.FALSE;
-            }
-          }
-        }
-
-        if (this.rhs.type === 'TIME_RANGE') {
-          if (expRhs instanceof TimeRangeExpression) {
-            expRange = new TimeRange({
-              start: (<LiteralExpression>(expRhs.lhs)).value,
-              end: (<LiteralExpression>(expRhs.rhs)).value
-            });
-
-            if (expRange.test(thisValue)) {
-              return this;
-            } else {
-              return Expression.FALSE;
-            }
-          }
-        }
-
-        if (this.rhs.type === 'NUMBER_RANGE') {
-          if (expRhs instanceof NumberRangeExpression) {
-            expRange = new NumberRange({
-              start: (<LiteralExpression>(expRhs.lhs)).value,
-              end: (<LiteralExpression>(expRhs.rhs)).value
-            });
-
-            if (expRange.test(thisValue)) {
               return this;
             } else {
               return Expression.FALSE;
@@ -132,7 +101,6 @@ module Core {
 
         var expRhs = exp.rhs;
         var thisValue = (<LiteralExpression>(this.rhs)).value;
-        var expRange: any;
 
         if (expRhs instanceof LiteralExpression) {
           var rValue = expRhs.value;
@@ -149,32 +117,8 @@ module Core {
                 })
               });
             }
-          }
-        }
-
-        if (this.rhs.type === 'TIME') {
-          if (expRhs instanceof TimeRangeExpression) {
-            expRange = new TimeRange({
-              start: (<LiteralExpression>(expRhs.lhs)).value,
-              end: (<LiteralExpression>(expRhs.rhs)).value
-            });
-
-            if (expRange.test(thisValue)) {
-              return exp;
-            } else {
-              return null;
-            }
-          }
-        }
-
-        if (this.rhs.type === 'NUMBER') {
-          if (expRhs instanceof NumberRangeExpression) {
-            expRange = new NumberRange({
-              start: (<LiteralExpression>(expRhs.lhs)).value,
-              end: (<LiteralExpression>(expRhs.rhs)).value
-            });
-
-            if (expRange.test(thisValue)) {
+          } else if (rValue instanceof TimeRange || rValue instanceof NumberRange) {
+            if (rValue.test(thisValue)) {
               return exp;
             } else {
               return null;

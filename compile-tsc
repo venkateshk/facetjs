@@ -37,7 +37,6 @@ node_modules/.bin/tsc --noImplicitAny --noEmitOnError --declaration --out build/
   src/core/expressions/refExpression.ts \
   src/core/expressions/timeBucketExpression.ts \
   src/core/expressions/timeOffsetExpression.ts \
-  src/core/expressions/timeRangeExpression.ts \
   \
   src/core/actions/baseAction.ts \
   src/core/actions/applyAction.ts \

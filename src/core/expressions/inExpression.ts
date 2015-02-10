@@ -33,50 +33,8 @@ module Core {
         if (!exp.checkLefthandedness()) return null;
         if (this.rhs.type !== exp.rhs.type) return Expression.FALSE;
         switch (this.rhs.type) {
+          case 'TIME_RANGE':
           case 'NUMBER_RANGE':
-            return new InExpression({
-              op: 'in',
-              lhs: this.lhs,
-              rhs: new NumberRangeExpression({
-                op: 'numberRange',
-                lhs: new LiteralExpression({
-                  op: 'literal',
-                  value: Math.max(
-                    (<LiteralExpression>(<NumberRangeExpression>this.rhs).lhs).value
-                    (<LiteralExpression>(<NumberRangeExpression>exp.rhs).lhs).value
-                  )
-                }),
-                rhs: new LiteralExpression({
-                  op: 'literal',
-                  value: Math.min(
-                    (<LiteralExpression>(<NumberRangeExpression>this.rhs).rhs).value
-                    (<LiteralExpression>(<NumberRangeExpression>exp.rhs).rhs).value
-                  )
-                })
-              })
-            }).simplify();
-          case 'TIME_RANGE': // intentional fall through
-            return new InExpression({
-              op: 'in',
-              lhs: this.lhs,
-              rhs: new TimeRangeExpression({
-                op: 'numberRange',
-                lhs: new LiteralExpression({
-                  op: 'literal',
-                  value: Math.max(
-                    (<LiteralExpression>(<TimeRangeExpression>this.rhs).lhs).value
-                    (<LiteralExpression>(<TimeRangeExpression>exp.rhs).lhs).value
-                  )
-                }),
-                rhs: new LiteralExpression({
-                  op: 'literal',
-                  value: Math.min(
-                    (<LiteralExpression>(<TimeRangeExpression>this.rhs).rhs).value
-                    (<LiteralExpression>(<TimeRangeExpression>exp.rhs).rhs).value
-                  )
-                })
-              })
-            }).simplify();
           case 'SET':
             return new InExpression({
               op: 'in',

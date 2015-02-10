@@ -1,7 +1,7 @@
 { expect } = require("chai")
 
 facet = require('../../../build/facet')
-{ Expression, Set } = facet.Core
+{ NumberRange, Set, TimeRange } = facet.Core
 
 tests = require './sharedTests'
 
@@ -64,7 +64,7 @@ describe 'IsExpression', ->
             {
               op: 'in',
               lhs: { op: 'ref', name: 'flight_time', type: 'NUMBER' },
-              rhs: { op: 'numberRange', lhs: 5, rhs: 7, type: 'NUMBER_RANGE' }
+              rhs: { op: 'literal', value: new NumberRange({start: 5, end: 7}), type: 'NUMBER_RANGE' }
             }
           )
           .equals({ op: 'is', lhs: { op: 'ref', name: 'flight_time' }, rhs: { op: 'literal', value: 5 }})
@@ -102,17 +102,13 @@ describe 'IsExpression', ->
             {
               op: 'in',
               lhs: { op: 'ref', name: 'flight_time', type: 'NUMBER' },
-              rhs: { op: 'numberRange', lhs: 5, rhs: 7, type: 'NUMBER_RANGE' }
+              rhs: { op: 'literal', value: new NumberRange({start: 5, end: 7}), type: 'NUMBER_RANGE' }
             }
           )
           .equals({
             op: 'in'
             lhs: { op: 'ref', name: 'flight_time', type: 'NUMBER' }
-            rhs: {
-              op: 'numberRange'
-              lhs: { op: 'literal', value: 5 }
-              rhs: { op: 'literal', value: 7 }
-            }
+            rhs: { op: 'literal', value: {start: 5, end: 7}, type: 'NUMBER_RANGE' }
           })
 
 
@@ -153,9 +149,12 @@ describe 'IsExpression', ->
               op: 'in'
               lhs: { op: 'ref', name: 'flight_time', type: 'TIME' }
               rhs: {
-                op: 'timeRange'
-                lhs: { op: 'literal', value: new Date(0), type: 'TIME' }
-                rhs: { op: 'literal', value: new Date(7), type: 'TIME' }
+                op: 'literal'
+                value: new TimeRange({
+                  start: new Date(0),
+                  end: new Date(7)
+                })
+                type: 'TIME_RANGE'
               }
             }
           )
@@ -201,9 +200,12 @@ describe 'IsExpression', ->
               op: 'in'
               lhs: { op: 'ref', name: 'flight_time', type: 'TIME' }
               rhs: {
-                op: 'timeRange'
-                lhs: { op: 'literal', value: new Date(0), type: 'TIME' }
-                rhs: { op: 'literal', value: new Date(7), type: 'TIME' }
+                op: 'literal'
+                value: new TimeRange({
+                  start: new Date(0),
+                  end: new Date(7)
+                })
+                type: 'TIME_RANGE'
               }
             }
           )
@@ -211,9 +213,12 @@ describe 'IsExpression', ->
             op: 'in'
             lhs: { op: 'ref', name: 'flight_time', type: 'TIME' }
             rhs: {
-              op: 'timeRange'
-              lhs: { op: 'literal', value: new Date(0) }
-              rhs: { op: 'literal', value: new Date(7) }
+              op: 'literal'
+              value: {
+                start: new Date(0),
+                end: new Date(7)
+              }
+              type: 'TIME_RANGE'
             }
           })
 

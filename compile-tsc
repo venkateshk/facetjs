@@ -1,8 +1,8 @@
 #!/bin/bash
 
 rm -rf build/*
+mkdir -p build
 
-# TypeScript
 node_modules/.bin/tsc --noImplicitAny --noEmitOnError --declaration --out build/facet.js \
   src/init.ts \
   \

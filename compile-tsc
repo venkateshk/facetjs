@@ -46,28 +46,28 @@ node_modules/.bin/tsc --noImplicitAny --noEmitOnError --declaration --out build/
   src/core/actions/limitAction.ts \
   src/core/actions/sortAction.ts \
   \
-  src/legacy/query/common.ts \
-  src/legacy/query/apply.ts \
-  src/legacy/query/applySimplifier.ts \
-  src/legacy/query/attributeMeta.ts \
-  src/legacy/query/combine.ts \
-  src/legacy/query/condensedCommand.ts \
-  src/legacy/query/dataset.ts \
-  src/legacy/query/filter.ts \
-  src/legacy/query/options.ts \
-  src/legacy/query/query.ts \
-  src/legacy/query/segmentFilter.ts \
-  src/legacy/query/segmentTree.ts \
-  src/legacy/query/sort.ts \
-  src/legacy/query/split.ts \
-  \
-  src/legacy/driver/common.ts \
-  src/legacy/driver/driverUtil.ts \
-  src/legacy/driver/druidDriver.ts \
-  src/legacy/driver/fractalCache.ts \
-  src/legacy/driver/proxyDriver.ts \
-  src/legacy/driver/simpleDriver.ts \
-  src/legacy/driver/sqlDriver.ts \
-  \
   src/exports.ts
 
+#  \
+#  src/legacy/query/common.ts \
+#  src/legacy/query/apply.ts \
+#  src/legacy/query/applySimplifier.ts \
+#  src/legacy/query/attributeMeta.ts \
+#  src/legacy/query/combine.ts \
+#  src/legacy/query/condensedCommand.ts \
+#  src/legacy/query/dataset.ts \
+#  src/legacy/query/filter.ts \
+#  src/legacy/query/options.ts \
+#  src/legacy/query/query.ts \
+#  src/legacy/query/segmentFilter.ts \
+#  src/legacy/query/segmentTree.ts \
+#  src/legacy/query/sort.ts \
+#  src/legacy/query/split.ts \
+#  \
+#  src/legacy/driver/common.ts \
+#  src/legacy/driver/driverUtil.ts \
+#  src/legacy/driver/druidDriver.ts \
+#  src/legacy/driver/fractalCache.ts \
+#  src/legacy/driver/proxyDriver.ts \
+#  src/legacy/driver/simpleDriver.ts \
+#  src/legacy/driver/sqlDriver.ts \

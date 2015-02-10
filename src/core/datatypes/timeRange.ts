@@ -89,7 +89,7 @@ module Core {
       var start = Math.max(this.start.valueOf(), other.start.valueOf());
       var end = Math.min(this.end.valueOf(), other.end.valueOf());
 
-      return new TimeRange({start: start, end: end});
+      return new TimeRange({start: new Date(start), end: new Date(end)});
     }
 
     public test(val: Date): boolean {

@@ -118,10 +118,9 @@ module Core {
                 return new InExpression({
                   op: 'in',
                   lhs: this.lhs,
-                  rhs: new NumberRangeExpression({
-                    op: 'numberRange',
-                    lhs: new LiteralExpression({ op: 'literal', value: expVal }),
-                    rhs: new LiteralExpression({ op: 'literal', value: thisVal })
+                  rhs: new LiteralExpression({
+                    op: 'literal',
+                    value: new NumberRange({ start: expVal, end: thisVal })
                   })
                 })
               }

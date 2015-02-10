@@ -36,12 +36,45 @@ module Core {
           case 'TIME_RANGE':
           case 'NUMBER_RANGE':
           case 'SET':
+            var intersect = (<LiteralExpression>this.rhs).value.intersect((<LiteralExpression>exp.rhs).value);
+            if (intersect === null) return Expression.FALSE;
+
             return new InExpression({
               op: 'in',
               lhs: this.lhs,
               rhs: new LiteralExpression({
                 op: 'literal',
-                value: (<LiteralExpression>this.rhs).value.intersect((<LiteralExpression>exp.rhs).value)
+                value: intersect
+              })
+            }).simplify();
+        }
+        return null;
+      }
+      return exp;
+    }
+
+    public mergeOr(exp: Expression): Expression {
+      if (!this.checkLefthandedness()) return null; //TODO Do something about A is B and C in A
+      if (!checkArrayEquality(this.getReferences(), exp.getReferences())) return null;
+
+      if (exp instanceof IsExpression) {
+        return exp.mergeOr(this);
+      } else if (exp instanceof InExpression) {
+        if (!exp.checkLefthandedness()) return null;
+        if (this.rhs.type !== exp.rhs.type) return Expression.FALSE;
+        switch (this.rhs.type) {
+          case 'TIME_RANGE':
+          case 'NUMBER_RANGE':
+          case 'SET':
+            var intersect = (<LiteralExpression>this.rhs).value.union((<LiteralExpression>exp.rhs).value);
+            if (intersect === null) return Expression.FALSE;
+
+            return new InExpression({
+              op: 'in',
+              lhs: this.lhs,
+              rhs: new LiteralExpression({
+                op: 'literal',
+                value: intersect
               })
             }).simplify();
         }

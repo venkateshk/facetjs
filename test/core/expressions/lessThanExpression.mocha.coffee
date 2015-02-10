@@ -187,15 +187,12 @@ describe 'LessThanExpression', ->
               "name": "test"
             },
             "rhs": {
-              "op": "numberRange",
-              "lhs": {
-                "op": "literal",
-                "value": 1
-              },
-              "rhs": {
-                "op": "literal",
-                "value": 5
+              "op": "literal",
+              "value": {
+                start: 1,
+                end: 5
               }
+              type: 'NUMBER_RANGE'
             }
           })
 
@@ -542,7 +539,10 @@ describe 'LessThanExpression', ->
             lhs: "$test",
             rhs: 5
           })
-        .equals(null)
+        .equals({
+            op:'literal',
+            value: false
+          })
 
       tests
         .mergeAndWith(

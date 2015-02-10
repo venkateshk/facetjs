@@ -54,70 +54,7 @@ module Core {
             }
           }
         } else if (exp instanceof LessThanExpression) {
-          if (thisLeftHanded) {
-            if (expLeftHanded) {
-              if (thisVal >= expVal) {
-                return new LessThanExpression({
-                  op: 'lessThan',
-                  lhs: this.lhs,
-                  rhs: new LiteralExpression({
-                    op: 'literal',
-                    value: expVal
-                  })
-                });
-              } else {
-                return new LessThanOrEqualExpression({
-                  op: 'lessThanOrEqual',
-                  lhs: this.lhs,
-                  rhs: new LiteralExpression({
-                    op: 'literal',
-                    value: thisVal
-                  })
-                });
-              }
-            } else {
-              if (thisVal <= expVal) {
-                return Expression.FALSE;
-              } else {
-                return null; // cannot handle exclusive/inclusive range
-              }
-            }
-          } else {
-            if (expLeftHanded) {
-              if (thisVal < expVal) {
-                return new InExpression({
-                  op: 'in',
-                  lhs: this.lhs,
-                  rhs: new LiteralExpression({
-                    op: 'literal',
-                    value: new NumberRange({ start: thisVal, end: expVal })
-                  })
-                })
-              } else {
-                return Expression.FALSE;
-              }
-            } else {
-              if (thisVal < expVal) {
-                return new LessThanOrEqualExpression({
-                  op: 'lessThanOrEqual',
-                  lhs: new LiteralExpression({
-                    op: 'literal',
-                    value: thisVal
-                  }),
-                  rhs: this.rhs
-                });
-              } else {
-                return new LessThanExpression({
-                  op: 'lessThan',
-                  lhs: new LiteralExpression({
-                    op: 'literal',
-                    value: expVal
-                  }),
-                  rhs: this.rhs
-                });
-              }
-            }
-          }
+          return exp.mergeAnd(this);
         } else if (exp instanceof LessThanOrEqualExpression) {
           if (thisLeftHanded) {
             if (expLeftHanded) {
@@ -189,63 +126,7 @@ module Core {
             }
           }
         } else if (exp instanceof LessThanExpression) {
-          if (thisLeftHanded) {
-            if (expLeftHanded) {
-              if (thisVal < expVal) {
-                return new LessThanExpression({
-                  op: 'lessThan',
-                  lhs: this.lhs,
-                  rhs: new LiteralExpression({
-                    op: 'literal',
-                    value: expVal
-                  })
-                });
-              } else {
-                return new LessThanOrEqualExpression({
-                  op: 'lessThanOrEqual',
-                  lhs: this.lhs,
-                  rhs: new LiteralExpression({
-                    op: 'literal',
-                    value: thisVal
-                  })
-                });
-              }
-            } else {
-              if (thisVal < expVal) {
-                return null;
-              } else {
-                return Expression.TRUE; // cannot handle exclusive/inclusive range
-              }
-            }
-          } else {
-            if (expLeftHanded) {
-              if (thisVal <= expVal) {
-                return Expression.TRUE;
-              } else {
-                return null;
-              }
-            } else {
-              if (thisVal <= expVal) {
-                return new LessThanOrEqualExpression({
-                  op: 'lessThanOrEqual',
-                  lhs: new LiteralExpression({
-                    op: 'literal',
-                    value: thisVal
-                  }),
-                  rhs: this.rhs
-                });
-              } else {
-                return new LessThanExpression({
-                  op: 'lessThan',
-                  lhs: new LiteralExpression({
-                    op: 'literal',
-                    value: expVal
-                  }),
-                  rhs: this.rhs
-                });
-              }
-            }
-          }
+          return exp.mergeOr(this);
         } else if (exp instanceof LessThanOrEqualExpression) {
           if (thisLeftHanded) {
             if (expLeftHanded) {

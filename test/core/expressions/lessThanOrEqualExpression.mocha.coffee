@@ -458,19 +458,16 @@ describe 'LessThanOrEqualExpression', ->
         .equals({
             "op": "in",
             "lhs": {
-              "op": "literal",
-              "value": 5
+              "op": "ref",
+              "name": "test"
             },
             "rhs": {
-              "op": "numberRange",
-              "lhs": {
-                "op": "literal",
-                "value": 5
-              },
-              "rhs": {
-                "op": "literal",
-                "value": 7
+              "op": "literal",
+              "value": {
+                start: 5,
+                end: 7
               }
+              type: 'NUMBER_RANGE'
             }
           })
 
@@ -483,8 +480,8 @@ describe 'LessThanOrEqualExpression', ->
             rhs: "$test"
           })
         .equals({
-            op: 'lessThan',
-            lhs: { op: 'literal', value: 1 },
+            op: 'lessThanOrEqual',
+            lhs: { op: 'literal', value: 5 },
             rhs: { op: 'ref', name: 'test' }
           })
 
@@ -511,8 +508,8 @@ describe 'LessThanOrEqualExpression', ->
             rhs: "$test"
           })
         .equals({
-          op: 'lessThanOrEqual',
-          lhs: { op: 'literal', value: 5 },
+          op: 'lessThan',
+          lhs: { op: 'literal', value: 7 },
           rhs: { op: 'ref', name: 'test' }
         })
 

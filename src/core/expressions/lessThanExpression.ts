@@ -127,7 +127,7 @@ module Core {
             }
           } else {
             if (expLeftHanded) {
-              if (thisVal <= expVal) {
+              if (thisVal < expVal) {
                 return null; // cannot handle both exclusive/inclusive range
               } else {
                 return Expression.FALSE;

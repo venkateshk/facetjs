@@ -1,4 +1,4 @@
-{ expect } = require("chai")
+{ Set, NumberRange } = require('../../../build/facet').Core
 
 tests = require './sharedTests'
 
@@ -10,7 +10,7 @@ describe 'LiteralExpression', ->
     tests.complexityIs(1)
     tests.simplifiedExpressionIs({ op: 'literal', value: true })
 
-  describe 'with category', ->
+  describe 'with string', ->
     beforeEach ->
       this.expression = { op: 'literal', value: 'Honda' }
 
@@ -24,21 +24,21 @@ describe 'LiteralExpression', ->
     tests.complexityIs(1)
     tests.simplifiedExpressionIs({ op: 'literal', value: 6 })
 
-  describe 'with categorical set', ->
+  describe 'with set', ->
     beforeEach ->
-      this.expression = { op: 'literal', value: ['Honda', 'BMW', 'Suzuki'] }
+      this.expression = { op: 'literal', value: Set.fromJS({values: ['Honda', 'BMW', 'Suzuki']}) }
 
     tests.complexityIs(1)
-    tests.simplifiedExpressionIs({ op: 'literal', value: ['Honda', 'BMW', 'Suzuki'] })
+    tests.simplifiedExpressionIs({ op: 'literal', value: {values: ['BMW', 'Honda', 'Suzuki']}, type: "SET" })
 
   describe 'with numerical range', ->
     beforeEach ->
-      this.expression = { op: 'literal', value: [0.05, 0.1] }
+      this.expression = { op: 'literal', value: NumberRange.fromJS({start: 0.05, end: 0.1}) }
 
     tests.complexityIs(1)
-    tests.simplifiedExpressionIs({ op: 'literal', value: [0.05, 0.1] })
+    tests.simplifiedExpressionIs({ op: 'literal', value: {start: 0.05, end: 0.1}, type: "NUMBER_RANGE" })
 
-  describe 'with categorical set', ->
+  describe 'with null', ->
     beforeEach ->
       this.expression = { op: 'literal', value: null }
 

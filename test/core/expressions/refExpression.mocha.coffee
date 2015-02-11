@@ -45,9 +45,9 @@ describe 'RefExpression', ->
     tests.complexityIs(1)
     tests.simplifiedExpressionIs({op: 'ref', name: 'timestamp'})
 
-  describe 'RefExpression with category', ->
+  describe 'RefExpression with STRING', ->
     beforeEach ->
       this.expression = { op: 'ref', type: 'STRING', name: 'make' }
 
     tests.complexityIs(1)
-    tests.simplifiedExpressionIs({op: 'ref', name: 'make'})
+    tests.simplifiedExpressionIs({op: 'ref', name: 'make', type: 'STRING'})

@@ -1,13 +1,18 @@
 module Core {
   export class TimeOffsetExpression extends UnaryExpression {
     static fromJS(parameters: ExpressionJS): TimeOffsetExpression {
-      return new TimeOffsetExpression(UnaryExpression.jsToValue(parameters));
+      var value = UnaryExpression.jsToValue(parameters);
+      value.duration = parameters.duration;
+      return new TimeOffsetExpression(value);
     }
+
+    public duration: string;
 
     constructor(parameters: ExpressionValue) {
       super(parameters, dummyObject);
+      this.duration = parameters.duration;
       this._ensureOp("timeOffset");
-      this._checkTypeOfOperand('TYPE');
+      this._checkTypeOfOperand('TIME');
       this.type = 'TIME';
     }
 
@@ -15,11 +20,23 @@ module Core {
       return 'timeOffset(' + this.operand.toString() + ')';
     }
 
-    // ToDo: equals
+    public valueOf(): ExpressionValue {
+      var value = super.valueOf();
+      value.duration = this.duration;
+      return value;
+    }
+
+    public toJS(): ExpressionJS {
+      var js = super.toJS();
+      js.duration = this.duration;
+      return js;
+    }
 
     public simplify(): Expression {
       return this //ToDo
     }
+
+    // ToDo: equals
 
     protected _makeFn(operandFn: Function): Function {
       throw new Error("implement me");

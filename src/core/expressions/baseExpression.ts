@@ -16,6 +16,9 @@ module Core {
     regexp?: string;
     fn?: string;
     attribute?: Expression;
+    offset?: number;
+    size?: number;
+    duration?: string;
   }
 
   export interface ExpressionJS {
@@ -31,6 +34,9 @@ module Core {
     regexp?: string;
     fn?: string;
     attribute?: ExpressionJS;
+    offset?: number;
+    size?: number;
+    duration?: string;
   }
 
   export var possibleTypes = ['NULL', 'BOOLEAN', 'NUMBER', 'TIME', 'STRING', 'NUMBER_RANGE', 'TIME_RANGE', 'SET', 'DATASET'];

@@ -51,7 +51,6 @@ Expression = [
   #NUMBER_RANGE
   { op: 'literal', value: NumberRange() }
   { op: 'ref', name: 'revenue_range' }
-  { op: 'numberRange', lhs: NUMBER, rhs: NUMBER }
   { op: 'numberBucket', operand: NUMBER, size: 0.05, offset: 0.01 }
 
   #TIME
@@ -62,7 +61,6 @@ Expression = [
   #TIME_RANGE
   { op: 'literal', value: TimeRange() }
   { op: 'ref', name: 'flight_time' }
-  { op: 'timeRange', lhs: TIME, rhs: TIME }
   { op: 'timeBucket', operand: TIME, duration: 'P1D' }
 
   #STRING

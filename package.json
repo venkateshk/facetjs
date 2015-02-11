@@ -36,7 +36,7 @@
     "request": "~2.51.0"
   },
   "peerDependencies": {
-    "chronology": "0.6.x"
+    "chronology": "0.7.x"
   },
   "devDependencies": {
     "browserify": "~8.1.1",

@@ -1,7 +1,8 @@
 { expect } = require("chai")
 
 tests = require './sharedTests'
-{ Set } = require('../../../build/facet').Core
+facet = require('../../../build/facet')
+{ Set } = facet.core
 
 describe 'AndExpression', ->
   describe 'with boolean expressions', ->

@@ -1,5 +1,6 @@
 { expect } = require("chai")
-{ NumberRange, Set, TimeRange } = require('../../../build/facet').Core
+facet = require('../../../build/facet')
+{ NumberRange, Set, TimeRange } = facet.core
 
 tests = require './sharedTests'
 

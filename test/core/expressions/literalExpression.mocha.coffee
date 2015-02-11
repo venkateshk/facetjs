@@ -1,4 +1,5 @@
-{ Set, NumberRange } = require('../../../build/facet').Core
+facet = require('../../../build/facet')
+{ Set, NumberRange } = facet.core
 
 tests = require './sharedTests'
 

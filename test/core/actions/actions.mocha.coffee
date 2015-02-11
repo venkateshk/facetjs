@@ -3,7 +3,7 @@
 { testHigherObjects } = require("higher-object/build/tester")
 
 facet = require('../../../build/facet')
-{ Action } = facet.Core
+{ Action } = facet.core
 
 describe "Actions", ->
   it "passes higher object tests", ->

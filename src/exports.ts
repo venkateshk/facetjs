@@ -4,5 +4,6 @@ declare var module: {
 
 if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
   module.exports = Core.facet;
-  module.exports.Core = Core;
+  module.exports.core = Core;
+  module.exports.legacy = Legacy;
 }

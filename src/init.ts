@@ -2,6 +2,7 @@
 /// <reference path="../definitions/higher-object.d.ts" />
 /// <reference path="../definitions/Q.d.ts" />
 /// <reference path="../typings/async/async.d.ts" />
+/// <reference path="../definitions/chronology.d.ts" />
 "use strict";
 
 /*========================================*\
@@ -54,10 +55,7 @@
 var HigherObject = <HigherObject.Base>require("higher-object");
 var Q = <Q.Base>require("q");
 var async = <Async>require("async");
-
-//import async = require("async");
-
-//import chronology = require("chronology");
+var chronology = <typeof Chronology>require("chronology");
 
 module Core {
   export interface Lookup<T> {
@@ -72,6 +70,10 @@ module Core {
 
   export import ImmutableClass = HigherObject.ImmutableClass;
   export import ImmutableInstance = HigherObject.ImmutableInstance;
+
+  //DELETE//var Chronology = chronology;
+  export import Timezone = Chronology.Timezone;
+  export import Duration = Chronology.Duration;
 
   export interface Datum {
     [attribute: string]: any;
@@ -91,6 +93,10 @@ module Legacy {
 
   export import ImmutableClass = HigherObject.ImmutableClass;
   export import ImmutableInstance = HigherObject.ImmutableInstance;
+
+  //DELETE//var Chronology = chronology;
+  export import Timezone = Chronology.Timezone;
+  export import Duration = Chronology.Duration;
 
   export interface Datum {
     [attribute: string]: any;

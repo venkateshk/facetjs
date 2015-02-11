@@ -1,7 +1,7 @@
 { expect } = require("chai")
 
 facet = require('../../../build/facet')
-{ Expression } = facet.Core
+{ Expression } = facet.core
 
 describe "substitute", ->
   it "should substitute on IS", ->

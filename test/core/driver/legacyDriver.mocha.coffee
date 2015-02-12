@@ -14,13 +14,12 @@ describe "legacyDriver", ->
         .apply('Count', facet('Diamonds').count())
         .sort('$Count', 'descending')
         .limit(4)
-#        .apply('Carat',
-#          facet("Diamonds").group(facet("carat").numberBucket(0.1)).label('Carat')
-#            .def('Diamonds', facet('Diamonds').filter(facet("carat").numberBucket(0.1).is('$^Carat')))
-#            .apply('Count', facet('Diamonds').count())
-#            .sort('$Count', 'descending')
-#            .limit(5)
-#        )
+        .apply('Carat',
+          facet("Diamonds").split(facet("carat").numberBucket(0.1), 'Carat', 'Diamonds')
+            .apply('Count', facet('Diamonds').count())
+            .sort('$Count', 'descending')
+            .limit(5)
+        )
     )
 
   it "translates", ->
@@ -51,5 +50,38 @@ describe "legacyDriver", ->
         "aggregate": "count"
         "name": "Count"
         "operation": "apply"
+      }
+      {
+        "limit": 4
+        "method": "slice"
+        "operation": "combine"
+        "sort": {
+          "compare": "natural"
+          "direction": "descending"
+          "prop": "Count"
+        }
+      }
+      {
+        "attribute": "carat"
+        "bucket": "continuous"
+        "name": "Carat"
+        "offset": 0
+        "operation": "split"
+        "size": 0.1
+      }
+      {
+        "aggregate": "count"
+        "name": "Count"
+        "operation": "apply"
+      }
+      {
+        "limit": 5
+        "method": "slice"
+        "operation": "combine"
+        "sort": {
+          "compare": "natural"
+          "direction": "descending"
+          "prop": "Count"
+        }
       }
     ])

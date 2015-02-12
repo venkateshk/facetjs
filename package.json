@@ -12,6 +12,12 @@
     "name": "Vadim Ogievetsky",
     "url": "http://vadim.ogievetsky.com"
   },
+  "contributors": [
+    {
+      "name": "Young Min Kim"
+    }
+  ],
+  "license": "Apache 2.0",
   "repository": {
     "type": "git",
     "url": "http://github.com/vogievetsky/facet.git"

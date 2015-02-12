@@ -18,7 +18,8 @@ module Core {
     attribute?: Expression;
     offset?: number;
     size?: number;
-    duration?: string;
+    duration?: Duration;
+    timezone?: Timezone;
   }
 
   export interface ExpressionJS {
@@ -37,6 +38,7 @@ module Core {
     offset?: number;
     size?: number;
     duration?: string;
+    timezone?: string;
   }
 
   export var possibleTypes = ['NULL', 'BOOLEAN', 'NUMBER', 'TIME', 'STRING', 'NUMBER_RANGE', 'TIME_RANGE', 'SET', 'DATASET'];
@@ -377,9 +379,19 @@ module Core {
     public not() { return this._performUnaryExpression({ op: 'not' }); }
     public match(re: string) { return this._performUnaryExpression({ op: 'match', regexp: re }); }
 
+    public numberBucket(size: number, offset: number = 0) {
+      return this._performUnaryExpression({ op: 'numberBucket', size: size, offset: offset });
+    }
+
+    public timeBucket(duration: any, timezone: any) {
+      if (!Duration.isDuration(duration)) duration = Duration.fromJS(duration);
+      if (!Timezone.isTimezone(timezone)) timezone = Timezone.fromJS(timezone);
+      return this._performUnaryExpression({ op: 'timeBucket', duration: duration, timezone: timezone });
+    }
+
     // Aggregators
     protected _performAggregate(fn: string, attribute: any): Expression {
-      if (attribute && !Expression.isExpression(attribute)) attribute = Expression.fromJSLoose(attribute);
+      if (!Expression.isExpression(attribute)) attribute = Expression.fromJSLoose(attribute);
       return this._performUnaryExpression({
         op: 'aggregate',
         fn: fn,
@@ -387,7 +399,7 @@ module Core {
       });
     }
 
-    public count() { return this._performAggregate('count', null); }
+    public count() { return this._performUnaryExpression({ op: 'aggregate', fn: 'count'}); }
     public sum(attr: any) { return this._performAggregate('count', attr); }
     public min(attr: any) { return this._performAggregate('min', attr); }
     public max(attr: any) { return this._performAggregate('max', attr); }
@@ -401,16 +413,12 @@ module Core {
       });
     }
 
-    // ToDo: add split = group -> label -> def
-    // Split
-    //public split(attribute: any, name: string): Expression {
-    //  if (!Expression.isExpression(attribute)) attribute = Expression.fromJSLoose(attribute);
-    //  return this._performUnaryExpression({
-    //    op: 'split',
-    //    attribute: attribute,
-    //    name: name
-    //  });
-    //}
+    // Split // .split(attr, l, d) = .group(attr).label(l).def(d, facet(d).filter(ex = ^l))
+    public split(attribute: any, name: string, dataName: string = 'data'): Expression {
+      if (!Expression.isExpression(attribute)) attribute = Expression.fromJSLoose(attribute);
+      return this.group(attribute).label(name)
+        .def(dataName, facet(dataName).filter(attribute.is(facet('^' + name))));
+    }
 
     // Expression constructors (Binary)
     protected _performBinaryExpression(newValue: ExpressionValue, otherEx: any): Expression {

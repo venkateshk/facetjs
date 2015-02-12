@@ -119,9 +119,31 @@ module Core {
             attribute: attr.name
           };
         } else if (attr instanceof NumberBucketExpression) {
-          return { }; // ToDo: fill this in
+          var subAttr = attr.operand;
+          if (subAttr instanceof RefExpression) {
+            return {
+              name: name,
+              bucket: 'continuous',
+              attribute: subAttr.name,
+              size: attr.size,
+              offset: attr.offset
+            };
+          } else {
+            return null;
+          }
         } else if (attr instanceof TimeBucketExpression) {
-          return { }; // ToDo: fill this in
+          var subAttr = attr.operand;
+          if (subAttr instanceof RefExpression) {
+            return {
+              name: name,
+              bucket: 'timePeriod',
+              attribute: subAttr.name,
+              period: attr.duration,
+              timezone: attr.timezone
+            };
+          } else {
+            return null;
+          }
         }
       } else {
         return null;
@@ -170,7 +192,7 @@ module Core {
         throw new Error('must have dataset');
       }
 
-      var seenSplit = false;
+      var splitPart: any[] = null;
       for (var i = 1; i < actions.length; i++) {
         var action = actions[i];
         if (action instanceof ApplyAction) {
@@ -184,8 +206,8 @@ module Core {
               throw new Error('unsupported apply');
             }
           } else if (action.expression.type === 'DATASET') {
-            if (seenSplit) throw new Error("Can have at most one split");
-            legacyTranslatorSplit(action.expression, datasetName, query);
+            if (splitPart) throw new Error("Can have at most one split");
+            splitPart = legacyTranslatorSplit(action.expression, datasetName);
           } else {
             throw new Error("can not have non NUMBER or DATASET apply actions");
           }
@@ -195,10 +217,11 @@ module Core {
       return null
     }
 
-    return LegacyQuery.fromJS(query);
+    return LegacyQuery.fromJS(query.concat(splitPart || []));
   }
 
-  function legacyTranslatorSplit(expression: Expression, datasetName: string, query: any[]): void {
+  function legacyTranslatorSplit(expression: Expression, datasetName: string): any[] {
+    var query: any[] = [];
     if (expression instanceof ActionsExpression) {
       var split = makeFacetSplit(expression.operand, datasetName);
       if (split) {
@@ -217,7 +240,10 @@ module Core {
         throw new Error('must have dataset');
       }
 
-      var seenSplit = false;
+      var combine: any = {
+        operation: 'combine'
+      };
+      var splitPart: any[] = null;
       for (var i = 1; i < actions.length; i++) {
         var action = actions[i];
         if (action instanceof ApplyAction) {
@@ -231,13 +257,27 @@ module Core {
               throw new Error('unsupported apply');
             }
           } else if (action.expression.type === 'DATASET') {
-            if (seenSplit) throw new Error("Can have at most one split");
-            legacyTranslatorSplit(action.expression, datasetName, query);
+            if (splitPart) throw new Error("Can have at most one split");
+            splitPart = legacyTranslatorSplit(action.expression, datasetName);
           } else {
             throw new Error("can not have non NUMBER or DATASET apply actions");
           }
+        } else if (action instanceof SortAction) {
+          var sortExpression = action.expression;
+          if (sortExpression instanceof RefExpression) {
+            combine.method = 'slice';
+            combine.sort = {
+              compare: 'natural',
+              prop: sortExpression.name,
+              direction: action.direction
+            };
+          }
+        } else if (action instanceof LimitAction) {
+          combine.limit = action.limit;
         }
       }
+
+      return query.concat([combine], splitPart || []);
     } else {
       throw new Error('must split on actions');
     }

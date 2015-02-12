@@ -33,26 +33,27 @@ module Core {
     }
 
     public simplify(): Expression {
-      var actionValue: ActionValue;
-      var previousAction: Action;
+      var aReferences: string[];
+      var bReferences: string[];
+      var filtersToAdd: FilterAction[];
       var previousSortAction: SortAction;
+      var references: string[];
+      var seen: { [k: string]: boolean };
       var simplifiedActions: Action[];
-      var value = this.valueOf();
-      var refSortMap: { [k: string]: SortAction} = {};
       var sortLimitMap: { [k: string]: LimitAction} = {};
 
+      var value = this.valueOf();
       value.operand = this.operand.simplify();
       value.actions = [];
 
       simplifiedActions = this.actions.map((action) => action.simplify());
       var sorts = simplifiedActions.filter((action) => action instanceof SortAction);
-      var limits = simplifiedActions.filter((action) => action instanceof LimitAction);
       var filters = simplifiedActions.filter((action) => action instanceof FilterAction);
       value.actions = simplifiedActions
         .filter((action) => (action instanceof DefAction) || (action instanceof ApplyAction))
         .sort(function (a: Action, b: Action) {
-          var aReferences = a.expression.getReferences();
-          var bReferences = b.expression.getReferences();
+          aReferences = a.expression.getReferences();
+          bReferences = b.expression.getReferences();
 
           if (aReferences.length < bReferences.length) {
             return -1;
@@ -87,12 +88,12 @@ module Core {
         }
       }
 
-      var seen: { [k: string]: boolean } = {}
+      seen = {};
       for (var i = 0; i < value.actions.length; i++) {
         seen["$" + (<ApplyAction>value.actions[i]).name] = true;
 
         // Add filter in the right order
-        var filtersToAdd: FilterAction[] = [];
+        filtersToAdd = [];
         for (var j = 0; j < filters.length; j++) {
           if (filters[j].expression.getReferences().every((ref) => seen[ref])) {
             filtersToAdd.push(filters[j]);
@@ -113,7 +114,7 @@ module Core {
 
         // Add sorts and limits in the right order
         for (var j = 0; j < sorts.length; j++) {
-          var references = sorts[j].expression.getReferences();
+          references = sorts[j].expression.getReferences();
 
           if (references.every((ref) => seen[ref])) {
             value.actions.splice(i + 1, 0, sorts[j]);

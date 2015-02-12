@@ -1,18 +1,27 @@
-# Facet
+# facet.js
 
 ## Introduction
 
-Facet is a framework for expressing data queries in a way that is helpful for visualizations.
-Facet places the end user first by facilitating a rich query language which then gets translated to an underlying database.
+facet.js is a framework for expressing data queries in a way that is helpful for visualizations.
+facet.js places the end user first by facilitating a rich query language which then gets translated to an underlying database.
 
 ## Philosophy
 
-Facet was built with these goals in mind:
+facet.js was built with these goals in mind:
 
-- higher level objects - a number of core datatypes are provided to make life easy.
-- Serializability - facet queries and visualizations can be serialized to and from JSON
-- Append-able
+### Higher level language
 
+A high level domain specific language is employed to describe the facet API.
+This language is inspired by Hadley Wickham's [split-apply-combine](http://www.jstatsoft.org/v40/i01/paper) principle,
+and by [jq](https://stedolan.github.io/jq/).
+
+### Higher level objects
+
+A number of core datatypes are provided to make life easy.
+
+### Serializability
+
+facet queries and visualizations can be serialized to and from JSON
 
 ## Querying
 
@@ -31,15 +40,15 @@ These queries, which can be computer on any supported database are then executed
 
 ### Example 0
 
-Lets see a simple example of a facet query:
+Here is an example of a simple facet query that illustrates the different ways by which expressions can be created:
 
 ```javascript
 var ex0 = facet() // Create an empty singleton dataset literal [{}]
   // 1 is converted into a literal
-  .apply("one", 1)
+  .def("one", 1)
 
   // 2 is converted into a literal via the facet() function
-  .apply("two", facet(2))
+  .def("two", facet(2))
 
   // The string "$one + $two" is parsed into an expression
   .apply("three", "$one + $two")
@@ -62,13 +71,11 @@ var ex0 = facet() // Create an empty singleton dataset literal [{}]
 
 This query shows off the different ways of creating an expression.
 
-Calling ```ex0.compute()``` will return a Q promise that will, unsurprisingly, resolve to:
+Calling ```ex0.compute()``` will return a Q promise that will resolve to:
 
 ```javascript
 [
   {
-    one: 1
-    two: 2
     three: 3
     four: 4
     five: 5
@@ -77,7 +84,13 @@ Calling ```ex0.compute()``` will return a Q promise that will, unsurprisingly, r
 ]
 ```
 
-This example does not perform any useful querying or computation but does serve to illustrate the many different ways there are of defining an expression.
+This example employees three functions:
+
+`facet()` creates a dataset with one empty datum inside of it. This is the base of most facet operations.
+
+`apply(name, expression)` evaluates the given `expression` for every
+
+
 
 ### Example 1
 

@@ -469,8 +469,8 @@ module Core {
       );
     }
 
-    public compute(remote: boolean = false) {
-      var deferred: Q.Deferred<Dataset> = <Q.Deferred<Dataset>>Q.defer();
+    public compute(driver: Driver = null) {
+      var deferred = <Q.Deferred<Dataset>>Q.defer();
       // ToDo: typecheck2 the expression
       var simple = this.simplify();
       if (simple.isOp('literal')) {

@@ -66,6 +66,8 @@ node_modules/.bin/tsc --noImplicitAny --noEmitOnError --declaration --out build/
   src/legacy/driver/simpleDriver.ts \
   src/legacy/driver/sqlDriver.ts \
   \
+  src/core/driver/legacyDriver.ts \
+  \
   src/exports.ts \
   && \
   sed -i '' s://DELETE//:: build/facet.js;

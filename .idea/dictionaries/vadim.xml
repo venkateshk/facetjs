@@ -29,6 +29,7 @@
       <w>stdout</w>
       <w>stringifier</w>
       <w>substr</w>
+      <w>tickmark</w>
       <w>timeseries</w>
       <w>tuples</w>
       <w>typecheck</w>

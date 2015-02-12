@@ -50,6 +50,15 @@ module Core {
       return ClassFn.fromJS(actionJS);
     }
 
+    static getPrecedenceOrder(action: Action) {
+      var orders = [FilterAction, SortAction, LimitAction, DefAction, ApplyAction];
+
+      for (var i = 0; i < orders.length; i++) {
+        if (action instanceof orders[i]) return i;
+      }
+      return orders.length;
+    }
+
     public action: string;
     public expression: Expression;
 

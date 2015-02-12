@@ -33,9 +33,100 @@ module Core {
     }
 
     public simplify(): Expression {
+      var actionValue: ActionValue;
+      var previousAction: Action;
+      var previousSortAction: SortAction;
+      var simplifiedActions: Action[];
       var value = this.valueOf();
+      var refSortMap: { [k: string]: SortAction} = {};
+      var sortLimitMap: { [k: string]: LimitAction} = {};
+
       value.operand = this.operand.simplify();
-      value.actions = this.actions.map((action) => action.simplify());
+      value.actions = [];
+
+      simplifiedActions = this.actions.map((action) => action.simplify());
+      var sorts = simplifiedActions.filter((action) => action instanceof SortAction);
+      var limits = simplifiedActions.filter((action) => action instanceof LimitAction);
+      var filters = simplifiedActions.filter((action) => action instanceof FilterAction);
+      value.actions = simplifiedActions
+        .filter((action) => (action instanceof DefAction) || (action instanceof ApplyAction))
+        .sort(function (a: Action, b: Action) {
+          var aReferences = a.expression.getReferences();
+          var bReferences = b.expression.getReferences();
+
+          if (aReferences.length < bReferences.length) {
+            return -1;
+          } else if (aReferences.length > bReferences.length) {
+            return 1;
+          } else {
+            if (Action.getPrecedenceOrder(a) > Action.getPrecedenceOrder(b)) {
+              return 1;
+            } else if (Action.getPrecedenceOrder(a) < Action.getPrecedenceOrder(b)) {
+              return -1;
+            }
+
+            if (bReferences.toString() !== aReferences.toString()) {
+              return aReferences.toString().localeCompare(bReferences.toString());
+            }
+
+            return (<DefAction>a).name.localeCompare((<DefAction>b).name);
+          }
+        });
+
+      for (var i = 0; i < simplifiedActions.length; i++) {
+        if (simplifiedActions[i] instanceof SortAction) previousSortAction = <SortAction>simplifiedActions[i];
+
+        if (simplifiedActions[i] instanceof LimitAction) {
+          if (
+            previousSortAction &&
+            typeof sortLimitMap[previousSortAction.toString()] === 'undefined'
+          ) {
+            sortLimitMap[previousSortAction.toString()] = <LimitAction>simplifiedActions[i];
+            previousSortAction = undefined;
+          }
+        }
+      }
+
+      var seen: { [k: string]: boolean } = {}
+      for (var i = 0; i < value.actions.length; i++) {
+        seen["$" + (<ApplyAction>value.actions[i]).name] = true;
+
+        // Add filter in the right order
+        var filtersToAdd: FilterAction[] = [];
+        for (var j = 0; j < filters.length; j++) {
+          if (filters[j].expression.getReferences().every((ref) => seen[ref])) {
+            filtersToAdd.push(filters[j]);
+            filters.splice(j, 1);
+            j--;
+          }
+        }
+
+        if (filtersToAdd.length > 0) {
+          value.actions.splice(i + 1, 0, new FilterAction({
+            expression: new AndExpression({
+              op: 'and',
+              operands: filtersToAdd.map((filter) => filter.expression)
+            }).simplify()
+          }));
+          i++;
+        }
+
+        // Add sorts and limits in the right order
+        for (var j = 0; j < sorts.length; j++) {
+          var references = sorts[j].expression.getReferences();
+
+          if (references.every((ref) => seen[ref])) {
+            value.actions.splice(i + 1, 0, sorts[j]);
+            i++;
+            if (sortLimitMap[sorts[j].toString()]) {
+              value.actions.splice(i + 1, 0, sortLimitMap[sorts[j].toString()]);
+              i++;
+            }
+            sorts.splice(j, 1);
+            j--;
+          }
+        }
+      }
       return new ActionsExpression(value);
     }
 

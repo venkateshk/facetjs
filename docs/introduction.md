@@ -88,7 +88,7 @@ This example employees three functions:
 
 `facet()` creates a dataset with one empty datum inside of it. This is the base of most facet operations.
 
-`apply(name, expression)` evaluates the given `expression` for every
+`apply(name, expression)` evaluates the given `expression` for every element of the dataset and saves the result as `name`
 
 
 

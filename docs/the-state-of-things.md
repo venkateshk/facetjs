@@ -37,4 +37,6 @@ that can not be translated.
 The main priority for the facet team is to get all the existing drivers ported into `core` and extended to support all
 the goodness that the new query language allows.
 
-### G
+### Integrate in the visualization engine
+
+This is the component that truly necessitated the refactor. More on this later.

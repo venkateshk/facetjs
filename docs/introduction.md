@@ -90,13 +90,17 @@ This example employees three functions:
 
 `apply(name, expression)` evaluates the given `expression` for every element of the dataset and saves the result as `name`
 
+`def(name, expression)` is essentially the same as `apply` except that the result will not show up in the output.
+This can be used for temporary computations.
 
 
 ### Example 1
 
 ```javascript
-facet(someDriverReference)
+var remoteDatasetDescription = /* a description of the remote dataset (fill me in */
+
+var ex1 = facet(remoteDatasetDescription)
   .filter("$color = 'D'")
   .apply("priceOver2", "$price/2")
-  .compute(true)
-```javascript
+  .compute()
+```

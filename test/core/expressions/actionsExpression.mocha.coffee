@@ -125,6 +125,7 @@ describe 'ActionsExpression', ->
         .apply('X', 5)
         .apply('Y', '$y')
         .sort('$X', 'descending')
+        .apply('Z', 5)
         .limit(10)
 
       simplifiedExpression = expression.simplify().toJS()
@@ -133,6 +134,7 @@ describe 'ActionsExpression', ->
           .apply('X', 5)
           .sort('$X', 'descending')
           .limit(10)
+          .apply('Z', 5)
           .apply('Y', '$y')
           .toJS()
       )

@@ -477,6 +477,9 @@ module Core {
       );
     }
 
+    public and(...exs: any[]) { return this._performNaryExpression({ op: 'and' }, exs); }
+    public or(...exs: any[]) { return this._performNaryExpression({ op: 'or' }, exs); }
+
     public compute(driver: Driver = null) {
       var deferred = <Q.Deferred<Dataset>>Q.defer();
       // ToDo: typecheck2 the expression

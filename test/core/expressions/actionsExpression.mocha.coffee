@@ -34,30 +34,12 @@ describe 'ActionsExpression', ->
         .apply('Data', facet())
 
       simplifiedExpression = expression.simplify().toJS()
-      expect(simplifiedExpression.actions).to.deep.equal([
-        {
-          "action": "def",
-          "expression": {
-            "op": "literal",
-            "value": 5
-          },
-          "name": "test"
-        },
-        {
-          "action": "apply",
-          "expression": {
-            "op": "literal",
-            "value": {
-              "dataset": "native",
-              "data": [
-                {}
-              ]
-            },
-            "type": "DATASET"
-          },
-          "name": "Data"
-        }
-      ])
+      expect(simplifiedExpression).to.deep.equal(
+        facet()
+          .def('test', 5)
+          .apply('Data', facet())
+          .toJS()
+      )
 
     it 'puts defs with less references in front of defs with more', ->
       expression = facet()
@@ -65,155 +47,57 @@ describe 'ActionsExpression', ->
         .def('a', facet('Data').add(5))
 
       simplifiedExpression = expression.simplify().toJS()
-      expect(simplifiedExpression.actions).to.deep.equal([
-        {
-          "action": "def",
-          "expression": {
-            "op": "literal",
-            "value": 5
-          },
-          "name": "z"
-        },
-        {
-          "action": "def",
-          "expression": {
-            "op": "add",
-            "operands": [
-              {
-                "op": "ref",
-                "name": "Data"
-              },
-              {
-                "op": "literal",
-                "value": 5
-              }
-            ]
-          },
-          "name": "a"
-        }
-      ])
+      expect(simplifiedExpression).to.deep.equal(
+        facet()
+          .def('z', 5)
+          .def('a', facet('Data').add(5))
+          .toJS()
+      )
 
     it 'sorts defs in alphabetical order of their references if they have the same number of references', ->
       expression = facet()
-      .def('z', facet('Data').add(5))
-      .def('a', facet('Test').add(7))
+        .def('z', facet('Data').add(5))
+        .def('a', facet('Test').add(7))
 
       simplifiedExpression = expression.simplify().toJS()
-      expect(simplifiedExpression.actions).to.deep.equal([
-        {
-          "action": "def",
-          "expression": {
-            "op": "add",
-            "operands": [
-              {
-                "op": "ref",
-                "name": "Data"
-              },
-              {
-                "op": "literal",
-                "value": 5
-              }
-            ]
-          },
-          "name": "z"
-        }
-        {
-          "action": "def",
-          "expression": {
-            "op": "add",
-            "operands": [
-              {
-                "op": "ref",
-                "name": "Test"
-              },
-              {
-                "op": "literal",
-                "value": 7
-              }
-            ]
-          },
-          "name": "a"
-        }
-      ])
+      expect(simplifiedExpression).to.deep.equal(
+        facet()
+          .def('z', facet('Data').add(5))
+          .def('a', facet('Test').add(7))
+          .toJS()
+      )
 
     it 'sorts defs in alphabetical order, all else equal', ->
       expression = facet()
-      .def('z', 5)
-      .def('a', 7)
+        .def('z', 5)
+        .def('a', 7)
 
       simplifiedExpression = expression.simplify().toJS()
-      expect(simplifiedExpression.actions).to.deep.equal([
-        {
-          "action": "def",
-          "expression": {
-            "op": "literal",
-            "value": 7
-          },
-          "name": "a"
-        },
-        {
-          "action": "def",
-          "expression": {
-            "op": "literal",
-            "value": 5
-          },
-          "name": "z"
-        }
-      ])
+      expect(simplifiedExpression).to.deep.equal(
+        expression = facet()
+          .def('a', 7)
+          .def('z', 5)
+          .toJS()
+      )
 
     # filter -> filter -> apply
     # ->
     # filter -> apply
     it 'merges filters', ->
       expression = facet()
-        .filter(facet('Data').greaterThanOrEqual(5))
-        .filter(facet('Data').lessThan(8))
+        .filter(facet('Country').is('USA'))
         .apply('Data', facet())
+        .filter(facet('Device').is('iPhone'))
         .apply('Count', 5)
 
       simplifiedExpression = expression.simplify().toJS()
-      expect(simplifiedExpression.actions).to.deep.equal([
-        {
-          "action": "apply",
-          "expression": {
-            "op": "literal",
-            "value": 5
-          },
-          "name": "Count"
-        },
-        {
-          "action": "apply",
-          "expression": {
-            "op": "literal",
-            "value": {
-              "dataset": "native",
-              "data": [
-                {}
-              ]
-            },
-            "type": "DATASET"
-          },
-          "name": "Data"
-        },
-        {
-          "action": "filter",
-          "expression": {
-            "op": "in",
-            "lhs": {
-              "op": "ref",
-              "name": "Data"
-            },
-            "rhs": {
-              "op": "literal",
-              "value": {
-                "start": 5,
-                "end": 8
-              },
-              "type": "NUMBER_RANGE"
-            }
-          }
-        }
-      ])
+      expect(simplifiedExpression).to.deep.equal(
+        facet()
+          .filter(facet('Country').is('USA').and(facet('Device').is('iPhone')))
+          .apply('Data', facet())
+          .apply('Count', 5)
+          .toJS()
+      )
 
     #.apply('X', '$data.sum($x)').apply('Y', '$data.sum($y)').sort('$X', 'descending')
     # ->
@@ -225,32 +109,13 @@ describe 'ActionsExpression', ->
         .sort('$X', 'descending')
 
       simplifiedExpression = expression.simplify().toJS()
-      expect(simplifiedExpression.actions).to.deep.equal([
-        {
-          "action": "apply",
-          "expression": {
-            "op": "literal",
-            "value": 5
-          },
-          "name": "X"
-        },
-        {
-          "action": "sort",
-          "expression": {
-            "op": "ref",
-            "name": "X"
-          },
-          "direction": "descending"
-        }
-        {
-          "action": "apply",
-          "expression": {
-            "op": "ref",
-            "name": "y"
-          },
-          "name": "Y"
-        },
-      ])
+      expect(simplifiedExpression).to.deep.equal(
+        facet()
+          .apply('X', 5)
+          .sort('$X', 'descending')
+          .apply('Y', '$y')
+          .toJS()
+      )
 
     #.apply('X', '$data.sum($x)').apply('Y', '$data.sum($y)').sort('$X', 'descending').limit(10)
     # ->
@@ -263,33 +128,11 @@ describe 'ActionsExpression', ->
         .limit(10)
 
       simplifiedExpression = expression.simplify().toJS()
-      expect(simplifiedExpression.actions).to.deep.equal([
-        {
-          "action": "apply",
-          "expression": {
-            "op": "literal",
-            "value": 5
-          },
-          "name": "X"
-        },
-        {
-          "action": "sort",
-          "expression": {
-            "op": "ref",
-            "name": "X"
-          },
-          "direction": "descending"
-        },
-        {
-          "action": "limit",
-          "limit": 10
-        },
-        {
-          "action": "apply",
-          "expression": {
-            "op": "ref",
-            "name": "y"
-          },
-          "name": "Y"
-        }
-      ])
+      expect(simplifiedExpression).to.deep.equal(
+        facet()
+          .apply('X', 5)
+          .sort('$X', 'descending')
+          .limit(10)
+          .apply('Y', '$y')
+          .toJS()
+      )

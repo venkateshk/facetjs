@@ -1187,7 +1187,6 @@ module Legacy {
       var requester = parameters.requester;
       var queryBuilder = parameters.queryBuilder;
       var filter = parameters.filter;
-      var parentSegment = parameters.parentSegment;
       var condensedCommand = parameters.condensedCommand;
 
       try {
@@ -1662,7 +1661,7 @@ module Legacy {
           queryType: "introspect",
           dataSource: Array.isArray(dataSource) ? dataSource[0] : dataSource
         }
-      }, (err: Error, ret: Druid.IntrospectResult) => {
+      }, (err: Error, ret: Druid.DatasourceIntrospectResult) => {
         if (err) {
           callback(err);
           return;

@@ -5,7 +5,7 @@ Thank you for your interest in facet.js.
 This is a short writeup of the current state of the project.
 Please read it to understand where the project is right now and where is is heading.
 
-## Where we are
+## Where is this coming from?
 
 facet.js became open source (under the Apache 2.0) license on Feb 20, 2015 after two years of closed source development.
 
@@ -30,12 +30,18 @@ the only way to query Druid via facet is by wrapping the legacy driver in the le
 language is less expressive than the new language, there are certain expressions that are possible in the new language
 that can not be translated.
 
-## What is next?
+## What's next?
 
 ### Finish migration to core
 
 The main priority for the facet team is to get all the existing drivers ported into `core` and extended to support all
 the goodness that the new query language allows.
+
+### Round out the query language support
+
+Due to the fact that facet was initially developed to solve the Metamarkets use case certain parts of the legacy drivers
+are more developed than others. As part of the open sourcing effort (and the migration to `core` all features will be
+supported equally).
 
 ### Integrate in the visualization engine
 

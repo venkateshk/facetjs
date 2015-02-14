@@ -25,7 +25,7 @@ facet queries and visualizations can be serialized to and from JSON
 
 ## Querying
 
-Making a query using facet consists of creating a facet expression and then evaluating it.
+Making a query in facet consists of creating a facet expression and then evaluating it.
 
 There are a number of ways to create expressions:
 
@@ -37,6 +37,24 @@ There are a number of ways to create expressions:
 Expressions are composed together to create powerful queries.
 These queries, which can be computer on any supported database are then executed by calling ```.compute()```.
 
+Learn more about [expressions here](expressions.md).
+
+## Datasets
+
+The backbone datatype in facet is the dataset.
+
+A dataset is a potentially ordered collection of datums.
+
+A datum is a collection of named attributes where the name is a string and the value any one of a number of things.
+
+Most notably a dataset can be the value of a datum in a dataset.
+
+In the SQL world, a *dataset* can be though as a **table** and an *attribute* as a **column**. SQL can express a table as a value
+in a table as a foreign hey relation but it can not easily return the data in that format.
+
+In the Druid world a *dataset* is a **datasource** and an *attribute* is a **field**
+
+## Learn by example
 
 ### Example 0
 
@@ -96,11 +114,19 @@ This can be used for temporary computations.
 
 ### Example 1
 
-```javascript
-var remoteDatasetDescription = /* a description of the remote dataset (fill me in */
+Working with data in facet is achieved by declaring a native or remote dataset and then manipulating it.
 
-var ex1 = facet(remoteDatasetDescription)
+```javascript
+var remoteDataset = facet.dataset.druid({
+  /* params */
+})
+```
+
+Once a dataset is declared it can be used like so:
+
+```javascript
+var ex1 = facet(remoteDataset)
   .filter("$color = 'D'")
-  .apply("priceOver2", "$price/2")
+  .apply("priceOver2", "$price / 2")
   .compute()
 ```

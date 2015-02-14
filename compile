@@ -16,40 +16,19 @@ echo "Compiling SCSS styles"
 # node_modules/.bin/coffee --compile --bare --output build src
 
 echo "Compiling PEG.js"
-
-# Apply parser
-node_modules/.bin/pegjs \
-  --export-var "module.exports" \
-  src/parser/apply.pegjs \
-  build/parser/apply.js
-
-# Filter parser
-node_modules/.bin/pegjs \
-  --export-var "module.exports" \
-  src/parser/filter.pegjs \
-  build/parser/filter.js
+./compile-pegjs
 
 # Parts
 #mkdir -p package
 
 # TypeScript
-#echo "Compiling TypeScript basics"
-#node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/*.ts
-
-#echo "Compiling expression"
-#node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/expression.ts
-
-#echo "Compiling query"
-#node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/query/*.ts
+./compile-tsc
 
 #echo "Compiling locators"
 #node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/locator/*.ts
 
-#echo "Compiling requesters"
-#node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/requester/*.ts
-
-#echo "Compiling drivers"
-#node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/driver/*.ts
+echo "Compiling requesters"
+node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/requester/*.ts
 
 ##echo "Compiling render"
 ##node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/render/*.ts

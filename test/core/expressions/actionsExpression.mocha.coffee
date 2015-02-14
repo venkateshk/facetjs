@@ -138,3 +138,4 @@ describe 'ActionsExpression', ->
           .apply('Y', '$y')
           .toJS()
       )
+

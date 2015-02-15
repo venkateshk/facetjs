@@ -1,16 +1,14 @@
-"use strict";
-
-module Locator {
-  export interface Location {
+declare module Locator {
+  interface Location {
     host: string
     port?: number
   }
 
-  export interface Callback {
+  interface Callback {
     (err: Error, location?: Location): void
   }
 
-  export interface FacetLocator {
+  interface FacetLocator {
     (fn: Callback): void
 
     // Event emitter extension
@@ -24,5 +22,3 @@ module Locator {
     emit?(event: string, ...args: any[]): boolean;
   }
 }
-
-export = Locator;

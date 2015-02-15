@@ -8,9 +8,6 @@
     "mysql/mysql.d.ts": {
       "commit": "bd0833a22eb1c4e4a963068d4e2550fe866399d1"
     },
-    "request/request.d.ts": {
-      "commit": "bd0833a22eb1c4e4a963068d4e2550fe866399d1"
-    },
     "async/async.d.ts": {
       "commit": "bd0833a22eb1c4e4a963068d4e2550fe866399d1"
     },

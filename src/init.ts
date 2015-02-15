@@ -1,8 +1,9 @@
 /// <reference path="../definitions/require.d.ts" />
-/// <reference path="../definitions/higher-object.d.ts" />
 /// <reference path="../definitions/Q.d.ts" />
 /// <reference path="../typings/async/async.d.ts" />
+/// <reference path="../definitions/higher-object.d.ts" />
 /// <reference path="../definitions/chronology.d.ts" />
+/// <reference path="../definitions/requester.d.ts" />
 "use strict";
 
 /*========================================*\

@@ -30,12 +30,12 @@ Making a query in facet.js consists of creating an expression and then evaluatin
 There are a number of ways to create expressions:
 
 - by using the ```facet()``` helper method
-- by parsing an expression string using the built in parser
-- by composing them manually using the Expression sub class objects
+- by parsing an expression string using the built-in parser
+- by composing them manually using the Expression sub-class objects
 - by constructing the appropriate JSON and then deserializing it into an Expression
 
-Expressions are composed together to create powerful queries.
-These queries, which can be computer on any supported database are then executed by calling ```.compute()```.
+Expressions are joined together to create powerful queries.
+These queries, which can be computed on any supported database, are executed by calling ```.compute()```.
 
 Learn more about [expressions here](expressions.md).
 
@@ -47,12 +47,12 @@ A dataset is a potentially ordered collection of datums.
 
 A datum is a collection of named attributes where the name is a string and the value any one of a number of things.
 
-Most notably a dataset can be the value of a datum in a dataset.
+Most notably a dataset can be the value of a datum in another dataset.
 
-In the SQL world, a *dataset* can be though as a **table** and an *attribute* as a **column**. SQL can express a table as a value
-in a table as a foreign hey relation but it can not easily return the data in that format.
+In the SQL world, a *dataset* can be though as a **table** and an *attribute* as a **column**. SQL can use a *foreign-key relation* to express a table as a value
+in another table, but it can not easily return the data in that format.
 
-In the Druid world a *dataset* is a **datasource** and an *attribute* is a **field**
+In the Druid world, a *dataset* is a **datasource** and an *attribute* is a **field**.
 
 ## Learn by example
 

@@ -2,30 +2,30 @@
 
 ## Introduction
 
-facet.js is a framework for expressing data queries in a way that is helpful for visualizations.
-facet.js places the end user first by facilitating a rich query language which then gets translated to an underlying database.
+facet.js is a framework for expressing data queries optimized for visualizations.
+facet.js places the end user first by facilitating a rich query language that gets translated to an underlying database.
 
 ## Philosophy
 
 facet.js was built with these goals in mind:
 
-### Higher level language
+### Higher-level language
 
-A high level domain specific language is employed to describe the facet API.
+A high-level *domain specific language* is employed to describe the facet API.
 This language is inspired by Hadley Wickham's [split-apply-combine](http://www.jstatsoft.org/v40/i01/paper) principle,
 and by [jq](https://stedolan.github.io/jq/).
 
-### Higher level objects
+### Higher-level objects
 
 A number of core datatypes are provided to make life easy.
 
 ### Serializability
 
-facet queries and visualizations can be serialized to and from JSON
+facet.js queries and visualizations can be serialized to and from JSON.
 
 ## Querying
 
-Making a query in facet consists of creating a facet expression and then evaluating it.
+Making a query in facet.js consists of creating an expression and then evaluating it.
 
 There are a number of ways to create expressions:
 

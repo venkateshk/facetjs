@@ -3,7 +3,7 @@
 rm -rf build/*
 mkdir -p build
 
-node_modules/.bin/tsc --noImplicitAny --noEmitOnError --declaration --out build/facet.js \
+node_modules/.bin/tsc --noImplicitAny --noEmitOnError --declaration --removeComments --out build/facet.js \
   src/init.ts \
   \
   src/core/datatypes/dataset.ts \

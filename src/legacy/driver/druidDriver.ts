@@ -786,14 +786,9 @@ module Legacy {
       }
       requester({
         query: queryObj
-      }, (err, ds) => {
-        if (err) {
-          callback(err);
-          return;
-        }
-
+      }).then((ds) => {
         if (!correctSingletonDruidResult(ds)) {
-          err = new Error("unexpected result from Druid (all)");
+          var err = new Error("unexpected result from Druid (all)");
           (<any>err).result = ds; // ToDo: special error type
           callback(err);
           return;
@@ -806,8 +801,7 @@ module Legacy {
           if (Array.isArray(result) && !result.length) result = null;
           callback(null, [result || condensedCommand.getZeroProp()]);
         }
-
-      });
+      }, (err) => callback(err));
     },
     timeBoundary: (parameters, callback) => {
       var requester = parameters.requester;
@@ -839,14 +833,9 @@ module Legacy {
 
       requester({
         query: queryObj
-      }, (err, ds) => {
-        if (err) {
-          callback(err);
-          return;
-        }
-
+      }).then((ds) => {
         if (!correctSingletonDruidResult(ds) || ds.length !== 1) {
-          err = new Error("unexpected result from Druid (" + queryObj.queryType + ")");
+          var err = new Error("unexpected result from Druid (" + queryObj.queryType + ")");
           (<any>err).result = ds;
           callback(err);
           return;
@@ -862,7 +851,7 @@ module Legacy {
         }
 
         callback(null, [prop]);
-      });
+      }, (err) => callback(err));
 
     },
     timeseries: (parameters, callback) => {
@@ -882,14 +871,9 @@ module Legacy {
 
       requester({
         query: queryObj
-      }, (err, ds) => {
-        if (err) {
-          callback(err);
-          return;
-        }
-
+      }).then((ds) => {
         if (!Array.isArray(ds)) {
-          err = new Error("unexpected result from Druid (timeseries)");
+          var err = new Error("unexpected result from Druid (timeseries)");
           (<any>err).result = ds;
           callback(err);
           return;
@@ -940,7 +924,7 @@ module Legacy {
         }
 
         callback(null, props);
-      });
+      }, (err) => callback(err));
     },
     topN: (parameters, callback) => {
       var requester = parameters.requester;
@@ -964,14 +948,14 @@ module Legacy {
 
       requester({
         query: queryObj
-      }, (err, ds) => {
+      }).then((ds) => {
         if (err) {
           callback(err);
           return;
         }
 
         if (!correctSingletonDruidResult(ds)) {
-          err = new Error("unexpected result from Druid (topN)");
+          var err = new Error("unexpected result from Druid (topN)");
           (<any>err).result = ds;
           callback(err);
           return;
@@ -1005,7 +989,7 @@ module Legacy {
         }
 
         callback(null, ds);
-      });
+      }, (err) => callback(err));
     },
     allData: (parameters, callback) => {
       var requester = parameters.requester;
@@ -1041,14 +1025,9 @@ module Legacy {
       async.whilst(() => !done, (callback: (error?: Error) => void) => {
         requester({
           query: queryObj
-        }, (err, ds) => {
-          if (err) {
-            callback(err);
-            return;
-          }
-
+        }).then((ds) => {
           if (!correctSingletonDruidResult(ds)) {
-            err = new Error("unexpected result from Druid (topN/allData)");
+            var err = new Error("unexpected result from Druid (topN/allData)");
             (<any>err).result = ds;
             callback(err);
             return;
@@ -1062,7 +1041,7 @@ module Legacy {
             (<Druid.TopNMetricSpec>queryObj.metric).previousStop = myProps[allDataChunks - 1][condensedCommand.split.name];
           }
           return callback();
-        });
+        }, (err) => callback(err));
       }, (err: Error) => {
         if (err) {
           callback(err);
@@ -1093,14 +1072,9 @@ module Legacy {
 
       requester({
         query: queryObj
-      }, (err, ds) => {
-        if (err) {
-          callback(err);
-          return;
-        }
-
+      }).then((ds) => {
         callback(null, ds.map((d: any) => d.event));
-      });
+      }, (err) => callback(err));
     },
     histogram: (parameters, callback) => {
       var requester = parameters.requester;
@@ -1125,14 +1099,9 @@ module Legacy {
 
       requester({
         query: queryObj
-      }, (err, ds) => {
-        if (err) {
-          callback(err);
-          return;
-        }
-
+      }).then((ds) => {
         if (!correctSingletonDruidResult(ds)) {
-          err = new Error("unexpected result from Druid (histogram)");
+          var err = new Error("unexpected result from Druid (histogram)");
           (<any>err).result = ds;
           callback(err);
           return;
@@ -1181,7 +1150,7 @@ module Legacy {
         }
 
         callback(null, props);
-      });
+      }, (err) => callback(err));
     },
     heatmap: (parameters, callback) => {
       var requester = parameters.requester;
@@ -1204,14 +1173,9 @@ module Legacy {
 
       requester({
         query: queryObj
-      }, (err, ds) => {
-        if (err) {
-          callback(err);
-          return;
-        }
-
+      }).then((ds) => {
         if (!correctSingletonDruidResult(ds)) {
-          err = new Error("unexpected result from Druid (heatmap)");
+          var err = new Error("unexpected result from Druid (heatmap)");
           (<any>err).result = ds;
           callback(err);
           return;
@@ -1247,7 +1211,7 @@ module Legacy {
         }
 
         callback(null, props);
-      });
+      }, (err) => callback(err));
     }
   };
 
@@ -1661,12 +1625,7 @@ module Legacy {
           queryType: "introspect",
           dataSource: Array.isArray(dataSource) ? dataSource[0] : dataSource
         }
-      }, (err: Error, ret: Druid.DatasourceIntrospectResult) => {
-        if (err) {
-          callback(err);
-          return;
-        }
-
+      }).then((ret: Druid.DatasourceIntrospectResult) => {
         var attributes: Driver.AttributeIntrospect[] = [{
           name: timeAttribute,
           time: true
@@ -1694,7 +1653,7 @@ module Legacy {
         }
 
         callback(null, attributes);
-      });
+      }, (err) => callback(err));
     };
 
     return driver;

@@ -4,11 +4,7 @@ declare module Requester {
     context?: { [key: string]: any };
   }
 
-  interface DatabaseCallback {
-    (error: Error, result?: any): void
-  }
-
   interface FacetRequester<T> {
-    (request: DatabaseRequest<T>, callback: DatabaseCallback): void;
+    (request: DatabaseRequest<T>): Q.Promise<any>;
   }
 }

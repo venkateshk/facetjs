@@ -1,5 +1,5 @@
 /// <reference path="../definitions/require.d.ts" />
-/// <reference path="../definitions/Q.d.ts" />
+/// <reference path="../typings/q/Q.d.ts" />
 /// <reference path="../typings/async/async.d.ts" />
 /// <reference path="../definitions/higher-object.d.ts" />
 /// <reference path="../definitions/chronology.d.ts" />
@@ -54,7 +54,7 @@
  */
 
 var HigherObject = <HigherObject.Base>require("higher-object");
-var Q = <Q.Base>require("q");
+var q = <typeof Q>require("q");
 var async = <Async>require("async");
 var chronology = <typeof Chronology>require("chronology");
 
@@ -72,6 +72,7 @@ module Core {
   export import ImmutableClass = HigherObject.ImmutableClass;
   export import ImmutableInstance = HigherObject.ImmutableInstance;
 
+  //DELETE//var Q = q;
   //DELETE//var Chronology = chronology;
   export import Timezone = Chronology.Timezone;
   export import Duration = Chronology.Duration;
@@ -95,6 +96,7 @@ module Legacy {
   export import ImmutableClass = HigherObject.ImmutableClass;
   export import ImmutableInstance = HigherObject.ImmutableInstance;
 
+  //DELETE//var Q = q;
   //DELETE//var Chronology = chronology;
   export import Timezone = Chronology.Timezone;
   export import Duration = Chronology.Duration;

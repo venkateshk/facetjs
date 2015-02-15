@@ -503,12 +503,7 @@ module Legacy {
 
     requester({
       query: queryToRun
-    }, (err, ds) => {
-      if (err) {
-        callback(err);
-        return;
-      }
-
+    }).then((ds) => {
       if (split) {
         var splitProp = split.name;
 
@@ -557,7 +552,7 @@ module Legacy {
       }
 
       callback(null, splits);
-    });
+    }, (err) => callback(err));
   }
 
   interface SQLDescribeRow {
@@ -681,11 +676,7 @@ module Legacy {
     driver.introspect = (opt: any, callback: Driver.IntrospectionCallback) => {
       requester({
         query: "DESCRIBE `" + table + "`"
-      }, (err, columns) => {
-        if (err) {
-          callback(err);
-          return;
-        }
+      }).then((columns) => {
         var attributes: Driver.AttributeIntrospect[] = columns.map((column: SQLDescribeRow) => {
           var attribute: Driver.AttributeIntrospect = {
             name: column.Field
@@ -705,7 +696,7 @@ module Legacy {
         });
 
         callback(null, attributes);
-      });
+      }, (err) => callback(err));
     };
 
     return driver;

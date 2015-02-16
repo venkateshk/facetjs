@@ -58,7 +58,7 @@ In the Druid world, a *dataset* is a **datasource** and an *attribute* is a **fi
 
 ### Example 0
 
-Here is an example of a simple facet query that illustrates the different ways by which expressions can be created:
+Here is an example of a simple facet.js query that illustrates the different ways by which expressions can be created:
 
 ```javascript
 var ex0 = facet() // Create an empty singleton dataset literal [{}]
@@ -104,11 +104,11 @@ Calling ```ex0.compute()``` will return a Q promise that will resolve to:
 
 This example employees three functions:
 
-`facet()` creates a dataset with one empty datum inside of it. This is the base of most facet operations.
+* `facet()` creates a dataset with one empty datum inside of it. This is the base of most facet operations.
 
-`apply(name, expression)` evaluates the given `expression` for every element of the dataset and saves the result as `name`
+* `apply(name, expression)` evaluates the given `expression` for every element of the dataset and saves the result as `name`.
 
-`def(name, expression)` is essentially the same as `apply` except that the result will not show up in the output.
+* `def(name, expression)` is essentially the same as `apply` except that the result will not show up in the output.
 This can be used for temporary computations.
 
 

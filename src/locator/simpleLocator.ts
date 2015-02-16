@@ -1,8 +1,5 @@
 "use strict";
 
-import Basics = require("../basics") // Prop up
-import Lookup = Basics.Lookup;
-
 import Locator = require("../locatorCommon");
 
 var integerRegExp = /^\d+$/;

@@ -27,8 +27,8 @@ echo "Compiling PEG.js"
 #echo "Compiling locators"
 #node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/locator/*.ts
 
-echo "Compiling requesters"
-node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/requester/*.ts
+#echo "Compiling requesters"
+#node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/requester/*.ts
 
 ##echo "Compiling render"
 ##node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/render/*.ts

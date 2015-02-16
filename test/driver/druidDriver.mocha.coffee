@@ -1,6 +1,9 @@
-chai = require("chai")
-expect = chai.expect
+{ expect } = require("chai")
 utils = require('../utils')
+
+Q = require('q')
+
+facet = require('../../build/facet')
 
 { WallTime } = require('chronology')
 if not WallTime.rules
@@ -13,12 +16,10 @@ if not WallTime.rules
   AttributeMeta
   FacetSplit
   FacetApply
-} = require('../../build/query')
+} = facet.legacy
 
-{ simpleLocator } = require('../../build/locator/simpleLocator')
-
-{ druidRequester } = require('../../build/requester/druidRequester')
-{ druidDriver, DruidQueryBuilder } = require('../../build/driver/druidDriver')
+{ druidRequester } = require('facetjs-druid-requester')
+{ druidDriver, DruidQueryBuilder } = facet.legacy
 
 locations = require('../locations')
 
@@ -496,7 +497,7 @@ describe "Druid driver", ->
 
   describe "introspects", ->
     druidPass = druidRequester({
-      locator: simpleLocator(locations.druid)
+      host: locations.druid
     })
 
     wikiDriver = druidDriver({
@@ -612,17 +613,13 @@ describe "Druid driver", ->
 
   describe "should work when getting back [] and [{result:[]}]", ->
     nullDriver = druidDriver({
-      requester: (query, callback) ->
-        callback(null, [])
-        return
+      requester: (query) -> Q([])
       dataSource: 'blah'
       approximate: true
     })
 
     emptyDriver = druidDriver({
-      requester: (query, callback) ->
-        callback(null, [{result:[]}])
-        return
+      requester: (query) -> Q([{result:[]}])
       dataSource: 'blah'
       approximate: true
     })
@@ -676,9 +673,7 @@ describe "Druid driver", ->
 
   describe "should work when getting back crap data", ->
     crapDriver = druidDriver({
-      requester: (query, callback) ->
-        callback(null, "[Does this look like data to you?")
-        return
+      requester: (query) -> Q("[Does this look like data to you?")
       dataSource: 'blah'
       approximate: true
     })
@@ -707,7 +702,7 @@ describe "Druid driver", ->
 
   describe "should work with driver level filter", ->
     druidPass = druidRequester({
-      locator: simpleLocator(locations.druid)
+      host: locations.druid
     })
 
     noFilter = druidDriver({
@@ -765,7 +760,7 @@ describe "Druid driver", ->
 
   describe "should work with nothingness", ->
     druidPass = druidRequester({
-      locator: simpleLocator(locations.druid)
+      host: locations.druid
     })
 
     wikiDriver = druidDriver({
@@ -822,7 +817,7 @@ describe "Druid driver", ->
 
   describe "should work with inferred nothingness", ->
     druidPass = druidRequester({
-      locator: simpleLocator(locations.druid)
+      host: locations.druid
     })
 
     wikiDriver = druidDriver({
@@ -865,7 +860,7 @@ describe "Druid driver", ->
 
   describe "specific queries", ->
     druidPass = druidRequester({
-      locator: simpleLocator(locations.druid)
+      host: locations.druid
     })
 
     driver = druidDriver({
@@ -1277,10 +1272,9 @@ describe "Druid driver", ->
 
   describe "propagates context", ->
     querySpy = null
-    requesterSpy = (request, callback) ->
+    requesterSpy = (request) ->
       querySpy(request.query)
-      callback(null, [])
-      return
+      return Q([])
 
     driver = druidDriver({
       requester: requesterSpy
@@ -1362,10 +1356,9 @@ describe "Druid driver", ->
 
   describe "acknowledges attribute metas", ->
     querySpy = null
-    requesterSpy = (request, callback) ->
+    requesterSpy = (request) ->
       querySpy(request.query)
-      callback(null, [])
-      return
+      return Q([])
 
     driver = druidDriver({
       requester: requesterSpy
@@ -1398,4 +1391,3 @@ describe "Druid driver", ->
       }, (err, result) ->
         expect(count).to.equal(1)
         done()
-

@@ -1,15 +1,11 @@
 declare module Locator {
   interface Location {
-    host: string
-    port?: number
-  }
-
-  interface Callback {
-    (err: Error, location?: Location): void
+    hostname: string;
+    port?: number;
   }
 
   interface FacetLocator {
-    (fn: Callback): void
+    (): Q.Promise<Location>;
 
     // Event emitter extension
     addListener?(event: string, listener: Function): any;

@@ -55,8 +55,10 @@
 
 var HigherObject = <HigherObject.Base>require("higher-object");
 var q = <typeof Q>require("q");
+var Q_delete_me_ = q;
 var async = <Async>require("async");
 var chronology = <typeof Chronology>require("chronology");
+var Chronology_delete_me_ = chronology;
 
 module Core {
   export interface Lookup<T> {
@@ -72,8 +74,6 @@ module Core {
   export import ImmutableClass = HigherObject.ImmutableClass;
   export import ImmutableInstance = HigherObject.ImmutableInstance;
 
-  //DELETE//var Q = q;
-  //DELETE//var Chronology = chronology;
   export import Timezone = Chronology.Timezone;
   export import Duration = Chronology.Duration;
 
@@ -96,8 +96,6 @@ module Legacy {
   export import ImmutableClass = HigherObject.ImmutableClass;
   export import ImmutableInstance = HigherObject.ImmutableInstance;
 
-  //DELETE//var Q = q;
-  //DELETE//var Chronology = chronology;
   export import Timezone = Chronology.Timezone;
   export import Duration = Chronology.Duration;
 

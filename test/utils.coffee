@@ -1,9 +1,8 @@
-"use strict"
-
-async = require('async')
 { expect } = require("chai")
+async = require('async')
 
-{FacetQuery, SegmentTree} = require('../build/query')
+facet = require('../build/facet')
+{ FacetQuery, SegmentTree } = facet.legacy
 
 uniformizeResults = (result) ->
   if not result?.prop

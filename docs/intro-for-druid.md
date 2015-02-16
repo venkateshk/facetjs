@@ -22,5 +22,5 @@ expressiveness of the Druid query language.
 
 ### GroupBy query
 
-facet.js does not currently make group by queries as most of the time TopN queries are superior.
+facet.js does not currently make groupBy queries as most of the time TopN queries are superior.
 Support is coming though, stay tuned.

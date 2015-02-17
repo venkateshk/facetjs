@@ -498,7 +498,7 @@ describe "Druid driver", ->
 
   describe "introspects", ->
     druidPass = druidRequester({
-      host: info.druid
+      host: info.druidHost
     })
 
     wikiDriver = druidDriver({
@@ -703,7 +703,7 @@ describe "Druid driver", ->
 
   describe "should work with driver level filter", ->
     druidPass = druidRequester({
-      host: info.druid
+      host: info.druidHost
     })
 
     noFilter = druidDriver({
@@ -761,7 +761,7 @@ describe "Druid driver", ->
 
   describe "should work with nothingness", ->
     druidPass = druidRequester({
-      host: info.druid
+      host: info.druidHost
     })
 
     wikiDriver = druidDriver({
@@ -818,7 +818,7 @@ describe "Druid driver", ->
 
   describe "should work with inferred nothingness", ->
     druidPass = druidRequester({
-      host: info.druid
+      host: info.druidHost
     })
 
     wikiDriver = druidDriver({
@@ -861,7 +861,7 @@ describe "Druid driver", ->
 
   describe "specific queries", ->
     druidPass = druidRequester({
-      host: info.druid
+      host: info.druidHost
     })
 
     driver = druidDriver({

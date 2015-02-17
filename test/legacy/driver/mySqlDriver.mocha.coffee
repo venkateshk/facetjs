@@ -8,13 +8,15 @@ Q = require('q')
 facet = require("../../../build/facet")
 { FacetQuery, FacetFilter, mySqlDriver } = facet.legacy
 
+info = require('../../info')
+
 verbose = false
 
 mySqlPass = mySqlRequester({
-  host: 'localhost'
-  database: 'facet'
-  user: 'facet_user'
-  password: 'HadleyWickham'
+  host: info.mySqlHost
+  database: info.mySqlDatabase
+  user: info.mySqlUser
+  password: info.mySqlPassword
 })
 
 describe "SQL driver", ->

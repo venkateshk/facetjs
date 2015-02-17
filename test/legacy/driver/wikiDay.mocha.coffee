@@ -24,10 +24,10 @@ verbose = false
 
 # MySQL
 sqlPass = mySqlRequester({
-  host: 'localhost'
-  database: 'facet'
-  user: 'facet_user'
-  password: 'HadleyWickham'
+  host: info.mySqlHost
+  database: info.mySqlDatabase
+  user: info.mySqlUser
+  password: info.mySqlPassword
 })
 
 sqlPass = utils.wrapVerbose(sqlPass, 'MySQL') if verbose
@@ -40,7 +40,7 @@ driverFns.mySql = mySqlDriver({
 
 # # Druid
 druidPass = druidRequester({
-  host: info.druid
+  host: info.druidHost
 })
 
 druidPass = utils.wrapVerbose(druidPass, 'Druid') if verbose

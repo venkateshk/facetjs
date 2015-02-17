@@ -2,8 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/facet.iml" filepath="$PROJECT_DIR$/.idea/facet.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/facetjs.iml" filepath="$PROJECT_DIR$/.idea/facetjs.iml" />
     </modules>
   </component>
 </project>
-

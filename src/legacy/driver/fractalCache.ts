@@ -813,7 +813,10 @@ module Legacy {
       if (!request) throw new Error("request not supplied");
       var context = request.context;
       var query = request.query;
-
+      if (!query) {
+        callback(new Error("query not supplied"));
+        return;
+      }
       if (!FacetQuery.isFacetQuery(query)) {
         callback(new Error("query must be a FacetQuery"));
         return;

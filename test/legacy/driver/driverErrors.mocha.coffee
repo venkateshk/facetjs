@@ -2,13 +2,11 @@
 
 utils = require('../../utils')
 
-{ FacetFilter } = facet.legacy
-
 { druidRequester } = require('facetjs-druid-requester')
 { mySqlRequester } = require('facetjs-mysql-requester')
 
 facet = require("../../../build/facet")
-{ simpleDriver, mySqlDriver, druidDriver } = facet.legacy
+{ FacetFilter, simpleDriver, mySqlDriver, druidDriver } = facet.legacy
 
 locations = require('../../locations')
 
@@ -33,7 +31,7 @@ driverFns.mySql = mySqlDriver({
   filters: null
 })
 
-# # Druid
+# Druid
 druidPass = druidRequester({
   host: locations.druid
 })

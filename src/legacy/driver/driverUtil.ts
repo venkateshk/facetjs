@@ -215,6 +215,9 @@ module Legacy.driverUtil {
     constructor(parameters: { root: SegmentTree; query: FacetQuery }) {
       var root = parameters.root;
       var query = parameters.query;
+      if (!query) {
+        throw new Error("query not supplied");
+      }
       if (!FacetQuery.isFacetQuery(query)) {
         throw new TypeError("query must be a FacetQuery");
       }

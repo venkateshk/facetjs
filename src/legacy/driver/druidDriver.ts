@@ -1494,7 +1494,10 @@ module Legacy {
       }
       var context = request.context || {};
       var query = request.query;
-
+      if (!query) {
+        callback(new Error("query not supplied"));
+        return;
+      }
       if (!FacetQuery.isFacetQuery(query)) {
         callback(new TypeError("query must be a FacetQuery"));
         return;

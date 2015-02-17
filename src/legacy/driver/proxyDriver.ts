@@ -12,6 +12,9 @@ module Legacy {
 
     return (request: Driver.Request, callback: Driver.DataCallback) => {
       var query = request.query;
+      if (!query) {
+        throw new Error("query not supplied");
+      }
       if (!FacetQuery.isFacetQuery(query)) {
         throw new TypeError("query must be a FacetQuery");
       }

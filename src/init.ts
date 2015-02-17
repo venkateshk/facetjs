@@ -62,6 +62,12 @@ var chronology = <typeof Chronology>require("chronology");
 var Chronology_delete_me_ = chronology;
 
 module Core {
+  export interface Parser {
+    parse: (str: string) => any;
+  }
+
+  export var expressionParser = <Parser>require("../parser/expression");
+
   export interface Lookup<T> {
     [key: string]: T;
   }
@@ -84,6 +90,13 @@ module Core {
 }
 
 module Legacy {
+  export interface Parser {
+    parse: (str: string) => any;
+  }
+
+  export var filterParser = <Parser>require("../parser/filter");
+  export var applyParser = <Parser>require("../parser/apply");
+
   export interface Lookup<T> {
     [key: string]: T;
   }

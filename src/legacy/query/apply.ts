@@ -51,6 +51,10 @@ module Legacy {
       return isInstanceOf(candidate, FacetApply);
     }
 
+    static parse(str: string): FacetApply {
+      return FacetApply.fromJS(applyParser.parse(str));
+    }
+
     static aggregateClassMap: any;
     static arithmeticClassMap: any;
 

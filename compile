@@ -7,14 +7,6 @@ rm -rf build/*
 mkdir -p build/parser
 mkdir -p build/package
 
-echo "Compiling SCSS styles"
-
-# Style
-# compass compile --sass-dir src/style/ --css-dir package/style/
-
-# All files
-# node_modules/.bin/coffee --compile --bare --output build src
-
 echo "Compiling PEG.js"
 ./compile-pegjs
 
@@ -24,33 +16,8 @@ echo "Compiling PEG.js"
 # TypeScript
 ./compile-tsc
 
-#echo "Compiling locators"
-#node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/locator/*.ts
-
-#echo "Compiling requesters"
-#node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/requester/*.ts
-
-##echo "Compiling render"
-##node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/render/*.ts
-
-#echo "Compiling workers"
-#node_modules/.bin/tsc -m commonjs --noImplicitAny -d --outDir build src/worker/*.ts
-
 # echo "Bundle type definitions"
 # node dts-bundle.js
-
-# browserify build/driver/index.js \
-#   -o package/driver.js \
-#   --ignore async \
-#   --standalone driver
-#
-# browserify build/render/index.js \
-#   -o package/render.js \
-#   --standalone render
-#
-# browserify build/query/index.js \
-#   -o package/query.js \
-#   --standalone query
 #
 # # All in one
 # browserify build/facet.js \

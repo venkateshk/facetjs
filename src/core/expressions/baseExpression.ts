@@ -117,6 +117,10 @@ module Core {
       return Expression.fromJS(expressionJS);
     }
 
+    static parse(str: string): Expression {
+      return Expression.fromJS(expressionParser.parse(str));
+    }
+
     static classMap: Lookup<typeof Expression> = {};
     static register(ex: typeof Expression): void {
       var op = (<any>ex).name.replace('Expression', '').replace(/^\w/, (s: string) => s.toLowerCase());

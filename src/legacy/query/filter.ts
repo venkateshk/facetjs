@@ -263,6 +263,10 @@ module Legacy {
       return isInstanceOf(candidate, FacetFilter);
     }
 
+    static parse(str: string): FacetFilter {
+      return FacetFilter.fromJS(filterParser.parse(str));
+    }
+
     static classMap: any;
 
     static fromJS(filterSpec: FacetFilterJS): FacetFilter {

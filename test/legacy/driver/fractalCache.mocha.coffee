@@ -8,19 +8,17 @@ if not WallTime.rules
   WallTime.init(tzData.rules, tzData.zones)
 
 { mySqlRequester } = require('facetjs-mysql-requester')
-{ mySqlDriver } = require('../../build/driver/mySqlDriver')
-{ simpleDriver } = require('../../build/driver/simpleDriver')
-{ fractalCache } = require('../../build/driver/fractalCache')
 
-{FacetQuery, SegmentTree} = facet.legacy
+facet = require("../../../build/facet")
+{ FacetQuery, SegmentTree, mySqlDriver, simpleDriver, fractalCache } = facet.legacy
 
 # Set up drivers
 driverFns = {}
 expectedQuery = false
 
 # Drivers
-diamondsData = require('../../data/diamonds.js')
-wikipediaData = require('../../data/wikipedia.js')
+diamondsData = require('../../../data/diamonds.js')
+wikipediaData = require('../../../data/wikipedia.js')
 diamonds = simpleDriver(diamondsData)
 driverFns.diamonds = diamonds
 wikipedia = simpleDriver(wikipediaData)

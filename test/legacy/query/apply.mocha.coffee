@@ -2,6 +2,7 @@
 
 { testHigherObjects } = require("higher-object/build/tester")
 
+facet = require("../../../build/facet")
 {FacetApply, DivideApply, SumApply, CountApply} = facet.legacy
 
 describe "FacetApply", ->

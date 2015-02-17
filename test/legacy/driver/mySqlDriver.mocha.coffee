@@ -1,10 +1,12 @@
 { expect } = require("chai")
 utils = require('../../utils')
 
-{FacetQuery, FacetFilter} = facet.legacy
+Q = require('q')
 
 { mySqlRequester } = require('facetjs-mysql-requester')
-{ mySqlDriver } = require('../../build/driver/mySqlDriver')
+
+facet = require("../../../build/facet")
+{ FacetQuery, FacetFilter, mySqlDriver } = facet.legacy
 
 verbose = false
 
@@ -93,9 +95,7 @@ describe "SQL driver", ->
 
 
   describe "should work when getting back []", ->
-    emptyRequester = (query, callback) ->
-      callback(null, [])
-      return
+    emptyRequester = -> Q([])
 
     emptyDriver = mySqlDriver({
       requester: emptyRequester

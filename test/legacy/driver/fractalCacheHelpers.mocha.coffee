@@ -5,14 +5,17 @@ if not WallTime.rules
   tzData = require("chronology/lib/walltime/walltime-data.js")
   WallTime.init(tzData.rules, tzData.zones)
 
-{FacetQuery, FacetFilter, ApplySimplifier, SegmentTree} = facet.legacy
-
+facet = require("../../../build/facet")
 {
+  FacetQuery
+  FacetFilter
+  ApplySimplifier
+  SegmentTree
   computeDeltaQuery
   IdentityCombineToSplitValues
   TimePeriodCombineToSplitValues
   ContinuousCombineToSplitValues
-} = require('../../build/driver/fractalCache')
+} = facet.legacy
 
 toSegmentTreeWithMeta = ({prop, loading, meta, splits}) ->
   rootSegment = SegmentTree.fromJS({prop})

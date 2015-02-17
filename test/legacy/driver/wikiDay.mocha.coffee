@@ -1,5 +1,4 @@
-chai = require("chai")
-expect = chai.expect
+{ expect } = require("chai")
 utils = require('../../utils')
 
 { WallTime } = require('chronology')
@@ -7,18 +6,13 @@ if not WallTime.rules
   tzData = require("chronology/lib/walltime/walltime-data.js")
   WallTime.init(tzData.rules, tzData.zones)
 
-{ FacetFilter } = facet.legacy
-
-{ simpleLocator } = require('../../build/locator/simpleLocator')
-
 { druidRequester } = require('facetjs-druid-requester')
 { mySqlRequester } = require('facetjs-mysql-requester')
 
-{ simpleDriver } = require('../../build/driver/simpleDriver')
-{ mySqlDriver } = require('../../build/driver/mySqlDriver')
-{ druidDriver } = require('../../build/driver/druidDriver')
+facet = require("../../../build/facet")
+{ FacetFilter, simpleDriver, mySqlDriver, druidDriver } = facet.legacy
 
-locations = require('../locations')
+locations = require('../../locations')
 
 # Set up drivers
 driverFns = {}
@@ -30,7 +24,7 @@ verbose = false
 
 # MySQL
 sqlPass = mySqlRequester({
-  locator: simpleLocator('localhost')
+  host: 'localhost'
   database: 'facet'
   user: 'facet_user'
   password: 'HadleyWickham'
@@ -46,7 +40,7 @@ driverFns.mySql = mySqlDriver({
 
 # # Druid
 druidPass = druidRequester({
-  locator: simpleLocator(locations.druid)
+  host: locations.druid
 })
 
 druidPass = utils.wrapVerbose(druidPass, 'Druid') if verbose

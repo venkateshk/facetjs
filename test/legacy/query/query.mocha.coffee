@@ -1,5 +1,6 @@
 { expect } = require("chai")
 
+facet = require("../../../build/facet")
 { FacetQuery } = facet.legacy
 
 { WallTime } = require('chronology')

@@ -1,9 +1,9 @@
 { expect } = require("chai")
 
-{ FacetQuery, SegmentTree } = facet.legacy
-driverUtil = require('../../build/driver/driverUtil')
-{ Table } = driverUtil
-data = require('../data')
+facet = require("../../../build/facet")
+{ FacetQuery, SegmentTree, Table } = facet.legacy
+
+data = require('../../data')
 
 describe "Utility", ->
   describe "flatten", ->

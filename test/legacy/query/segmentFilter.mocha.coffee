@@ -2,8 +2,8 @@
 
 { testHigherObjects } = require("higher-object/build/tester")
 
-{ SegmentTree } = facet.legacy
-{ FacetSegmentFilter } = facet.legacy
+facet = require("../../../build/facet")
+{ SegmentTree, FacetSegmentFilter } = facet.legacy
 
 describe "FacetSegmentFilter", ->
   it "passes higher object tests", ->

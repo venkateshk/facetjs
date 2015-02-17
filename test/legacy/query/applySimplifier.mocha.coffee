@@ -1,8 +1,7 @@
 { expect } = require("chai")
 
-{ FacetApply } = facet.legacy
-
-{ ApplySimplifier } = facet.legacy
+facet = require("../../../build/facet")
+{ FacetApply, ApplySimplifier } = facet.legacy
 
 getJS = (thing) -> thing.toJS()
 fromJS = (thing) -> FacetApply.fromJS(thing)

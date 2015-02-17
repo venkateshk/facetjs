@@ -22,7 +22,7 @@ if not WallTime.rules
   DruidQueryBuilder
 } = facet.legacy
 
-locations = require('../locations')
+locations = require('../../locations')
 
 verbose = false
 

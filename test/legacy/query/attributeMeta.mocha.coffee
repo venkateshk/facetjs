@@ -2,6 +2,7 @@
 
 { testHigherObjects } = require("higher-object/build/tester")
 
+facet = require("../../../build/facet")
 { AttributeMeta } = facet.legacy
 
 describe "AttributeMeta", ->

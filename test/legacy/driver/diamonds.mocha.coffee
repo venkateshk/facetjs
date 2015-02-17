@@ -2,28 +2,25 @@
 
 utils = require('../../utils')
 
-{ simpleLocator } = require('../../build/locator/simpleLocator')
-
 { druidRequester } = require('facetjs-druid-requester')
 { mySqlRequester } = require('facetjs-mysql-requester')
 
-{ simpleDriver } = require('../../build/driver/simpleDriver')
-{ mySqlDriver } = require('../../build/driver/mySqlDriver')
-{ druidDriver } = require('../../build/driver/druidDriver')
+facet = require("../../../build/facet")
+{ simpleDriver, mySqlDriver, druidDriver } = facet.legacy
 
-locations = require('../locations')
+locations = require('../../locations')
 
 # Set up drivers
 driverFns = {}
 verbose = false
 
 # Simple
-diamondsData = require('../../data/diamonds.js')
+diamondsData = require('../../../data/diamonds.js')
 driverFns.simple = simpleDriver(diamondsData)
 
 # MySQL
 sqlPass = mySqlRequester({
-  locator: simpleLocator('localhost')
+  host: 'localhost'
   database: 'facet'
   user: 'facet_user'
   password: 'HadleyWickham'
@@ -39,7 +36,7 @@ driverFns.mySql = mySqlDriver({
 
 # # Druid
 # druidPass = druidRequester({
-#   locator: simpleLocator(locations.druid)
+#   host: locations.druid
 #   port: 8080
 # })
 

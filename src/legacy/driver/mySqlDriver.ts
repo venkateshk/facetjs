@@ -566,7 +566,7 @@ module Legacy {
     filter: FacetFilter;
   }
 
-  export function sqlDriver(parameters: SQLDriverParameters): Driver.FacetDriver {
+  export function mySqlDriver(parameters: SQLDriverParameters): Driver.FacetDriver {
     var requester = parameters.requester;
     var table = parameters.table;
     var filter = parameters.filter;

@@ -2,18 +2,18 @@
 
 utils = require('../../utils')
 
-{ simpleDriver } = require('../../build/driver/simpleDriver')
-{ FacetQuery } = facet.legacy
+facet = require("../../../build/facet")
+{ FacetQuery, simpleDriver } = facet.legacy
 
 { WallTime } = require('chronology')
 if not WallTime.rules
   tzData = require("chronology/lib/walltime/walltime-data.js")
   WallTime.init(tzData.rules, tzData.zones)
 
-diamondsData = require('../../data/diamonds.js')
+diamondsData = require('../../../data/diamonds.js')
 diamondsDriver = simpleDriver(diamondsData)
 
-wikiData = require('../../data/wikipedia.js')
+wikiData = require('../../../data/wikipedia.js')
 wikiDriver = simpleDriver(wikiData)
 
 

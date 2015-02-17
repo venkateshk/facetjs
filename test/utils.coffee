@@ -43,19 +43,18 @@ uniformizeResults = (result) ->
   return ret
 
 exports.wrapVerbose = (requester, name) ->
-  return (query, callback) ->
+  return (query) ->
     console.log "Requesting #{name}:"
     console.log '', JSON.stringify(query, null, 2)
     startTime = Date.now()
-    requester query, (err, result) ->
-      if err
-        console.log "GOT #{name} ERROR", err
-      else
+    return requester(query).then(
+      (result) ->
         console.log "GOT RESULT FROM #{name} (took #{Date.now() - startTime}ms)"
-      callback(err, result)
-      return
-
-race = false
+        return result
+      (err) ->
+        console.log "GOT #{name} ERROR", err
+        throw err
+    )
 
 exports.makeEqualityTest = (driverFns) ->
   return ({drivers, query, verbose, before, after}) ->
@@ -65,14 +64,6 @@ exports.makeEqualityTest = (driverFns) ->
       driverFn = driverFns[driverName]
       throw new Error("no such driver #{driverName}") unless driverFn
       return (callback) ->
-        if race
-          oldCallback = callback
-          startTime = Date.now()
-          callback = (err, results) ->
-            console.log "#{driverName} driver took #{Date.now() - startTime}ms"
-            oldCallback(err, results)
-            return
-
         driverFn({
           query: if FacetQuery.isFacetQuery(query) then query else new FacetQuery(query)
           context: {
@@ -83,9 +74,7 @@ exports.makeEqualityTest = (driverFns) ->
 
     return (done) ->
       before?()
-      console.log '' if race
       async.parallel driversToTest, (err, results) ->
-        console.log '--------------' if race
         if err
           after?(err)
           console.log "got error from driver"

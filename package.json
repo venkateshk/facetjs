@@ -37,7 +37,6 @@
     "async": "~0.9.0",
     "backoff": "~2.4.1",
     "express": "4.11.1",
-    "mysql": "2.5.4",
     "node-zookeeper-client": "~0.2.2",
     "q": "^1.1.2",
     "request": "~2.51.0"
@@ -50,6 +49,7 @@
     "chai": "~1.10.0",
     "coffee-script": "1.9.0",
     "facetjs-druid-requester": "1.0.x",
+    "facetjs-mysql-requester": "1.0.x",
     "mocha": "~2.1.x",
     "pegjs": "0.8.0",
     "tslint": "^1.2.0",

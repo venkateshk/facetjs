@@ -2,6 +2,7 @@
 utils = require('../utils')
 
 Q = require('q')
+{ druidRequester } = require('facetjs-druid-requester')
 
 facet = require('../../build/facet')
 
@@ -16,10 +17,10 @@ if not WallTime.rules
   AttributeMeta
   FacetSplit
   FacetApply
-} = facet.legacy
 
-{ druidRequester } = require('facetjs-druid-requester')
-{ druidDriver, DruidQueryBuilder } = facet.legacy
+  druidDriver
+  DruidQueryBuilder
+} = facet.legacy
 
 locations = require('../locations')
 

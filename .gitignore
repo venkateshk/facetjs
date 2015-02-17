@@ -4,8 +4,6 @@
 node_modules/
 scratch/
 parser/
-data/wiki/
 coverage/
-src_old/**/*.js
 checksc
 build

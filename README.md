@@ -12,3 +12,5 @@ extensible model benefiting a community development effort. Moreover, facet.js i
 visualizations out of ad-hoc, real-time query results.
 
 To learn about what motivated us to build facet.js, see [blog](/blog).
+
+## Learning to Use facet.js

@@ -1,18 +1,15 @@
-chai = require("chai")
-expect = chai.expect
-utils = require('../utils')
+{ expect } = require("chai")
+utils = require('../../utils')
 
-{FacetQuery, FacetFilter} = require('../../build/query')
+{FacetQuery, FacetFilter} = facet.legacy
 
-{ simpleLocator } = require('../../build/locator/simpleLocator')
-
-{ mySqlRequester } = require('../../build/requester/mySqlRequester')
+{ mySqlRequester } = require('facetjs-mysql-requester')
 { sqlDriver } = require('../../build/driver/sqlDriver')
 
 verbose = false
 
-sqlPass = mySqlRequester({
-  locator: simpleLocator('localhost')
+mySqlPass = mySqlRequester({
+  host: 'localhost'
   database: 'facet'
   user: 'facet_user'
   password: 'HadleyWickham'
@@ -23,7 +20,7 @@ describe "SQL driver", ->
 
   describe "introspects", ->
     diamondsDriver = sqlDriver({
-      requester: sqlPass
+      requester: mySqlPass
       table: 'wiki_day_agg'
     })
 
@@ -139,13 +136,13 @@ describe "SQL driver", ->
 
   describe "should work with driver level filter", ->
     noFilter = sqlDriver({
-      requester: sqlPass
+      requester: mySqlPass
       table: 'diamonds'
       filter: null
     })
 
     withFilter = sqlDriver({
-      requester: sqlPass
+      requester: mySqlPass
       table: 'diamonds'
       filter: FacetFilter.fromJS({
         type: 'is'
@@ -172,7 +169,7 @@ describe "SQL driver", ->
 
   describe "should work with nothingness", ->
     diamondsDriver = sqlDriver({
-      requester: sqlPass
+      requester: mySqlPass
       table: 'diamonds'
       filter: null
     })

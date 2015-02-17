@@ -2,7 +2,7 @@
 
 { testHigherObjects } = require("higher-object/build/tester")
 
-{ FacetDataset } = require('../../build/query/dataset')
+{ FacetDataset } = facet.legacy
 
 describe "FacetDataset", ->
   it "passes higher object tests", ->

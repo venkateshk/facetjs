@@ -2,7 +2,7 @@
 
 { testHigherObjects } = require("higher-object/build/tester");
 
-{ FacetFilter } = require('../../build/query/filter')
+{ FacetFilter } = facet.legacy
 
 describe "FacetFilter", ->
   it "passes higher object tests", ->

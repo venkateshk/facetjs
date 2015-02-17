@@ -1,5 +1,5 @@
 { expect } = require("chai")
-utils = require('../utils')
+utils = require('../../utils')
 
 Q = require('q')
 { druidRequester } = require('facetjs-druid-requester')

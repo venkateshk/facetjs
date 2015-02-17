@@ -2,7 +2,7 @@ chai = require("chai")
 expect = chai.expect
 utils = require('../utils')
 
-{FacetQuery, FacetFilter} = require('../../build/query')
+{FacetQuery, FacetFilter} = facet.legacy
 
 { simpleLocator } = require('../../build/locator/simpleLocator')
 

@@ -1,20 +1,18 @@
-"use strict"
-
 { expect } = require("chai")
 
-utils = require('../utils')
+utils = require('../../utils')
 
 { WallTime } = require('chronology')
 if not WallTime.rules
   tzData = require("chronology/lib/walltime/walltime-data.js")
   WallTime.init(tzData.rules, tzData.zones)
 
-{ mySqlRequester } = require('../../build/requester/mySqlRequester')
+{ mySqlRequester } = require('facetjs-mysql-requester')
 { sqlDriver } = require('../../build/driver/sqlDriver')
 { simpleDriver } = require('../../build/driver/simpleDriver')
 { fractalCache } = require('../../build/driver/fractalCache')
 
-{FacetQuery, SegmentTree} = require('../../build/query/index')
+{FacetQuery, SegmentTree} = facet.legacy
 
 # Set up drivers
 driverFns = {}

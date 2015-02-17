@@ -1,13 +1,13 @@
-chai = require("chai")
-expect = chai.expect
-utils = require('../utils')
+{ expect } = require("chai")
 
-{ FacetFilter } = require('../../build/query')
+utils = require('../../utils')
+
+{ FacetFilter } = facet.legacy
 
 { simpleLocator } = require('../../build/locator/simpleLocator')
 
-{ druidRequester } = require('../../build/requester/druidRequester')
-{ mySqlRequester } = require('../../build/requester/mySqlRequester')
+{ druidRequester } = require('facetjs-druid-requester')
+{ mySqlRequester } = require('facetjs-mysql-requester')
 
 { simpleDriver } = require('../../build/driver/simpleDriver')
 { sqlDriver } = require('../../build/driver/sqlDriver')

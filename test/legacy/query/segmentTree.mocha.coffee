@@ -2,7 +2,7 @@
 
 { testHigherObjects } = require("higher-object/build/tester")
 
-{ FacetQuery, SegmentTree } = require('../../build/query')
+{ FacetQuery, SegmentTree } = facet.legacy
 
 describe "SegmentTree", ->
   it "passes higher object tests", ->

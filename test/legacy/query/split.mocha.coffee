@@ -2,7 +2,7 @@
 
 { testHigherObjects } = require("higher-object/build/tester")
 
-{ FacetSplit } = require('../../build/query/split')
+{ FacetSplit } = facet.legacy
 
 { WallTime } = require('chronology')
 if not WallTime.rules

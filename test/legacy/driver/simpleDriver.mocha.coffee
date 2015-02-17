@@ -1,9 +1,9 @@
 { expect } = require("chai")
 
-utils = require('../utils')
+utils = require('../../utils')
 
 { simpleDriver } = require('../../build/driver/simpleDriver')
-{ FacetQuery } = require('../../build/query')
+{ FacetQuery } = facet.legacy
 
 { WallTime } = require('chronology')
 if not WallTime.rules

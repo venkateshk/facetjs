@@ -2,7 +2,7 @@
 
 { testHigherObjects } = require("higher-object/build/tester")
 
-{ FacetCombine } = require('../../build/query')
+{ FacetCombine } = facet.legacy
 
 describe "FacetCombine", ->
   it "passes higher object tests", ->

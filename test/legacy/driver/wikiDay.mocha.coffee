@@ -1,18 +1,18 @@
 chai = require("chai")
 expect = chai.expect
-utils = require('../utils')
+utils = require('../../utils')
 
 { WallTime } = require('chronology')
 if not WallTime.rules
   tzData = require("chronology/lib/walltime/walltime-data.js")
   WallTime.init(tzData.rules, tzData.zones)
 
-{ FacetFilter } = require('../../build/query')
+{ FacetFilter } = facet.legacy
 
 { simpleLocator } = require('../../build/locator/simpleLocator')
 
-{ druidRequester } = require('../../build/requester/druidRequester')
-{ mySqlRequester } = require('../../build/requester/mySqlRequester')
+{ druidRequester } = require('facetjs-druid-requester')
+{ mySqlRequester } = require('facetjs-mysql-requester')
 
 { simpleDriver } = require('../../build/driver/simpleDriver')
 { sqlDriver } = require('../../build/driver/sqlDriver')

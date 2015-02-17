@@ -5,7 +5,7 @@ if not WallTime.rules
   tzData = require("chronology/lib/walltime/walltime-data.js")
   WallTime.init(tzData.rules, tzData.zones)
 
-{FacetQuery, FacetFilter, ApplySimplifier, SegmentTree} = require('../../build/query/index')
+{FacetQuery, FacetFilter, ApplySimplifier, SegmentTree} = facet.legacy
 
 {
   computeDeltaQuery
@@ -35,14 +35,6 @@ computeMissingApplies = (applies) ->
   for apply in simpleApplies
     missingApplies[apply.toHash()] = apply
   return missingApplies
-
-describe "IdentityCombineToSplitValues", ->
-
-
-describe "TimePeriodCombineToSplitValues", ->
-
-
-describe "ContinuousCombineToSplitValues", ->
 
 
 describe "computeDeltaQuery", ->

@@ -22,7 +22,7 @@ if not WallTime.rules
   DruidQueryBuilder
 } = facet.legacy
 
-locations = require('../../locations')
+info = require('../../info')
 
 verbose = false
 
@@ -498,7 +498,7 @@ describe "Druid driver", ->
 
   describe "introspects", ->
     druidPass = druidRequester({
-      host: locations.druid
+      host: info.druid
     })
 
     wikiDriver = druidDriver({
@@ -703,7 +703,7 @@ describe "Druid driver", ->
 
   describe "should work with driver level filter", ->
     druidPass = druidRequester({
-      host: locations.druid
+      host: info.druid
     })
 
     noFilter = druidDriver({
@@ -761,7 +761,7 @@ describe "Druid driver", ->
 
   describe "should work with nothingness", ->
     druidPass = druidRequester({
-      host: locations.druid
+      host: info.druid
     })
 
     wikiDriver = druidDriver({
@@ -818,7 +818,7 @@ describe "Druid driver", ->
 
   describe "should work with inferred nothingness", ->
     druidPass = druidRequester({
-      host: locations.druid
+      host: info.druid
     })
 
     wikiDriver = druidDriver({
@@ -861,7 +861,7 @@ describe "Druid driver", ->
 
   describe "specific queries", ->
     druidPass = druidRequester({
-      host: locations.druid
+      host: info.druid
     })
 
     driver = druidDriver({

@@ -80,9 +80,6 @@ describe 'ActionsExpression', ->
           .toJS()
       )
 
-    # filter -> filter -> apply
-    # ->
-    # filter -> apply
     it 'merges filters', ->
       expression = facet()
         .filter(facet('Country').is('USA'))
@@ -94,14 +91,11 @@ describe 'ActionsExpression', ->
       expect(simplifiedExpression).to.deep.equal(
         facet()
           .filter(facet('Country').is('USA').and(facet('Device').is('iPhone')))
-          .apply('Data', facet())
           .apply('Count', 5)
+          .apply('Data', facet())
           .toJS()
       )
 
-    #.apply('X', '$data.sum($x)').apply('Y', '$data.sum($y)').sort('$X', 'descending')
-    # ->
-    #.apply('X', '$data.sum($x)').sort('$X', 'descending').apply('Y', '$data.sum($y)')
     it 'reorders sort', ->
       expression = facet()
         .apply('X', 5)
@@ -117,9 +111,6 @@ describe 'ActionsExpression', ->
           .toJS()
       )
 
-    #.apply('X', '$data.sum($x)').apply('Y', '$data.sum($y)').sort('$X', 'descending').limit(10)
-    # ->
-    #.apply('X', '$data.sum($x)').sort('$X', 'descending').limit(10).apply('Y', '$data.sum($y)')
     it 'puts sort and limit together', ->
       expression = facet()
         .apply('X', 5)
@@ -139,3 +130,17 @@ describe 'ActionsExpression', ->
           .toJS()
       )
 
+    it 'topological sort', ->
+      expression = facet()
+        .apply('Y', facet('X').add('$Z'))
+        .apply('X', facet('A'))
+        .apply('Z', 5)
+
+      simplifiedExpression = expression.simplify().toJS()
+      expect(simplifiedExpression).to.deep.equal(
+        facet()
+          .apply('Z', 5)
+          .apply('X', facet('A'))
+          .apply('Y', facet('X').add('$Z'))
+          .toJS()
+      )

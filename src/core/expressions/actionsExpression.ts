@@ -33,101 +33,133 @@ module Core {
     }
 
     public simplify(): Expression {
+      var alphabeticallySortedActions: Action[];
       var aReferences: string[];
       var bReferences: string[];
-      var filtersToAdd: FilterAction[];
+      var filters: FilterAction[];
       var previousSortAction: SortAction;
+      var referenceMap: { [k: string]: number };
       var references: string[];
+      var rootNode: Action;
+      var rootNodes: Action[];
       var seen: { [k: string]: boolean };
       var simplifiedActions: Action[];
-      var sortLimitMap: { [k: string]: LimitAction} = {};
+      var sortLimitMap: { [k: string]: LimitAction};
+      var thisAction: Action;
+      var topologicallySortedActions: Action[];
 
       var value = this.valueOf();
       value.operand = this.operand.simplify();
       value.actions = [];
 
-      simplifiedActions = this.actions.map((action) => action.simplify());
-      var sorts = simplifiedActions.filter((action) => action instanceof SortAction);
-      var filters = simplifiedActions.filter((action) => action instanceof FilterAction);
-      value.actions = simplifiedActions
-        .filter((action) => (action instanceof DefAction) || (action instanceof ApplyAction))
-        .sort(function (a: Action, b: Action) {
-          aReferences = a.expression.getReferences();
-          bReferences = b.expression.getReferences();
+      simplifiedActions = this.actions.slice();
+      filters = simplifiedActions.filter((action) => action instanceof FilterAction);
+      if (filters.length > 0) { // merge filters
+        simplifiedActions = simplifiedActions.filter((action) => !(action instanceof FilterAction));
+        simplifiedActions.push(new FilterAction({
+          expression: new AndExpression({
+            op: 'and',
+            operands: filters.map((filterAction) => filterAction.expression)
+          })
+        }));
+      }
+      simplifiedActions = simplifiedActions.map((action) => action.simplify());
+      alphabeticallySortedActions = simplifiedActions.filter((action) => !(action instanceof LimitAction))
 
-          if (aReferences.length < bReferences.length) {
-            return -1;
-          } else if (aReferences.length > bReferences.length) {
-            return 1;
-          } else {
-            if (Action.getPrecedenceOrder(a) > Action.getPrecedenceOrder(b)) {
-              return 1;
-            } else if (Action.getPrecedenceOrder(a) < Action.getPrecedenceOrder(b)) {
-              return -1;
-            }
-
-            if (bReferences.toString() !== aReferences.toString()) {
-              return aReferences.toString().localeCompare(bReferences.toString());
-            }
-
-            return (<DefAction>a).name.localeCompare((<DefAction>b).name);
-          }
-        });
-
+      sortLimitMap = {};
       for (var i = 0; i < simplifiedActions.length; i++) {
         if (simplifiedActions[i] instanceof SortAction) previousSortAction = <SortAction>simplifiedActions[i];
 
-        if (simplifiedActions[i] instanceof LimitAction) {
-          if (
-            previousSortAction &&
-            typeof sortLimitMap[previousSortAction.toString()] === 'undefined'
-          ) {
-            sortLimitMap[previousSortAction.toString()] = <LimitAction>simplifiedActions[i];
-            previousSortAction = undefined;
-          }
+        if ((simplifiedActions[i] instanceof LimitAction) && previousSortAction) {
+          sortLimitMap[previousSortAction.toString()] = <LimitAction>simplifiedActions[i];
+          previousSortAction = undefined;
         }
       }
 
+      // Sort topologically
       seen = {};
-      for (var i = 0; i < value.actions.length; i++) {
-        seen["$" + (<ApplyAction>value.actions[i]).name] = true;
+      referenceMap = {};
+      for (var i = 0; i < alphabeticallySortedActions.length; i++) {
+        thisAction = alphabeticallySortedActions[i];
+        references = thisAction.expression.getReferences();
 
-        // Add filter in the right order
-        filtersToAdd = [];
-        for (var j = 0; j < filters.length; j++) {
-          if (filters[j].expression.getReferences().every((ref) => seen[ref])) {
-            filtersToAdd.push(filters[j]);
-            filters.splice(j, 1);
-            j--;
-          }
+        if ((thisAction instanceof DefAction) || (thisAction instanceof ApplyAction)) {
+          seen["$" + thisAction.name] = true;
         }
-
-        if (filtersToAdd.length > 0) {
-          value.actions.splice(i + 1, 0, new FilterAction({
-            expression: new AndExpression({
-              op: 'and',
-              operands: filtersToAdd.map((filter) => filter.expression)
-            }).simplify()
-          }));
-          i++;
-        }
-
-        // Add sorts and limits in the right order
-        for (var j = 0; j < sorts.length; j++) {
-          references = sorts[j].expression.getReferences();
-
-          if (references.every((ref) => seen[ref])) {
-            value.actions.splice(i + 1, 0, sorts[j]);
-            i++;
-            if (sortLimitMap[sorts[j].toString()]) {
-              value.actions.splice(i + 1, 0, sortLimitMap[sorts[j].toString()]);
-              i++;
-            }
-            sorts.splice(j, 1);
-            j--;
+        for (var j = 0; j < references.length; j++) {
+          if (!referenceMap[references[j]]) {
+            referenceMap[references[j]] = 1;
+          } else {
+            referenceMap[references[j]]++;
           }
         }
       }
+
+      for (var k in referenceMap) {
+        if (!seen[k]) {
+          referenceMap[k] = 0;
+        }
+      }
+
+      // initial steps
+      rootNodes = alphabeticallySortedActions.filter(function (thisAction) {
+        return (thisAction.expression.getReferences().every((ref) => !referenceMap[ref]));
+      });
+      alphabeticallySortedActions = alphabeticallySortedActions.filter(function (thisAction) {
+        return !(thisAction.expression.getReferences().every((ref) => !referenceMap[ref]));
+      });
+
+      // Start sorting
+      var checkPrecedence = function (a: Action, b: Action) {
+        if (Action.getPrecedenceOrder(a) > Action.getPrecedenceOrder(b)) {
+          return 1;
+        } else if (Action.getPrecedenceOrder(a) < Action.getPrecedenceOrder(b)) {
+          return -1;
+        }
+
+        aReferences = a.expression.getReferences();
+        bReferences = b.expression.getReferences();
+
+        if (aReferences.length < bReferences.length) {
+          return -1;
+        } else if (aReferences.length > bReferences.length) {
+          return 1;
+        } else {
+          if (bReferences.toString() !== aReferences.toString()) {
+            return aReferences.toString().localeCompare(bReferences.toString());
+          }
+
+          return (<DefAction>a).name.localeCompare((<DefAction>b).name);
+        }
+      };
+
+      topologicallySortedActions = [];
+      while (rootNodes.length > 0) {
+        rootNodes.sort(checkPrecedence);
+        topologicallySortedActions.push(rootNode = rootNodes.shift())
+        if ((rootNode instanceof DefAction) || (rootNode instanceof ApplyAction)) {
+          referenceMap["$" + rootNode.name]--;
+        }
+        for (var i = 0; i < alphabeticallySortedActions.length; i++) {
+          var thisAction = alphabeticallySortedActions[i];
+          references = thisAction.expression.getReferences();
+          if (references.every((ref) => !referenceMap[ref])) {
+            rootNodes.push(alphabeticallySortedActions.splice(i, 1)[0]);
+          }
+        }
+      }
+
+      if (alphabeticallySortedActions.length) throw new Error('topological sort error');
+
+      for (var i = 0; i < topologicallySortedActions.length; i++) { //Add limits
+        thisAction = topologicallySortedActions[i];
+        if (thisAction instanceof SortAction && sortLimitMap[thisAction.toString()]) {
+          topologicallySortedActions.splice(i + 1, 0, sortLimitMap[thisAction.toString()])
+        }
+      }
+
+      value.actions = topologicallySortedActions;
+
       return new ActionsExpression(value);
     }
 

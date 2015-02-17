@@ -15,7 +15,7 @@ if not WallTime.rules
 { mySqlRequester } = require('facetjs-mysql-requester')
 
 { simpleDriver } = require('../../build/driver/simpleDriver')
-{ sqlDriver } = require('../../build/driver/sqlDriver')
+{ mySqlDriver } = require('../../build/driver/mySqlDriver')
 { druidDriver } = require('../../build/driver/druidDriver')
 
 locations = require('../locations')
@@ -38,7 +38,7 @@ sqlPass = mySqlRequester({
 
 sqlPass = utils.wrapVerbose(sqlPass, 'MySQL') if verbose
 
-driverFns.mySql = sqlDriver({
+driverFns.mySql = mySqlDriver({
   requester: sqlPass
   table: 'wiki_day_agg'
   filters: null

@@ -8,7 +8,7 @@ if not WallTime.rules
   WallTime.init(tzData.rules, tzData.zones)
 
 { mySqlRequester } = require('facetjs-mysql-requester')
-{ sqlDriver } = require('../../build/driver/sqlDriver')
+{ mySqlDriver } = require('../../build/driver/mySqlDriver')
 { simpleDriver } = require('../../build/driver/simpleDriver')
 { fractalCache } = require('../../build/driver/fractalCache')
 

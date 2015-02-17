@@ -4,7 +4,7 @@ utils = require('../../utils')
 {FacetQuery, FacetFilter} = facet.legacy
 
 { mySqlRequester } = require('facetjs-mysql-requester')
-{ sqlDriver } = require('../../build/driver/sqlDriver')
+{ mySqlDriver } = require('../../build/driver/mySqlDriver')
 
 verbose = false
 
@@ -19,7 +19,7 @@ describe "SQL driver", ->
   #@timeout(40 * 1000)
 
   describe "introspects", ->
-    diamondsDriver = sqlDriver({
+    diamondsDriver = mySqlDriver({
       requester: mySqlPass
       table: 'wiki_day_agg'
     })
@@ -97,7 +97,7 @@ describe "SQL driver", ->
       callback(null, [])
       return
 
-    emptyDriver = sqlDriver({
+    emptyDriver = mySqlDriver({
       requester: emptyRequester
       table: 'blah'
       filters: null
@@ -135,13 +135,13 @@ describe "SQL driver", ->
           done()
 
   describe "should work with driver level filter", ->
-    noFilter = sqlDriver({
+    noFilter = mySqlDriver({
       requester: mySqlPass
       table: 'diamonds'
       filter: null
     })
 
-    withFilter = sqlDriver({
+    withFilter = mySqlDriver({
       requester: mySqlPass
       table: 'diamonds'
       filter: FacetFilter.fromJS({
@@ -168,7 +168,7 @@ describe "SQL driver", ->
           done()
 
   describe "should work with nothingness", ->
-    diamondsDriver = sqlDriver({
+    diamondsDriver = mySqlDriver({
       requester: mySqlPass
       table: 'diamonds'
       filter: null

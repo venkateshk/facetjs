@@ -64,7 +64,7 @@ node_modules/.bin/tsc --noImplicitAny --noEmitOnError --declaration --removeComm
   src/legacy/driver/druidDriver.ts \
   src/legacy/driver/fractalCache.ts \
   src/legacy/driver/simpleDriver.ts \
-  src/legacy/driver/sqlDriver.ts \
+  src/legacy/driver/mySqlDriver.ts \
   \
   src/core/driver/legacyDriver.ts \
   \

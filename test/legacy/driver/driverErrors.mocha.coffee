@@ -10,7 +10,7 @@ utils = require('../../utils')
 { mySqlRequester } = require('facetjs-mysql-requester')
 
 { simpleDriver } = require('../../build/driver/simpleDriver')
-{ sqlDriver } = require('../../build/driver/sqlDriver')
+{ mySqlDriver } = require('../../build/driver/mySqlDriver')
 { druidDriver } = require('../../build/driver/druidDriver')
 
 locations = require('../locations')
@@ -30,7 +30,7 @@ sqlPass = mySqlRequester({
   password: 'HadleyWickham'
 })
 
-driverFns.mySql = sqlDriver({
+driverFns.mySql = mySqlDriver({
   requester: sqlPass
   table: 'wiki_day_agg'
   filters: null

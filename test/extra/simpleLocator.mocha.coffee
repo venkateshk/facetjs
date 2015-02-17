@@ -1,20 +1,21 @@
 { expect } = require("chai")
 
-{ simpleLocator } = require('../../build/locator/simpleLocator')
+facet = require("../../build/facet")
+{ simpleLocator } = facet.extra
 
 describe 'Simple locator', ->
   describe 'shortcut function', ->
     locator = simpleLocator("localhost:8080")
 
-    it "works", (done) ->
-      locator((err, location) ->
-        expect(err).to.not.exist
+    it "works", (testComplete) ->
+      locator()
+      .then((location) ->
         expect(location).to.deep.equal({
-          host: 'localhost'
+          hostname: 'localhost'
           port: 8080
         })
-        done()
-      )
+        testComplete()
+      ).done()
 
   describe 'full option function', ->
     locator = simpleLocator({
@@ -22,19 +23,19 @@ describe 'Simple locator', ->
       defaultPort: 8181
     })
 
-    it "works", (done) ->
-      locator((err, location) ->
-        expect(err).to.not.exist
+    it "works", (testComplete) ->
+      locator()
+      .then((location) ->
         for i in [1..20]
           if location.host is 'localhost'
             expect(location).to.deep.equal({
-              host: 'localhost'
+              hostname: 'localhost'
               port: 8181
             })
           else
             expect(location).to.deep.equal({
-              host: 'koalastothemax.com'
+              hostname: 'koalastothemax.com'
               port: 80
             })
-        done()
-      )
+        testComplete()
+      ).done()

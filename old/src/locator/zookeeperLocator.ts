@@ -1,5 +1,5 @@
 /// <reference path="../../typings/node/node.d.ts" />
-/// <reference path="../../typings/async/async.d.ts" />
+/// <reference path="../../../typings/async/async.d.ts" />
 /// <reference path="../../typings/node-zookeeper-client/node-zookeeper-client.d.ts" />
 "use strict";
 

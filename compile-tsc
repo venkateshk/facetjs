@@ -44,6 +44,8 @@ node_modules/.bin/tsc --noImplicitAny --noEmitOnError --declaration --removeComm
   src/core/actions/limitAction.ts \
   src/core/actions/sortAction.ts \
   \
+  src/extra/simpleLocator.ts \
+  \
   src/legacy/query/common.ts \
   src/legacy/query/apply.ts \
   src/legacy/query/applySimplifier.ts \

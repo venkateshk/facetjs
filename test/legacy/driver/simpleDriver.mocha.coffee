@@ -334,7 +334,7 @@ describe "simple driver", ->
       expect(err).to.not.exist
       expect(result.toJS()).to.deep.equal({
         prop: {
-          Max: new Date(1361919600000)
+          Max: 1361919600000 # ToDo: make this a date
         }
       })
       done()
@@ -347,7 +347,7 @@ describe "simple driver", ->
       expect(err).to.not.exist
       expect(result.toJS()).to.deep.equal({
         prop: {
-          Min: new Date(1361836800000)
+          Min: 1361836800000 # ToDo: make this a date
         }
       })
       done()

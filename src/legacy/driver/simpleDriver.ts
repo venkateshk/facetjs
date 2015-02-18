@@ -424,36 +424,38 @@ module Legacy {
       throw new TypeError("dataGetter must be a function or raw data (array)");
     }
 
-    var driver: any = (request: Driver.Request, callback: Driver.DataCallback): void => {
+    var driver: any = (request: Driver.Request) => {
+      var deferred = <Q.Deferred<SegmentTree>>Q.defer();
+
       if (!request) {
-        callback(new Error("request not supplied"));
-        return;
+        deferred.reject(new Error("request not supplied"));
+        return deferred.promise;
       }
 
       var query = request.query;
       if (!query) {
-        callback(new Error("query not supplied"));
-        return;
+        deferred.reject(new Error("query not supplied"));
+        return deferred.promise;
       }
       if (!FacetQuery.isFacetQuery(query)) {
-        callback(new TypeError("query must be a FacetQuery"));
-        return;
+        deferred.reject(new TypeError("query must be a FacetQuery"));
+        return deferred.promise;
       }
 
       function computeWithData() {
         if (dataError) {
-          callback(dataError);
+          deferred.reject(dataError);
           return;
         }
 
         try {
           var result = computeQuery(dataArray, query);
         } catch (error) {
-          callback(error);
+          deferred.reject(error);
           return;
         }
 
-        callback(null, result);
+        deferred.resolve(result);
       }
 
       if (waitingQueries) {
@@ -462,14 +464,16 @@ module Legacy {
         computeWithData();
       }
 
+      return deferred.promise
     };
 
-    driver.introspect = (opts: any, callback: Driver.IntrospectionCallback) => {
+    driver.introspect = (opts: any) => {
       var maxSample = (opts || {}).maxSample;
+      var deferred = <Q.Deferred<Driver.AttributeIntrospect[]>>Q.defer();
 
       function doIntrospect() {
         if (dataError) {
-          callback(dataError);
+          deferred.reject(dataError);
           return;
         }
 
@@ -477,7 +481,7 @@ module Legacy {
           maxSample: maxSample || 1000
         });
 
-        callback(null, attributes);
+        deferred.resolve(attributes);
       }
 
       if (waitingQueries) {
@@ -486,6 +490,7 @@ module Legacy {
         doIntrospect();
       }
 
+      return deferred.promise;
     };
 
     return driver;

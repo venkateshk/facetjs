@@ -577,20 +577,21 @@ module Legacy {
       throw new Error("must have table");
     }
 
-    var driver: any = (request: Driver.Request, callback: Driver.DataCallback) => {
+    var driver: any = (request: Driver.Request) => {
+      var deferred = <Q.Deferred<SegmentTree>>Q.defer();
       if (!request) {
-        callback(new Error("request not supplied"));
-        return;
+        deferred.reject(new Error("request not supplied"));
+        return deferred.promise;
       }
       // var context = request.context;
       var query = request.query;
       if (!query) {
-        callback(new Error("query not supplied"));
-        return;
+        deferred.reject(new Error("query not supplied"));
+        return deferred.promise;
       }
       if (!FacetQuery.isFacetQuery(query)) {
-        callback(new TypeError("query must be a FacetQuery"));
-        return;
+        deferred.reject(new TypeError("query must be a FacetQuery"));
+        return deferred.promise;
       }
 
       var datasetToTable: Lookup<string> = {};
@@ -670,16 +671,18 @@ module Legacy {
         },
         (err: Error) => {
           if (err) {
-            callback(err);
-            return;
+            deferred.reject(err);
+          } else {
+            deferred.resolve((rootSegment || new SegmentTree({})).selfClean());
           }
-          callback(null, (rootSegment || new SegmentTree({})).selfClean());
         }
       );
+
+      return deferred.promise;
     };
 
-    driver.introspect = (opt: any, callback: Driver.IntrospectionCallback) => {
-      requester({
+    driver.introspect = (opt: any) => {
+      return requester({
         query: "DESCRIBE `" + table + "`"
       }).then((columns) => {
         var attributes: Driver.AttributeIntrospect[] = columns.map((column: SQLDescribeRow) => {
@@ -700,8 +703,8 @@ module Legacy {
           return attribute;
         });
 
-        callback(null, attributes);
-      }, (err) => callback(err));
+        return attributes;
+      });
     };
 
     return driver;

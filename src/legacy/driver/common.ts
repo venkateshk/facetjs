@@ -5,10 +5,6 @@ module Legacy {
       context?: { [key: string]: any };
     }
 
-    export interface DataCallback {
-      (error: Error, result?: SegmentTree): void
-    }
-
     export interface IntermediateCallback {
       (result: SegmentTree): void
     }
@@ -21,13 +17,9 @@ module Legacy {
       categorical?: boolean;
     }
 
-    export interface IntrospectionCallback {
-      (error: Error, attributes?: AttributeIntrospect[]): void
-    }
-
     export interface FacetDriver {
-      (request: Request, callback: DataCallback): void;
-      introspect: (options: any, callback: IntrospectionCallback) => void;
+      (request: Request): Q.Promise<SegmentTree>;
+      introspect: (options: any) => Q.Promise<AttributeIntrospect[]>;
     }
   }
 }

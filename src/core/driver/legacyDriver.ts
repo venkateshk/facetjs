@@ -289,14 +289,12 @@ module Core {
 
   export function legacyDriver(oldFaceDriver: LegacyDriver.FacetDriver): Driver {
     return function(ex: Expression): Q.Promise<Dataset> {
-      var deferred = <Q.Deferred<Dataset>>Q.defer();
       var legacyQuery = legacyTranslator(ex);
-      oldFaceDriver({
+      return oldFaceDriver({
         query: legacyQuery
-      }, (err: Error, segmentTree: Legacy.SegmentTree) => {
-        console.log("err", err);
+      }).then((segmentTree) => {
+        return null;
       })
-      return deferred.promise;
     }
   }
 }

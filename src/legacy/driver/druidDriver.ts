@@ -1487,20 +1487,22 @@ module Legacy {
     }
 
     var queriesMade = 0;
-    var driver: any = (request: Driver.Request, callback: Driver.DataCallback) => {
+    var driver: any = (request: Driver.Request) => {
+      var deferred = <Q.Deferred<SegmentTree>>Q.defer();
+
       if (!request) {
-        callback(new Error("request not supplied"));
-        return;
+        deferred.reject(new Error("request not supplied"));
+        return deferred.promise;
       }
       var context = request.context || {};
       var query = request.query;
       if (!query) {
-        callback(new Error("query not supplied"));
-        return;
+        deferred.reject(new Error("query not supplied"));
+        return deferred.promise;
       }
       if (!FacetQuery.isFacetQuery(query)) {
-        callback(new TypeError("query must be a FacetQuery"));
-        return;
+        deferred.reject(new TypeError("query must be a FacetQuery"));
+        return deferred.promise;
       }
 
       var init = true;
@@ -1613,17 +1615,17 @@ module Legacy {
         },
         (err: Error) => {
           if (err) {
-            callback(err);
+            deferred.reject(err);
             return;
           }
 
-          callback(null, (rootSegment || new SegmentTree({})).selfClean());
+          deferred.resolve((rootSegment || new SegmentTree({})).selfClean());
         }
       );
     };
 
-    driver.introspect = (opts: any, callback: Driver.IntrospectionCallback) => {
-      requester({
+    driver.introspect = (opts: any) => {
+      return requester({
         query: {
           queryType: "introspect",
           dataSource: Array.isArray(dataSource) ? dataSource[0] : dataSource
@@ -1655,8 +1657,8 @@ module Legacy {
           });
         }
 
-        callback(null, attributes);
-      }, (err) => callback(err));
+        return attributes;
+      });
     };
 
     return driver;

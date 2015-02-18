@@ -809,23 +809,28 @@ module Legacy {
 
     }
 
-    var cachedDriver: any = (request: Driver.Request, callback: Driver.DataCallback, intermediate: Driver.IntermediateCallback) => {
-      if (!request) throw new Error("request not supplied");
+    var cachedDriver: any = (request: Driver.Request, intermediate: Driver.IntermediateCallback) => {
+      var deferred = <Q.Deferred<SegmentTree>>Q.defer();
+
+      if (!request) {
+        deferred.reject(new Error("request not supplied"));
+        return deferred.promise;
+      }
       var context = request.context;
       var query = request.query;
       if (!query) {
-        callback(new Error("query not supplied"));
-        return;
+        deferred.reject(new Error("query not supplied"));
+        return deferred.promise;
       }
       if (!FacetQuery.isFacetQuery(query)) {
-        callback(new Error("query must be a FacetQuery"));
-        return;
+        deferred.reject(new Error("query must be a FacetQuery"));
+        return deferred.promise;
       }
 
       var avoidCache = (context && context['dontCache']) || query.getSplits().some((split) => split.bucket === "tuple") || query.getCombines().some((combine) => combine && !isInstanceOf(combine, SliceCombine));
 
       if (avoidCache) {
-        return driver(request, callback);
+        return driver(request);
       }
 
       var rootSegment = getQueryDataFromCache(query);
@@ -834,7 +839,7 @@ module Legacy {
           intermediate(rootSegment);
         }
       } else {
-        callback(null, rootSegment);
+        deferred.resolve(rootSegment);
         return;
       }
 
@@ -845,36 +850,26 @@ module Legacy {
         return type === "false" || type === "contains" || type === "match" || type === "or";
       });
       if (readOnlyCache) {
-        return driver(request, callback);
+        return driver(request);
       }
 
       if (rootSegment.meta['fullQuery']) {
-        driver({
+        return driver({
           query: query,
           context: context
-        }, (err, fullResult) => {
-          if (err) {
-            callback(err);
-            return;
-          }
-
+        }).then((fullResult) => {
           saveQueryDataToCache(fullResult, query);
-          callback(null, fullResult);
           applyCache.tidy();
           combineToSplitCache.tidy();
+          return fullResult;
         });
       } else {
         var deltaQuery = computeDeltaQuery(query, rootSegment);
 
-        driver({
+        return driver({
           query: deltaQuery,
           context: context
-        }, (err, deltaResult) => {
-          if (err) {
-            callback(err);
-            return;
-          }
-
+        }).then((deltaResult) => {
           saveQueryDataToCache(deltaResult, deltaQuery);
 
           rootSegment = getQueryDataFromCache(query);
@@ -883,21 +878,21 @@ module Legacy {
             if (debug) {
               console.log("stillLoading", rootSegment.valueOf());
               cachedDriver.debug();
-              callback(new Error("total cache error"));
+              throw new Error("total cache error");
             } else {
-              driver(request, callback);
+              return driver(request);
             }
           } else {
-            callback(null, rootSegment);
+            applyCache.tidy();
+            combineToSplitCache.tidy();
+            return rootSegment;
           }
-          applyCache.tidy();
-          combineToSplitCache.tidy();
         });
       }
     };
 
-    cachedDriver.introspect = (opts: any, callback: Driver.IntrospectionCallback) => {
-      return driver.introspect(opts, callback);
+    cachedDriver.introspect = (opts: any) => {
+      return driver.introspect(opts);
     };
 
     cachedDriver.clear = () => {

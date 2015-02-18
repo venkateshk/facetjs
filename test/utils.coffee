@@ -1,5 +1,5 @@
 { expect } = require("chai")
-async = require('async')
+Q = require('q')
 
 facet = require('../build/facet')
 { FacetQuery, SegmentTree } = facet.legacy
@@ -59,69 +59,77 @@ exports.wrapVerbose = (requester, name) ->
 exports.makeEqualityTest = (driverFns) ->
   return ({drivers, query, verbose, before, after}) ->
     throw new Error("must have at least two drivers") if drivers.length < 2
+    query = if FacetQuery.isFacetQuery(query) then query else new FacetQuery(query)
 
-    driversToTest = drivers.map (driverName) ->
+    driverFns = drivers.map (driverName) ->
       driverFn = driverFns[driverName]
       throw new Error("no such driver #{driverName}") unless driverFn
-      return (callback) ->
-        driverFn({
-          query: if FacetQuery.isFacetQuery(query) then query else new FacetQuery(query)
-          context: {
-            priority: -3
-          }
-        }, callback)
-        return
+      return driverFn
 
-    return (done) ->
+    return (testComplete) ->
       before?()
-      async.parallel driversToTest, (err, results) ->
-        if err
+      Q.all(
+        driversFns.map((driverFn) ->
+          return driverFn({
+            query
+            context: { priority: -3 }
+          })
+        )
+      ).then(
+        (results) ->
+          after?(null, results[0], results)
+
+          results = results.map((result) ->
+            expect(result).to.be.instanceof(SegmentTree)
+            return uniformizeResults(result.toJS())
+          )
+
+          if verbose
+            console.log('vvvvvvvvvvvvvvvvvvvvvvv')
+            console.log("From #{drivers[0]} I got:")
+            console.log(JSON.stringify(results[0], null, 2))
+            console.log('^^^^^^^^^^^^^^^^^^^^^^^')
+
+          i = 1
+          while i < drivers.length
+            try
+              expect(results[0]).to.deep.equal(results[i], "results of '#{drivers[0]}' and '#{drivers[i]}' must match")
+            catch e
+              console.log "results of '#{drivers[0]}' and '#{drivers[i]}' (expected) must match"
+              throw e
+            i++
+
+          testComplete(null, results[0])
+          return
+        (err) ->
           after?(err)
           console.log "got error from driver"
           console.log err
           throw err
-
-        after?(null, results[0], results)
-
-        results = results.map((result) ->
-          expect(result).to.be.instanceof(SegmentTree)
-          return uniformizeResults(result.toJS())
-        )
-
-        if verbose
-          console.log('vvvvvvvvvvvvvvvvvvvvvvv')
-          console.log("From #{drivers[0]} I got:")
-          console.log(JSON.stringify(results[0], null, 2))
-          console.log('^^^^^^^^^^^^^^^^^^^^^^^')
-
-        i = 1
-        while i < drivers.length
-          try
-            expect(results[0]).to.deep.equal(results[i], "results of '#{drivers[0]}' and '#{drivers[i]}' must match")
-          catch e
-            console.log "results of '#{drivers[0]}' and '#{drivers[i]}' (expected) must match"
-            throw e
-          i++
-
-        done(null, results[0])
-        return
+      ).done()
 
 exports.makeErrorTest = (driverFns) ->
-  return ({drivers, request, error, verbose}) -> (done) ->
+  return ({drivers, request, error, verbose}) ->
     throw new Error("must have at least one driver") if drivers.length < 1
 
-    numberOfTestsLeft = drivers.length
-
-    drivers.forEach (driverName) ->
+    driverFns = drivers.map (driverName) ->
       driverFn = driverFns[driverName]
       throw new Error("no such driver #{driverName}") unless driverFn
-      driverFn request, (err, results) ->
-        numberOfTestsLeft--
-        expect(err).to.be.ok
-        expect(err.message).equal(error, "#{driverName} driver error should match")
-        if numberOfTestsLeft is 0
-          done()
-        return
-      return
-    return
+      return driverFn
+
+    return (testComplete) ->
+      Q.all(
+        driversFns.map((driverFn) ->
+          return driverFn({
+            query
+            context: { priority: -3 }
+          })
+            .then(-> throw new Error('DID_NOT_ERROR'))
+            .fail((err) ->
+              expect(err.message).equal(error, "#{driverName} driver error should match")
+              return
+            )
+        )
+      ).then(testComplete)
+
 

@@ -21,7 +21,7 @@ verbose = false
 
 describe "simple driver", ->
   it "introspects", (testComplete) ->
-    wikiDriver.introspect null, (err, attributes) ->
+    wikiDriver.introspect(null).then((attributes) ->
       expect(attributes).to.deep.equal([
         {
           "name": "added",
@@ -90,19 +90,20 @@ describe "simple driver", ->
         }
       ])
       testComplete()
+    ).done()
 
   it "computes the correct count", (testComplete) ->
     querySpec = [
       { operation: 'apply', name: 'Count', aggregate: 'count' }
     ]
-    diamondsDriver { query: FacetQuery.fromJS(querySpec) }, (err, result) ->
-      expect(err).to.not.exist
+    diamondsDriver({ query: FacetQuery.fromJS(querySpec) }).then((result) ->
       expect(result.toJS()).to.deep.equal({
         prop: {
           Count: 53940
         }
       })
       testComplete()
+    ).done()
 
   it "does a split", (testComplete) ->
     querySpec = [
@@ -110,8 +111,7 @@ describe "simple driver", ->
       { operation: 'apply', name: 'Count', aggregate: 'count' }
       { operation: 'combine', method: 'slice', sort: { prop: 'Count', compare: 'natural', direction: 'descending' }, limit: 2 }
     ]
-    diamondsDriver { query: FacetQuery.fromJS(querySpec) }, (err, result) ->
-      expect(err).to.not.exist
+    diamondsDriver({ query: FacetQuery.fromJS(querySpec) }).then((result) ->
       expect(result.toJS()).to.deep.equal({
         "prop": {},
         "splits": [
@@ -130,6 +130,7 @@ describe "simple driver", ->
         ]
       })
       testComplete()
+    ).done()
 
   it "does a sort-by-delta after split", (testComplete) ->
     querySpec = [
@@ -196,8 +197,7 @@ describe "simple driver", ->
         limit: 4
       }
     ]
-    diamondsDriver { query: FacetQuery.fromJS(querySpec) }, (err, result) ->
-      expect(err).to.not.exist
+    diamondsDriver({ query: FacetQuery.fromJS(querySpec) }).then((result) ->
       expect(result.toJS()).to.deep.equal({
         "prop": {},
         "splits": [
@@ -228,6 +228,7 @@ describe "simple driver", ->
         ]
       })
       testComplete()
+    ).done()
 
   it "does two splits with segment filter", (testComplete) ->
     querySpec = [
@@ -247,8 +248,7 @@ describe "simple driver", ->
       { operation: 'apply', name: 'Count', aggregate: 'count' }
       { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'descending' }, limit: 2 }
     ]
-    diamondsDriver { query: FacetQuery.fromJS(querySpec) }, (err, result) ->
-      expect(err).to.not.exist
+    diamondsDriver({ query: FacetQuery.fromJS(querySpec) }).then((result) ->
       expect(result.toJS()).to.deep.equal({
         "prop": {},
         "splits": [
@@ -281,31 +281,32 @@ describe "simple driver", ->
         ]
       })
       testComplete()
+    ).done()
 
   it "does handles nothingness", (testComplete) ->
     querySpec = [
       { operation: 'filter', type: 'false' }
     ]
-    diamondsDriver { query: FacetQuery.fromJS(querySpec) }, (err, result) ->
-      expect(err).to.not.exist
+    diamondsDriver({ query: FacetQuery.fromJS(querySpec) }).then((result) ->
       expect(result.toJS()).to.deep.equal({
         "prop": {}
       })
       testComplete()
+    ).done()
 
   it "does handles nothingness with apply", (testComplete) ->
     querySpec = [
       { operation: 'filter', type: 'false' }
       { operation: 'apply', name: 'Count', aggregate: 'count' }
     ]
-    diamondsDriver { query: FacetQuery.fromJS(querySpec) }, (err, result) ->
-      expect(err).to.not.exist
+    diamondsDriver({ query: FacetQuery.fromJS(querySpec) }).then((result) ->
       expect(result.toJS()).to.deep.equal({
         "prop": {
           "Count": 0
         }
       })
       testComplete()
+    ).done()
 
   it "does handles nothingness with split", (testComplete) ->
     querySpec = [
@@ -316,8 +317,7 @@ describe "simple driver", ->
       { operation: 'apply', name: 'Count', aggregate: 'count' }
       { operation: 'combine', method: 'slice', sort: { prop: 'Count', compare: 'natural', direction: 'descending' }, limit: 2 }
     ]
-    diamondsDriver { query: FacetQuery.fromJS(querySpec) }, (err, result) ->
-      expect(err).to.not.exist
+    diamondsDriver({ query: FacetQuery.fromJS(querySpec) }).then((result) ->
       expect(result.toJS()).to.deep.equal({
         "prop": {
           "Count": 0
@@ -325,46 +325,47 @@ describe "simple driver", ->
         "splits": []
       })
       testComplete()
+    ).done()
 
   it "does a maxTime query", (testComplete) ->
     querySpec = [
       { operation: 'apply', name: 'Max', aggregate: 'max', attribute: 'time' }
     ]
-    wikiDriver { query: FacetQuery.fromJS(querySpec) }, (err, result) ->
-      expect(err).to.not.exist
+    wikiDriver({ query: FacetQuery.fromJS(querySpec) }).then((result) ->
       expect(result.toJS()).to.deep.equal({
         prop: {
           Max: 1361919600000 # ToDo: make this a date
         }
       })
       testComplete()
+    ).done()
 
   it "does a minTime query", (testComplete) ->
     querySpec = [
       { operation: 'apply', name: 'Min', aggregate: 'min', attribute: 'time' }
     ]
-    wikiDriver { query: FacetQuery.fromJS(querySpec) }, (err, result) ->
-      expect(err).to.not.exist
+    wikiDriver({ query: FacetQuery.fromJS(querySpec) }).then((result) ->
       expect(result.toJS()).to.deep.equal({
         prop: {
           Min: 1361836800000 # ToDo: make this a date
         }
       })
       testComplete()
+    ).done()
 
   it "filters on a numeric dimension", (testComplete) ->
     querySpec = [
       { operation: 'filter', type: 'contains', attribute: 'robot', value: '1' }
       { operation: 'apply', name: 'Count', aggregate: 'count' }
     ]
-    wikiDriver { query: FacetQuery.fromJS(querySpec) }, (err, result) ->
-      expect(err).to.not.exist
+    wikiDriver({ query: FacetQuery.fromJS(querySpec) }).then((result) ->
       expect(result.toJS()).to.deep.equal({
         "prop": {
           "Count": 19106
         }
       })
       testComplete()
+    ).done()
 
   it "splits on time correctly", (testComplete) ->
     timeData = [
@@ -384,8 +385,7 @@ describe "simple driver", ->
       { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Time', direction: 'ascending'} }
     ]
 
-    timeDriver { query: FacetQuery.fromJS(querySpec) }, (err, result) ->
-      expect(err).to.not.exist
+    timeDriver({ query: FacetQuery.fromJS(querySpec) }).then((result) ->
       expect(result.toJS()).to.deep.equal({
         "prop": {},
         "splits": [
@@ -464,6 +464,7 @@ describe "simple driver", ->
         ]
       })
       testComplete()
+    ).done()
 
   it "splits identity correctly", (testComplete) ->
     querySpec = [
@@ -512,8 +513,7 @@ describe "simple driver", ->
       }
     ]
 
-    wikiDriver { query: FacetQuery.fromJS(querySpec) }, (err, result) ->
-      expect(err).to.not.exist
+    wikiDriver({ query: FacetQuery.fromJS(querySpec) }).then((result) ->
       expect(result.toJS()).to.deep.equal({
         "prop": {},
         "splits": [
@@ -532,6 +532,7 @@ describe "simple driver", ->
         ]
       })
       testComplete()
+    ).done()
 
 
 

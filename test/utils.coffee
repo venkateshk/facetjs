@@ -56,20 +56,20 @@ exports.wrapVerbose = (requester, name) ->
         throw err
     )
 
-exports.makeEqualityTest = (driverFns) ->
+exports.makeEqualityTest = (driverFnMap) ->
   return ({drivers, query, verbose, before, after}) ->
     throw new Error("must have at least two drivers") if drivers.length < 2
     query = if FacetQuery.isFacetQuery(query) then query else new FacetQuery(query)
 
     driverFns = drivers.map (driverName) ->
-      driverFn = driverFns[driverName]
+      driverFn = driverFnMap[driverName]
       throw new Error("no such driver #{driverName}") unless driverFn
       return driverFn
 
     return (testComplete) ->
       before?()
       Q.all(
-        driversFns.map((driverFn) ->
+        driverFns.map((driverFn) ->
           return driverFn({
             query
             context: { priority: -3 }
@@ -108,18 +108,19 @@ exports.makeEqualityTest = (driverFns) ->
           throw err
       ).done()
 
-exports.makeErrorTest = (driverFns) ->
+
+exports.makeErrorTest = (driverFnMap) ->
   return ({drivers, request, error, verbose}) ->
     throw new Error("must have at least one driver") if drivers.length < 1
 
     driverFns = drivers.map (driverName) ->
-      driverFn = driverFns[driverName]
+      driverFn = driverFnMap[driverName]
       throw new Error("no such driver #{driverName}") unless driverFn
       return driverFn
 
     return (testComplete) ->
       Q.all(
-        driversFns.map((driverFn) ->
+        driverFns.map((driverFn) ->
           return driverFn({
             query
             context: { priority: -3 }
@@ -131,5 +132,3 @@ exports.makeErrorTest = (driverFns) ->
             )
         )
       ).then(testComplete)
-
-

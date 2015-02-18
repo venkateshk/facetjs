@@ -29,7 +29,7 @@ describe "SQL driver", ->
     })
 
     it "works", (testComplete) ->
-      diamondsDriver.introspect null, (err, attributes) ->
+      diamondsDriver.introspect(null).then((attributes) ->
         expect(attributes).to.deep.equal([
           {
             "name": "time",
@@ -94,6 +94,7 @@ describe "SQL driver", ->
           }
         ])
         testComplete()
+      ).done()
 
 
   describe "should work when getting back []", ->
@@ -111,14 +112,14 @@ describe "SQL driver", ->
       ])
 
       it "should work with [] return", (testComplete) ->
-        emptyDriver {query}, (err, result) ->
-          expect(err).to.be.null
+        emptyDriver({ query }).then((result) ->
           expect(result.toJS()).to.deep.equal({
             prop: {
               "Count": 0
             }
           })
           testComplete()
+        ).done()
 
     describe "should return null correctly on an empty split", ->
       query = new FacetQuery([
@@ -128,13 +129,13 @@ describe "SQL driver", ->
       ])
 
       it "should work with [] return", (testComplete) ->
-        emptyDriver {query}, (err, result) ->
-          expect(err).to.be.null
+        emptyDriver({ query }).then((result) ->
           expect(result.toJS()).to.deep.equal({
             prop: {}
             splits: []
           })
           testComplete()
+        ).done()
 
   describe "should work with driver level filter", ->
     noFilter = mySqlDriver({
@@ -154,20 +155,23 @@ describe "SQL driver", ->
     })
 
     it "should get back the same result", (testComplete) ->
-      noFilter {
+      noFilterRes = null
+      noFilter({
         query: new FacetQuery([
           { operation: 'filter', type: 'is', attribute: 'color', value: 'E' }
           { operation: 'apply', name: 'Count', aggregate: 'count' }
         ])
-      }, (err, noFilterRes) ->
-        expect(err).to.be.null
-        withFilter {
+      }).then((_noFilterRes) ->
+        noFilterRes = _noFilterRes
+        return withFilter({
           query: new FacetQuery([
             { operation: 'apply', name: 'Count', aggregate: 'count' }
           ])
-        }, (err, withFilterRes) ->
-          expect(noFilterRes.valueOf()).to.deep.equal(withFilterRes.valueOf())
-          testComplete()
+        })
+      ).then((withFilterRes) ->
+        expect(noFilterRes.valueOf()).to.deep.equal(withFilterRes.valueOf())
+        testComplete()
+      ).done()
 
   describe "should work with nothingness", ->
     diamondsDriver = mySqlDriver({
@@ -180,26 +184,26 @@ describe "SQL driver", ->
       querySpec = [
         { operation: 'filter', type: 'false' }
       ]
-      diamondsDriver { query: FacetQuery.fromJS(querySpec) }, (err, result) ->
-        expect(err).to.not.exist
+      diamondsDriver({ query: FacetQuery.fromJS(querySpec) }).then((result) ->
         expect(result.toJS()).to.deep.equal({
           prop: {}
         })
         testComplete()
+      ).done()
 
     it "deals well with empty results", (testComplete) ->
       querySpec = [
         { operation: 'filter', type: 'false' }
         { operation: 'apply', name: 'Count', aggregate: 'count' }
       ]
-      diamondsDriver { query: FacetQuery.fromJS(querySpec) }, (err, result) ->
-        expect(err).to.be.null
+      diamondsDriver({ query: FacetQuery.fromJS(querySpec) }).then((result) ->
         expect(result.toJS()).to.deep.equal({
           prop: {
             Count: 0
           }
         })
         testComplete()
+      ).done()
 
     it "deals well with empty results", (testComplete) ->
       querySpec = [
@@ -210,8 +214,7 @@ describe "SQL driver", ->
         { operation: 'apply', name: 'Count', aggregate: 'count' }
         { operation: 'combine', method: 'slice', sort: { prop: 'Count', compare: 'natural', direction: 'descending' }, limit: 2 }
       ]
-      diamondsDriver { query: FacetQuery.fromJS(querySpec) }, (err, result) ->
-        expect(err).to.be.null
+      diamondsDriver({ query: FacetQuery.fromJS(querySpec) }).then((result) ->
         expect(result.toJS()).to.deep.equal({
           prop: {
             Count: 0
@@ -219,6 +222,4 @@ describe "SQL driver", ->
           splits: []
         })
         testComplete()
-
-
-
+      ).done()

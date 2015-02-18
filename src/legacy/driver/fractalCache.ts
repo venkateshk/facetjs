@@ -827,7 +827,9 @@ module Legacy {
         return deferred.promise;
       }
 
-      var avoidCache = (context && context['dontCache']) || query.getSplits().some((split) => split.bucket === "tuple") || query.getCombines().some((combine) => combine && !isInstanceOf(combine, SliceCombine));
+      var avoidCache = (context && context['dontCache'])
+        || query.getSplits().some((split) => split.bucket === "tuple")
+        || query.getCombines().some((combine) => combine && !isInstanceOf(combine, SliceCombine));
 
       if (avoidCache) {
         return driver(request);
@@ -840,7 +842,7 @@ module Legacy {
         }
       } else {
         deferred.resolve(rootSegment);
-        return;
+        return deferred.promise;
       }
 
       var queryFilter = query.getFilter();

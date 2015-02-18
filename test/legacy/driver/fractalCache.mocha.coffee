@@ -1,5 +1,7 @@
 { expect } = require("chai")
 
+Q = require("q")
+
 utils = require('../../utils')
 
 { WallTime } = require('chronology')
@@ -26,7 +28,7 @@ driverFns.wikipedia = wikipedia
 
 # Cached Versions
 firstForbiddenQuery = true
-wrapDriver = (driver) -> (request, callback) ->
+wrapDriver = (driver) -> (request) ->
   if FacetQuery.isFacetQuery(expectedQuery)
     expect(request.query.valueOf()).to.deep.equal(expectedQuery.valueOf())
 
@@ -36,8 +38,7 @@ wrapDriver = (driver) -> (request, callback) ->
       console.log('Forbidden:', request.query.valueOf())
     throw new Error("query not allowed")
 
-  driver(request, callback)
-  return
+  return driver(request)
 
 currentTimeOverride = null
 getCurrentTime = ->
@@ -68,46 +69,42 @@ describe "Fractal cache", ->
       ).to.throw('lol')
 
   describe.skip "emptiness checker", ->
-    emptyDriver = (request, callback) ->
-      callback(null, {})
-      return
+    emptyDriver = -> Q({})
 
     emptyDriverCached = fractalCache({
       driver: emptyDriver
     })
 
     it "should handle {}", (testComplete) ->
-      emptyDriverCached {
+      emptyDriverCached({
         query: new FacetQuery([
           { operation: 'filter', type: 'within', attribute: 'time', range: [new Date("2013-02-26T00:00:00Z"), new Date("2013-02-27T00:00:00Z")] }
           { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
           { operation: 'apply', name: 'Added', aggregate: 'sum', attribute: 'added' }
         ])
-      }, (err, result) ->
-        expect(err).to.be.null
+      }).then((result) ->
         expect(result.valueOf()).to.deep.equal({})
         testComplete()
+      ).done()
 
 
   describe "zero checker", ->
-    zeroDriver = (request, callback) ->
-      callback(null, { prop: { Count: 0 } })
-      return
+    zeroDriver = -> Q({ prop: { Count: 0 } })
 
     zeroDriverCached = fractalCache({
       driver: zeroDriver
     })
 
     it "should handle zeroes", (testComplete) ->
-      zeroDriverCached {
+      zeroDriverCached({
         query: new FacetQuery([
           { operation: 'filter', type: 'within', attribute: 'time', range: [new Date("2013-02-26T00:00:00Z"), new Date("2013-02-27T00:00:00Z")] }
           { operation: 'apply', name: 'Count', aggregate: 'constant', value: 0 }
         ])
-      }, (err, result) ->
-        expect(err).to.be.null
+      }).then((result) ->
         expect(result.valueOf()).to.deep.equal({ prop: { Count: 0 } })
         testComplete()
+      ).done()
 
 
   describe "No split", ->
@@ -2437,15 +2434,13 @@ describe "Fractal cache", ->
           ]
         })
 
-        dayLightSavingsDriver = (request, callback) ->
-          callback(null, dayLightSavingsData)
-          return
+        dayLightSavingsDriver = (request) -> Q(dayLightSavingsData)
 
         dayLightSavingsDriverCached = fractalCache({
           driver: dayLightSavingsDriver
         })
 
-        dayLightSavingsDriverCached {
+        dayLightSavingsDriverCached({
           query: FacetQuery.fromJS([
             {
               "type": "within",
@@ -2480,10 +2475,10 @@ describe "Fractal cache", ->
               }
             }
           ])
-        }, (err, result) ->
-          expect(err).to.be.null
+        }).then((result) ->
           expect(result.toJS()).to.deep.equal(dayLightSavingsData.toJS())
           testComplete()
+        ).done()
 
       it 'should work well when entering daylight saving time with P1D granularity', (testComplete) ->
         dayLightSavingsData = SegmentTree.fromJS({
@@ -2496,15 +2491,13 @@ describe "Fractal cache", ->
           ]
         })
 
-        dayLightSavingsDriver = (request, callback) ->
-          callback(null, dayLightSavingsData)
-          return
+        dayLightSavingsDriver = (request) -> Q(dayLightSavingsData)
 
         dayLightSavingsDriverCached = fractalCache({
           driver: dayLightSavingsDriver
         })
 
-        dayLightSavingsDriverCached {
+        dayLightSavingsDriverCached({
           query: FacetQuery.fromJS([
             {
               "type": "within",
@@ -2539,10 +2532,10 @@ describe "Fractal cache", ->
               "operation": "combine"
             }
           ])
-        }, (err, result) ->
-          expect(err).to.be.null
+        }).then((result) ->
           expect(result.toJS()).to.deep.equal(dayLightSavingsData.toJS())
           testComplete()
+        ).done()
 
 
       it 'should work well when entering daylight saving time with P1D granularity in UTC', (testComplete) ->
@@ -2559,15 +2552,13 @@ describe "Fractal cache", ->
           ]
         }
 
-        dayLightSavingsDriver = (request, callback) ->
-          callback(null, dayLightSavingsData)
-          return
+        dayLightSavingsDriver = (request) -> Q(dayLightSavingsData)
 
         dayLightSavingsDriverCached = fractalCache({
           driver: dayLightSavingsDriver
         })
 
-        dayLightSavingsDriverCached {
+        dayLightSavingsDriverCached({
           query: FacetQuery.fromJS([
             {
               "type": "within",
@@ -2607,10 +2598,10 @@ describe "Fractal cache", ->
               "operation": "combine"
             }
           ])
-        }, (err, result) ->
-          expect(err).to.be.null
+        }).then((result) ->
           expect(result.toJS()).to.deep.equal(dayLightSavingsData.toJS())
           testComplete()
+        ).done()
 
       it 'should work well when exiting daylight saving time with P1D granularity in UTC', (testComplete) ->
         dayLightSavingsData = SegmentTree.fromJS {
@@ -2628,15 +2619,13 @@ describe "Fractal cache", ->
           ]
         }
 
-        dayLightSavingsDriver = (request, callback) ->
-          callback(null, dayLightSavingsData)
-          return
+        dayLightSavingsDriver = (request) -> Q(dayLightSavingsData)
 
         dayLightSavingsDriverCached = fractalCache({
           driver: dayLightSavingsDriver
         })
 
-        dayLightSavingsDriverCached {
+        dayLightSavingsDriverCached({
           query: FacetQuery.fromJS([
             {
               "type": "within",
@@ -2676,10 +2665,10 @@ describe "Fractal cache", ->
               "operation": "combine"
             }
           ])
-        }, (err, result) ->
-          expect(err).to.be.null
+        }).then((result) ->
           expect(result.toJS()).to.deep.equal(dayLightSavingsData.toJS())
           testComplete()
+        ).done()
 
 
     describe "with PT1H granularity", ->
@@ -2717,15 +2706,13 @@ describe "Fractal cache", ->
           ]
         }
 
-        dayLightSavingsDriver = (request, callback) ->
-          callback(null, dayLightSavingsData)
-          return
+        dayLightSavingsDriver = (request) -> Q(dayLightSavingsData)
 
         dayLightSavingsDriverCached = fractalCache({
           driver: dayLightSavingsDriver
         })
 
-        dayLightSavingsDriverCached {
+        dayLightSavingsDriverCached({
           query: FacetQuery.fromJS([
             {
               "type": "within",
@@ -2760,10 +2747,10 @@ describe "Fractal cache", ->
               "operation": "combine"
             }
           ])
-        }, (err, result) ->
-          expect(err).to.be.null
+        }).then((result) ->
           expect(result.toJS()).to.deep.equal(dayLightSavingsData.toJS())
           testComplete()
+        ).done()
 
       it 'should work well when exiting daylight saving time with PT1H granularity', (testComplete) ->
         dayLightSavingsData = SegmentTree.fromJS {
@@ -2784,15 +2771,13 @@ describe "Fractal cache", ->
           ]
         }
 
-        dayLightSavingsDriver = (request, callback) ->
-          callback(null, dayLightSavingsData)
-          return
+        dayLightSavingsDriver = -> Q(dayLightSavingsData)
 
         dayLightSavingsDriverCached = fractalCache({
           driver: dayLightSavingsDriver
         })
 
-        dayLightSavingsDriverCached {
+        dayLightSavingsDriverCached({
           query: FacetQuery.fromJS([
             {
               "type": "within",
@@ -2827,10 +2812,10 @@ describe "Fractal cache", ->
               "operation": "combine"
             }
           ])
-        }, (err, result) ->
-          expect(err).to.be.null
+        }).then((result) ->
           expect(result.toJS()).to.deep.equal(dayLightSavingsData.toJS())
           testComplete()
+        ).done()
 
 
   describe "Matrix cache", ->
@@ -2844,9 +2829,10 @@ describe "Fractal cache", ->
       expectedQuery = myQuery
       driverFns.wikipediaCached({
         query: myQuery
-      }, (err, result) ->
-        expect(err).to.exist
-        expect(err).to.have.property('message').that.equals('matrix combine not implemented yet')
+      })
+      .then(-> throw new Error("DID_NOT_ERROR"))
+      .fail((err) ->
+        expect(err.message).to.equal('matrix combine not implemented yet')
         testComplete()
       )
 

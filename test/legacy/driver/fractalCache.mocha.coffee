@@ -76,7 +76,7 @@ describe "Fractal cache", ->
       driver: emptyDriver
     })
 
-    it "should handle {}", (done) ->
+    it "should handle {}", (testComplete) ->
       emptyDriverCached {
         query: new FacetQuery([
           { operation: 'filter', type: 'within', attribute: 'time', range: [new Date("2013-02-26T00:00:00Z"), new Date("2013-02-27T00:00:00Z")] }
@@ -86,7 +86,7 @@ describe "Fractal cache", ->
       }, (err, result) ->
         expect(err).to.be.null
         expect(result.valueOf()).to.deep.equal({})
-        done()
+        testComplete()
 
 
   describe "zero checker", ->
@@ -98,7 +98,7 @@ describe "Fractal cache", ->
       driver: zeroDriver
     })
 
-    it "should handle zeroes", (done) ->
+    it "should handle zeroes", (testComplete) ->
       zeroDriverCached {
         query: new FacetQuery([
           { operation: 'filter', type: 'within', attribute: 'time', range: [new Date("2013-02-26T00:00:00Z"), new Date("2013-02-27T00:00:00Z")] }
@@ -107,7 +107,7 @@ describe "Fractal cache", ->
       }, (err, result) ->
         expect(err).to.be.null
         expect(result.valueOf()).to.deep.equal({ prop: { Count: 0 } })
-        done()
+        testComplete()
 
 
   describe "No split", ->
@@ -2424,7 +2424,7 @@ describe "Fractal cache", ->
 
   describe "dayLightSavings checker", ->
     describe "with P1D granularity", ->
-      it 'should work well when exiting daylight saving time with P1D granularity', (done) ->
+      it 'should work well when exiting daylight saving time with P1D granularity', (testComplete) ->
         dayLightSavingsData = SegmentTree.fromJS({
           prop: {},
           splits: [
@@ -2483,9 +2483,9 @@ describe "Fractal cache", ->
         }, (err, result) ->
           expect(err).to.be.null
           expect(result.toJS()).to.deep.equal(dayLightSavingsData.toJS())
-          done()
+          testComplete()
 
-      it 'should work well when entering daylight saving time with P1D granularity', (done) ->
+      it 'should work well when entering daylight saving time with P1D granularity', (testComplete) ->
         dayLightSavingsData = SegmentTree.fromJS({
           "prop": {},
           "splits": [
@@ -2542,10 +2542,10 @@ describe "Fractal cache", ->
         }, (err, result) ->
           expect(err).to.be.null
           expect(result.toJS()).to.deep.equal(dayLightSavingsData.toJS())
-          done()
+          testComplete()
 
 
-      it 'should work well when entering daylight saving time with P1D granularity in UTC', (done) ->
+      it 'should work well when entering daylight saving time with P1D granularity in UTC', (testComplete) ->
         dayLightSavingsData = SegmentTree.fromJS {
           "prop": {},
           "splits": [
@@ -2610,9 +2610,9 @@ describe "Fractal cache", ->
         }, (err, result) ->
           expect(err).to.be.null
           expect(result.toJS()).to.deep.equal(dayLightSavingsData.toJS())
-          done()
+          testComplete()
 
-      it 'should work well when exiting daylight saving time with P1D granularity in UTC', (done) ->
+      it 'should work well when exiting daylight saving time with P1D granularity in UTC', (testComplete) ->
         dayLightSavingsData = SegmentTree.fromJS {
           "prop": {},
           "splits": [
@@ -2679,11 +2679,11 @@ describe "Fractal cache", ->
         }, (err, result) ->
           expect(err).to.be.null
           expect(result.toJS()).to.deep.equal(dayLightSavingsData.toJS())
-          done()
+          testComplete()
 
 
     describe "with PT1H granularity", ->
-      it 'should work well when entering daylight saving time with PT1H granularity', (done) ->
+      it 'should work well when entering daylight saving time with PT1H granularity', (testComplete) ->
         dayLightSavingsData = SegmentTree.fromJS {
           "prop": {},
           "splits": [
@@ -2763,9 +2763,9 @@ describe "Fractal cache", ->
         }, (err, result) ->
           expect(err).to.be.null
           expect(result.toJS()).to.deep.equal(dayLightSavingsData.toJS())
-          done()
+          testComplete()
 
-      it 'should work well when exiting daylight saving time with PT1H granularity', (done) ->
+      it 'should work well when exiting daylight saving time with PT1H granularity', (testComplete) ->
         dayLightSavingsData = SegmentTree.fromJS {
           "prop": {},
           "splits": [
@@ -2830,11 +2830,11 @@ describe "Fractal cache", ->
         }, (err, result) ->
           expect(err).to.be.null
           expect(result.toJS()).to.deep.equal(dayLightSavingsData.toJS())
-          done()
+          testComplete()
 
 
   describe "Matrix cache", ->
-    it "returns the right value", (done) ->
+    it "returns the right value", (testComplete) ->
       myQuery = FacetQuery.fromJS([
         { operation: 'filter', type: 'within', attribute: 'time', range: [new Date("2013-02-26T00:00:00Z"), new Date("2013-02-27T00:00:00Z")] },
         { "bucket": "tuple", "splits": [ { "bucket": "identity", "name": "user", "attribute": "user" }, { "bucket": "identity", "name": "language", "attribute": "language" } ], "operation": "split" },
@@ -2847,7 +2847,7 @@ describe "Fractal cache", ->
       }, (err, result) ->
         expect(err).to.exist
         expect(err).to.have.property('message').that.equals('matrix combine not implemented yet')
-        done()
+        testComplete()
       )
 
 

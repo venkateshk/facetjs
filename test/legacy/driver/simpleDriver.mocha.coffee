@@ -20,7 +20,7 @@ wikiDriver = simpleDriver(wikiData)
 verbose = false
 
 describe "simple driver", ->
-  it "introspects", (done) ->
+  it "introspects", (testComplete) ->
     wikiDriver.introspect null, (err, attributes) ->
       expect(attributes).to.deep.equal([
         {
@@ -89,9 +89,9 @@ describe "simple driver", ->
           "categorical": true
         }
       ])
-      done()
+      testComplete()
 
-  it "computes the correct count", (done) ->
+  it "computes the correct count", (testComplete) ->
     querySpec = [
       { operation: 'apply', name: 'Count', aggregate: 'count' }
     ]
@@ -102,9 +102,9 @@ describe "simple driver", ->
           Count: 53940
         }
       })
-      done()
+      testComplete()
 
-  it "does a split", (done) ->
+  it "does a split", (testComplete) ->
     querySpec = [
       { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
       { operation: 'apply', name: 'Count', aggregate: 'count' }
@@ -129,9 +129,9 @@ describe "simple driver", ->
           }
         ]
       })
-      done()
+      testComplete()
 
-  it "does a sort-by-delta after split", (done) ->
+  it "does a sort-by-delta after split", (testComplete) ->
     querySpec = [
       {
         operation: 'dataset'
@@ -227,9 +227,9 @@ describe "simple driver", ->
           }
         ]
       })
-      done()
+      testComplete()
 
-  it "does two splits with segment filter", (done) ->
+  it "does two splits with segment filter", (testComplete) ->
     querySpec = [
       { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
       { operation: 'apply', name: 'Count', aggregate: 'count' }
@@ -280,9 +280,9 @@ describe "simple driver", ->
           }
         ]
       })
-      done()
+      testComplete()
 
-  it "does handles nothingness", (done) ->
+  it "does handles nothingness", (testComplete) ->
     querySpec = [
       { operation: 'filter', type: 'false' }
     ]
@@ -291,9 +291,9 @@ describe "simple driver", ->
       expect(result.toJS()).to.deep.equal({
         "prop": {}
       })
-      done()
+      testComplete()
 
-  it "does handles nothingness with apply", (done) ->
+  it "does handles nothingness with apply", (testComplete) ->
     querySpec = [
       { operation: 'filter', type: 'false' }
       { operation: 'apply', name: 'Count', aggregate: 'count' }
@@ -305,9 +305,9 @@ describe "simple driver", ->
           "Count": 0
         }
       })
-      done()
+      testComplete()
 
-  it "does handles nothingness with split", (done) ->
+  it "does handles nothingness with split", (testComplete) ->
     querySpec = [
       { operation: 'filter', type: 'false' }
       { operation: 'apply', name: 'Count', aggregate: 'count' }
@@ -324,9 +324,9 @@ describe "simple driver", ->
         }
         "splits": []
       })
-      done()
+      testComplete()
 
-  it "does a maxTime query", (done) ->
+  it "does a maxTime query", (testComplete) ->
     querySpec = [
       { operation: 'apply', name: 'Max', aggregate: 'max', attribute: 'time' }
     ]
@@ -337,9 +337,9 @@ describe "simple driver", ->
           Max: 1361919600000 # ToDo: make this a date
         }
       })
-      done()
+      testComplete()
 
-  it "does a minTime query", (done) ->
+  it "does a minTime query", (testComplete) ->
     querySpec = [
       { operation: 'apply', name: 'Min', aggregate: 'min', attribute: 'time' }
     ]
@@ -350,9 +350,9 @@ describe "simple driver", ->
           Min: 1361836800000 # ToDo: make this a date
         }
       })
-      done()
+      testComplete()
 
-  it "filters on a numeric dimension", (done) ->
+  it "filters on a numeric dimension", (testComplete) ->
     querySpec = [
       { operation: 'filter', type: 'contains', attribute: 'robot', value: '1' }
       { operation: 'apply', name: 'Count', aggregate: 'count' }
@@ -364,9 +364,9 @@ describe "simple driver", ->
           "Count": 19106
         }
       })
-      done()
+      testComplete()
 
-  it "splits on time correctly", (done) ->
+  it "splits on time correctly", (testComplete) ->
     timeData = [
       "2013-09-02T00:00:00.000Z"
       "2013-09-02T01:00:00.000Z"
@@ -463,9 +463,9 @@ describe "simple driver", ->
           }
         ]
       })
-      done()
+      testComplete()
 
-  it "splits identity correctly", (done) ->
+  it "splits identity correctly", (testComplete) ->
     querySpec = [
       {
         "type": "and",
@@ -531,7 +531,7 @@ describe "simple driver", ->
           }
         ]
       })
-      done()
+      testComplete()
 
 
 

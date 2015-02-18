@@ -28,7 +28,7 @@ describe "SQL driver", ->
       table: 'wiki_day_agg'
     })
 
-    it "works", (done) ->
+    it "works", (testComplete) ->
       diamondsDriver.introspect null, (err, attributes) ->
         expect(attributes).to.deep.equal([
           {
@@ -93,7 +93,7 @@ describe "SQL driver", ->
             "numeric": true
           }
         ])
-        done()
+        testComplete()
 
 
   describe "should work when getting back []", ->
@@ -110,7 +110,7 @@ describe "SQL driver", ->
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
       ])
 
-      it "should work with [] return", (done) ->
+      it "should work with [] return", (testComplete) ->
         emptyDriver {query}, (err, result) ->
           expect(err).to.be.null
           expect(result.toJS()).to.deep.equal({
@@ -118,7 +118,7 @@ describe "SQL driver", ->
               "Count": 0
             }
           })
-          done()
+          testComplete()
 
     describe "should return null correctly on an empty split", ->
       query = new FacetQuery([
@@ -127,14 +127,14 @@ describe "SQL driver", ->
         { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'ascending' } }
       ])
 
-      it "should work with [] return", (done) ->
+      it "should work with [] return", (testComplete) ->
         emptyDriver {query}, (err, result) ->
           expect(err).to.be.null
           expect(result.toJS()).to.deep.equal({
             prop: {}
             splits: []
           })
-          done()
+          testComplete()
 
   describe "should work with driver level filter", ->
     noFilter = mySqlDriver({
@@ -153,7 +153,7 @@ describe "SQL driver", ->
       })
     })
 
-    it "should get back the same result", (done) ->
+    it "should get back the same result", (testComplete) ->
       noFilter {
         query: new FacetQuery([
           { operation: 'filter', type: 'is', attribute: 'color', value: 'E' }
@@ -167,7 +167,7 @@ describe "SQL driver", ->
           ])
         }, (err, withFilterRes) ->
           expect(noFilterRes.valueOf()).to.deep.equal(withFilterRes.valueOf())
-          done()
+          testComplete()
 
   describe "should work with nothingness", ->
     diamondsDriver = mySqlDriver({
@@ -176,7 +176,7 @@ describe "SQL driver", ->
       filter: null
     })
 
-    it "does handles nothingness", (done) ->
+    it "does handles nothingness", (testComplete) ->
       querySpec = [
         { operation: 'filter', type: 'false' }
       ]
@@ -185,9 +185,9 @@ describe "SQL driver", ->
         expect(result.toJS()).to.deep.equal({
           prop: {}
         })
-        done()
+        testComplete()
 
-    it "deals well with empty results", (done) ->
+    it "deals well with empty results", (testComplete) ->
       querySpec = [
         { operation: 'filter', type: 'false' }
         { operation: 'apply', name: 'Count', aggregate: 'count' }
@@ -199,9 +199,9 @@ describe "SQL driver", ->
             Count: 0
           }
         })
-        done()
+        testComplete()
 
-    it "deals well with empty results", (done) ->
+    it "deals well with empty results", (testComplete) ->
       querySpec = [
         { operation: 'filter', type: 'false' }
         { operation: 'apply', name: 'Count', aggregate: 'count' }
@@ -218,7 +218,7 @@ describe "SQL driver", ->
           }
           splits: []
         })
-        done()
+        testComplete()
 
 
 

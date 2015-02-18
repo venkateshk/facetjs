@@ -508,7 +508,7 @@ describe "Druid driver", ->
       approximate: true
     })
 
-    it "works", (done) ->
+    it "works", (testComplete) ->
       wikiDriver.introspect null, (err, attributes) ->
         expect(err).to.not.exist
         expect(attributes).to.deep.equal([
@@ -609,7 +609,7 @@ describe "Druid driver", ->
             "numeric": true
           }
         ])
-        done()
+        testComplete()
         return
 
   describe "should work when getting back [] and [{result:[]}]", ->
@@ -630,7 +630,7 @@ describe "Druid driver", ->
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
       ])
 
-      it "should work with [] return", (done) ->
+      it "should work with [] return", (testComplete) ->
         nullDriver {query}, (err, result) ->
           expect(err).to.be.null
           expect(result.toJS()).to.deep.equal({
@@ -638,10 +638,10 @@ describe "Druid driver", ->
               Count: 0
             }
           })
-          done()
+          testComplete()
           return
 
-      it "should work with [{result:[]}] return", (done) ->
+      it "should work with [{result:[]}] return", (testComplete) ->
         emptyDriver {query}, (err, result) ->
           expect(err).to.be.null
           expect(result.toJS()).to.deep.equal({
@@ -649,7 +649,7 @@ describe "Druid driver", ->
               Count: 0
             }
           })
-          done()
+          testComplete()
           return
 
     describe "should return null correctly on a topN query", ->
@@ -659,18 +659,18 @@ describe "Druid driver", ->
         { operation: 'combine', method: 'slice', sort: { compare: 'natural', prop: 'Count', direction: 'ascending' } }
       ])
 
-      it "should work with [] return", (done) ->
+      it "should work with [] return", (testComplete) ->
         nullDriver {query}, (err, result) ->
           expect(err).to.be.null
           expect(result.toJS()).to.deep.equal({})
-          done()
+          testComplete()
           return
 
-      it "should work with [{result:[]}] return", (done) ->
+      it "should work with [{result:[]}] return", (testComplete) ->
         emptyDriver {query}, (err, result) ->
           expect(err).to.be.null
           expect(result.toJS()).to.deep.equal({})
-          done()
+          testComplete()
 
   describe "should work when getting back crap data", ->
     crapDriver = druidDriver({
@@ -679,17 +679,17 @@ describe "Druid driver", ->
       approximate: true
     })
 
-    it "should work with all query", (done) ->
+    it "should work with all query", (testComplete) ->
       query = FacetQuery.fromJS([
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
       ])
 
       crapDriver {query}, (err, result) ->
         expect(err.message).to.equal('unexpected result from Druid (all)')
-        done()
+        testComplete()
         return
 
-    it "should work with timeseries query", (done) ->
+    it "should work with timeseries query", (testComplete) ->
       query = FacetQuery.fromJS([
         { operation: 'split', name: 'Time', bucket: 'timePeriod', attribute: 'timestamp', period: 'PT1H', timezone: 'Etc/UTC' }
         { operation: 'apply', name: 'Count', aggregate: 'sum', attribute: 'count' }
@@ -698,7 +698,7 @@ describe "Druid driver", ->
 
       crapDriver {query}, (err, result) ->
         expect(err.message).to.equal('unexpected result from Druid (timeseries)')
-        done()
+        testComplete()
         return
 
   describe "should work with driver level filter", ->
@@ -743,7 +743,7 @@ describe "Druid driver", ->
       filter: FacetFilter.fromJS(filterSpec)
     })
 
-    it "should get back the same result", (done) ->
+    it "should get back the same result", (testComplete) ->
       noFilter {
         query: FacetQuery.fromJS([
           filterSpec
@@ -757,7 +757,7 @@ describe "Druid driver", ->
           ])
         }, (err, withFilterRes) ->
           expect(noFilterRes.valueOf()).to.deep.equal(withFilterRes.valueOf())
-          done()
+          testComplete()
 
   describe "should work with nothingness", ->
     druidPass = druidRequester({
@@ -772,7 +772,7 @@ describe "Druid driver", ->
       forceInterval: true
     })
 
-    it "does handles nothingness", (done) ->
+    it "does handles nothingness", (testComplete) ->
       querySpec = [
         { operation: 'filter', type: 'false' }
       ]
@@ -781,9 +781,9 @@ describe "Druid driver", ->
         expect(result.toJS()).to.deep.equal({
           "prop": {}
         })
-        done()
+        testComplete()
 
-    it "deals well with empty results", (done) ->
+    it "deals well with empty results", (testComplete) ->
       querySpec = [
         { operation: 'filter', type: 'false' }
         { operation: 'apply', name: 'Count', aggregate: 'count' }
@@ -795,9 +795,9 @@ describe "Druid driver", ->
             Count: 0
           }
         })
-        done()
+        testComplete()
 
-    it "deals well with empty results and split", (done) ->
+    it "deals well with empty results and split", (testComplete) ->
       querySpec = [
         { operation: 'filter', type: 'false' }
         { operation: 'apply', name: 'Count', aggregate: 'count' }
@@ -814,7 +814,7 @@ describe "Druid driver", ->
           }
           splits: []
         })
-        done()
+        testComplete()
 
   describe "should work with inferred nothingness", ->
     druidPass = druidRequester({
@@ -837,7 +837,7 @@ describe "Druid driver", ->
       })
     })
 
-    it "deals well with empty results", (done) ->
+    it "deals well with empty results", (testComplete) ->
       querySpec = [
         {
           operation: 'filter'
@@ -857,7 +857,7 @@ describe "Druid driver", ->
             Count: 0
           }
         })
-        done()
+        testComplete()
 
   describe "specific queries", ->
     druidPass = druidRequester({
@@ -872,7 +872,7 @@ describe "Druid driver", ->
       forceInterval: true
     })
 
-    it "should work with a null filter", (done) ->
+    it "should work with a null filter", (testComplete) ->
       query = FacetQuery.fromJS([
         {
           operation: 'filter'
@@ -897,9 +897,9 @@ describe "Druid driver", ->
       ])
       driver {query}, (err, result) ->
         expect(result).to.be.an('object') # to.deep.equal({})
-        done()
+        testComplete()
 
-    it "should get min/max time", (done) ->
+    it "should get min/max time", (testComplete) ->
       query = FacetQuery.fromJS([
         {
           operation: "filter"
@@ -914,9 +914,9 @@ describe "Druid driver", ->
         expect(err).to.not.exist
         expect(result.prop.Min).to.be.an.instanceof(Date)
         expect(result.prop.Max).to.be.an.instanceof(Date)
-        done()
+        testComplete()
 
-    it "should get max time only", (done) ->
+    it "should get max time only", (testComplete) ->
       query = FacetQuery.fromJS([
         {
           operation: "filter"
@@ -930,9 +930,9 @@ describe "Druid driver", ->
         expect(err).to.not.exist
         expect(result.prop.Max).to.be.an.instanceof(Date)
         expect(isNaN(result.prop.Max.getTime())).to.be.false
-        done()
+        testComplete()
 
-    it "should complain if min/max time is mixed with other applies", (done) ->
+    it "should complain if min/max time is mixed with other applies", (testComplete) ->
       query = FacetQuery.fromJS([
         { operation: 'apply', name: 'Min', aggregate: 'min', attribute: 'time' }
         { operation: 'apply', name: 'Max', aggregate: 'max', attribute: 'time' }
@@ -941,9 +941,9 @@ describe "Druid driver", ->
       driver {query}, (err, result) ->
         expect(err).to.not.equal(null)
         expect(err.message).to.equal("can not mix and match min / max time with other aggregates (for now)")
-        done()
+        testComplete()
 
-    it "should deal with average aggregate", (done) ->
+    it "should deal with average aggregate", (testComplete) ->
       query = FacetQuery.fromJS([
         {
           operation: 'filter'
@@ -973,9 +973,9 @@ describe "Druid driver", ->
             "AvgDelta/100": 0.31691260511524555
           }
         })
-        done()
+        testComplete()
 
-    it.skip "should deal with arbitrary context", (done) ->
+    it.skip "should deal with arbitrary context", (testComplete) ->
       query = FacetQuery.fromJS([
         {
           operation: 'filter'
@@ -999,9 +999,9 @@ describe "Druid driver", ->
             "AvgAdded": 216.43371007799223
           }
         })
-        done()
+        testComplete()
 
-    it "should work without a combine (single split)", (done) ->
+    it "should work without a combine (single split)", (testComplete) ->
       query = FacetQuery.fromJS([
         {
           operation: 'filter'
@@ -1019,9 +1019,9 @@ describe "Druid driver", ->
       driver {query}, (err, result) ->
         expect(err).to.not.exist
         expect(result).to.be.an('object')
-        done()
+        testComplete()
 
-    it "should work without a combine (double split)", (done) ->
+    it "should work without a combine (double split)", (testComplete) ->
       query = FacetQuery.fromJS([
         {
           operation: 'filter'
@@ -1044,11 +1044,11 @@ describe "Druid driver", ->
       driver {query}, (err, result) ->
         expect(err).to.not.exist
         expect(result).to.be.an('object')
-        done()
+        testComplete()
 
     it "should work with numeric IS filters"
 
-    it "should work with sort-by-delta on derived apply", (done) ->
+    it "should work with sort-by-delta on derived apply", (testComplete) ->
       query = FacetQuery.fromJS([
         {
           operation: 'dataset'
@@ -1151,9 +1151,9 @@ describe "Druid driver", ->
             }
           ]
         })
-        done()
+        testComplete()
 
-    it "should work with sort-by-delta on a timePeriod split", (done) ->
+    it "should work with sort-by-delta on a timePeriod split", (testComplete) ->
       query = FacetQuery.fromJS([
         {
           operation: 'dataset'
@@ -1268,7 +1268,7 @@ describe "Druid driver", ->
             }
           ]
         })
-        done()
+        testComplete()
 
 
   describe "propagates context", ->
@@ -1284,7 +1284,7 @@ describe "Druid driver", ->
       approximate: true
     })
 
-    it "does not send empty context", (done) ->
+    it "does not send empty context", (testComplete) ->
       context = {}
       query = FacetQuery.fromJS([
         { operation: 'apply', name: 'Count', aggregate: 'count' }
@@ -1311,9 +1311,9 @@ describe "Druid driver", ->
         query
       }, (err, result) ->
         expect(count).to.equal(1)
-        done()
+        testComplete()
 
-    it "propagates existing context", (done) ->
+    it "propagates existing context", (testComplete) ->
       context = {
         userData: {
           a: 1
@@ -1353,7 +1353,7 @@ describe "Druid driver", ->
         query
       }, (err, result) ->
         expect(count).to.equal(1)
-        done()
+        testComplete()
 
   describe "acknowledges attribute metas", ->
     querySpy = null
@@ -1373,7 +1373,7 @@ describe "Druid driver", ->
       }
     })
 
-    it "does not send empty context", (done) ->
+    it "does not send empty context", (testComplete) ->
       context = {}
       query = FacetQuery.fromJS([
         { operation: 'split', name: 'Page', bucket: 'identity', attribute: 'page' }
@@ -1391,4 +1391,4 @@ describe "Druid driver", ->
         query
       }, (err, result) ->
         expect(count).to.equal(1)
-        done()
+        testComplete()

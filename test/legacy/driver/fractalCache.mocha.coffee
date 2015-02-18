@@ -2434,7 +2434,7 @@ describe "Fractal cache", ->
           ]
         })
 
-        dayLightSavingsDriver = (request) -> Q(dayLightSavingsData)
+        dayLightSavingsDriver = -> Q(dayLightSavingsData)
 
         dayLightSavingsDriverCached = fractalCache({
           driver: dayLightSavingsDriver
@@ -2491,7 +2491,7 @@ describe "Fractal cache", ->
           ]
         })
 
-        dayLightSavingsDriver = (request) -> Q(dayLightSavingsData)
+        dayLightSavingsDriver = -> Q(dayLightSavingsData)
 
         dayLightSavingsDriverCached = fractalCache({
           driver: dayLightSavingsDriver
@@ -2552,7 +2552,7 @@ describe "Fractal cache", ->
           ]
         }
 
-        dayLightSavingsDriver = (request) -> Q(dayLightSavingsData)
+        dayLightSavingsDriver = -> Q(dayLightSavingsData)
 
         dayLightSavingsDriverCached = fractalCache({
           driver: dayLightSavingsDriver
@@ -2619,7 +2619,7 @@ describe "Fractal cache", ->
           ]
         }
 
-        dayLightSavingsDriver = (request) -> Q(dayLightSavingsData)
+        dayLightSavingsDriver = -> Q(dayLightSavingsData)
 
         dayLightSavingsDriverCached = fractalCache({
           driver: dayLightSavingsDriver
@@ -2706,7 +2706,7 @@ describe "Fractal cache", ->
           ]
         }
 
-        dayLightSavingsDriver = (request) -> Q(dayLightSavingsData)
+        dayLightSavingsDriver = -> Q(dayLightSavingsData)
 
         dayLightSavingsDriverCached = fractalCache({
           driver: dayLightSavingsDriver

@@ -19,8 +19,8 @@ facet = require("../../../build/facet")
 
 toSegmentTreeWithMeta = ({prop, loading, meta, splits}) ->
   rootSegment = SegmentTree.fromJS({prop})
-  rootSegment.mata = {}
-  rootSegment.mata[k] = v for k, v of meta
+  rootSegment.meta = {}
+  rootSegment.meta[k] = v for k, v of meta
   rootSegment.markLoading() if loading
   rootSegment.setSplits(splits.map(toSegmentTreeWithMeta)) if splits
   return rootSegment

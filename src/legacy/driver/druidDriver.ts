@@ -1622,6 +1622,8 @@ module Legacy {
           deferred.resolve((rootSegment || new SegmentTree({})).selfClean());
         }
       );
+
+      return deferred.promise;
     };
 
     driver.introspect = (opts: any) => {

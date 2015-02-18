@@ -119,16 +119,13 @@ exports.makeErrorTest = (driverFnMap) ->
       return driverFn
 
     return (testComplete) ->
-      Q.all(
-        driverFns.map((driverFn) ->
-          return driverFn({
-            query
-            context: { priority: -3 }
-          })
-            .then(-> throw new Error('DID_NOT_ERROR'))
-            .fail((err) ->
-              expect(err.message).equal(error, "#{driverName} driver error should match")
-              return
-            )
-        )
-      ).then(testComplete)
+      Q.allSettled(driverFns.map((driverFn) -> driverFn(request)))
+      .then((results) ->
+        for result, i in results
+          if result.state is "fulfilled"
+            throw new Error("#{drivers[i]} did not error")
+          else
+            expect(result.reason.message).to.equal(error, "#{drivers[i]} did not conform to error")
+        testComplete()
+      )
+      .done()

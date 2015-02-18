@@ -53,7 +53,7 @@ driverFns.druid = druidDriver({
 
 testError = utils.makeErrorTest(driverFns)
 
-describe "Error compat test", ->
+describe "Error compatibility", ->
   describe "basics", ->
     it "request not supplied", testError {
       drivers: ['simple', 'mySql', 'druid']

@@ -1,7 +1,8 @@
 { expect } = require("chai")
 
 facet = require("../../../build/facet")
-{ FacetQuery, SegmentTree, Table } = facet.legacy
+{ FacetQuery, SegmentTree, driverUtil } = facet.legacy
+{ Table } = driverUtil
 
 data = require('../../data')
 

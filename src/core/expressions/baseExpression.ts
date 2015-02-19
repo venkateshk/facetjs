@@ -412,8 +412,8 @@ module Core {
       });
     }
 
-    public count() { return this._performUnaryExpression({ op: 'aggregate', fn: 'count'}); }
-    public sum(attr: any) { return this._performAggregate('count', attr); }
+    public count() { return this._performUnaryExpression({ op: 'aggregate', fn: 'count' }); }
+    public sum(attr: any) { return this._performAggregate('sum', attr); }
     public min(attr: any) { return this._performAggregate('min', attr); }
     public max(attr: any) { return this._performAggregate('max', attr); }
     public group(attr: any) { return this._performAggregate('group', attr); }

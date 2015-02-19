@@ -42,10 +42,10 @@ Factor
 
 
 Aggregate
-  = ex:Variable "." fn:AggregateFn "(" _ agg:Expression? _ ")"
+  = ex:Variable "." fn:AggregateFn "(" _ attr:Expression? _ ")"
     { 
       var res = { op: "aggregate", fn: fn, operand: ex };
-      if (agg) res.aggregate = agg;
+      if (attr) res.attribute = attr;
       return res; 
     }
 
@@ -57,7 +57,7 @@ Literal
   / string:String { return { op: "literal", value: string }; }
 
 AggregateFn "Aggregate Function"
-  = "count" / "sum" / "max" / "min" / "average" / "uniqueCount"
+  = "count" / "sum" / "max" / "min" / "average" / "uniqueCount" / "group"
 
 
 String "String"

@@ -36,6 +36,7 @@ MultiplicativeExpression
 
 Factor
   = "(" ex:Expression ")" { return ex; }
+  / Label
   / Aggregate
   / Literal
   / Variable
@@ -48,6 +49,10 @@ Aggregate
       if (attr) res.attribute = attr;
       return res; 
     }
+
+Label
+  = ex:Aggregate ".label(" _ name:String _ ")"
+    { return { op: 'label', operand: ex, name: name }; }
 
 Variable
   = "$" name:Name { return { op: "ref", name: name }; }

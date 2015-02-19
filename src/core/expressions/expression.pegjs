@@ -7,41 +7,31 @@ Expression
 AdditiveExpression
   = head:MultiplicativeExpression tail:(_ [+-] _ MultiplicativeExpression)*
     {
-      var lookup = { '+': 'add', "-": 'subtract' };
-      var result = head;
-      var lastOp;
+      if (!tail.length) return head;
+      var operands = [head];
       for (var i = 0; i < tail.length; i++) {
-        if (tail[i][1] === lastOp) {
-          result.operands.push(tail[i][3])
+        if (tail[i][1] === '+') {
+          operands.push(tail[i][3]);
         } else {
-          lastOp = tail[i][1];
-          result = {
-            op: lookup[lastOp],
-            operands: [result, tail[i][3]]
-          };
+          operands.push({ op: 'negate', operand: tail[i][3] });
         }
       }
-      return result;
+      return { op: 'add', operands: operands };
     }
 
 MultiplicativeExpression
   = head:Factor tail:(_ [*/] _ Factor)*
     {
-      var lookup = { "*": 'multiply', "/": 'divide' };
-      var result = head;
-      var lastOp;
+      if (!tail.length) return head;
+      var operands = [head];
       for (var i = 0; i < tail.length; i++) {
-        if (tail[i][1] === lastOp) {
-          result.operands.push(tail[i][3])
+        if (tail[i][1] === '*') {
+          operands.push(tail[i][3]);
         } else {
-          lastOp = tail[i][1];
-          result = {
-            op: lookup[lastOp],
-            operands: [result, tail[i][3]]
-          };
+          operands.push({ op: 'reciprocate', operand: tail[i][3] });
         }
       }
-      return result;
+      return { op: 'multiply', operands: operands };
     }
 
 Factor
@@ -57,7 +47,7 @@ Call
     { return { op: "call", object: ex, method: method }; }
 
 Variable
-  = "$" name:Name { return { op: "variable", name: name }; }
+  = "$" name:Name { return { op: "ref", name: name }; }
 
 Literal
   = number:Number
@@ -117,4 +107,3 @@ NotTick "NotTick"
 
 _ "Whitespace"
   = [ \t\r\n]*
-

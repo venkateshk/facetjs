@@ -1,5 +1,7 @@
 module Core {
   export class RefExpression extends Expression {
+    static NAME_REGEXP = /^(\^*)([a-z_]\w*)$/i;
+
     static fromJS(parameters: ExpressionJS): RefExpression {
       return new RefExpression(<any>parameters);
     }
@@ -10,7 +12,7 @@ module Core {
     constructor(parameters: ExpressionValue) {
       super(parameters, dummyObject);
       this._ensureOp("ref");
-      var match = parameters.name.match(/^(\^*)([a-z_]\w*)$/i);
+      var match = parameters.name.match(RefExpression.NAME_REGEXP);
       if (match) {
         this.generations = match[1];
         this.name = match[2];

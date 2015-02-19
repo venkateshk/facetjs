@@ -34,7 +34,7 @@ describe "typecheck1", ->
         lhs: 5
         rhs: 'hello'
       })
-    ).to.throw('lessThan lhs must be of type NUMBER')
+    ).to.throw('lessThan rhs must be of type NUMBER')
 
   it "should throw on bad in", ->
     expect(->

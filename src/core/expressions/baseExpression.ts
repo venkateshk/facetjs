@@ -85,6 +85,16 @@ module Core {
     }
 
     /**
+     * Parses an expression
+     *
+     * @param str The expression to parse
+     * @returns {Expression}
+     */
+    static parse(str: string): Expression {
+      return Expression.fromJS(expressionParser.parse(str));
+    }
+
+    /**
      * Deserializes or parses an expression
      *
      * @param param The expression to parse
@@ -103,10 +113,10 @@ module Core {
           break;
 
         case 'string':
-          if (param[0] === '$') {
-            expressionJS = { op: 'ref', name: param.substring(1) };
+          if (RefExpression.NAME_REGEXP.test(param)) {
+            expressionJS = { op: 'ref', name: param };
           } else {
-            expressionJS = { op: 'literal', value: param };
+            expressionJS = Expression.parse(param);
           }
           break;
 
@@ -115,10 +125,6 @@ module Core {
       }
 
       return Expression.fromJS(expressionJS);
-    }
-
-    static parse(str: string): Expression {
-      return Expression.fromJS(expressionParser.parse(str));
     }
 
     static classMap: Lookup<typeof Expression> = {};
@@ -382,6 +388,9 @@ module Core {
 
     public not() { return this._performUnaryExpression({ op: 'not' }); }
     public match(re: string) { return this._performUnaryExpression({ op: 'match', regexp: re }); }
+
+    public negate() { return this._performUnaryExpression({ op: 'negate' }); }
+    public reciprocate() { return this._performUnaryExpression({ op: 'reciprocate' }); }
 
     public numberBucket(size: number, offset: number = 0) {
       return this._performUnaryExpression({ op: 'numberBucket', size: size, offset: offset });

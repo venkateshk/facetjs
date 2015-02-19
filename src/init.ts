@@ -40,14 +40,6 @@
  Please look at compile-tsc and exports.ts to get the full picture.
  Also checkout ../build/facet.js to understand what it ends up looking as.
 
- A note about TSD type definitions:
- The output of require('...') calls must be typecast to the correct type. The problem is that you can not typecast
- to a module type, only to an interface or class. A lot of modules are (incorrectly?) typed to have all their base
- functions on the module and not in some interface.
- If you look at the D3 example in the TS handbook[2] you will see that there is a type called `Base` and that type
- allows them to decade a `var d3`. Some modules do not have that and so (for now) I will modify their type definitions
- and put them in the ../definitions directory.
-
  Footnotes:
  [1] If I am wrong and there is a better way to do this PLEASE let me know; I will buy you a beer - VO
  [2] http://www.typescriptlang.org/Handbook#modules-pitfalls-of-modules

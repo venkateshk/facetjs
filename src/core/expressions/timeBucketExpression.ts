@@ -42,10 +42,20 @@ module Core {
       return js;
     }
 
-    // ToDo: equals
+    public equals(other: TimeBucketExpression): boolean {
+      return super.equals(other) &&
+        this.duration.equals(other.duration) &&
+        this.timezone.equals(other.timezone);
+    }
 
     protected _makeFn(operandFn: Function): Function {
-      throw new Error("implement me");
+      var duration = this.duration;
+      var timezone = this.timezone;
+      return (d: Datum) => {
+        var date = operandFn(d);
+        if (date === null) return null;
+        return TimeRange.fromDate(date, duration, timezone);
+      }
     }
 
     protected _makeFnJS(operandFnJS: string): string {

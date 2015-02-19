@@ -8,8 +8,8 @@ module Core {
       return new NumberBucketExpression(value);
     }
 
-    public offset: number;
     public size: number;
+    public offset: number;
 
     constructor(parameters: ExpressionValue) {
       super(parameters, dummyObject);
@@ -37,8 +37,20 @@ module Core {
       return js;
     }
 
+    public equals(other: NumberBucketExpression): boolean {
+      return super.equals(other) &&
+        this.size === other.size &&
+        this.offset === other.offset;
+    }
+
     protected _makeFn(operandFn: Function): Function {
-      throw new Error("implement me");
+      var size = this.size;
+      var offset = this.offset;
+      return (d: Datum) => {
+        var num = operandFn(d);
+        if (num === null) return null;
+        return NumberRange.fromNumber(num, size, offset);
+      }
     }
 
     protected _makeFnJS(operandFnJS: string): string {

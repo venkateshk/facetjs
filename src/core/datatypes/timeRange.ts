@@ -24,6 +24,14 @@ module Core {
       return isInstanceOf(candidate, TimeRange);
     }
 
+    static fromDate(date: Date, duration: Duration, timezone: Timezone): TimeRange {
+      var start = duration.floor(date, timezone);
+      return new TimeRange({
+        start: start,
+        end: duration.move(start, timezone, 1)
+      });
+    }
+
     static fromJS(parameters: TimeRangeJS): TimeRange {
       if (typeof parameters !== "object") {
         throw new Error("unrecognizable timeRange");

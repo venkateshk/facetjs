@@ -21,6 +21,14 @@ module Core {
       return isInstanceOf(candidate, NumberRange);
     }
 
+    static fromNumber(num: number, size: number, offset: number): NumberRange {
+      var start = Math.floor((num - offset) / size) * size + offset;
+      return new NumberRange({
+        start: start,
+        end: start + size
+      });
+    }
+
     static fromJS(parameters: NumberRangeJS): NumberRange {
       if (typeof parameters !== "object") {
         throw new Error("unrecognizable numberRange");

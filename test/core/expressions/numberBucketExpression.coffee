@@ -5,17 +5,19 @@ describe 'NumberBucketExpression', ->
     beforeEach ->
       this.expression = {
         op: 'numberBucket'
-        operand: { op: 'literal', value: 1 }
+        operand: { op: 'literal', value: 1.01 }
         size: 0.05
         offset: 1
       }
 
     tests.complexityIs(2)
     tests.simplifiedExpressionIs({
-      op: 'numberBucket'
-      operand: { op: 'literal', value: 1 }
-      size: 0.05
-      offset: 1
+      "op": "literal"
+      "type": "NUMBER_RANGE"
+      "value": {
+        "end": 1.05
+        "start": 1
+      }
     })
 
   describe 'with complex expression', ->
@@ -35,8 +37,10 @@ describe 'NumberBucketExpression', ->
 
     tests.complexityIs(4)
     tests.simplifiedExpressionIs({
-      op: 'numberBucket'
-      operand: { op: 'literal', value: 4 }
-      size: 0.05
-      offset: 1
+      "op": "literal"
+      "type": "NUMBER_RANGE"
+      "value": {
+        "end": 4.05
+        "start": 4
+      }
     })

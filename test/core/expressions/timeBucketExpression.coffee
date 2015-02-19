@@ -7,17 +7,18 @@ describe 'TimeBucketExpression', ->
         op: 'timeBucket',
         operand: {
           op: 'literal'
-          value: new Date(10)
+          value: new Date("2015-02-19T05:59:02.822Z")
         }
         duration: 'P1D'
+        timezone: 'Etc/UTC'
       }
 
     tests.complexityIs(2)
     tests.simplifiedExpressionIs({
-      op: 'timeBucket',
-      operand: {
-        op: 'literal'
-        value: new Date(10)
+      "op": "literal"
+      "type": "TIME_RANGE"
+      "value": {
+        "end": new Date("2015-02-20T00:00:00.000Z")
+        "start": new Date("2015-02-19T00:00:00.000Z")
       }
-      duration: 'P1D'
     })

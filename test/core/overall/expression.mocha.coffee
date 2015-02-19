@@ -2,6 +2,11 @@
 
 { testHigherObjects } = require("higher-object/build/tester")
 
+{ WallTime } = require('chronology')
+if not WallTime.rules
+  tzData = require("chronology/lib/walltime/walltime-data.js")
+  WallTime.init(tzData.rules, tzData.zones)
+
 facet = require('../../../build/facet')
 { Expression } = facet.core
 
@@ -16,11 +21,6 @@ facet = require('../../../build/facet')
 # describe 'BucketExpression', -> beforeEach -> this.expression = Expression.fromJS({ op: 'bucket', operand: TIME, duration: 'P1D' })
 # describe 'RangeExpression with time', -> beforeEach -> this.expression = Expression.fromJS({ op: 'range', lhs: TIME, rhs: TIME })
 # describe 'SplitExpression', -> beforeEach -> this.expression = Expression.fromJS({ op: 'split', operand: DATASET, attribute: EXPRESSION, name: 'splits' })
-
-# describe 'MaxExpression', -> beforeEach -> this.expression = Expression.fromJS({ op: 'max', operands: [{ op: 'literal', value: 5 }, { op: 'literal', value: -12 }, { op: 'literal', value: 0.4 }] })
-# describe 'MinExpression', -> beforeEach -> this.expression = Expression.fromJS({ op: 'min', operands: [{ op: 'literal', value: 5 }, { op: 'literal', value: -12 }, { op: 'literal', value: 0.4 }] })
-# describe 'AlternativeExpression', -> beforeEach -> this.expression = Expression.fromJS({ op: 'alternative', operands: [{ op: 'literal', value: 5 }, { op: 'literal', value: -12 }, { op: 'literal', value: 0.4 }] })
-
 
 describe "Expression", ->
   it "passes higher object tests", ->
@@ -59,7 +59,11 @@ describe "Expression", ->
       { op: 'negate', operand: { op: 'literal', value: 5 } }
       { op: 'multiply', operands: [{ op: 'literal', value: 5 }, { op: 'literal', value: -12 }, { op: 'literal', value: 0.4 }] }
       { op: 'reciprocate', operand: { op: 'literal', value: 5 } }
-      { op: 'numberRange', lhs: { op: 'literal', value: 5 }, rhs: { op: 'literal', value: 7 } }
+
+      { op: 'timeBucket', operand: { op: 'ref', name: 'time' }, duration: 'P1D', timezone: 'Etc/UTC' }
+      { op: 'timeBucket', operand: { op: 'ref', name: 'time' }, duration: 'PT1H', timezone: 'Etc/UTC' }
+
+      { op: 'aggregate', operand: { op: 'ref', name: 'diamonds', type: 'DATASET' }, fn: 'sum', attribute: { op: 'ref', name: 'added' } }
 
       { op: 'concat', operands: [{ op: 'literal', value: 'Honda' }, { op: 'literal', value: 'BMW' }, { op: 'literal', value: 'Suzuki' } ]}
 

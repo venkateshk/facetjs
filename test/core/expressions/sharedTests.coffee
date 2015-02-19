@@ -1,5 +1,10 @@
 { expect } = require("chai")
 
+{ WallTime } = require('chronology')
+if not WallTime.rules
+  tzData = require("chronology/lib/walltime/walltime-data.js")
+  WallTime.init(tzData.rules, tzData.zones)
+
 facet = require('../../../build/facet')
 { Expression } = facet.core
 

@@ -6,8 +6,11 @@ facet = require('../../../build/facet')
 describe "parser", ->
   it "it should parse the mega definition", ->
     ex = facet()
+      #.filter('$color = "Red"')
+      #.filter('$country.is("USA")')
       .apply('parent_x', "$^x")
-      .apply('addition', "$x + 10 - $y")
+      .apply('addition1', "$x + 10 - $y")
+      #.apply('addition2', "$x.add(1)")
       .apply('multiplication', "$x * 10 / $y")
       .apply('agg_count', "$data.count()")
       .apply('agg_sum', "$data.sum($price)")
@@ -17,8 +20,11 @@ describe "parser", ->
 
     expect(ex.toJS()).to.deep.equal(
       facet()
+      #.filter(facet('color').is("Red")')
+      #.filter(facet('country').is("USA")')
       .apply('parent_x', facet("^x"))
-      .apply('addition', facet("x").add(10, facet("y").negate()))
+      .apply('addition1', facet("x").add(10, facet("y").negate()))
+      #.apply('addition2', facet("x").add(1))
       .apply('multiplication', facet("x").multiply(10, facet("y").reciprocate()))
       .apply('agg_count', facet("data").count())
       .apply('agg_sum', facet("data").sum(facet('price')))
@@ -27,3 +33,4 @@ describe "parser", ->
       .apply('agg_group_label2', facet("data").group('$carat').label('Carat'))
       .toJS()
     )
+    

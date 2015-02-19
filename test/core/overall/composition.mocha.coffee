@@ -126,26 +126,105 @@ describe "composition", ->
           "expression": {
             "op": "aggregate"
             "operand": { "op": "ref", "name": "Diamonds" }
-            "fn": "count"
+            "fn": "sum"
             "attribute": { "op": "ref", "name": "priceOver2" }
           }
         }
       ]
     })
 
-  it.skip "works in semi-realistic case (using parser)", ->
+  it "works in semi-realistic case (using parser)", ->
     someDriver = {} # ToDo: fix this
 
     ex = facet()
       .apply("Diamonds",
-        facet(someDriver)
-          .filter("$color = 'D'")
+        facet() #someDriver)
+          #.filter("$color = 'D'")
           .apply("priceOver2", "$price/2")
       )
       .apply('Count', facet('Diamonds').count())
       .apply('TotalPrice', facet('Diamonds').sum('$priceOver2'))
 
-    console.log(ex.toJS())
     expect(ex.toJS()).to.deep.equal({
-      "?": "?"
+      "actions": [
+        {
+          "action": "apply"
+          "expression": {
+            "actions": [
+              {
+                "action": "apply"
+                "expression": {
+                  "op": "multiply"
+                  "operands": [
+                    {
+                      "name": "price"
+                      "op": "ref"
+                    }
+                    {
+                      "op": "reciprocate"
+                      "operand": {
+                        "op": "literal"
+                        "value": 2
+                      }
+                    }
+                  ]
+                }
+                "name": "priceOver2"
+              }
+            ]
+            "op": "actions"
+            "operand": {
+              "op": "literal"
+              "type": "DATASET"
+              "value": {
+                "data": [
+                  {}
+                ]
+                "dataset": "native"
+              }
+            }
+          }
+          "name": "Diamonds"
+        }
+        {
+          "action": "apply"
+          "expression": {
+            "fn": "count"
+            "op": "aggregate"
+            "operand": {
+              "name": "Diamonds"
+              "op": "ref"
+            }
+          }
+          "name": "Count"
+        }
+        {
+          "action": "apply"
+          "expression": {
+            "attribute": {
+              "name": "priceOver2"
+              "op": "ref"
+            }
+            "fn": "sum"
+            "op": "aggregate"
+            "operand": {
+              "name": "Diamonds"
+              "op": "ref"
+            }
+          }
+          "name": "TotalPrice"
+        }
+      ]
+      "op": "actions"
+      "operand": {
+        "op": "literal"
+        "type": "DATASET"
+        "value": {
+          "data": [
+            {}
+          ]
+          "dataset": "native"
+        }
+      }
     })
+    

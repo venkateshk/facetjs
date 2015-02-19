@@ -113,8 +113,8 @@ module Core {
           break;
 
         case 'string':
-          if (RefExpression.NAME_REGEXP.test(param)) {
-            expressionJS = { op: 'ref', name: param };
+          if (/^\w+$/.test(param)) {
+            expressionJS = { op: 'literal', value: param };
           } else {
             expressionJS = Expression.parse(param);
           }

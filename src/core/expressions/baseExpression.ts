@@ -116,7 +116,7 @@ module Core {
           if (/^\w+$/.test(param)) {
             expressionJS = { op: 'literal', value: param };
           } else {
-            expressionJS = Expression.parse(param);
+            expressionJS = expressionParser.parse(param);
           }
           break;
 

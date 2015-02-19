@@ -39,11 +39,11 @@ Factor
   / Label
   / Aggregate
   / Literal
-  / Variable
+  / Ref
 
 
 Aggregate
-  = ex:Variable "." fn:AggregateFn "(" _ attr:Expression? _ ")"
+  = ex:Ref "." fn:AggregateFn "(" _ attr:Expression? _ ")"
     { 
       var res = { op: "aggregate", fn: fn, operand: ex };
       if (attr) res.attribute = attr;
@@ -54,8 +54,9 @@ Label
   = ex:Aggregate ".label(" _ name:String _ ")"
     { return { op: 'label', operand: ex, name: name }; }
 
-Variable
-  = "$" name:Name { return { op: "ref", name: name }; }
+Ref
+  = "$" name:RefName 
+    { return { op: "ref", name: name }; }
 
 Literal
   = number:Number { return { op: "literal", value: number }; }
@@ -98,6 +99,9 @@ Digit
 
 Name "Name"
   = $([a-z0-9A-Z_]+)
+
+RefName "RefName"
+  = $("^"* [a-z0-9A-Z_]+)
 
 NotSQuote "NotSQuote"
   = $([^']+)

@@ -3,7 +3,7 @@
 facet = require('../../../build/facet')
 { Expression, Dataset } = facet.core
 
-describe "composition", ->
+describe "compute", ->
   data = [
     { cut: 'Good',  price: 400 }
     { cut: 'Good',  price: 300 }

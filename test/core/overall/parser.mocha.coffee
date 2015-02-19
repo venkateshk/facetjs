@@ -6,6 +6,7 @@ facet = require('../../../build/facet')
 describe "parser", ->
   it "it should parse the mega definition", ->
     ex = facet()
+      .apply('parent_x', "$^x")
       .apply('addition', "$x + 10 - $y")
       .apply('multiplication', "$x * 10 / $y")
       .apply('agg_count', "$data.count()")
@@ -16,6 +17,7 @@ describe "parser", ->
 
     expect(ex.toJS()).to.deep.equal(
       facet()
+      .apply('parent_x', facet("^x"))
       .apply('addition', facet("x").add(10, facet("y").negate()))
       .apply('multiplication', facet("x").multiply(10, facet("y").reciprocate()))
       .apply('agg_count', facet("data").count())

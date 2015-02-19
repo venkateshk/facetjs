@@ -32,25 +32,16 @@ module Core {
       return 'actions(' + this.operand.toString() + ')';
     }
 
-    public simplify(): Expression {
-      var alphabeticallySortedActions: Action[];
-      var aReferences: string[];
-      var bReferences: string[];
+    private _getSimpleActions(): Action[] {
       var filters: FilterAction[];
       var previousSortAction: SortAction;
-      var referenceMap: { [k: string]: number };
       var references: string[];
       var rootNode: Action;
       var rootNodes: Action[];
-      var seen: { [k: string]: boolean };
       var simplifiedActions: Action[];
-      var sortLimitMap: { [k: string]: LimitAction};
+      var sortLimitMap: Lookup<LimitAction>;
       var thisAction: Action;
       var topologicallySortedActions: Action[];
-
-      var value = this.valueOf();
-      value.operand = this.operand.simplify();
-      value.actions = [];
 
       simplifiedActions = this.actions.slice();
       filters = simplifiedActions.filter((action) => action instanceof FilterAction);
@@ -64,26 +55,27 @@ module Core {
         }));
       }
       simplifiedActions = simplifiedActions.map((action) => action.simplify());
-      alphabeticallySortedActions = simplifiedActions.filter((action) => !(action instanceof LimitAction))
 
       sortLimitMap = {};
       for (var i = 0; i < simplifiedActions.length; i++) {
-        if (simplifiedActions[i] instanceof SortAction) previousSortAction = <SortAction>simplifiedActions[i];
+        var simplifiedAction = simplifiedActions[i];
+        if (simplifiedAction instanceof SortAction) previousSortAction = simplifiedAction;
 
-        if ((simplifiedActions[i] instanceof LimitAction) && previousSortAction) {
-          sortLimitMap[previousSortAction.toString()] = <LimitAction>simplifiedActions[i];
-          previousSortAction = undefined;
+        if ((simplifiedAction instanceof LimitAction) && previousSortAction) {
+          sortLimitMap[previousSortAction.toString()] = simplifiedAction;
+          previousSortAction = null;
         }
       }
 
       // Sort topologically
-      seen = {};
-      referenceMap = {};
+      var seen: Lookup<boolean> = {};
+      var referenceMap: Lookup<number> = {};
+      var alphabeticallySortedActions = simplifiedActions.filter((action) => !(action instanceof LimitAction))
       for (var i = 0; i < alphabeticallySortedActions.length; i++) {
         thisAction = alphabeticallySortedActions[i];
         references = thisAction.expression.getReferences();
 
-        if ((thisAction instanceof DefAction) || (thisAction instanceof ApplyAction)) {
+        if (thisAction instanceof DefAction || thisAction instanceof ApplyAction) {
           seen["$" + thisAction.name] = true;
         }
         for (var j = 0; j < references.length; j++) {
@@ -103,63 +95,51 @@ module Core {
 
       // initial steps
       rootNodes = alphabeticallySortedActions.filter(function (thisAction) {
-        return (thisAction.expression.getReferences().every((ref) => !referenceMap[ref]));
+        return (thisAction.expression.getReferences().every((ref) => referenceMap[ref] === 0));
       });
       alphabeticallySortedActions = alphabeticallySortedActions.filter(function (thisAction) {
         return !(thisAction.expression.getReferences().every((ref) => !referenceMap[ref]));
       });
 
       // Start sorting
-      var checkPrecedence = function (a: Action, b: Action) {
-        if (Action.getPrecedenceOrder(a) > Action.getPrecedenceOrder(b)) {
-          return 1;
-        } else if (Action.getPrecedenceOrder(a) < Action.getPrecedenceOrder(b)) {
-          return -1;
-        }
-
-        aReferences = a.expression.getReferences();
-        bReferences = b.expression.getReferences();
-
-        if (aReferences.length < bReferences.length) {
-          return -1;
-        } else if (aReferences.length > bReferences.length) {
-          return 1;
-        } else {
-          if (bReferences.toString() !== aReferences.toString()) {
-            return aReferences.toString().localeCompare(bReferences.toString());
-          }
-
-          return (<DefAction>a).name.localeCompare((<DefAction>b).name);
-        }
-      };
-
       topologicallySortedActions = [];
       while (rootNodes.length > 0) {
-        rootNodes.sort(checkPrecedence);
-        topologicallySortedActions.push(rootNode = rootNodes.shift())
+        rootNodes.sort(Action.compare);
+        topologicallySortedActions.push(rootNode = rootNodes.shift());
         if ((rootNode instanceof DefAction) || (rootNode instanceof ApplyAction)) {
           referenceMap["$" + rootNode.name]--;
         }
-        for (var i = 0; i < alphabeticallySortedActions.length; i++) {
+        var i = 0;
+        while (i < alphabeticallySortedActions.length) {
           var thisAction = alphabeticallySortedActions[i];
           references = thisAction.expression.getReferences();
-          if (references.every((ref) => !referenceMap[ref])) {
+          if (references.every((ref) => referenceMap[ref] === 0)) {
             rootNodes.push(alphabeticallySortedActions.splice(i, 1)[0]);
+          } else {
+            i++;
           }
         }
       }
 
-      if (alphabeticallySortedActions.length) throw new Error('topological sort error');
+      if (alphabeticallySortedActions.length) throw new Error('topological sort error, circular dependency detected');
 
-      for (var i = 0; i < topologicallySortedActions.length; i++) { //Add limits
+      // Add limits
+      var actionsWithLimits: Action[] = [];
+      for (var i = 0; i < topologicallySortedActions.length; i++) {
         thisAction = topologicallySortedActions[i];
+        actionsWithLimits.push(thisAction);
         if (thisAction instanceof SortAction && sortLimitMap[thisAction.toString()]) {
-          topologicallySortedActions.splice(i + 1, 0, sortLimitMap[thisAction.toString()])
+          actionsWithLimits.push(sortLimitMap[thisAction.toString()])
         }
       }
 
-      value.actions = topologicallySortedActions;
+      return actionsWithLimits;
+    }
 
+    public simplify(): Expression {
+      var value = this.valueOf();
+      value.operand = this.operand.simplify();
+      value.actions = this._getSimpleActions();
       return new ActionsExpression(value);
     }
 

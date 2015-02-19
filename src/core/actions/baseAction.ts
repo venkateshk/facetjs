@@ -59,6 +59,29 @@ module Core {
       return orders.length;
     }
 
+    static compare(a: Action, b: Action): number {
+      if (Action.getPrecedenceOrder(a) > Action.getPrecedenceOrder(b)) {
+        return 1;
+      } else if (Action.getPrecedenceOrder(a) < Action.getPrecedenceOrder(b)) {
+        return -1;
+      }
+
+      var aReferences = a.expression.getReferences();
+      var bReferences = b.expression.getReferences();
+
+      if (aReferences.length < bReferences.length) {
+        return -1;
+      } else if (aReferences.length > bReferences.length) {
+        return 1;
+      } else {
+        if (bReferences.toString() !== aReferences.toString()) {
+          return aReferences.toString().localeCompare(bReferences.toString());
+        }
+
+        return (<DefAction>a).name.localeCompare((<DefAction>b).name);
+      }
+    }
+
     public action: string;
     public expression: Expression;
 

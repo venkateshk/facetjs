@@ -37,42 +37,34 @@ MultiplicativeExpression
 Factor
   = "(" ex:Expression ")" { return ex; }
   / Aggregate
-  / Call
   / Literal
   / Variable
 
 
-Call
-  = ex:Variable "." method:Name "(" _ ")"
-    { return { op: "call", object: ex, method: method }; }
+Aggregate
+  = ex:Variable "." fn:AggregateFn "(" _ agg:Expression? _ ")"
+    { 
+      var res = { op: "aggregate", fn: fn, operand: ex };
+      if (agg) res.aggregate = agg;
+      return res; 
+    }
 
 Variable
   = "$" name:Name { return { op: "ref", name: name }; }
 
 Literal
-  = number:Number
-    { return { op: "literal", value: number }; }
+  = number:Number { return { op: "literal", value: number }; }
+  / string:String { return { op: "literal", value: string }; }
 
-Aggregate "Aggregate"
-  = aggregate:AggregateFn0 "(" _ ")"
-    { return { aggregate: aggregate }; }
-  / aggregate:AggregateFn1 "(" attribute:Attribute ")"
-    { return { aggregate: aggregate, attribute: attribute }; }
+AggregateFn "Aggregate Function"
+  = "count" / "sum" / "max" / "min" / "average" / "uniqueCount"
 
-AggregateFn0 "Aggregate Function"
-  = "count"
 
-AggregateFn1 "Aggregate Function"
-  = "sum"
-  / "max"
-  / "min"
-  / "average"
-  / "uniqueCount"
-
-Attribute "Attribute"
-  = "`" chars:NotTick "`" { return chars; }
-  / chars:Name
-  / "`" chars:NotTick { throw new Error("Unmatched tick mark")}
+String "String"
+  = "'" chars:NotSQuote "'" { return chars; }
+  / "'" chars:NotSQuote { throw new Error("Unmatched single quote")}
+  / '"' chars:NotDQuote '"' { return chars; }
+  / '"' chars:NotDQuote { throw new Error("Unmatched double quote")}
 
 
 /* Numbers */
@@ -102,8 +94,11 @@ Digit
 Name "Name"
   = $([a-z0-9A-Z_]+)
 
-NotTick "NotTick"
-  = $([^`]+)
+NotSQuote "NotSQuote"
+  = $([^']+)
+
+NotDQuote "NotDQuote"
+  = $([^"]+)
 
 _ "Whitespace"
   = [ \t\r\n]*

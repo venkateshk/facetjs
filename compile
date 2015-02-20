@@ -4,20 +4,12 @@ echo "Compiling..."
 
 rm -rf build/*
 
-mkdir -p build/parser
-mkdir -p build/package
-
 echo "Compiling PEG.js"
 ./compile-pegjs
-
-# Parts
-#mkdir -p package
 
 # TypeScript
 ./compile-tsc
 
-# echo "Bundle type definitions"
-# node dts-bundle.js
 #
 # # All in one
 # browserify build/facet.js \

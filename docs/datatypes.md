@@ -1,3 +1,3 @@
-# Talk about datatypes here
+# Datatypes
 
-Datatypes make me feel like a king
+ToDo: fill in ASAP (Feb 20, 2015)

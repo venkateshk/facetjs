@@ -139,7 +139,7 @@ module Core {
     public simplify(): Expression {
       var value = this.valueOf();
       value.operand = this.operand.simplify();
-      value.actions = this._getSimpleActions();
+      value.actions = this.actions.map((action) => action.simplify()); //this._getSimpleActions();
       return new ActionsExpression(value);
     }
 
@@ -261,7 +261,7 @@ module Core {
 
       if (operand.isOp('literal')) {
         var ds = <Dataset>(<LiteralExpression>operand).value;
-        if (ds.dataset === 'native') {
+        if (ds.source === 'native') {
           return this._performActionsOnNativeDataset(<NativeDataset>ds, context);
         } else {
           throw new Error('can not support that yet (not native)');

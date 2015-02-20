@@ -19,4 +19,4 @@ Read the blogs ...
 Discuss ... (Google group, irc, etc.)
 
 ## Support
-Report problems ... file github issue, ask question on stackoverload (facet.js tag on stackoverload?), google group, irc, twitter.
+Report problems ... file github issue, google group, irc, twitter.

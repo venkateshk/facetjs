@@ -1,19 +1,14 @@
 module Core {
   export interface DatasetValue {
-    dataset: string;
-    data?: Datum[];
-  }
-
-  export interface DatasetJS {
-    dataset: string;
+    source: string;
     data?: Datum[];
   }
 
 // =====================================================================================
 // =====================================================================================
 
-  var check: ImmutableClass<DatasetValue, DatasetJS>;
-  export class Dataset implements ImmutableInstance<DatasetValue, DatasetJS> {
+  var check: ImmutableClass<DatasetValue, any>;
+  export class Dataset implements ImmutableInstance<DatasetValue, any> {
     static type = 'DATASET';
 
     static isDataset(candidate: any): boolean {
@@ -27,64 +22,70 @@ module Core {
       Dataset.classMap[op] = ex;
     }
 
-    static fromJS(datasetJS: DatasetJS): Dataset {
-      if (!datasetJS.hasOwnProperty("dataset")) {
-        throw new Error("dataset must be defined");
+    static fromJS(datasetJS: any): Dataset {
+      if (Array.isArray(datasetJS)) {
+        datasetJS = {
+          source: 'native',
+          data: datasetJS
+        }
       }
-      var dataset = datasetJS.dataset;
-      if (typeof dataset !== "string") {
+      if (!datasetJS.hasOwnProperty("source")) {
+        throw new Error("dataset `source` must be defined");
+      }
+      var source: string = datasetJS.source;
+      if (typeof source !== "string") {
         throw new Error("dataset must be a string");
       }
-      var ClassFn = Dataset.classMap[dataset];
+      var ClassFn = Dataset.classMap[source];
       if (!ClassFn) {
-        throw new Error("unsupported dataset '" + dataset + "'");
+        throw new Error("unsupported dataset '" + source + "'");
       }
 
       return ClassFn.fromJS(datasetJS);
     }
 
-    public dataset: string;
+    public source: string;
 
     constructor(parameters: DatasetValue, dummy: Dummy = null) {
-      this.dataset = parameters.dataset;
+      this.source = parameters.source;
       if (dummy !== dummyObject) {
         throw new TypeError("can not call `new Dataset` directly use Dataset.fromJS instead");
       }
     }
 
-    protected _ensureDataset(dataset: string) {
-      if (!this.dataset) {
-        this.dataset = dataset;
+    protected _ensureSource(source: string) {
+      if (!this.source) {
+        this.source = source;
         return;
       }
-      if (this.dataset !== dataset) {
-        throw new TypeError("incorrect dataset '" + this.dataset + "' (needs to be: '" + dataset + "')");
+      if (this.source !== source) {
+        throw new TypeError("incorrect dataset '" + this.source + "' (needs to be: '" + source + "')");
       }
     }
 
     public valueOf(): DatasetValue {
       return {
-        dataset: this.dataset
+        source: this.source
       };
     }
 
-    public toJS(): DatasetJS {
+    public toJS(): any {
       return {
-        dataset: this.dataset
+        source: this.source
       };
     }
 
     public toString(): string {
-      return "<Dataset:" + this.dataset + ">";
+      return "<Dataset:" + this.source + ">";
     }
 
-    public toJSON(): DatasetJS {
+    public toJSON(): any {
       return this.toJS();
     }
 
     public equals(other: Dataset): boolean {
       return Dataset.isDataset(other) &&
-        this.dataset === other.dataset;
+        this.source === other.source;
     }
   }
   check = Dataset;
@@ -123,7 +124,9 @@ module Core {
           } else {
             var type = v.constructor.type;
             v = v.toJS();
-            v.type = type;
+            if (!Array.isArray(v)) {
+              v.type = type;
+            }
           }
         } else if (typeofV === 'number' && !isFinite(v)) {
           v = { type: 'NUMBER', value: String(v) };
@@ -145,7 +148,7 @@ module Core {
         v = null;
       } else if (Array.isArray(v)) {
         v = NativeDataset.fromJS({
-          dataset: 'base',
+          source: 'native',
           data: v
         })
       } else if (typeof v === 'object') {
@@ -190,9 +193,9 @@ module Core {
   export class NativeDataset extends Dataset {
     static type = 'DATASET';
 
-    static fromJS(datasetJS: DatasetJS): NativeDataset {
+    static fromJS(datasetJS: any): NativeDataset {
       return new NativeDataset({
-        dataset: datasetJS.dataset,
+        source: datasetJS.source,
         data: datasetJS.data.map(datumFromJS)
       })
     }
@@ -202,7 +205,7 @@ module Core {
     constructor(parameters: DatasetValue) {
       super(parameters, dummyObject);
       this.data = parameters.data;
-      this._ensureDataset("native");
+      this._ensureSource("native");
       if (!Array.isArray(this.data)) {
         throw new TypeError("must have a `data` array")
       }
@@ -214,16 +217,14 @@ module Core {
       return value;
     }
 
-    public toJS(): DatasetJS {
-      var js = super.toJS();
-      js.data = this.data.map(datumToJS);
-      return js;
+    public toJS(): any {
+      return this.data.map(datumToJS);
     }
 
     public equals(other: NativeDataset): boolean {
       return super.equals(other) &&
         this.data.length === other.data.length;
-      // ToDo: probably add something else here?
+        // ToDo: probably add something else here?
     }
 
     // Actions
@@ -244,7 +245,7 @@ module Core {
 
     public filter(exFn: Function): NativeDataset {
       return new NativeDataset({
-        dataset: 'native',
+        source: 'native',
         data: this.data.filter((datum) => exFn(datum))
       })
     }
@@ -259,7 +260,7 @@ module Core {
     public limit(limit: number): NativeDataset {
       if (this.data.length <= limit) return this;
       return new NativeDataset({
-        dataset: 'native',
+        source: 'native',
         data: this.data.slice(0, limit)
       })
     }
@@ -324,9 +325,9 @@ module Core {
   export class RemoteDataset extends Dataset {
     static type = 'DATASET';
 
-    static fromJS(datasetJS: DatasetJS): RemoteDataset {
+    static fromJS(datasetJS: any): RemoteDataset {
       return new RemoteDataset({
-        dataset: datasetJS.dataset,
+        source: datasetJS.source,
         data: datasetJS.data.map(datumFromJS)
       })
     }
@@ -336,7 +337,7 @@ module Core {
     constructor(parameters: DatasetValue) {
       super(parameters, dummyObject);
       this.data = parameters.data;
-      this._ensureDataset("native");
+      this._ensureSource("native");
       if (!Array.isArray(this.data)) {
         throw new TypeError("must have a `data` array")
       }
@@ -348,7 +349,7 @@ module Core {
       return value;
     }
 
-    public toJS(): DatasetJS {
+    public toJS(): any {
       var js = super.toJS();
       js.data = this.data.map(datumToJS);
       return js;

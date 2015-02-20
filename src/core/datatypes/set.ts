@@ -119,7 +119,7 @@ module Core {
 
     public label(name: string): Dataset {
       return new NativeDataset({
-        dataset: 'native',
+        source: 'native',
         data: this.toJS().values.map((v) => {
           var datum: Datum = {};
           datum[name] = v;

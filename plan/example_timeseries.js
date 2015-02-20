@@ -13,7 +13,7 @@ facet()
   .apply('Hours',
     facet("wiki").split("bucket($timestamp, PT1H, Etc/UTC)", 'TimeByHour')
     facet("wiki").split("$timestamp.bucket(PT1H, Etc/UTC)", 'TimeByHour')
-    facet("wiki").split(facet("timestamp").bucket(PT1H, Etc/UTC)", 'TimeByHour')
+    facet("wiki").split(facet("timestamp").bucket(PT1H, Etc/UTC), 'TimeByHour')
       // [
       //   {
       //     TimeByHour: { type: 'timeRange', start: '2015-01-01T00:00:00Z', end: '2015-01-01T01:00:00Z' }

@@ -33,4 +33,3 @@ describe "parser", ->
       .apply('agg_group_label2', facet("data").group('$carat').label('Carat'))
       .toJS()
     )
-    

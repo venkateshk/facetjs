@@ -56,13 +56,15 @@ module Core {
     }
 
     public getComplexity(): number {
-      return 1 + this.operand.getComplexity() + this.attribute.getComplexity();
+      return 1 + this.operand.getComplexity() + (this.attribute ? this.attribute.getComplexity() : 0);
     }
 
     public simplify(): Expression {
       var value = this.valueOf();
       value.operand = this.operand.simplify();
-      value.attribute = this.attribute.simplify();
+      if (this.attribute) {
+        value.attribute = this.attribute.simplify();
+      }
       return new AggregateExpression(value)
     }
 

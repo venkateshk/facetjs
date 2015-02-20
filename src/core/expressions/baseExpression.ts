@@ -66,7 +66,7 @@ module Core {
     } else {
       return new LiteralExpression({
         op: 'literal',
-        value: new NativeDataset({ dataset: 'native', data: [{}] })
+        value: new NativeDataset({ source: 'native', data: [{}] })
       });
     }
   }
@@ -497,15 +497,19 @@ module Core {
       var deferred = <Q.Deferred<Dataset>>Q.defer();
       // ToDo: typecheck2 the expression
       var simple = this.simplify();
-      if (simple.isOp('literal')) {
-        deferred.resolve((<LiteralExpression>simple).value);
-      } else if (simple.isOp('actions')) {
-        deferred.resolve(<Dataset>(<ActionsExpression>simple).evaluate());
+      if (driver) {
+        return driver(simple);
       } else {
-        deferred.reject(new Error('can not handle that yet: ' + simple.op));
-        // ToDo: implement logic
+        if (simple.isOp('literal')) {
+          deferred.resolve((<LiteralExpression>simple).value);
+        } else if (simple.isOp('actions')) {
+          deferred.resolve(<Dataset>(<ActionsExpression>simple).evaluate());
+        } else {
+          deferred.reject(new Error('can not handle that yet: ' + simple.op));
+          // ToDo: implement logic
+        }
+        return deferred.promise;
       }
-      return deferred.promise;
     }
   }
   check = Expression;

@@ -283,17 +283,46 @@ module Core {
     }
   }
 
+  // --------------
+
+  function segmentTreesToDataset(segmentTrees: Legacy.SegmentTree[], splitNames: string[]): NativeDataset {
+    var splitName = splitNames[0];
+    var splitNamesTail = splitNames.slice(1);
+    return new NativeDataset({
+      source: 'native',
+      data: segmentTrees.map((segmentTree) => {
+        var prop = segmentTree.prop;
+        var datum: Datum = {};
+        for (var k in prop) {
+          var v = prop[k];
+          if (!Array.isArray(v)) {
+            datum[k] = v;
+          } else if (typeof v[0] === 'number') {
+            datum[k] = NumberRange.fromJS({ start: v[0], end: v[1] })
+          } else {
+            datum[k] = TimeRange.fromJS({ start: v[0], end: v[1] })
+          }
+        }
+        if (segmentTree.splits) {
+          datum[splitName] = segmentTreesToDataset(segmentTree.splits, splitNamesTail);
+        }
+        return datum;
+      })
+    })
+  }
+
   export interface Driver {
     (ex: Expression): Q.Promise<Dataset>;
   }
 
-  export function legacyDriver(oldFaceDriver: LegacyDriver.FacetDriver): Driver {
+  export function legacyDriver(legacyDriver: LegacyDriver.FacetDriver): Driver {
     return function(ex: Expression): Q.Promise<Dataset> {
       var legacyQuery = legacyTranslator(ex);
-      return oldFaceDriver({
+      return legacyDriver({
         query: legacyQuery
       }).then((segmentTree) => {
-        return null;
+        var splitNames = legacyQuery.getSplits().map((split) => split.name);
+        return segmentTreesToDataset([segmentTree], splitNames);
       })
     }
   }

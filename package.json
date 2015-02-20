@@ -23,9 +23,9 @@
     "type": "git",
     "url": "http://github.com/vogievetsky/facet.git"
   },
-  "main": "build/facetBase.js",
+  "main": "build/facet.js",
   "typescript": {
-    "definition": "build/facetBase.d.ts"
+    "definition": "build/facet.d.ts"
   },
   "scripts": {
     "prepublish": "./prepublish"

@@ -8,10 +8,7 @@ describe "composition", ->
     expect(ex.toJS()).to.deep.equal({
       "op": "literal"
       "type": "DATASET"
-      "value": {
-        "dataset": "native"
-        "data": [{}]
-      }
+      "value": [{}]
     })
 
   it "works in ref case", ->
@@ -31,10 +28,7 @@ describe "composition", ->
       "operand": {
         "op": "literal"
         "type": "DATASET"
-        "value": {
-          "data": [{}]
-          "dataset": "native"
-        }
+        "value": [{}]
       }
       "actions": [
         {
@@ -67,12 +61,7 @@ describe "composition", ->
       "operand": {
         "op": "literal"
         "type": "DATASET"
-        "value": {
-          "data": [
-            {}
-          ]
-          "dataset": "native"
-        }
+        "value": [{}]
       }
       "actions": [
         {
@@ -83,7 +72,7 @@ describe "composition", ->
             "operand": {
               "op": "literal"
               "type": "DATASET"
-              "value": { "dataset": "native", "data": [{}] }
+              "value": [{}]
             }
             "actions": [
               {
@@ -176,12 +165,7 @@ describe "composition", ->
             "operand": {
               "op": "literal"
               "type": "DATASET"
-              "value": {
-                "data": [
-                  {}
-                ]
-                "dataset": "native"
-              }
+              "value": [{}]
             }
           }
           "name": "Diamonds"
@@ -219,11 +203,6 @@ describe "composition", ->
       "operand": {
         "op": "literal"
         "type": "DATASET"
-        "value": {
-          "data": [
-            {}
-          ]
-          "dataset": "native"
-        }
+        "value": [{}]
       }
     })

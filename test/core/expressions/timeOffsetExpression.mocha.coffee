@@ -13,11 +13,11 @@ describe 'TimeOffsetExpression', ->
       }
 
     tests.complexityIs(2)
-    tests.simplifiedExpressionIs({
-      op: 'timeOffset',
-      operand: {
-        op: 'literal'
-        value: new Date(10)
-      }
-      duration: 'P1D'
-    })
+#    tests.simplifiedExpressionIs({
+#      op: 'timeOffset',
+#      operand: {
+#        op: 'literal'
+#        value: new Date(10)
+#      }
+#      duration: 'P1D'
+#    })

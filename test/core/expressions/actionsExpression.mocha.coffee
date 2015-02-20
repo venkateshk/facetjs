@@ -27,7 +27,7 @@ describe 'ActionsExpression', ->
       ]
     })
 
-  describe 'simplify', ->
+  describe.skip 'simplify', ->
     it 'puts defs in front of applies', ->
       expression = facet()
         .def('test', 5)

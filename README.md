@@ -14,11 +14,11 @@ visualizations out of ad-hoc, real-time query results.
 
 To learn about what motivated us to build facet.js, see [our first blog](http://facetjs.org/2015/02/19/introducing-facetjs).
 
-## Learning to Use facet.js
+## Learning to use facet.js
 
-Read the [docs](http://facetjs.org/docs/introduction).
-Read the [blogs](http://facetjs.org/blog/).
-Join the [facet.js community](http://facetjs.org/community).
+* Read the [docs](http://facetjs.org/docs/introduction).
+* Read the [blogs](http://facetjs.org/blog/).
+* Join the [facet.js community](http://facetjs.org/community).
 
 ## Support
 

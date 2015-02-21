@@ -500,10 +500,10 @@ module Core {
       if (driver) {
         return driver(simple);
       } else {
-        if (simple.isOp('literal')) {
-          deferred.resolve((<LiteralExpression>simple).value);
-        } else if (simple.isOp('actions')) {
-          deferred.resolve(<Dataset>(<ActionsExpression>simple).evaluate());
+        if (simple instanceof LiteralExpression) {
+          deferred.resolve(simple.value);
+        } else if (simple instanceof ActionsExpression || simple instanceof LabelExpression) {
+          deferred.resolve(simple.evaluate());
         } else {
           deferred.reject(new Error('can not handle that yet: ' + simple.op));
           // ToDo: implement logic

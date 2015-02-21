@@ -71,7 +71,7 @@ describe "compute", ->
       testComplete()
     ).done()
 
-  it.skip "works with simple group aggregator + label", (testComplete) ->
+  it "works with simple group aggregator + label", (testComplete) ->
     ds = Dataset.fromJS(data)
 
     ex = facet()

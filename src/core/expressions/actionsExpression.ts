@@ -212,8 +212,6 @@ module Core {
         actions = actions.map((action) => {
           return action.substitute((ex: Expression, genDiff: number) => {
             if (genDiff === 0 && ex.isOp('ref') && (<RefExpression>ex).generations === '^') {
-              //console.log("replace", ex.toJS());
-              //console.log("with", context[(<RefExpression>ex).name]);
               return new LiteralExpression({ op: 'literal', value: context[(<RefExpression>ex).name] });
             } else {
               return null;
@@ -224,23 +222,24 @@ module Core {
 
       for (var i = 0; i < actions.length; i++) {
         var action = actions[i];
+        var actionExpression = action.expression;
         switch (action.action) {
           case 'filter':
             dataset = dataset.filter(action.expression.getFn());
             break;
 
           case 'apply':
-            if (action.expression.isOp('actions')) {
+            if (actionExpression instanceof ActionsExpression || actionExpression instanceof LabelExpression) {
               dataset = dataset.apply((<ApplyAction>action).name, (d: Datum) => {
-                return (<ActionsExpression>action.expression).evaluate(d)
+                return actionExpression.evaluate(d)
               });
             } else {
-              dataset = dataset.apply((<ApplyAction>action).name, action.expression.getFn());
+              dataset = dataset.apply((<ApplyAction>action).name, actionExpression.getFn());
             }
             break;
 
           case 'sort':
-            dataset = dataset.sort(action.expression.getFn(), (<SortAction>action).direction);
+            dataset = dataset.sort(actionExpression.getFn(), (<SortAction>action).direction);
             break;
 
           case 'limit':

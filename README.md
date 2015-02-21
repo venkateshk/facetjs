@@ -11,12 +11,16 @@ Its architecture allows you to plug in various query engines simultaneously, and
 extensible model benefiting a community development effort. Moreover, facet.js is about creating on-the-fly
 visualizations out of ad-hoc, real-time query results.
 
-To learn about what motivated us to build facet.js, see [blog](/blog).
+To learn about what motivated us to build facet.js, see [our first blog](http://facetjs.org/2015/02/19/introducing-facetjs.html).
 
 ## Learning to Use facet.js
-Read the docs ...
-Read the blogs ...
-Discuss ... (Google group, irc, etc.)
+Read the [docs](http://facetjs.org/docs/introduction.html).
+Read the [blogs](http://facetjs.org/blog/).
+Join the [facet.js community](http://facetjs.org/community.html).
 
 ## Support
-Report problems ... file github issue, google group, irc, twitter.
+Some ways you can seek out help with a problem:
+
+* Post on our [Google group](https://groups.google.com/d/forum/facetjs).
+* Tweet us @factjs.
+* File an issue right here in the repo.

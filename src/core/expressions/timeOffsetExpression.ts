@@ -35,10 +35,18 @@ module Core {
       return js;
     }
 
-    // ToDo: equals
+    public equals(other: TimeOffsetExpression): boolean {
+      return super.equals(other) &&
+        this.duration.equals(other.duration);
+    }
 
     protected _makeFn(operandFn: Function): Function {
-      throw new Error("implement me");
+      var duration = this.duration;
+      return (d: Datum) => {
+        var date = operandFn(d);
+        if (date === null) return null;
+        return duration.move(date, Timezone.UTC(), 1); // ToDo: generalize this
+      }
     }
 
     protected _makeFnJS(operandFnJS: string): string {

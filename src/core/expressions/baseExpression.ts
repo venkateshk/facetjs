@@ -41,6 +41,11 @@ module Core {
     timezone?: string;
   }
 
+  export interface Alteration {
+    from: Expression;
+    to: Expression;
+  }
+
   export var possibleTypes = ['NULL', 'BOOLEAN', 'NUMBER', 'TIME', 'STRING', 'NUMBER_RANGE', 'TIME_RANGE', 'SET', 'DATASET'];
 
   export var checkArrayEquality = function(a: Array<any>, b: Array<any>) {
@@ -215,12 +220,18 @@ module Core {
 
     /**
      * Check that the expression can potentially have the desired type
+     * If wanted type is 'SET' then any SET/* type is matched
      *
-     * @param wantedType
+     * @param wantedType The type that is wanted
      * @returns {boolean}
      */
     public canHaveType(wantedType: string): boolean {
-      return !this.type || this.type === wantedType;
+      if (!this.type) return true;
+      if (wantedType === 'SET') {
+        return this.type.indexOf('SET/') === 0;
+      } else {
+        return this.type === wantedType;
+      }
     }
 
     /**
@@ -493,6 +504,12 @@ module Core {
     public and(...exs: any[]) { return this._performNaryExpression({ op: 'and' }, exs); }
     public or(...exs: any[]) { return this._performNaryExpression({ op: 'or' }, exs); }
 
+    // Ref check
+    public _fillRefSubstitutions(parentContext: any, alterations: Alteration[]): any {
+      return null
+    }
+
+    // Evaluation
     public compute(driver: Driver = null) {
       var deferred = <Q.Deferred<Dataset>>Q.defer();
       // ToDo: typecheck2 the expression
@@ -619,6 +636,11 @@ module Core {
       if (!this.operand.canHaveType(wantedType)) {
         throw new TypeError(this.op + ' expression must have an operand of type ' + wantedType);
       }
+    }
+
+    public _fillRefSubstitutions(parentContext: any, alterations: Alteration[]): any {
+      this.operand._fillRefSubstitutions(parentContext, alterations);
+      return this.type;
     }
   }
 
@@ -753,6 +775,12 @@ module Core {
         throw new TypeError(this.op + ' ' + lhsRhs + ' must be of type ' + wantedType);
       }
     }
+
+    public _fillRefSubstitutions(parentContext: any, alterations: Alteration[]): any {
+      this.lhs._fillRefSubstitutions(parentContext, alterations);
+      this.rhs._fillRefSubstitutions(parentContext, alterations);
+      return this.type;
+    }
   }
 
 // =====================================================================================
@@ -872,6 +900,22 @@ module Core {
           throw new TypeError(this.op + ' must have an operand of type ' + wantedType + ' at position ' + i);
         }
       }
+    }
+
+    /**
+     * Checks for references and returns the list of alterations that need to be made to the expression
+     *
+     * @param parentContext the context inherited from the parent
+     * @param alterations the accumulation of the alterations to be made (output)
+     * @returns the resolved type of the expression
+     * @private
+     */
+    public _fillRefSubstitutions(parentContext: any, alterations: Alteration[]): any {
+      var operands = this.operands;
+      for (var i = 0; i < operands.length; i++) {
+        operands[i]._fillRefSubstitutions(parentContext, alterations);
+      }
+      return this.type;
     }
   }
 

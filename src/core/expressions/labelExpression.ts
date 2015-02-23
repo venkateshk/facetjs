@@ -46,6 +46,17 @@ module Core {
       throw new Error("implement me");
     }
 
+    public _fillRefSubstitutions(parentContext: any, alterations: Alteration[]): any {
+      var setType = this.operand._fillRefSubstitutions(parentContext, alterations);
+      var newContext: any = {
+        $parent: parentContext
+      };
+      // setType will be something like SET/STRING we need to chop off the SET/
+      newContext[this.name] = setType.substring(4);
+
+      return newContext;
+    }
+
     public evaluate(context: Lookup<any> = null): Dataset {
       var mySet: Set = this.operand.getFn()(context);
       return mySet.label(this.name);

@@ -40,7 +40,8 @@ module Core {
       });
     }
 
-    private values: Lookup<boolean>;
+    public type: string;
+    public values: Lookup<boolean>;
 
     constructor(parameters: SetValue) {
       this.values = parameters.values;
@@ -48,12 +49,14 @@ module Core {
 
     public valueOf(): SetValue {
       return {
+        type: this.type,
         values: this.values
       };
     }
 
     public toJS(): SetJS {
       return {
+        type: this.type,
         values: hashToArray(this.values)
       };
     }

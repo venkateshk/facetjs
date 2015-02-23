@@ -251,6 +251,20 @@ module Core {
       return dataset;
     }
 
+    public _fillRefSubstitutions(parentContext: any, alterations: Alteration[]): any {
+      var context = this.operand._fillRefSubstitutions(parentContext, alterations);
+
+      var actions = this.actions;
+      for (var i = 0; i < actions.length; i++) {
+        var action = actions[i];
+        if (action instanceof DefAction || action instanceof ApplyAction) {
+          context[action.name] = action.expression._fillRefSubstitutions(context, alterations);
+        }
+      }
+
+      return context;
+    }
+
     public evaluate(context: Lookup<any> = null): Dataset {
       var operand = this.operand;
 

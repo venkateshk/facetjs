@@ -32,7 +32,7 @@ describe "Dataset", ->
             end: 'Infinity'
           }
           SomeDate: {
-            type: 'DATE'
+            type: 'TIME'
             value: new Date('2015-01-26T04:54:10Z')
           }
           SomeTimeRange: {
@@ -76,3 +76,48 @@ describe "Dataset", ->
     ], {
       newThrows: true
     })
+
+
+  describe "introspect (NativeDataset)", ->
+    it "works in empty case", ->
+      expect(Dataset.fromJS([]).introspect()).to.equal(null)
+
+    it "works in singleton case", ->
+      expect(Dataset.fromJS([{}]).introspect()).to.deep.equal({})
+
+    it "works in basic case", ->
+      expect(Dataset.fromJS([
+        { x: 1, y: "hello", z: new Date(1000) }
+        { x: 2, y: "woops", z: new Date(1001) }
+      ]).introspect()).to.deep.equal({
+        x: "NUMBER"
+        y: "STRING"
+        z: "TIME"
+      })
+
+    it "works in nested case", ->
+      expect(Dataset.fromJS([
+        {
+          x: 1
+          y: "hello"
+          z: new Date(1000)
+          subData: [
+            { a: 50.5, b: 'woop' }
+            { a: 50.6, b: 'w00p' }
+          ]
+        }
+        {
+          x: 2
+          y: "woops"
+          z: new Date(1001)
+          subData: [
+            { a: 51.5, b: 'Woop' }
+            { a: 51.6, b: 'W00p' }
+          ]
+        }
+      ]).introspect()).to.deep.equal({
+        subData: { a: 'NUMBER', b: 'STRING' }
+        x: "NUMBER"
+        y: "STRING"
+        z: "TIME"
+      })

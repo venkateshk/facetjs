@@ -1,4 +1,8 @@
 module Core {
+  function repeat(str: string, times: number): string {
+    return new Array(times + 1).join(str);
+  }
+
   export class RefExpression extends Expression {
     static NAME_REGEXP = /^(\^*)([a-z_]\w*)$/i;
 
@@ -70,6 +74,46 @@ module Core {
     public _getRawFnJS(): string {
       var gen = this.generations;
       return gen.replace(/\^/g, "Object.getPrototypeOf(") + 'd.' + this.name + gen.replace(/\^/g, ")");
+    }
+
+    public _fillRefSubstitutions(parentContext: any, alterations: Alteration[]): any {
+      var numGenerations = this.generations.length;
+
+      // Step the parentContext back; once for each generation
+      while (numGenerations--) {
+        parentContext = parentContext.$parent;
+        if (!parentContext) new Error('went too deep on `' + this.generations + this.name + '`');
+      }
+
+      // Look for the reference in the parent chain
+      var genBack = 0;
+      while (parentContext && !parentContext[this.name]) {
+        parentContext = parentContext.$parent;
+        genBack++;
+      }
+      if (!parentContext) throw new Error('could not resolve ' + this.toString());
+
+      var contextType = parentContext[this.name];
+      var myType: string = (typeof contextType === 'object') ? 'DATASET' : contextType;
+
+      if (this.type && this.type !== myType) {
+        throw new TypeError("type mismatch in " + this.toString() + " (has: " + this.type + " needs: " + myType + ")");
+      }
+
+      // Check if it needs to be replaced
+      if (!this.type || genBack > 0) {
+        var newGenerations = this.generations + repeat('^', genBack);
+        alterations.push({
+          from: this,
+          to: new RefExpression({
+            op: 'ref',
+            name: newGenerations + this.name,
+            type: myType
+          })
+        })
+      }
+
+      return contextType;
     }
   }
 

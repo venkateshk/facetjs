@@ -82,10 +82,18 @@ module Core {
         return null;
       }
     }
-  }
 
-  Expression.register(LiteralExpression);
+    public _fillRefSubstitutions(parentContext: any, alterations: Alteration[]): any {
+      if (this.type == 'DATASET') {
+        return this.value.introspect()
+      } else {
+        return this.type;
+      }
+    }
+  }
 
   Expression.FALSE = <LiteralExpression>(new LiteralExpression({op: 'literal', value: false}));
   Expression.TRUE = <LiteralExpression>(new LiteralExpression({op: 'literal', value: true}));
+
+  Expression.register(LiteralExpression);
 }

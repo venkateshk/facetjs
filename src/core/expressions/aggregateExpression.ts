@@ -18,9 +18,14 @@ module Core {
       this.attribute = parameters.attribute;
       this._ensureOp("aggregate");
       this._checkTypeOfOperand('DATASET');
-      this.type = this.fn === 'group' ? 'SET' : 'NUMBER';
       if (this.fn !== 'count' && !this.attribute) {
         throw new Error(this.fn + " aggregate must have an 'attribute'");
+      }
+      if (this.fn === 'group') {
+        var attrType = this.attribute.type;
+        this.type = attrType ? ('SET/' + attrType) : null;
+      } else {
+        this.type = 'NUMBER';
       }
     }
 

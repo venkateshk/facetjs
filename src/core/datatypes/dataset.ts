@@ -108,6 +108,18 @@ module Core {
     }
   };
 
+  function isDate(dt: any) {
+    return Boolean(dt.toISOString)
+  }
+
+  function isNumber(n: any) {
+    return !isNaN(Number(n));
+  }
+
+  function isString(str: string) {
+    return typeof str === "string";
+  }
+
   function datumToJS(datum: Datum): Datum {
     var js: Datum = {};
     for (var k in datum) {
@@ -120,7 +132,7 @@ module Core {
         var typeofV = typeof v;
         if (typeofV === 'object') {
           if (v.toISOString) {
-            v = { type: 'DATE', value: v };
+            v = { type: 'TIME', value: v };
           } else {
             var type = v.constructor.type;
             v = v.toJS();
@@ -166,7 +178,7 @@ module Core {
             v = NumberRange.fromJS(v);
             break;
 
-          case 'DATE':
+          case 'TIME':
             v = new Date(v.value);
             break;
 
@@ -178,10 +190,14 @@ module Core {
             v = Shape.fromJS(v);
             break;
 
-          // ToDo: fill this in with the rest of the datatypes
+          case 'SET':
+            v = Set.fromJS(v);
+            break;
 
           default:
-            throw new Error('can not have an object without a `type` as a datum value')
+            if (!v.toISOString) { // Allow native date
+              throw new Error('can not have an object without a `type` as a datum value')
+            }
         }
       }
       datum[k] = v;
@@ -314,6 +330,31 @@ module Core {
       return Set.fromJS({
         values: Object.keys(splits).map((k) => splits[k])
       });
+    }
+
+    // Introspection
+    public introspect(): Lookup<any> {
+      var data = this.data;
+      if (!data.length) return null;
+      var sample = data[0];
+
+      var attributeTypes: Lookup<any> = {};
+      Object.keys(sample).forEach((attributeName) => {
+        var attributeValue = sample[attributeName];
+        var type: string = null;
+        if (isDate(attributeValue)) {
+          type = 'TIME';
+        } else if (isNumber(attributeValue)) {
+          type = 'NUMBER';
+        } else if (isString(attributeValue)) {
+          type = 'STRING';
+        } else if (attributeValue instanceof Dataset) {
+          type = attributeValue.introspect();
+        }
+
+        attributeTypes[attributeName] = type;
+      });
+      return attributeTypes;
     }
   }
 

@@ -120,33 +120,87 @@ module Core {
     return typeof str === "string";
   }
 
-  function datumToJS(datum: Datum): Datum {
-    var js: Datum = {};
-    for (var k in datum) {
-      if (!datum.hasOwnProperty(k)) continue;
-      if (k[0] === '_') continue;
-      var v: any = datum[k];
-      if (v == null) {
-        v = null;
-      } else {
-        var typeofV = typeof v;
-        if (typeofV === 'object') {
+  export function valueFromJS(v: any, type: string = null): any {
+    if (v == null) {
+      return null;
+    } else if (Array.isArray(v)) {
+      return NativeDataset.fromJS({
+        source: 'native',
+        data: v
+      })
+    } else if (typeof v === 'object') {
+      switch (type || v.type) {
+        case 'NUMBER':
+          var n = Number(v.value);
+          if (isNaN(n)) throw new Error("bad number value '" + String(v.value) + "'");
+          return n;
+
+        case 'NUMBER_RANGE':
+          return NumberRange.fromJS(v);
+
+        case 'TIME':
+          return type ? v : new Date(v.value);
+
+        case 'TIME_RANGE':
+          return TimeRange.fromJS(v);
+
+        case 'SHAPE':
+          return Shape.fromJS(v);
+
+        case 'SET':
+          return Set.fromJS(v);
+
+        default:
           if (v.toISOString) {
-            v = { type: 'TIME', value: v };
+            return v; // Allow native date
           } else {
-            var type = v.constructor.type;
-            v = v.toJS();
-            if (!Array.isArray(v)) {
-              v.type = type;
-            }
+            throw new Error('can not have an object without a `type` as a datum value');
           }
-        } else if (typeofV === 'number' && !isFinite(v)) {
-          v = { type: 'NUMBER', value: String(v) };
-        }
       }
-      js[k] = v;
+    } else if (typeof v === 'string' && type === 'TIME') {
+      return new Date(v);
     }
-    return js;
+    return v;
+  }
+
+  export function valueToJS(v: any): any {
+    if (v == null) {
+      return null;
+    } else {
+      var typeofV = typeof v;
+      if (typeofV === 'object') {
+        if (v.toISOString) {
+          return v;
+        } else {
+          return v.toJS();
+        }
+      } else if (typeofV === 'number' && !isFinite(v)) {
+        return String(v)
+      }
+    }
+    return v;
+  }
+
+  export function valueToJSInlineType(v: any): any {
+    if (v == null) {
+      return null;
+    } else {
+      var typeofV = typeof v;
+      if (typeofV === 'object') {
+        if (v.toISOString) {
+          return { type: 'TIME', value: v };
+        } else {
+          var js = v.toJS();
+          if (!Array.isArray(js)) {
+            js.type = v.constructor.type;
+          }
+          return js;
+        }
+      } else if (typeofV === 'number' && !isFinite(v)) {
+        return { type: 'NUMBER', value: String(v) };
+      }
+    }
+    return v;
   }
 
   function datumFromJS(js: Datum): Datum {
@@ -155,55 +209,20 @@ module Core {
     var datum: Datum = {};
     for (var k in js) {
       if (!js.hasOwnProperty(k)) continue;
-      var v: any = js[k];
-      if (v == null) {
-        v = null;
-      } else if (Array.isArray(v)) {
-        v = NativeDataset.fromJS({
-          source: 'native',
-          data: v
-        })
-      } else if (typeof v === 'object') {
-        switch (v.type) {
-          case 'NUMBER':
-            var infinityMatch = String(v.value).match(/^([-+]?)Infinity$/);
-            if (infinityMatch) {
-              v = infinityMatch[1] === '-' ? -Infinity : Infinity;
-            } else {
-              throw new Error("bad number value '" + String(v.value) + "'");
-            }
-            break;
-
-          case 'NUMBER_RANGE':
-            v = NumberRange.fromJS(v);
-            break;
-
-          case 'TIME':
-            v = new Date(v.value);
-            break;
-
-          case 'TIME_RANGE':
-            v = TimeRange.fromJS(v);
-            break;
-
-          case 'SHAPE':
-            v = Shape.fromJS(v);
-            break;
-
-          case 'SET':
-            v = Set.fromJS(v);
-            break;
-
-          default:
-            if (!v.toISOString) { // Allow native date
-              throw new Error('can not have an object without a `type` as a datum value')
-            }
-        }
-      }
-      datum[k] = v;
+      datum[k] = valueFromJS(js[k]);
     }
 
     return datum;
+  }
+
+  function datumToJS(datum: Datum): Datum {
+    var js: Datum = {};
+    for (var k in datum) {
+      if (!datum.hasOwnProperty(k)) continue;
+      if (k[0] === '_') continue;
+      js[k] = valueToJSInlineType(datum[k]);
+    }
+    return js;
   }
 
   export class NativeDataset extends Dataset {
@@ -318,7 +337,7 @@ module Core {
       return max;
     }
 
-    public group(attrFn: Function): Set {
+    public group(attrFn: Function, attribute: Expression): Set {
       var splits: Lookup<any> = {};
       var data = this.data;
       var n = data.length;
@@ -328,6 +347,7 @@ module Core {
         splits[v] = v;
       }
       return Set.fromJS({
+        type: attribute.type,
         values: Object.keys(splits).map((k) => splits[k])
       });
     }

@@ -1,26 +1,38 @@
 module Core {
   export interface SetValue {
-    values: { [k: string]: boolean }
+    type: string;
+    values: Lookup<any>;
   }
 
   export interface SetJS {
-    values: Array<any>
+    type: string;
+    values: Array<any>;
   }
 
-  function arrayToHash(a: Array<string>): { [k: string]: boolean } {
-    var ret: { [k: string]: boolean } = {};
-    for (var i = 0; i < a.length; i++) {
-      ret[String(a[i])] = true;
+  function hashFromJS(xs: Array<string>, type: string): Lookup<any> {
+    var hash: Lookup<any> = {};
+    for (var i = 0; i < xs.length; i++) {
+      var x = valueFromJS(xs[i], type);
+      hash[String(x)] = x;
     }
-    return ret;
+    return hash;
   }
 
-  function hashToArray(a: { [k: string]: boolean }): Array<string> {
-    var ret: Array<string> = [];
-    for (var k in a) {
-      if (a[k]) ret.push(k);
+  function hashToJS(hash: Lookup<any>): Array<any> {
+    return Object.keys(hash).sort().map((k) => valueToJS(hash[k]));
+  }
+
+  function guessType(thing: any): string {
+    var typeofThing = typeof thing;
+    switch (typeofThing) {
+      case 'boolean':
+      case 'string':
+      case 'number':
+        return typeofThing.toUpperCase();
+
+      default:
+        throw new Error("Could not guess the type of the set. Please specify explicit type");
     }
-    return ret.sort();
   }
 
   var check: ImmutableClass<SetValue, SetJS>;
@@ -31,12 +43,21 @@ module Core {
       return isInstanceOf(candidate, Set);
     }
 
-    static fromJS(parameters: SetJS): Set {
+    static fromJS(parameters: Array<any>): Set;
+    static fromJS(parameters: SetJS): Set;
+    static fromJS(parameters: any): Set {
+      if (Array.isArray(parameters)) {
+        parameters = {
+          type: guessType(parameters[0]),
+          values: parameters
+        }
+      }
       if (typeof parameters !== "object") {
         throw new Error("unrecognizable set");
       }
       return new Set({
-        values: arrayToHash(parameters.values)
+        type: parameters.type,
+        values: hashFromJS(parameters.values, parameters.type)
       });
     }
 
@@ -44,6 +65,7 @@ module Core {
     public values: Lookup<boolean>;
 
     constructor(parameters: SetValue) {
+      this.type = parameters.type;
       this.values = parameters.values;
     }
 
@@ -57,7 +79,7 @@ module Core {
     public toJS(): SetJS {
       return {
         type: this.type,
-        values: hashToArray(this.values)
+        values: hashToJS(this.values)
       };
     }
 
@@ -70,54 +92,76 @@ module Core {
     }
 
     public equals(other: Set): boolean {
-      if (!Set.isSet(other)) return false;
-      var thisValues = this.toJS().values;
-      var otherValues = other.toJS().values;
-      var that = this;
-      return otherValues.every(function(value) { return that.test(value) }) &&
-        thisValues.every(function(value) { return other.test(value) });
+      return Set.isSet(other) &&
+        this.type === other.type &&
+        Object.keys(this.values).sort().join('') === Object.keys(other.values).sort().join('');
     }
 
     public union(other: Set): Set {
-      var ret: { [k: string]: boolean } = {};
-      var othersValues = other.valueOf().values;
-
-      for (var k in this.values) {
-        if (!(this.values.hasOwnProperty(k) && this.values[k])) continue;
-        ret[k] = true;
+      if (this.type !== other.type) {
+        throw new TypeError("can not union sets of different types");
       }
 
-      for (var k in othersValues) {
-        if (!(othersValues.hasOwnProperty(k) && othersValues[k])) continue;
-        ret[k] = true;
+      var thisValues = this.values;
+      var otherValues = other.values;
+      var newValues: Lookup<any> = {};
+
+      for (var k in thisValues) {
+        if (!(thisValues.hasOwnProperty(k) && thisValues[k])) continue;
+        newValues[k] = thisValues[k];
       }
 
-      return new Set({values: ret});
+      for (var k in otherValues) {
+        if (!(otherValues.hasOwnProperty(k) && otherValues[k])) continue;
+        newValues[k] = otherValues[k];
+      }
+
+      return new Set({
+        type: this.type,
+        values: newValues
+      });
     }
 
     public intersect(other: Set): Set {
-      var ret: { [k: string]: boolean } = {};
-      var othersValues = other.valueOf().values;
+      if (this.type !== other.type) {
+        throw new TypeError("can not intersect sets of different types");
+      }
 
-      for (var k in this.values) {
-        if (!this.values.hasOwnProperty(k)) continue;
-        if (othersValues.hasOwnProperty(k) && othersValues[k]) {
-          ret[k] = true;
+      var thisValues = this.values;
+      var otherValues = other.values;
+      var newValues: Lookup<any> = {};
+
+      for (var k in thisValues) {
+        if (!thisValues.hasOwnProperty(k)) continue;
+        if (otherValues.hasOwnProperty(k)) {
+          newValues[k] = thisValues[k];
         }
       }
 
-      return new Set({values: ret});
+      return new Set({
+        type: this.type,
+        values: newValues
+      });
     }
 
-    public test(value: string): boolean {
-      if (this.values.hasOwnProperty(value)) return this.values[value];
-      return false;
+    public test(value: any): boolean {
+      return this.values.hasOwnProperty(String(value));
     }
 
-    public add(value: string): Set {
-      var values = this.toJS().values;
-      values.push(value);
-      return Set.fromJS({values: values});
+    public add(value: any): Set {
+      var values = this.values;
+      var newValues: Lookup<any> = {};
+      newValues[String(value)] = value;
+
+      for (var k in values) {
+        if (!values.hasOwnProperty(k)) continue;
+        newValues[k] = values[k];
+      }
+
+      return new Set({
+        type: this.type,
+        values: newValues
+      });
     }
 
     public label(name: string): Dataset {

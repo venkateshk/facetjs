@@ -77,7 +77,6 @@ describe "Dataset", ->
       newThrows: true
     })
 
-
   describe "introspect (NativeDataset)", ->
     it "works in empty case", ->
       expect(Dataset.fromJS([]).introspect()).to.equal(null)

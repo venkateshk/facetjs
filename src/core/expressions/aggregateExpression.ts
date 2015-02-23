@@ -75,8 +75,9 @@ module Core {
 
     protected _makeFn(operandFn: Function): Function {
       var fn = this.fn;
-      var attributeFn = this.attribute ? this.attribute.getFn() : null;
-      return (d: Datum) => operandFn(d)[fn](attributeFn);
+      var attribute = this.attribute;
+      var attributeFn = attribute ? attribute.getFn() : null;
+      return (d: Datum) => operandFn(d)[fn](attributeFn, attribute);
     }
 
     protected _makeFnJS(operandFnJS: string): string {

@@ -72,7 +72,8 @@ node_modules/.bin/tsc --noImplicitAny --noEmitOnError --declaration --removeComm
   \
   src/exports.ts \
   && \
-  sed -i '' s/_delete_me_// build/facet.js;
+  sed s/_delete_me_// build/facet.js > tmp &&
+  mv tmp build/facet.js;
 
 #src/legacy/driver/proxyDriver.ts \
 

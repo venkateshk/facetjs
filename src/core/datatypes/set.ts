@@ -9,11 +9,16 @@ module Core {
     elements: Array<any>;
   }
 
+  function dateString(date: Date): string {
+    return date.toISOString();
+  }
+
   function hashFromJS(xs: Array<string>, setType: string): Lookup<any> {
+    var keyFn: (v: any) => string = setType === 'TIME' ? dateString : String;
     var hash: Lookup<any> = {};
     for (var i = 0; i < xs.length; i++) {
       var x = valueFromJS(xs[i], setType);
-      hash[String(x)] = x;
+      hash[keyFn(x)] = x;
     }
     return hash;
   }

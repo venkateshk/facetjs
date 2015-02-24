@@ -41,7 +41,7 @@ describe "Set", ->
       }
       {
         setType: 'TIME'
-        elements: [new Date("2015-02-21T00:00:00"), new Date("2015-02-20T00:00:00")]
+        elements: [new Date("2015-02-20T00:00:00"), new Date("2015-02-21T00:00:00")]
       }
       {
         setType: 'TIME_RANGE'

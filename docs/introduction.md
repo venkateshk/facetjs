@@ -54,6 +54,8 @@ in another table, but it can not easily return the data in that format.
 
 In the Druid world, a *dataset* is a **datasource** and an *attribute* is a **field**.
 
+Lear more about [data types here](./datatypes.md).
+
 ## Learn by example
 
 ### Example 0

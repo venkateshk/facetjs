@@ -1,7 +1,7 @@
 # Is NULL a core data type?
 # NUMBER null treated as 0?
 
-value_types: [
+datatypes: [
   Null
   Boolean
   Number

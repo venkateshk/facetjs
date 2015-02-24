@@ -18,6 +18,7 @@ describe "Dataset", ->
           Void: null
           SoTrue: true
           NotSoTrue: false
+          Zero: 0
           Count: 2353
           HowAwesome: { type: 'NUMBER', value: 'Infinity' }
           HowLame: { type: 'NUMBER', value: '-Infinity' }
@@ -39,6 +40,20 @@ describe "Dataset", ->
             type: 'TIME_RANGE'
             start: new Date('2015-01-26T04:54:10Z')
             end:   new Date('2015-01-26T05:00:00Z')
+          }
+          BestCity: 'San Francisco'
+          Vegetables: {
+            type: 'SET'
+            setType: 'STRING'
+            elements: ['Broccoli', 'Brussels sprout', 'Potato']
+          }
+          FunTimes: {
+            type: 'SET'
+            setType: 'TIME_RANGE'
+            elements: [
+              { start: new Date('2015-01-26T04:54:10Z'), end: new Date('2015-01-26T05:00:00Z') }
+              { start: new Date('2015-02-20T04:54:10Z'), end: new Date('2015-02-20T05:00:00Z') }
+            ]
           }
           SubData: [
             { x: 1, y: 2 }

@@ -3,7 +3,7 @@
 facet = require('../../../build/facet')
 { Expression } = facet.core
 
-describe "typecheck1", ->
+describe "typecheck", ->
   it "should throw silly ref type", ->
     expect(->
       Expression.fromJS({ op: 'ref', type: 'Corn', name: 'str' })

@@ -1,5 +1,7 @@
 # facet.js
 
+[![Build Status](https://travis-ci.org/facetjs/facetjs.svg?branch=master)](https://travis-ci.org/facetjs/facetjs)
+
 ## Mission statement:
 
 To provide an open-source JavaScript framework for creating powerful database queries that return data optimized for

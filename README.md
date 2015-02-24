@@ -27,3 +27,7 @@ Some ways you can seek out help with a problem:
 * File an issue right here in the repo.
 * Post on our [Google group](https://groups.google.com/d/forum/facetjs).
 * Tweet us [@facetjs](http://twitter.com/facetjs).
+
+## Known issues
+
+* npm before 2.0.0 does not play nice with facet.js. Please upgrade to a more recent npm before `npm install`.

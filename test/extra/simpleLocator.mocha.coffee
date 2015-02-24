@@ -27,7 +27,7 @@ describe 'Simple locator', ->
       locator()
       .then((location) ->
         for i in [1..20]
-          if location.host is 'localhost'
+          if location.hostname is 'localhost'
             expect(location).to.deep.equal({
               hostname: 'localhost'
               port: 8181

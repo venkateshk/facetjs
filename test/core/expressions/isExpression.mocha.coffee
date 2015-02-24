@@ -176,7 +176,7 @@ describe 'IsExpression', ->
             rhs: {
               op: 'literal',
               value: {
-                values: ["Wed Dec 31 1969 16:00:00 GMT-0800 (PST)", "Wed Dec 31 1969 16:00:02 GMT-0800 (PST)"]
+                values: [new Date(0), new Date(2000)]
               }
               type: "SET"
             }

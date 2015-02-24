@@ -30,3 +30,9 @@ describe "Set", ->
       expect(
         Set.fromJS({values: ['1', '2']}).intersect(Set.fromJS({values: ['2', '3']})).toJS()
       ).to.deep.equal({values: ['2']})
+
+  describe "with non-string elements", ->
+    it 'works correctly', ->
+      expect(
+        Set.fromJS({values: [1, 2]}).toJS()
+      ).to.deep.equal({values: [1, 2]})

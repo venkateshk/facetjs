@@ -31,22 +31,20 @@ module Core {
         return exp.mergeAnd(this);
       } else if (exp instanceof InExpression) {
         if (!exp.checkLefthandedness()) return null;
-        if (this.rhs.type !== exp.rhs.type) return Expression.FALSE;
-        switch (this.rhs.type) {
-          case 'TIME_RANGE':
-          case 'NUMBER_RANGE':
-          case 'SET':
-            var intersect = (<LiteralExpression>this.rhs).value.intersect((<LiteralExpression>exp.rhs).value);
-            if (intersect === null) return Expression.FALSE;
+        var rhsType = this.rhs.type;
+        if (rhsType !== exp.rhs.type) return Expression.FALSE;
+        if (rhsType ===  'TIME_RANGE' || rhsType === 'NUMBER_RANGE' || rhsType.indexOf('SET/') === 0) {
+          var intersect = (<LiteralExpression>this.rhs).value.intersect((<LiteralExpression>exp.rhs).value);
+          if (intersect === null) return Expression.FALSE;
 
-            return new InExpression({
-              op: 'in',
-              lhs: this.lhs,
-              rhs: new LiteralExpression({
-                op: 'literal',
-                value: intersect
-              })
-            }).simplify();
+          return new InExpression({
+            op: 'in',
+            lhs: this.lhs,
+            rhs: new LiteralExpression({
+              op: 'literal',
+              value: intersect
+            })
+          }).simplify();
         }
         return null;
       }
@@ -61,22 +59,20 @@ module Core {
         return exp.mergeOr(this);
       } else if (exp instanceof InExpression) {
         if (!exp.checkLefthandedness()) return null;
-        if (this.rhs.type !== exp.rhs.type) return Expression.FALSE;
-        switch (this.rhs.type) {
-          case 'TIME_RANGE':
-          case 'NUMBER_RANGE':
-          case 'SET':
-            var intersect = (<LiteralExpression>this.rhs).value.union((<LiteralExpression>exp.rhs).value);
-            if (intersect === null) return null;
+        var rhsType = this.rhs.type;
+        if (rhsType !== exp.rhs.type) return Expression.FALSE;
+        if (rhsType ===  'TIME_RANGE' || rhsType === 'NUMBER_RANGE' || rhsType.indexOf('SET/') === 0) {
+          var intersect = (<LiteralExpression>this.rhs).value.union((<LiteralExpression>exp.rhs).value);
+          if (intersect === null) return null;
 
-            return new InExpression({
-              op: 'in',
-              lhs: this.lhs,
-              rhs: new LiteralExpression({
-                op: 'literal',
-                value: intersect
-              })
-            }).simplify();
+          return new InExpression({
+            op: 'in',
+            lhs: this.lhs,
+            rhs: new LiteralExpression({
+              op: 'literal',
+              value: intersect
+            })
+          }).simplify();
         }
         return null;
       }
@@ -89,6 +85,16 @@ module Core {
 
     protected _makeFnJS(lhsFnJS: string, rhsFnJS: string): string {
       throw new Error("implement me!");
+    }
+
+    protected _specialSimplify(simpleLhs: Expression, simpleRhs: Expression): Expression {
+      if (
+        simpleLhs instanceof RefExpression &&
+        simpleRhs instanceof LiteralExpression &&
+        simpleRhs.type.indexOf('SET/') === 0 &&
+        simpleRhs.value.empty()
+      ) return Expression.FALSE;
+      return null;
     }
 
     // BINARY

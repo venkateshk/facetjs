@@ -17,7 +17,7 @@ describe 'OrExpression', ->
     tests.complexityIs(4)
     tests.simplifiedExpressionIs({op: 'literal', value: true})
 
-  describe 'with is expressions', ->
+  describe 'with IS expressions', ->
     beforeEach ->
       this.expression = { op: 'or', operands: [
         { op: 'is', lhs: "$test", rhs: "blah" },
@@ -30,7 +30,7 @@ describe 'OrExpression', ->
       lhs: { op: 'ref', name: 'test' },
       rhs: {
         op: 'literal'
-        value: { values: ["blah", "test2"]}
+        value: { elements: ["blah", "test2"], setType: 'STRING' }
         type: 'SET'
       }
     })
@@ -44,7 +44,7 @@ describe 'OrExpression', ->
           lhs: "$test",
           rhs: {
             op: 'literal'
-            value: Set.fromJS({ values: ["blah", "test2"]})
+            value: Set.fromJS(["blah", "test2"])
           }
         }
       ] }
@@ -55,12 +55,12 @@ describe 'OrExpression', ->
       lhs: { op: 'ref', name: 'test' },
       rhs: {
         op: 'literal'
-        value: { values: ["blah", "blah3", "test2"]}
+        value: { elements: ["blah", "blah3", "test2"], setType: 'STRING' }
         type: 'SET'
       }
     })
 
-  describe 'with is/in expressions 2', ->
+  describe 'with IS/IN expressions 2', ->
     beforeEach ->
       this.expression = { op: 'or', operands: [
         {
@@ -68,7 +68,7 @@ describe 'OrExpression', ->
           lhs: "$test",
           rhs: {
             op: 'literal'
-            value: Set.fromJS({ values: ["blah", "test2"]})
+            value: Set.fromJS(["blah", "test2"])
           }
         }
         { op: 'is', lhs: "$test", rhs: "blah3" }
@@ -80,7 +80,7 @@ describe 'OrExpression', ->
       lhs: { op: 'ref', name: 'test' },
       rhs: {
         op: 'literal'
-        value: { values: ["blah", "blah3", "test2"]}
+        value: { elements: ["blah", "blah3", "test2"], setType: 'STRING' }
         type: 'SET'
       }
     })

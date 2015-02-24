@@ -89,10 +89,7 @@ module Core {
           lhs: this.lhs,
           rhs: new LiteralExpression({
             op: 'literal',
-            value: Set.fromJS({
-              type: 'STRING', // ToDo: check this
-              values: [thisValue, expValue]
-            })
+            value: Set.fromJS([thisValue, expValue])
           })
         });
 

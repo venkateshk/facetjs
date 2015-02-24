@@ -367,7 +367,7 @@ module Legacy {
 
     /**
      * Separates, if possible, the filters with the given attributes from the rest.
-     * ToDo: more docs
+     *
      * @param attribute
      * @returns {FacetFilter[]}
      */

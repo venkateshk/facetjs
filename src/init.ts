@@ -69,6 +69,7 @@ module Core {
   export var dummyObject: Dummy = {};
 
   export var isInstanceOf = HigherObject.isInstanceOf;
+  export var isHigherObject = HigherObject.isHigherObject;
 
   export import ImmutableClass = HigherObject.ImmutableClass;
   export import ImmutableInstance = HigherObject.ImmutableInstance;

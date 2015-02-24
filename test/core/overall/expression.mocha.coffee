@@ -28,8 +28,8 @@ describe "Expression", ->
       { op: 'literal', value: true }
       { op: 'literal', value: 'Honda' }
       { op: 'literal', value: 6 }
-      #{ op: 'literal', value: ['Honda', 'BMW', 'Suzuki'] }
-      #{ op: 'literal', value: [0.05, 0.1] }
+      { op: 'literal', value: { setType: 'STRING', elements: ['BMW', 'Honda', 'Suzuki'] }, type: 'SET' }
+      { op: 'literal', value: { setType: 'NUMBER', elements: [0.05, 0.1] }, type: 'SET' }
       { op: 'literal', value: null }
 
       { op: 'ref', name: 'authors' }

@@ -35,7 +35,7 @@ describe 'AndExpression', ->
           lhs: "$test",
           rhs: {
             op: 'literal'
-            value: Set.fromJS({ values: ["blah", "test2"]})
+            value: Set.fromJS(["blah", "test2"])
           }
         }
       ] }
@@ -51,7 +51,7 @@ describe 'AndExpression', ->
           lhs: "$test",
           rhs: {
             op: 'literal'
-            value: Set.fromJS({ values: ["blah", "test2"]})
+            value: Set.fromJS(["blah", "test2"])
           }
         }
         { op: 'is', lhs: "$test", rhs: "blah" }

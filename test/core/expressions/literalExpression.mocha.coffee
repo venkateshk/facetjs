@@ -25,12 +25,19 @@ describe 'LiteralExpression', ->
     tests.complexityIs(1)
     tests.simplifiedExpressionIs({ op: 'literal', value: 6 })
 
-  describe 'with set', ->
+  describe 'with set (js)', ->
     beforeEach ->
-      this.expression = { op: 'literal', value: Set.fromJS({values: ['Honda', 'BMW', 'Suzuki']}) }
+      this.expression = { op: 'literal', value: { elements: ['Honda', 'BMW', 'Suzuki'] }, type: "SET" }
 
     tests.complexityIs(1)
-    tests.simplifiedExpressionIs({ op: 'literal', value: {values: ['BMW', 'Honda', 'Suzuki']}, type: "SET" })
+    tests.simplifiedExpressionIs({ op: 'literal', value: { elements: ['BMW', 'Honda', 'Suzuki'], setType: "STRING" }, type: "SET" })
+
+  describe 'with set (higher object)', ->
+    beforeEach ->
+      this.expression = { op: 'literal', value: Set.fromJS({ elements: ['Honda', 'BMW', 'Suzuki'] }) }
+
+    tests.complexityIs(1)
+    tests.simplifiedExpressionIs({ op: 'literal', value: { elements: ['BMW', 'Honda', 'Suzuki'], setType: "STRING" }, type: "SET" })
 
   describe 'with numerical range', ->
     beforeEach ->

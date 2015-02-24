@@ -578,18 +578,25 @@ module Core {
       return 1 + this.operand.getComplexity()
     }
 
-    public simplify(): Expression {
-      var simplifiedOperand = this.operand.simplify();
+    protected _specialSimplify(simpleOperand: Expression): Expression {
+      return null;
+    }
 
-      if (simplifiedOperand.isOp('literal')) {
+    public simplify(): Expression {
+      var simpleOperand = this.operand.simplify();
+
+      var special = this._specialSimplify(simpleOperand);
+      if (special) return special;
+
+      if (simpleOperand.isOp('literal')) {
         return new LiteralExpression({
           op: 'literal',
-          value: this._makeFn(simplifiedOperand.getFn())()
+          value: this._makeFn(simpleOperand.getFn())()
         })
       }
 
       var value = this.valueOf();
-      value.operand = simplifiedOperand;
+      value.operand = simpleOperand;
       return new (Expression.classMap[this.op])(value);
     }
 
@@ -703,20 +710,27 @@ module Core {
       return 1 + this.lhs.getComplexity() + this.rhs.getComplexity()
     }
 
-    public simplify(): Expression {
-      var simplifiedLhs = this.lhs.simplify();
-      var simplifiedRhs = this.rhs.simplify();
+    protected _specialSimplify(simpleLhs: Expression, simpleRhs: Expression): Expression {
+      return null;
+    }
 
-      if (simplifiedLhs.isOp('literal') && simplifiedRhs.isOp('literal')) {
+    public simplify(): Expression {
+      var simpleLhs = this.lhs.simplify();
+      var simpleRhs = this.rhs.simplify();
+
+      var special = this._specialSimplify(simpleLhs, simpleRhs);
+      if (special) return special;
+
+      if (simpleLhs.isOp('literal') && simpleRhs.isOp('literal')) {
         return new LiteralExpression({
           op: 'literal',
-          value: this._makeFn(simplifiedLhs.getFn(), simplifiedRhs.getFn())()
+          value: this._makeFn(simpleLhs.getFn(), simpleRhs.getFn())()
         })
       }
 
       var value = this.valueOf();
-      value.lhs = simplifiedLhs;
-      value.rhs = simplifiedRhs;
+      value.lhs = simpleLhs;
+      value.rhs = simpleRhs;
       return new (Expression.classMap[this.op])(value);
     }
 
@@ -839,10 +853,18 @@ module Core {
       return complexity;
     }
 
+    protected _specialSimplify(simpleOperands: Expression[]): Expression {
+      return null;
+    }
+
     public simplify(): Expression {
-      var simplifiedOperands: Expression[] = this.operands.map((operand) => operand.simplify());
-      var literalOperands = simplifiedOperands.filter((operand) => operand.isOp('literal'));
-      var nonLiteralOperands = simplifiedOperands.filter((operand) => !operand.isOp('literal'));
+      var simpleOperands: Expression[] = this.operands.map((operand) => operand.simplify());
+
+      var special = this._specialSimplify(simpleOperands);
+      if (special) return special;
+
+      var literalOperands = simpleOperands.filter((operand) => operand.isOp('literal'));
+      var nonLiteralOperands = simpleOperands.filter((operand) => !operand.isOp('literal'));
       var literalExpression = new LiteralExpression({
         op: 'literal',
         value: this._makeFn(literalOperands.map((operand) => operand.getFn()))()

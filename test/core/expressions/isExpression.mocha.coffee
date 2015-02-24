@@ -82,7 +82,7 @@ describe 'IsExpression', ->
           .equals({
             op: 'in',
             lhs: { op: 'ref', name: 'flight_time' },
-            rhs: { op: 'literal', value: { values: ["5", "7"] }, type: 'SET' }
+            rhs: { op: 'literal', value: { elements: [5, 7], setType: 'NUMBER' }, type: 'SET' }
           })
 
         tests
@@ -112,7 +112,7 @@ describe 'IsExpression', ->
           })
 
 
-    describe 'in Time type', ->
+    describe 'in TIME type', ->
       beforeEach ->
         this.expression = { op: 'is', lhs: { op: 'ref', name: 'flight_time' }, rhs: { op: 'literal', value: new Date(6) } }
 
@@ -176,7 +176,11 @@ describe 'IsExpression', ->
             rhs: {
               op: 'literal',
               value: {
-                values: [new Date(0), new Date(2000)]
+                elements: [
+                  new Date("1970-01-01T00:00:00.006Z")
+                  new Date("1970-01-01T00:00:02.000Z")
+                ]
+                setType: 'TIME'
               }
               type: "SET"
             }
@@ -258,7 +262,7 @@ describe 'IsExpression', ->
             {
               op: 'in',
               lhs: { op: 'ref', name: 'flight_time', type: 'STRING' },
-              rhs: { op: 'literal', value: Set.fromJS({values: ['ABC', 'DEF']}) }
+              rhs: { op: 'literal', value: Set.fromJS({ elements: ['ABC', 'DEF'], setType: 'STRING' }) }
             }
           )
           .equals({ op: 'is', lhs: { op: 'ref', name: 'flight_time' }, rhs: { op: 'literal', value: 'ABC' } })
@@ -269,7 +273,7 @@ describe 'IsExpression', ->
               {
                 op: 'in',
                 lhs: { op: 'ref', name: 'flight_time', type: 'STRING' },
-                rhs: { op: 'literal', value: Set.fromJS({values: ['DEF']}) }
+                rhs: { op: 'literal', value: Set.fromJS({ elements: ['DEF'], setType: 'STRING' }) }
               }
             )
           .equals({ op: 'literal', value: false })
@@ -287,7 +291,7 @@ describe 'IsExpression', ->
           .equals({
             op: 'in',
             lhs: { op: 'ref', name: 'flight_time' },
-            rhs: { op: 'literal', value: { values: ['ABC', 'BCD']}, type: 'SET' }
+            rhs: { op: 'literal', value: { elements: ['ABC', 'BCD'], setType: 'STRING' }, type: 'SET' }
           })
 
         tests
@@ -307,13 +311,13 @@ describe 'IsExpression', ->
             {
               op: 'in',
               lhs: { op: 'ref', name: 'flight_time', type: 'STRING' },
-              rhs: { op: 'literal', value: Set.fromJS({values: ['ABC', 'DEF']}) }
+              rhs: { op: 'literal', value: Set.fromJS(['ABC', 'DEF']) }
             }
           )
           .equals({
             op: 'in',
             lhs: { op: 'ref', name: 'flight_time', type: 'STRING' },
-            rhs: { op: 'literal', value: { values: ['ABC', 'DEF']}, type: 'SET' }
+            rhs: { op: 'literal', value: { elements: ['ABC', 'DEF'], setType: 'STRING' }, type: 'SET' }
           })
 
         tests
@@ -322,13 +326,13 @@ describe 'IsExpression', ->
             {
               op: 'in',
               lhs: { op: 'ref', name: 'flight_time', type: 'STRING' },
-              rhs: { op: 'literal', value: Set.fromJS({values: ['DEF']}) }
+              rhs: { op: 'literal', value: Set.fromJS(['DEF']) }
             }
           )
           .equals({
               op: 'in',
               lhs: { op: 'ref', name: 'flight_time' },
-              rhs: { op: 'literal', value: { values: ['ABC', 'DEF']}, type: 'SET' }
+              rhs: { op: 'literal', value: { elements: ['ABC', 'DEF'], setType: 'STRING' }, type: 'SET' }
             })
 
   describe 'with complex values', ->

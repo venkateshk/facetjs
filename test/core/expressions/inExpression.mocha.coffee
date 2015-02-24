@@ -10,11 +10,22 @@ describe 'InExpression', ->
       this.expression = {
         op: 'in',
         lhs: { op: 'literal', value: 'Honda' },
-        rhs: { op: 'literal', value: Set.fromJS({values: ['Honda', 'BMW', 'Suzuki']}) }
+        rhs: { op: 'literal', value: Set.fromJS(['Honda', 'BMW', 'Suzuki']) }
       }
 
     tests.complexityIs(3)
     tests.simplifiedExpressionIs({ op: 'literal', value: true })
+
+  describe 'with empty set', ->
+    beforeEach ->
+      this.expression = {
+        op: 'in',
+        lhs: { op: 'ref', name: 'make' },
+        rhs: { op: 'literal', value: Set.fromJS({ elements: [], setType: 'STRING' }) }
+      }
+
+    tests.complexityIs(3)
+    tests.simplifiedExpressionIs({ op: 'literal', value: false })
 
   describe 'with number range', ->
     beforeEach ->
@@ -47,7 +58,7 @@ describe 'InExpression', ->
       this.expression = {
         op: 'in',
         lhs: { op: 'is', lhs: 1, rhs: 2 },
-        rhs: { op: 'literal', value: Set.fromJS({values: [true]}) }
+        rhs: { op: 'literal', value: Set.fromJS([true]) }
       }
 
     tests.complexityIs(5)
@@ -70,20 +81,20 @@ describe 'InExpression', ->
         this.expression = {
           op: 'in',
           lhs: { op: 'ref', name: 'test' },
-          rhs: { op: 'literal', value: Set.fromJS({values: ['A']}) }
+          rhs: { op: 'literal', value: Set.fromJS(['A', 'B', 'C']) }
         }
 
       tests.complexityIs(3)
       tests.simplifiedExpressionIs({
         op: 'in',
         lhs: { op: 'ref', name: 'test' },
-        rhs: { op: 'literal', value: {values: ['A']}, type: 'SET' }
+        rhs: { op: 'literal', value: { elements: ['A', 'B', 'C'], setType: 'STRING' }, type: 'SET' }
       })
 
       describe '#mergeAnd', ->
         tests
           .mergeAndWith(
-            "with an is expression"
+            "with an IS expression (contained in set)"
             {
               op: 'is',
               lhs: { op: 'ref', name: 'test' },
@@ -100,16 +111,16 @@ describe 'InExpression', ->
 
         tests
           .mergeAndWith(
-            "with an outside is expression"
+            "with an IS expression (not contained in set)"
             {
               op: 'is',
               lhs: { op: 'ref', name: 'test' },
-              rhs: { op: 'literal', value: 'B' }
+              rhs: { op: 'literal', value: 'X' }
             }
           )
           .equals(
             {
-              op: 'literal',
+              op: 'literal'
               value: false
             }
           )
@@ -120,14 +131,13 @@ describe 'InExpression', ->
             {
               op: 'in',
               lhs: { op: 'ref', name: 'test' },
-              rhs: { op: 'literal', value: Set.fromJS({values: ['B', 'C']}) }
+              rhs: { op: 'literal', value: Set.fromJS(['X', 'Y']) }
             }
           )
           .equals(
             {
-              op: 'in',
-              lhs: { op: 'ref', name: 'test' },
-              rhs: { op: 'literal', value: {values: []}, type: 'SET' }
+              op: 'literal'
+              value: false
             }
           )
 
@@ -137,14 +147,14 @@ describe 'InExpression', ->
             {
               op: 'in',
               lhs: { op: 'ref', name: 'test' },
-              rhs: { op: 'literal', value: Set.fromJS({values: ['A', 'B', 'C']}) }
+              rhs: { op: 'literal', value: Set.fromJS(['A', 'B', 'X']) }
             }
           )
           .equals(
             {
               op: 'in',
               lhs: { op: 'ref', name: 'test' },
-              rhs: { op: 'literal', value: {values: ['A']}, type: 'SET' }
+              rhs: { op: 'literal', value: { elements: ['A', 'B'], setType: 'STRING' }, type: 'SET' }
             }
           )
 
@@ -162,7 +172,7 @@ describe 'InExpression', ->
             {
               op: 'in',
               lhs: { op: 'ref', name: 'test' },
-              rhs: { op: 'literal', value: {values: ['A']}, type: 'SET' }
+              rhs: { op: 'literal', value: { elements: ['A', 'B', 'C'], setType: 'STRING'}, type: 'SET' }
             }
           )
 
@@ -172,14 +182,14 @@ describe 'InExpression', ->
             {
               op: 'is',
               lhs: { op: 'ref', name: 'test' },
-              rhs: { op: 'literal', value: 'B' }
+              rhs: { op: 'literal', value: 'X' }
             }
           )
           .equals(
             {
               op: 'in',
               lhs: { op: 'ref', name: 'test' },
-              rhs: { op: 'literal', value: {values: ['A', 'B']}, type: 'SET' }
+              rhs: { op: 'literal', value: { elements: ['A', 'B', 'C', 'X'], setType: 'STRING' }, type: 'SET' }
             }
           )
 
@@ -189,14 +199,14 @@ describe 'InExpression', ->
             {
               op: 'in',
               lhs: { op: 'ref', name: 'test' },
-              rhs: { op: 'literal', value: Set.fromJS({values: ['B', 'C']}) }
+              rhs: { op: 'literal', value: Set.fromJS(['X', 'Y']) }
             }
           )
           .equals(
             {
               op: 'in',
               lhs: { op: 'ref', name: 'test' },
-              rhs: { op: 'literal', value: {values: ['A', 'B', 'C']}, type: 'SET' }
+              rhs: { op: 'literal', value: { elements: ['A', 'B', 'C', 'X', 'Y'], setType: 'STRING' }, type: 'SET' }
             }
           )
 
@@ -206,14 +216,14 @@ describe 'InExpression', ->
             {
               op: 'in',
               lhs: { op: 'ref', name: 'test' },
-              rhs: { op: 'literal', value: Set.fromJS({values: ['A', 'B', 'C']}) }
+              rhs: { op: 'literal', value: Set.fromJS(['A', 'B', 'C']) }
             }
           )
           .equals(
             {
               op: 'in',
               lhs: { op: 'ref', name: 'test' },
-              rhs: { op: 'literal', value: {values: ['A', 'B', 'C']}, type: 'SET' }
+              rhs: { op: 'literal', value: { elements: ['A', 'B', 'C'], setType: 'STRING' }, type: 'SET' }
             }
           )
 

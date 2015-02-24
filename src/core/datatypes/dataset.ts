@@ -347,8 +347,8 @@ module Core {
         splits[v] = v;
       }
       return Set.fromJS({
-        type: attribute.type,
-        values: Object.keys(splits).map((k) => splits[k])
+        setType: attribute.type,
+        elements: Object.keys(splits).map((k) => splits[k])
       });
     }
 

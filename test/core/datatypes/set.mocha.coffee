@@ -9,43 +9,43 @@ describe "Set", ->
   it "passes higher object tests", ->
     testHigherObjects(Set, [
       {
-        type: 'BOOLEAN'
-        values: [true]
+        setType: 'BOOLEAN'
+        elements: [true]
       }
       {
-        type: 'STRING'
-        values: []
+        setType: 'STRING'
+        elements: []
       }
       {
-        type: 'STRING'
-        values: ['A']
+        setType: 'STRING'
+        elements: ['A']
       }
       {
-        type: 'STRING'
-        values: ['B', 'C']
+        setType: 'STRING'
+        elements: ['B', 'C']
       }
       {
-        type: 'NUMBER'
-        values: []
+        setType: 'NUMBER'
+        elements: []
       }
       {
-        type: 'NUMBER'
-        values: [1, 2]
+        setType: 'NUMBER'
+        elements: [1, 2]
       }
       {
-        type: 'NUMBER_RANGE'
-        values: [
+        setType: 'NUMBER_RANGE'
+        elements: [
           { start: 1, end: 2 }
           { start: 3, end: 5 }
         ]
       }
       {
-        type: 'TIME'
-        values: [new Date("2015-02-21T00:00:00"), new Date("2015-02-20T00:00:00")]
+        setType: 'TIME'
+        elements: [new Date("2015-02-20T00:00:00"), new Date("2015-02-21T00:00:00")]
       }
       {
-        type: 'TIME_RANGE'
-        values: [
+        setType: 'TIME_RANGE'
+        elements: [
           { start: new Date("2015-02-20T00:00:00"), end: new Date("2015-02-21T00:00:00") }
           { start: new Date("2015-02-22T00:00:00"), end: new Date("2015-02-24T00:00:00") }
         ]
@@ -57,8 +57,8 @@ describe "Set", ->
       expect(
         Set.fromJS(['A', 'B']).add('C').toJS()
       ).to.deep.equal({
-        type: 'STRING'
-        values: ['A', 'B', 'C']
+        setType: 'STRING'
+        elements: ['A', 'B', 'C']
       })
 
   describe "#union()", ->
@@ -66,8 +66,8 @@ describe "Set", ->
       expect(
         Set.fromJS(['A', 'B']).union(Set.fromJS(['B', 'C'])).toJS()
       ).to.deep.equal({
-        type: 'STRING'
-        values: ['A', 'B', 'C']
+        setType: 'STRING'
+        elements: ['A', 'B', 'C']
       })
 
   describe "#intersect()", ->
@@ -75,6 +75,6 @@ describe "Set", ->
       expect(
         Set.fromJS(['A', 'B']).intersect(Set.fromJS(['B', 'C'])).toJS()
       ).to.deep.equal({
-        type: 'STRING'
-        values: ['B']
+        setType: 'STRING'
+        elements: ['B']
       })

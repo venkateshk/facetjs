@@ -64,7 +64,8 @@ describe "compute", ->
           "Data": data
           "Cuts": {
             "type": "SET"
-            "values": ["Good", "Great", "Wow"]
+            "setType": "STRING"
+            "elements": ["Good", "Great", "Wow"]
           }
         }
       ])

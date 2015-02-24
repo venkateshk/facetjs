@@ -2,7 +2,17 @@ module Core {
 
   export class LiteralExpression extends Expression {
     static fromJS(parameters: ExpressionJS): Expression {
-      return new LiteralExpression(<any>parameters);
+      var value: ExpressionValue = {
+        op: parameters.op,
+        type: parameters.type
+      };
+      var v: any = parameters.value;
+      if (isHigherObject(v)) {
+        value.value = v;
+      } else {
+        value.value = valueFromJS(v, parameters.type);
+      }
+      return new LiteralExpression(value);
     }
 
     public value: any;
@@ -23,7 +33,12 @@ module Core {
           this.type = 'TIME';
         } else {
           this.type = value.constructor.type;
-          if (!this.type) throw new Error("can not have an object without a type");
+          if (!this.type) {
+            throw new Error("can not have an object without a type");
+          }
+          if (this.type === 'SET') {
+            this.type += '/' + this.value.setType;
+          }
         }
       } else {
         if (typeofValue !== 'boolean' && typeofValue !== 'number' && typeofValue !== 'string') {
@@ -44,7 +59,7 @@ module Core {
       var js = super.toJS();
       if (this.value && this.value.toJS) {
         js.value = this.value.toJS();
-        js.type = this.type;
+        js.type = (this.type.indexOf('SET/') === 0) ? 'SET' : this.type;
       } else {
         js.value = this.value;
       }
@@ -56,8 +71,12 @@ module Core {
     }
 
     public equals(other: LiteralExpression): boolean {
-      return super.equals(other) &&
-        this.value === other.value;
+      if (!super.equals(other) || this.type !== other.type) return false;
+      if (this.value && this.value.equals) {
+        return this.value.equals(other.value);
+      } else {
+        return this.value === other.value;
+      }
     }
 
     public getReferences(): string[] {

@@ -251,14 +251,16 @@ module Core {
       return dataset;
     }
 
-    public _fillRefSubstitutions(parentContext: any, alterations: Alteration[]): any {
-      var context = this.operand._fillRefSubstitutions(parentContext, alterations);
+    public _fillRefSubstitutions(context: any, alterations: Alteration[]): any {
+      var context = this.operand._fillRefSubstitutions(context, alterations);
 
       var actions = this.actions;
       for (var i = 0; i < actions.length; i++) {
         var action = actions[i];
         if (action instanceof DefAction || action instanceof ApplyAction) {
           context[action.name] = action.expression._fillRefSubstitutions(context, alterations);
+        } else if (action instanceof SortAction) {
+          action.expression._fillRefSubstitutions(context, alterations);
         }
       }
 

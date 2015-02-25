@@ -55,7 +55,9 @@ Label
     { return { op: 'label', operand: ex, name: name }; }
 
 Ref
-  = "$" name:RefName 
+  = "$" name:RefName ":" type:TypeName
+    { return { op: "ref", name: name, type: type }; }
+  / "$" name:RefName
     { return { op: "ref", name: name }; }
 
 Literal
@@ -102,6 +104,9 @@ Name "Name"
 
 RefName "RefName"
   = $("^"* [a-z0-9A-Z_]+)
+
+TypeName "TypeName"
+  = $([A-Z_]+)
 
 NotSQuote "NotSQuote"
   = $([^']+)

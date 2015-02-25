@@ -1,4 +1,4 @@
-myDiamonds = new Dataset([
+myDiamonds = Dataset.fromJS([
   { "carat": 0.23, "cut": "Ideal",   "color": "E", "clarity": "SI2", "price": 326 },
   { "carat": 0.21, "cut": "Premium", "color": "E", "clarity": "SI1", "price": 326 },
   { "carat": 0.23, "cut": "Good",    "color": "E", "clarity": "VS1", "price": 328 }
@@ -41,7 +41,7 @@ facet() // [{} = base]
   // }]
 
   .apply('Cuts',
-    facet("diamonds").split("$cut", 'Cut')
+    facet("diamonds").group("$cut").label('Cut')
       // [
       //   {
       //     Cut: 'good'
@@ -54,7 +54,7 @@ facet() // [{} = base]
       //   }
       // ]
 
-      .apply('POOP', facet('diamonds').filter('$cut = $^Cut'))
+      .apply('diamonds', facet('diamonds').filter('$cut = $^Cut'))
       // [
       //   {
       //     Cut: 'good'

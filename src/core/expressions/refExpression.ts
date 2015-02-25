@@ -76,24 +76,24 @@ module Core {
       return gen.replace(/\^/g, "Object.getPrototypeOf(") + 'd.' + this.name + gen.replace(/\^/g, ")");
     }
 
-    public _fillRefSubstitutions(parentContext: any, alterations: Alteration[]): any {
+    public _fillRefSubstitutions(context: any, alterations: Alteration[]): any {
       var numGenerations = this.generations.length;
 
       // Step the parentContext back; once for each generation
       while (numGenerations--) {
-        parentContext = parentContext.$parent;
-        if (!parentContext) new Error('went too deep on `' + this.generations + this.name + '`');
+        context = context.$parent;
+        if (!context) throw new Error('went too deep on ' + this.toString());
       }
 
       // Look for the reference in the parent chain
       var genBack = 0;
-      while (parentContext && !parentContext[this.name]) {
-        parentContext = parentContext.$parent;
+      while (context && !context[this.name]) {
+        context = context.$parent;
         genBack++;
       }
-      if (!parentContext) throw new Error('could not resolve ' + this.toString());
+      if (!context) throw new Error('could not resolve ' + this.toString());
 
-      var contextType = parentContext[this.name];
+      var contextType = context[this.name];
       var myType: string = (typeof contextType === 'object') ? 'DATASET' : contextType;
 
       if (this.type && this.type !== myType) {

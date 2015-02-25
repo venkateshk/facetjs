@@ -102,9 +102,11 @@ module Core {
       }
     }
 
-    public _fillRefSubstitutions(parentContext: any, alterations: Alteration[]): any {
+    public _fillRefSubstitutions(context: any, alterations: Alteration[]): any {
       if (this.type == 'DATASET') {
-        return this.value.introspect()
+        var newContext = this.value.introspect();
+        newContext.$parent = context;
+        return newContext;
       } else {
         return this.type;
       }

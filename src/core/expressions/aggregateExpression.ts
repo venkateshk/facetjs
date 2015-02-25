@@ -84,6 +84,15 @@ module Core {
       throw new Error("implement me");
     }
 
+    public _fillRefSubstitutions(context: any, alterations: Alteration[]): any {
+      var datasetContext = this.operand._fillRefSubstitutions(context, alterations);
+      var attributeType = 'NUMBER';
+      if (this.attribute) {
+        attributeType = this.attribute._fillRefSubstitutions(datasetContext, alterations);
+      }
+      return this.fn === 'group' ? ('SET/' + attributeType) : this.type;
+    }
+
     // UNARY
   }
 

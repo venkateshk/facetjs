@@ -116,7 +116,18 @@ module Core {
       // Quick parse simple expressions
       switch (typeof param) {
         case 'object':
-          expressionJS = <ExpressionJS>param;
+          if (Expression.isExpression(param)) {
+            return param
+          } else if (isHigherObject(param)) {
+            if (param.constructor.type) {
+              // Must be a datatype
+              expressionJS = { op: 'literal', value: param };
+            } else {
+              throw new Error("unknown object"); //ToDo: better error
+            }
+          } else {
+            expressionJS = <ExpressionJS>param;
+          }
           break;
 
         case 'number':
@@ -444,8 +455,15 @@ module Core {
     }
 
     // Split // .split(attr, l, d) = .group(attr).label(l).def(d, facet(d).filter(ex = ^l))
-    public split(attribute: any, name: string, dataName: string = 'data'): Expression {
+    public split(attribute: any, name: string, dataName: string = null): Expression {
       if (!Expression.isExpression(attribute)) attribute = Expression.fromJSLoose(attribute);
+      if (!dataName) {
+        if (this.isOp('ref')) {
+          dataName = (<RefExpression>this).name;
+        } else {
+          throw new Error("could not guess data name in `split`, please provide one explicitly")
+        }
+      }
       return this.group(attribute).label(name)
         .def(dataName, facet(dataName).filter(attribute.is(facet('^' + name))));
     }
@@ -460,6 +478,7 @@ module Core {
     }
 
     public is(ex: any) { return this._performBinaryExpression({ op: 'is' }, ex); }
+    public in(ex: any) { return this._performBinaryExpression({ op: 'in' }, ex); }
     public lessThan(ex: any) { return this._performBinaryExpression({ op: 'lessThan' }, ex); }
     public lessThanOrEqual(ex: any) { return this._performBinaryExpression({ op: 'lessThanOrEqual' }, ex); }
     public greaterThan(ex: any) { return this._performBinaryExpression({ op: 'greaterThan' }, ex); }
@@ -530,12 +549,21 @@ module Core {
     }
 
     // Evaluation
-    public compute(driver: Driver = null) {
+    public compute(drivers: Lookup<Driver> = null) {
       var deferred = <Q.Deferred<Dataset>>Q.defer();
       // ToDo: typecheck2 the expression
       var simple = this.simplify();
-      if (driver) {
-        return driver(simple);
+      if (drivers) {
+        var driverObjects: Driver[] = [];
+        Object.keys(drivers).forEach((driverName) => {
+          var driver = drivers[driverName];
+          if (driverObjects.indexOf(driver) === -1) driverObjects.push(driver);
+        });
+        if (driverObjects.length !== 1) {
+          deferred.reject(new Error('must have exactly one driver defined (for now)'));
+          return deferred.promise;
+        }
+        return driverObjects[0](simple);
       } else {
         if (simple instanceof LiteralExpression) {
           deferred.resolve(simple.value);

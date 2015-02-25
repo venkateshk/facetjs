@@ -1,0 +1,77 @@
+var druidRequester = require('facetjs-druid-requester').druidRequester;
+var facet = require('../../build/facet');
+var TimeRange = facet.core.TimeRange;
+var legacyDriver = facet.core.legacyDriver;
+var druidDriver = facet.legacy.druidDriver;
+
+var druidPass = druidRequester({
+  host: '10.153.211.100' // Where ever your Druid may be
+});
+
+var wikiDriver = legacyDriver(druidDriver({
+  requester: druidPass,
+  dataSource: 'wikipedia_editstream',
+  timeAttribute: 'time',
+  forceInterval: true,
+  approximate: true
+}));
+
+var timeRange = new TimeRange({
+  start: new Date("2013-02-26T00:00:00Z"),
+  end: new Date("2013-02-27T00:00:00Z")
+});
+
+ex = facet()
+  .def("wiki", facet('wiki').filter(facet("time").in(timeRange)))
+  .apply('Count', facet('wiki').count())
+  .apply('TotalAdded', '$wiki.sum($added)')
+  .apply('Pages',
+    facet('wiki').split('$page', 'Page')
+      .apply('Count', facet('wiki').count())
+      .sort('$Count', 'descending')
+      .limit(6)
+  );
+
+ex.compute({
+  wiki: wikiDriver
+}).then(function(data) {
+  // Log the data while converting it to a readable standard
+  console.log(JSON.stringify(data.toJS(), null, 2));
+}).done();
+
+
+/*
+Output:
+[
+  {
+    "Count": 573775,
+    "TotalAdded": 124184252,
+    "Page": [
+      {
+        "Page": "Wikipedia:Vandalismusmeldung",
+        "Count": 177
+      },
+      {
+        "Page": "Wikipedia:Administrator_intervention_against_vandalism",
+        "Count": 124
+      },
+      {
+        "Page": "Wikipedia:Auskunft",
+        "Count": 124
+      },
+      {
+        "Page": "Wikipedia:Löschkandidaten/26._Februar_2013",
+        "Count": 88
+      },
+      {
+        "Page": "Wikipedia:Reference_desk/Science",
+        "Count": 88
+      },
+      {
+        "Page": "Wikipedia:Administrators'_noticeboard",
+        "Count": 87
+      }
+    ]
+  }
+]
+*/

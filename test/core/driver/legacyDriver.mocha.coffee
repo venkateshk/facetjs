@@ -10,11 +10,14 @@ facet = require('../../../build/facet')
 { simpleDriver } = facet.legacy
 
 diamondsData = require('../../../data/diamonds.js')
-diamondsDriver = legacyDriver(simpleDriver(diamondsData))
+
+drivers = {
+  diamonds: legacyDriver(simpleDriver(diamondsData))
+}
 
 describe "legacyDriver", ->
   ex = facet()
-    .def("diamonds", facet('SOME_DATA').filter(facet("color").is('D')))
+    .def("diamonds", facet('diamonds').filter(facet("color").is('D')))
     .apply('Count', facet('diamonds').count())
     .apply('TotalPrice', facet('diamonds').sum('$price'))
     .apply('Cuts',
@@ -24,7 +27,7 @@ describe "legacyDriver", ->
         .sort('$Count', 'descending')
         .limit(2)
         .apply('Carats',
-          facet("diamonds").split(facet("carat").numberBucket(0.25), 'Carat', 'diamonds')
+          facet("diamonds").split(facet("carat").numberBucket(0.25), 'Carat')
             .apply('Count', facet('diamonds').count())
             .sort('$Count', 'descending')
             .limit(3)
@@ -97,7 +100,7 @@ describe "legacyDriver", ->
     ])
 
   it "works", (testComplete) ->
-    ex.compute(diamondsDriver)
+    ex.compute(drivers)
     .then((data) ->
       expect(data.toJS()).to.deep.equal([
         {

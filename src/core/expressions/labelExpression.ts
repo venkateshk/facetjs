@@ -46,11 +46,9 @@ module Core {
       throw new Error("implement me");
     }
 
-    public _fillRefSubstitutions(parentContext: any, alterations: Alteration[]): any {
-      var setType = this.operand._fillRefSubstitutions(parentContext, alterations);
-      var newContext: any = {
-        $parent: parentContext
-      };
+    public _fillRefSubstitutions(context: any, alterations: Alteration[]): any {
+      var setType = this.operand._fillRefSubstitutions(context, alterations);
+      var newContext: any = { $parent: context };
       // setType will be something like SET/STRING we need to chop off the SET/
       newContext[this.name] = setType.substring(4);
 

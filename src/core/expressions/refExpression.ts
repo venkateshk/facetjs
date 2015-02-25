@@ -76,24 +76,25 @@ module Core {
       return gen.replace(/\^/g, "Object.getPrototypeOf(") + 'd.' + this.name + gen.replace(/\^/g, ")");
     }
 
-    public _fillRefSubstitutions(parentContext: any, alterations: Alteration[]): any {
+    public _fillRefSubstitutions(context: any, alterations: Alteration[]): any {
       var numGenerations = this.generations.length;
 
       // Step the parentContext back; once for each generation
+      var myContext = context;
       while (numGenerations--) {
-        parentContext = parentContext.$parent;
-        if (!parentContext) new Error('went too deep on `' + this.generations + this.name + '`');
+        myContext = myContext.$parent;
+        if (!myContext) throw new Error('went too deep on ' + this.toString());
       }
 
       // Look for the reference in the parent chain
       var genBack = 0;
-      while (parentContext && !parentContext[this.name]) {
-        parentContext = parentContext.$parent;
+      while (myContext && !myContext[this.name]) {
+        myContext = myContext.$parent;
         genBack++;
       }
-      if (!parentContext) throw new Error('could not resolve ' + this.toString());
+      if (!myContext) throw new Error('could not resolve ' + this.toString());
 
-      var contextType = parentContext[this.name];
+      var contextType = myContext[this.name];
       var myType: string = (typeof contextType === 'object') ? 'DATASET' : contextType;
 
       if (this.type && this.type !== myType) {
@@ -111,6 +112,12 @@ module Core {
             type: myType
           })
         })
+      }
+
+      if (myType === 'DATASET') {
+        // Set the new parent context correctly
+        contextType = shallowCopy(contextType);
+        contextType.$parent = context;
       }
 
       return contextType;

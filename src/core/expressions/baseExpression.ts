@@ -64,7 +64,13 @@ module Core {
   export function facet(input: any = null): Expression {
     if (input) {
       if (typeof input === 'string') {
-        return new RefExpression({ op: 'ref', name: input });
+        var parts = input.split(':');
+        var refValue: ExpressionValue = {
+          op: 'ref',
+          name: parts[0]
+        };
+        if (parts.length > 1) refValue.type = parts[1];
+        return new RefExpression(refValue);
       } else {
         return new LiteralExpression({ op: 'literal', value: input });
       }
@@ -505,8 +511,22 @@ module Core {
     public or(...exs: any[]) { return this._performNaryExpression({ op: 'or' }, exs); }
 
     // Ref check
-    public _fillRefSubstitutions(parentContext: any, alterations: Alteration[]): any {
-      return null
+    public _fillRefSubstitutions(context: any, alterations: Alteration[]): any {
+      return context;
+    }
+
+    public referenceCheck(outsideContext: any) {
+      var alterations: Alteration[] = [];
+      this._fillRefSubstitutions(outsideContext, alterations); // This return the final type
+      function substitutionFn(ex: Expression): Expression {
+        if (!ex.isOp('ref')) return null;
+        for (var i = 0; i < alterations.length; i++) {
+          var alteration = alterations[i];
+          if (ex === alteration.from) return alteration.to;
+        }
+        return null;
+      }
+      return this.substitute(substitutionFn, 0);
     }
 
     // Evaluation
@@ -645,8 +665,8 @@ module Core {
       }
     }
 
-    public _fillRefSubstitutions(parentContext: any, alterations: Alteration[]): any {
-      this.operand._fillRefSubstitutions(parentContext, alterations);
+    public _fillRefSubstitutions(context: any, alterations: Alteration[]): any {
+      this.operand._fillRefSubstitutions(context, alterations);
       return this.type;
     }
   }
@@ -790,9 +810,9 @@ module Core {
       }
     }
 
-    public _fillRefSubstitutions(parentContext: any, alterations: Alteration[]): any {
-      this.lhs._fillRefSubstitutions(parentContext, alterations);
-      this.rhs._fillRefSubstitutions(parentContext, alterations);
+    public _fillRefSubstitutions(context: any, alterations: Alteration[]): any {
+      this.lhs._fillRefSubstitutions(context, alterations);
+      this.rhs._fillRefSubstitutions(context, alterations);
       return this.type;
     }
   }
@@ -932,10 +952,10 @@ module Core {
      * @returns the resolved type of the expression
      * @private
      */
-    public _fillRefSubstitutions(parentContext: any, alterations: Alteration[]): any {
+    public _fillRefSubstitutions(context: any, alterations: Alteration[]): any {
       var operands = this.operands;
       for (var i = 0; i < operands.length; i++) {
-        operands[i]._fillRefSubstitutions(parentContext, alterations);
+        operands[i]._fillRefSubstitutions(context, alterations);
       }
       return this.type;
     }

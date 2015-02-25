@@ -4,6 +4,17 @@ facet = require('../../../build/facet')
 { Expression } = facet.core
 
 describe "reference check", ->
+
+  context = {
+    diamonds: {
+      time: 'TIME'
+      color: 'STRING'
+      cut: 'STRING'
+      carat: 'NUMBER'
+      price: 'NUMBER'
+    }
+  }
+
   describe "errors", ->
     it "fails to resolve a variable that does not exist", ->
       ex = facet()
@@ -56,18 +67,20 @@ describe "reference check", ->
         ex.referenceCheck({})
       ).to.throw('add must have an operand of type NUMBER at position 0')
 
+    it "fails when discovering that the types mismatch via label", ->
+      ex = facet()
+        .def("diamonds", facet("diamonds").filter(facet('color').is('D')))
+        .apply('Cuts',
+          facet("diamonds").group("$cut").label('Cut')
+            .apply('TotalPrice', '$Cut * 10')
+        )
+
+      expect(->
+        ex.referenceCheck(context)
+      ).to.throw('multiply must have an operand of type NUMBER at position 0')
+
 
   describe "resolves", ->
-    context = {
-      diamonds: {
-        time: 'TIME'
-        color: 'STRING'
-        cut: 'STRING'
-        carat: 'NUMBER'
-        price: 'NUMBER'
-      }
-    }
-
     it "works in a basic case", ->
       ex = facet()
         .def('num', 5)
@@ -115,12 +128,12 @@ describe "reference check", ->
 
       expect(ex.referenceCheck(context).toJS()).to.deep.equal(
         facet()
-          .def("diamonds", facet("^diamonds:DATASET").filter(facet('color').is('D')))
+          .def("diamonds", facet("^diamonds:DATASET").filter(facet('color:STRING').is('D')))
           .apply('Count', '$diamonds:DATASET.count()')
           .apply('TotalPrice', '$diamonds:DATASET.sum($price)')
           .apply('Cuts',
             facet("diamonds:DATASET").group("$cut").label('Cut')
-              .def('diamonds', facet('^diamonds:DATASET').filter(facet('cut').is('$^Cut')))
+              .def('diamonds', facet('^diamonds:DATASET').filter(facet('cut:STRING').is('$^Cut:STRING')))
               .apply('Count', '$diamonds:DATASET.count()')
               .apply('TotalPrice', '$diamonds:DATASET.sum($price)')
               .apply('AvgPrice', '$TotalPrice:NUMBER / $Count:NUMBER')

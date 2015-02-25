@@ -80,6 +80,15 @@ module Core {
   export interface Datum {
     [attribute: string]: any;
   }
+
+  export function shallowCopy(obj: Lookup<any>): Lookup<any> {
+    var newObj: any = {};
+    for (var k in obj) {
+      if (!obj.hasOwnProperty(k)) continue;
+      newObj[k] = obj[k];
+    }
+    return newObj;
+  }
 }
 
 module Legacy {

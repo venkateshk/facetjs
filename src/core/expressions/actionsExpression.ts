@@ -259,7 +259,7 @@ module Core {
         var action = actions[i];
         if (action instanceof DefAction || action instanceof ApplyAction) {
           context[action.name] = action.expression._fillRefSubstitutions(context, alterations);
-        } else if (action instanceof SortAction) {
+        } else if (action instanceof SortAction || action instanceof FilterAction) {
           action.expression._fillRefSubstitutions(context, alterations);
         }
       }

@@ -251,23 +251,23 @@ module Core {
       return dataset;
     }
 
-    public _fillRefSubstitutions(context: any, alterations: Alteration[]): any {
-      var context = this.operand._fillRefSubstitutions(context, alterations);
+    public _fillRefSubstitutions(typeContext: any, alterations: Alteration[]): any {
+      typeContext = this.operand._fillRefSubstitutions(typeContext, alterations);
 
       var actions = this.actions;
       for (var i = 0; i < actions.length; i++) {
         var action = actions[i];
         if (action instanceof DefAction || action instanceof ApplyAction) {
-          context[action.name] = action.expression._fillRefSubstitutions(context, alterations);
+          typeContext[action.name] = action.expression._fillRefSubstitutions(typeContext, alterations);
         } else if (action instanceof SortAction || action instanceof FilterAction) {
-          action.expression._fillRefSubstitutions(context, alterations);
+          action.expression._fillRefSubstitutions(typeContext, alterations);
         }
       }
 
-      return context;
+      return typeContext;
     }
 
-    public evaluate(context: Lookup<any> = null): Dataset {
+    public evaluate(context: Datum = {}): Dataset {
       var operand = this.operand;
 
       if (operand.isOp('label')) {

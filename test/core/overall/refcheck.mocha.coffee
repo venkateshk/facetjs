@@ -5,7 +5,7 @@ facet = require('../../../build/facet')
 
 describe "reference check", ->
 
-  context = {
+  typeContext = {
     diamonds: {
       time: 'TIME'
       color: 'STRING'
@@ -76,7 +76,7 @@ describe "reference check", ->
         )
 
       expect(->
-        ex.referenceCheck(context)
+        ex.referenceCheck(typeContext)
       ).to.throw('multiply must have an operand of type NUMBER at position 0')
 
 
@@ -101,11 +101,11 @@ describe "reference check", ->
           .toJS()
       )
 
-    it "works from context", ->
+    it "works from typeContext", ->
       ex = facet('diamonds')
         .def('priceOver2', '$price / 2')
 
-      expect(ex.referenceCheck(context).toJS()).to.deep.equal(
+      expect(ex.referenceCheck(typeContext).toJS()).to.deep.equal(
         facet('diamonds:DATASET')
           .def('priceOver2', '$price:NUMBER / 2')
           .toJS()
@@ -126,7 +126,7 @@ describe "reference check", ->
             .limit(10)
         )
 
-      expect(ex.referenceCheck(context).toJS()).to.deep.equal(
+      expect(ex.referenceCheck(typeContext).toJS()).to.deep.equal(
         facet()
           .def("diamonds", facet("^diamonds:DATASET").filter(facet('color:STRING').is('D')))
           .apply('Count', '$diamonds:DATASET.count()')

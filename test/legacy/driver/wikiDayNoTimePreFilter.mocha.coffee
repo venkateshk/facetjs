@@ -10,7 +10,7 @@ if not WallTime.rules
 { mySqlRequester } = require('facetjs-mysql-requester')
 
 facet = require("../../../build/facet")
-{ FacetFilter, simpleDriver, mySqlDriver, druidDriver } = facet.legacy
+{ FacetFilter, nativeDriver, mySqlDriver, druidDriver } = facet.legacy
 
 info = require('../../info')
 
@@ -18,9 +18,9 @@ info = require('../../info')
 driverFns = {}
 verbose = false
 
-# Simple
+# Native
 # diamondsData = require('../../build/data/diamonds.js')
-# driverFns.simple = simpleDriver(diamondsData)
+# driverFns.native = nativeDriver(diamondsData)
 
 # MySQL
 sqlPass = mySqlRequester({

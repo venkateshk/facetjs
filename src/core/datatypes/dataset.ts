@@ -275,7 +275,15 @@ module Core {
     }
 
     public def(name: string, exFn: Function): NativeDataset {
-      return this.apply('_' + name, exFn);
+      // Note this works in place, fix that later if needed.
+      var data = this.data;
+      var n = data.length;
+      for (var i = 0; i < n; i++) {
+        var datum = data[i];
+        datum.$def = datum.$def || {};
+        datum.$def[name] = exFn(datum);
+      }
+      return this;
     }
 
     public filter(exFn: Function): NativeDataset {

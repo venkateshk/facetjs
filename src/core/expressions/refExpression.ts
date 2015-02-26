@@ -63,38 +63,43 @@ module Core {
     }
 
     public getFn(): Function {
-      var len = this.generations.length;
+      if (this.generations.length) throw new Error("can not call getFn on unresolved expression");
       var name = this.name;
       return (d: Datum) => {
-        for (var i = 0; i < len; i++) d = Object.getPrototypeOf(d);
-        return d[name];
+        if (d.hasOwnProperty(name)) {
+          return d[name];
+        } else if (d.$def && d.$def.hasOwnProperty(name)) {
+          return d.$def[name];
+        } else {
+          return null;
+        }
       }
     }
 
     public _getRawFnJS(): string {
-      var gen = this.generations;
-      return gen.replace(/\^/g, "Object.getPrototypeOf(") + 'd.' + this.name + gen.replace(/\^/g, ")");
+      if (this.generations.length) throw new Error("can not call getRawFnJS on unresolved expression");
+      return 'd.' + this.name;
     }
 
-    public _fillRefSubstitutions(context: any, alterations: Alteration[]): any {
+    public _fillRefSubstitutions(typeContext: any, alterations: Alteration[]): any {
       var numGenerations = this.generations.length;
 
       // Step the parentContext back; once for each generation
-      var myContext = context;
+      var myTypeContext = typeContext;
       while (numGenerations--) {
-        myContext = myContext.$parent;
-        if (!myContext) throw new Error('went too deep on ' + this.toString());
+        myTypeContext = myTypeContext.$parent;
+        if (!myTypeContext) throw new Error('went too deep on ' + this.toString());
       }
 
       // Look for the reference in the parent chain
       var genBack = 0;
-      while (myContext && !myContext[this.name]) {
-        myContext = myContext.$parent;
+      while (myTypeContext && !myTypeContext[this.name]) {
+        myTypeContext = myTypeContext.$parent;
         genBack++;
       }
-      if (!myContext) throw new Error('could not resolve ' + this.toString());
+      if (!myTypeContext) throw new Error('could not resolve ' + this.toString());
 
-      var contextType = myContext[this.name];
+      var contextType = myTypeContext[this.name];
       var myType: string = (typeof contextType === 'object') ? 'DATASET' : contextType;
 
       if (this.type && this.type !== myType) {
@@ -117,7 +122,7 @@ module Core {
       if (myType === 'DATASET') {
         // Set the new parent context correctly
         contextType = shallowCopy(contextType);
-        contextType.$parent = context;
+        contextType.$parent = typeContext;
       }
 
       return contextType;

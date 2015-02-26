@@ -116,7 +116,28 @@ module Core {
       // Quick parse simple expressions
       switch (typeof param) {
         case 'object':
-          expressionJS = <ExpressionJS>param;
+          if (Expression.isExpression(param)) {
+            return param
+          } else if (isHigherObject(param)) {
+            if (param.constructor.type) {
+              // Must be a datatype
+              expressionJS = { op: 'literal', value: param };
+            } else {
+              throw new Error("unknown object"); //ToDo: better error
+            }
+          } else if (param.op) {
+            expressionJS = <ExpressionJS>param;
+          } else if (Array.isArray(param)) {
+            expressionJS = { op: 'literal', value: Set.fromJS(param) };
+          } else if (param.hasOwnProperty('start') && param.hasOwnProperty('end')) {
+            if (typeof param.start === 'number') {
+              expressionJS = { op: 'literal', value: NumberRange.fromJS(param) };
+            } else {
+              expressionJS = { op: 'literal', value: TimeRange.fromJS(param) };
+            }
+          } else {
+            throw new Error('unknown parameter');
+          }
           break;
 
         case 'number':
@@ -444,8 +465,15 @@ module Core {
     }
 
     // Split // .split(attr, l, d) = .group(attr).label(l).def(d, facet(d).filter(ex = ^l))
-    public split(attribute: any, name: string, dataName: string = 'data'): Expression {
+    public split(attribute: any, name: string, dataName: string = null): Expression {
       if (!Expression.isExpression(attribute)) attribute = Expression.fromJSLoose(attribute);
+      if (!dataName) {
+        if (this.isOp('ref')) {
+          dataName = (<RefExpression>this).name;
+        } else {
+          throw new Error("could not guess data name in `split`, please provide one explicitly")
+        }
+      }
       return this.group(attribute).label(name)
         .def(dataName, facet(dataName).filter(attribute.is(facet('^' + name))));
     }
@@ -460,6 +488,7 @@ module Core {
     }
 
     public is(ex: any) { return this._performBinaryExpression({ op: 'is' }, ex); }
+    public in(ex: any) { return this._performBinaryExpression({ op: 'in' }, ex); }
     public lessThan(ex: any) { return this._performBinaryExpression({ op: 'lessThan' }, ex); }
     public lessThanOrEqual(ex: any) { return this._performBinaryExpression({ op: 'lessThanOrEqual' }, ex); }
     public greaterThan(ex: any) { return this._performBinaryExpression({ op: 'greaterThan' }, ex); }
@@ -510,14 +539,27 @@ module Core {
     public and(...exs: any[]) { return this._performNaryExpression({ op: 'and' }, exs); }
     public or(...exs: any[]) { return this._performNaryExpression({ op: 'or' }, exs); }
 
-    // Ref check
-    public _fillRefSubstitutions(context: any, alterations: Alteration[]): any {
-      return context;
+    /**
+     * Checks for references and returns the list of alterations that need to be made to the expression
+     *
+     * @param typeContext the context inherited from the parent
+     * @param alterations the accumulation of the alterations to be made (output)
+     * @returns the resolved type of the expression
+     * @private
+     */
+    public _fillRefSubstitutions(typeContext: any, alterations: Alteration[]): any {
+      return typeContext;
     }
 
-    public referenceCheck(outsideContext: any) {
+    /**
+     * Rewrites the expression with all the references typed correctly and resolved to the correct parental level
+     *
+     * @param typeContext
+     * @returns {Expression}
+     */
+    public referenceCheck(typeContext: any) {
       var alterations: Alteration[] = [];
-      this._fillRefSubstitutions(outsideContext, alterations); // This return the final type
+      this._fillRefSubstitutions(typeContext, alterations); // This return the final type
       function substitutionFn(ex: Expression): Expression {
         if (!ex.isOp('ref')) return null;
         for (var i = 0; i < alterations.length; i++) {
@@ -529,13 +571,44 @@ module Core {
       return this.substitute(substitutionFn, 0);
     }
 
+    /**
+     * Resolves one level of dependencies that refer outside of this expression.
+     *
+     * @param context
+     */
+    public resolve(context: Datum): Expression {
+      return this.substitute((ex: Expression, genDiff: number) => {
+        if (ex instanceof RefExpression) {
+          var refGen = ex.generations.length;
+          if (genDiff === refGen) {
+            if (!context.hasOwnProperty(ex.name)) {
+              throw new Error('could not resolve ' + ex.toString() + ' because is was not in the context');
+            }
+            return new LiteralExpression({ op: 'literal', value: context[ex.name] });
+          } else if (genDiff < refGen) {
+            throw new Error('went too deep during resolve on: ' + ex.toString());
+          }
+        }
+        return null;
+      }, 0);
+    }
+
     // Evaluation
-    public compute(driver: Driver = null) {
+    public compute(drivers: Lookup<Driver> = null) {
       var deferred = <Q.Deferred<Dataset>>Q.defer();
-      // ToDo: typecheck2 the expression
+
       var simple = this.simplify();
-      if (driver) {
-        return driver(simple);
+      if (drivers) {
+        var driverObjects: Driver[] = [];
+        Object.keys(drivers).forEach((driverName) => {
+          var driver = drivers[driverName];
+          if (driverObjects.indexOf(driver) === -1) driverObjects.push(driver);
+        });
+        if (driverObjects.length !== 1) {
+          deferred.reject(new Error('must have exactly one driver defined (for now)'));
+          return deferred.promise;
+        }
+        return driverObjects[0](simple);
       } else {
         if (simple instanceof LiteralExpression) {
           deferred.resolve(simple.value);
@@ -665,8 +738,8 @@ module Core {
       }
     }
 
-    public _fillRefSubstitutions(context: any, alterations: Alteration[]): any {
-      this.operand._fillRefSubstitutions(context, alterations);
+    public _fillRefSubstitutions(typeContext: any, alterations: Alteration[]): any {
+      this.operand._fillRefSubstitutions(typeContext, alterations);
       return this.type;
     }
   }
@@ -810,9 +883,9 @@ module Core {
       }
     }
 
-    public _fillRefSubstitutions(context: any, alterations: Alteration[]): any {
-      this.lhs._fillRefSubstitutions(context, alterations);
-      this.rhs._fillRefSubstitutions(context, alterations);
+    public _fillRefSubstitutions(typeContext: any, alterations: Alteration[]): any {
+      this.lhs._fillRefSubstitutions(typeContext, alterations);
+      this.rhs._fillRefSubstitutions(typeContext, alterations);
       return this.type;
     }
   }
@@ -944,18 +1017,10 @@ module Core {
       }
     }
 
-    /**
-     * Checks for references and returns the list of alterations that need to be made to the expression
-     *
-     * @param parentContext the context inherited from the parent
-     * @param alterations the accumulation of the alterations to be made (output)
-     * @returns the resolved type of the expression
-     * @private
-     */
-    public _fillRefSubstitutions(context: any, alterations: Alteration[]): any {
+    public _fillRefSubstitutions(typeContext: any, alterations: Alteration[]): any {
       var operands = this.operands;
       for (var i = 0; i < operands.length; i++) {
-        operands[i]._fillRefSubstitutions(context, alterations);
+        operands[i]._fillRefSubstitutions(typeContext, alterations);
       }
       return this.type;
     }

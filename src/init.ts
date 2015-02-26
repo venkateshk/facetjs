@@ -79,6 +79,7 @@ module Core {
 
   export interface Datum {
     [attribute: string]: any;
+    $def?: Lookup<any>;
   }
 
   export function shallowCopy(obj: Lookup<any>): Lookup<any> {

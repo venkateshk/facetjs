@@ -27,12 +27,23 @@ module Core {
         return null;
       }
     } else if (expression instanceof InExpression) {
-      if (expression.lhs.isOp('ref') && expression.rhs.isOp('literal') && expression.rhs.type === 'SET') {
-        return {
-          type: 'in',
-          attribute: (<RefExpression>expression.lhs).name,
-          values: (<LiteralExpression>expression.rhs).value.toJS().values
-        };
+      if (expression.lhs.isOp('ref') && expression.rhs.isOp('literal')) {
+        if (expression.rhs.type === 'SET') {
+          return {
+            type: 'in',
+            attribute: (<RefExpression>expression.lhs).name,
+            values: (<LiteralExpression>expression.rhs).value.toJS().values
+          };
+        } else if (expression.rhs.type === 'TIME_RANGE' || expression.rhs.type === 'NUMBER_RANGE') {
+          var timeRange = <TimeRange>(<LiteralExpression>expression.rhs).value;
+          return {
+            type: 'within',
+            attribute: (<RefExpression>expression.lhs).name,
+            range: [timeRange.start, timeRange.end]
+          };
+        } else {
+          return null;
+        }
       } else {
         return null;
       }

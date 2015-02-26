@@ -406,7 +406,7 @@ module Legacy {
     });
   }
 
-  export function simpleDriver(dataGetter: any): Driver.FacetDriver {
+  export function nativeDriver(dataGetter: any): Driver.FacetDriver {
     var dataError: Error = null;
     var dataArray: Datum[] = null;
 

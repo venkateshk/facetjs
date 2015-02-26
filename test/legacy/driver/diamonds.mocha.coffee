@@ -6,7 +6,7 @@ utils = require('../../utils')
 { mySqlRequester } = require('facetjs-mysql-requester')
 
 facet = require("../../../build/facet")
-{ simpleDriver, mySqlDriver, druidDriver } = facet.legacy
+{ nativeDriver, mySqlDriver, druidDriver } = facet.legacy
 
 info = require('../../info')
 
@@ -14,9 +14,9 @@ info = require('../../info')
 driverFns = {}
 verbose = false
 
-# Simple
+# Native
 diamondsData = require('../../../data/diamonds.js')
-driverFns.simple = simpleDriver(diamondsData)
+driverFns.native = nativeDriver(diamondsData)
 
 # MySQL
 sqlPass = mySqlRequester({
@@ -65,7 +65,7 @@ describe "Diamonds dataset", ->
 
   describe "apply count", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['simple', 'mySql']
+      drivers: ['native', 'mySql']
       query: [
         { operation: 'apply', name: 'Count',  aggregate: 'count' }
       ]
@@ -73,7 +73,7 @@ describe "Diamonds dataset", ->
 
   describe "many applies", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['simple', 'mySql']
+      drivers: ['native', 'mySql']
       query: [
         { operation: 'apply', name: 'Constant 42',  aggregate: 'constant', value: '42' }
         { operation: 'apply', name: 'Count',  aggregate: 'count' }
@@ -87,7 +87,7 @@ describe "Diamonds dataset", ->
 
   describe.skip "filter applies", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['simple', 'mySql']
+      drivers: ['native', 'mySql']
       query: [
         {
           operation: 'apply', name: 'Constant 42',  aggregate: 'constant', value: '42',
@@ -122,7 +122,7 @@ describe "Diamonds dataset", ->
 
   describe "split cut; no apply", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['simple', 'mySql']
+      drivers: ['native', 'mySql']
       query: [
         { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
         { operation: 'combine', method: 'slice', sort: { prop: 'Cut', compare: 'natural', direction: 'descending' } }
@@ -131,7 +131,7 @@ describe "Diamonds dataset", ->
 
   describe "split cut; apply count", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['simple', 'mySql']
+      drivers: ['native', 'mySql']
       query: [
         { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
         { operation: 'apply', name: 'Count', aggregate: 'count' }
@@ -141,7 +141,7 @@ describe "Diamonds dataset", ->
 
   describe "split carat; apply count", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['simple', 'mySql']
+      drivers: ['native', 'mySql']
       query: [
         { operation: 'split', name: 'Carat', bucket: 'continuous', size: 0.1, offset: 0.005, attribute: 'carat' }
         { operation: 'apply', name: 'Count', aggregate: 'count' }
@@ -151,7 +151,7 @@ describe "Diamonds dataset", ->
 
   describe "split cut; apply count > split color; apply count", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['simple', 'mySql']
+      drivers: ['native', 'mySql']
       query: [
         { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
         { operation: 'apply', name: 'Count', aggregate: 'count' }
@@ -165,7 +165,7 @@ describe "Diamonds dataset", ->
 
   describe "split cut; apply count > split color; apply count (filter bucket)", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['simple', 'mySql']
+      drivers: ['native', 'mySql']
       query: [
         { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
         { operation: 'apply', name: 'Count', aggregate: 'count' }
@@ -185,7 +185,7 @@ describe "Diamonds dataset", ->
 
   describe "split cut; apply count > split carat; apply count", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['simple', 'mySql']
+      drivers: ['native', 'mySql']
       query: [
         { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
         { operation: 'apply', name: 'Count', aggregate: 'count' }
@@ -199,7 +199,7 @@ describe "Diamonds dataset", ->
 
   describe "split(1, .5) carat; apply count > split cut; apply count", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['simple', 'mySql']
+      drivers: ['native', 'mySql']
       query: [
         { operation: 'split', name: 'Carat', bucket: 'continuous', size: 1, offset: 0.5, attribute: 'carat' }
         { operation: 'apply', name: 'Count', aggregate: 'count' }
@@ -213,7 +213,7 @@ describe "Diamonds dataset", ->
 
   describe "split carat; apply count > split cut; apply count", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['simple', 'mySql']
+      drivers: ['native', 'mySql']
       query: [
         { operation: 'split', name: 'Carat', bucket: 'continuous', size: 0.1, offset: 0.005, attribute: 'carat' }
         { operation: 'apply', name: 'Count', aggregate: 'count' }
@@ -227,7 +227,7 @@ describe "Diamonds dataset", ->
 
   describe "apply arithmetic", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['simple', 'mySql']
+      drivers: ['native', 'mySql']
       query: [
         {
           operation: 'apply'
@@ -279,7 +279,7 @@ describe "Diamonds dataset", ->
 
   describe "apply arithmetic", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['simple', 'mySql']
+      drivers: ['native', 'mySql']
       query: [
         {
           operation: 'apply'
@@ -295,7 +295,7 @@ describe "Diamonds dataset", ->
 
   describe "filter false; apply count", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['simple', 'mySql']
+      drivers: ['native', 'mySql']
       query: [
         { operation: 'filter', type: 'false' }
         { operation: 'apply', name: 'Count', aggregate: 'count' }
@@ -304,7 +304,7 @@ describe "Diamonds dataset", ->
 
   describe "filter a && ~a; split carat; apply count", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['simple', 'mySql']
+      drivers: ['native', 'mySql']
       query: [
         {
           operation: 'filter'
@@ -322,7 +322,7 @@ describe "Diamonds dataset", ->
 
   describe "is filter", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['simple', 'mySql']
+      drivers: ['native', 'mySql']
       query: [
         { operation: 'filter', type: 'is', attribute: 'color', value: 'E' }
         { operation: 'apply', name: 'Count', aggregate: 'count' }
@@ -332,7 +332,7 @@ describe "Diamonds dataset", ->
 
   describe "complex filter", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['simple', 'mySql']
+      drivers: ['native', 'mySql']
       query: [
         {
           operation: 'filter'
@@ -354,7 +354,7 @@ describe "Diamonds dataset", ->
 
   describe "complex filter; split carat; apply count > split cut; apply count", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['simple', 'mySql']
+      drivers: ['native', 'mySql']
       query: [
         {
           operation: 'filter'
@@ -384,7 +384,7 @@ describe "Diamonds dataset", ->
 
   describe "segment filter", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['simple', 'mySql']
+      drivers: ['native', 'mySql']
       query: [
         { operation: 'split', name: 'Cut', bucket: 'identity', attribute: 'cut' }
         { operation: 'apply', name: 'Count', aggregate: 'count' }
@@ -406,7 +406,7 @@ describe "Diamonds dataset", ->
 
   describe "sort-by-delta", ->
     it "should have the same results for different drivers", testEquality {
-      drivers: ['simple', 'mySql']
+      drivers: ['native', 'mySql']
       query: [
         {
           operation: 'dataset'

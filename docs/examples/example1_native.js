@@ -1,9 +1,9 @@
 facet = require('../../build/facet');
 legacyDriver = facet.core.legacyDriver;
-simpleDriver = facet.legacy.simpleDriver;
+nativeDriver = facet.legacy.nativeDriver;
 
 diamondsData = require('../../data/diamonds.js');
-diamondDriver = legacyDriver(simpleDriver(diamondsData));
+diamondDriver = legacyDriver(nativeDriver(diamondsData));
 
 // ----------------------------------
 

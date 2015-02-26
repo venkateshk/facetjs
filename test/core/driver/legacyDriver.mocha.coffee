@@ -7,12 +7,12 @@ if not WallTime.rules
 
 facet = require('../../../build/facet')
 { legacyDriver, legacyTranslator } = facet.core
-{ simpleDriver } = facet.legacy
+{ nativeDriver } = facet.legacy
 
 diamondsData = require('../../../data/diamonds.js')
 
 drivers = {
-  diamonds: legacyDriver(simpleDriver(diamondsData))
+  diamonds: legacyDriver(nativeDriver(diamondsData))
 }
 
 describe "legacyDriver", ->

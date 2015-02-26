@@ -3,7 +3,7 @@
 utils = require('../../utils')
 
 facet = require("../../../build/facet")
-{ FacetQuery, simpleDriver } = facet.legacy
+{ FacetQuery, nativeDriver } = facet.legacy
 
 { WallTime } = require('chronology')
 if not WallTime.rules
@@ -11,10 +11,10 @@ if not WallTime.rules
   WallTime.init(tzData.rules, tzData.zones)
 
 diamondsData = require('../../../data/diamonds.js')
-diamondsDriver = simpleDriver(diamondsData)
+diamondsDriver = nativeDriver(diamondsData)
 
 wikiData = require('../../../data/wikipedia.js')
-wikiDriver = simpleDriver(wikiData)
+wikiDriver = nativeDriver(wikiData)
 
 
 verbose = false
@@ -378,7 +378,7 @@ describe "simple driver", ->
       "2013-09-02T06:00:00.000Z"
       "2013-09-02T07:00:00.000Z"
     ].map((d, i) -> { time: new Date(d), place: i })
-    timeDriver = simpleDriver(timeData)
+    timeDriver = nativeDriver(timeData)
     querySpec = [
       { operation: 'split', name: 'Time', attribute: 'time', bucket: 'timePeriod', period: 'PT1H' }
       { operation: 'apply', name: 'Place', aggregate: 'sum', attribute: 'place' }

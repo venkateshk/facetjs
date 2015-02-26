@@ -5,7 +5,7 @@ mocha \
   test/extra/* \
   test/legacy/query/* \
   test/legacy/driver/fractalCache.mocha.coffee \
-  test/legacy/driver/simpleDriver.mocha.coffee \
+  test/legacy/driver/nativeDriver.mocha.coffee \
   test/legacy/driver/driverUtil.mocha.coffee \
   test/legacy/driver/fractalCacheHelpers.mocha.coffee;
 

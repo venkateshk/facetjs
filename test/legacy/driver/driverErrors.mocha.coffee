@@ -6,16 +6,16 @@ utils = require('../../utils')
 { mySqlRequester } = require('facetjs-mysql-requester')
 
 facet = require("../../../build/facet")
-{ FacetFilter, simpleDriver, mySqlDriver, druidDriver } = facet.legacy
+{ FacetFilter, nativeDriver, mySqlDriver, druidDriver } = facet.legacy
 
 info = require('../../info')
 
 # Set up drivers
 driverFns = {}
 
-# Simple
+# Native
 diamondsData = require('../../../data/diamonds.js')
-driverFns.simple = simpleDriver(diamondsData)
+driverFns.native = nativeDriver(diamondsData)
 
 # MySQL
 sqlPass = mySqlRequester({
@@ -56,19 +56,19 @@ testError = utils.makeErrorTest(driverFns)
 describe "Error compatibility", ->
   describe "basics", ->
     it "request not supplied", testError {
-      drivers: ['simple', 'mySql', 'druid']
+      drivers: ['native', 'mySql', 'druid']
       error: "request not supplied"
       request: null
     }
 
     it "query not supplied", testError {
-      drivers: ['simple', 'mySql', 'druid']
+      drivers: ['native', 'mySql', 'druid']
       error: "query not supplied"
       request: {}
     }
 
     it "invalid query 1", testError {
-      drivers: ['simple', 'mySql', 'druid']
+      drivers: ['native', 'mySql', 'druid']
       error: "query must be a FacetQuery"
       request: {
         query: {}
@@ -76,7 +76,7 @@ describe "Error compatibility", ->
     }
 
     it "invalid query 2", testError {
-      drivers: ['simple', 'mySql', 'druid']
+      drivers: ['native', 'mySql', 'druid']
       error: "query must be a FacetQuery"
       request: {
         query: "poo"

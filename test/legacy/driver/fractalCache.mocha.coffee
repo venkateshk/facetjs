@@ -12,7 +12,7 @@ if not WallTime.rules
 { mySqlRequester } = require('facetjs-mysql-requester')
 
 facet = require("../../../build/facet")
-{ FacetQuery, SegmentTree, mySqlDriver, simpleDriver, fractalCache } = facet.legacy
+{ FacetQuery, SegmentTree, mySqlDriver, nativeDriver, fractalCache } = facet.legacy
 
 # Set up drivers
 driverFns = {}
@@ -21,9 +21,9 @@ expectedQuery = false
 # Drivers
 diamondsData = require('../../../data/diamonds.js')
 wikipediaData = require('../../../data/wikipedia.js')
-diamonds = simpleDriver(diamondsData)
+diamonds = nativeDriver(diamondsData)
 driverFns.diamonds = diamonds
-wikipedia = simpleDriver(wikipediaData)
+wikipedia = nativeDriver(wikipediaData)
 driverFns.wikipedia = wikipedia
 
 # Cached Versions

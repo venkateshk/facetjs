@@ -1,9 +1,9 @@
-facet = require('../../build/facet');
-legacyDriver = facet.core.legacyDriver;
-nativeDriver = facet.legacy.nativeDriver;
+var facet = require('../../build/facet');
+var legacyDriver = facet.core.legacyDriver;
+var nativeDriver = facet.legacy.nativeDriver;
 
-diamondsData = require('../../data/diamonds.js');
-diamondDriver = legacyDriver(nativeDriver(diamondsData));
+var diamondsData = require('../../data/diamonds.js');
+var diamondDriver = legacyDriver(nativeDriver(diamondsData));
 
 // ----------------------------------
 
@@ -11,7 +11,7 @@ var context = {
   diamonds: diamondDriver
 };
 
-ex = facet()
+var ex = facet()
   .def("diamonds", facet('diamonds').filter(facet("color").is('D')))
   .apply('Count', facet('diamonds').count())
   .apply('TotalPrice', '$diamonds.sum($price)');

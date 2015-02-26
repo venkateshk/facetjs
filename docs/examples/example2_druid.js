@@ -9,10 +9,10 @@ var druidPass = druidRequester({
 
 var wikiDriver = legacyDriver(druidDriver({
   requester: druidPass,
-  dataSource: 'wikipedia_editstream',
-  timeAttribute: 'time',
-  forceInterval: true,
-  approximate: true
+  dataSource: 'wikipedia_editstream',  // The datasource name in Druid
+  timeAttribute: 'time',  // Druid's anonymous time attribute will be called 'time'
+  forceInterval: true,  // Do not issue queries on unbounded time (no interval set)
+  approximate: true  // Allow approximate results, Druid is not as awesome of you stick to the exact stuff
 }));
 
 // ----------------------------------
@@ -21,7 +21,7 @@ var context = {
   wiki: wikiDriver
 };
 
-ex = facet()
+var ex = facet()
   .def("wiki",
     facet('wiki').filter(facet("time").in({
       start: new Date("2013-02-26T00:00:00Z"),

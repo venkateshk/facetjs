@@ -84,8 +84,8 @@ module Core {
       throw new Error("implement me");
     }
 
-    public _fillRefSubstitutions(context: any, alterations: Alteration[]): any {
-      var datasetContext = this.operand._fillRefSubstitutions(context, alterations);
+    public _fillRefSubstitutions(typeContext: any, alterations: Alteration[]): any {
+      var datasetContext = this.operand._fillRefSubstitutions(typeContext, alterations);
       var attributeType = 'NUMBER';
       if (this.attribute) {
         attributeType = this.attribute._fillRefSubstitutions(datasetContext, alterations);

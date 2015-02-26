@@ -529,14 +529,27 @@ module Core {
     public and(...exs: any[]) { return this._performNaryExpression({ op: 'and' }, exs); }
     public or(...exs: any[]) { return this._performNaryExpression({ op: 'or' }, exs); }
 
-    // Ref check
-    public _fillRefSubstitutions(context: any, alterations: Alteration[]): any {
-      return context;
+    /**
+     * Checks for references and returns the list of alterations that need to be made to the expression
+     *
+     * @param typeContext the context inherited from the parent
+     * @param alterations the accumulation of the alterations to be made (output)
+     * @returns the resolved type of the expression
+     * @private
+     */
+    public _fillRefSubstitutions(typeContext: any, alterations: Alteration[]): any {
+      return typeContext;
     }
 
-    public referenceCheck(outsideContext: any) {
+    /**
+     * Rewrites the expression with all the references typed correctly and resolved to the correct parental level
+     *
+     * @param typeContext
+     * @returns {Expression}
+     */
+    public referenceCheck(typeContext: any) {
       var alterations: Alteration[] = [];
-      this._fillRefSubstitutions(outsideContext, alterations); // This return the final type
+      this._fillRefSubstitutions(typeContext, alterations); // This return the final type
       function substitutionFn(ex: Expression): Expression {
         if (!ex.isOp('ref')) return null;
         for (var i = 0; i < alterations.length; i++) {
@@ -546,6 +559,28 @@ module Core {
         return null;
       }
       return this.substitute(substitutionFn, 0);
+    }
+
+    /**
+     * Resolves one level of dependencies that refer outside of this expression.
+     *
+     * @param context
+     */
+    public resolve(context: Datum): Expression {
+      return this.substitute((ex: Expression, genDiff: number) => {
+        if (ex instanceof RefExpression) {
+          var refGen = ex.generations.length;
+          if (genDiff === refGen) {
+            if (!context.hasOwnProperty(ex.name)) {
+              throw new Error('could not resolve ' + ex.toString() + ' because is was not in the context');
+            }
+            return new LiteralExpression({ op: 'literal', value: context[ex.name] });
+          } else if (genDiff < refGen) {
+            throw new Error('went too deep during resolve on: ' + ex.toString());
+          }
+        }
+        return null;
+      }, 0);
     }
 
     // Evaluation
@@ -693,8 +728,8 @@ module Core {
       }
     }
 
-    public _fillRefSubstitutions(context: any, alterations: Alteration[]): any {
-      this.operand._fillRefSubstitutions(context, alterations);
+    public _fillRefSubstitutions(typeContext: any, alterations: Alteration[]): any {
+      this.operand._fillRefSubstitutions(typeContext, alterations);
       return this.type;
     }
   }
@@ -838,9 +873,9 @@ module Core {
       }
     }
 
-    public _fillRefSubstitutions(context: any, alterations: Alteration[]): any {
-      this.lhs._fillRefSubstitutions(context, alterations);
-      this.rhs._fillRefSubstitutions(context, alterations);
+    public _fillRefSubstitutions(typeContext: any, alterations: Alteration[]): any {
+      this.lhs._fillRefSubstitutions(typeContext, alterations);
+      this.rhs._fillRefSubstitutions(typeContext, alterations);
       return this.type;
     }
   }
@@ -972,18 +1007,10 @@ module Core {
       }
     }
 
-    /**
-     * Checks for references and returns the list of alterations that need to be made to the expression
-     *
-     * @param parentContext the context inherited from the parent
-     * @param alterations the accumulation of the alterations to be made (output)
-     * @returns the resolved type of the expression
-     * @private
-     */
-    public _fillRefSubstitutions(context: any, alterations: Alteration[]): any {
+    public _fillRefSubstitutions(typeContext: any, alterations: Alteration[]): any {
       var operands = this.operands;
       for (var i = 0; i < operands.length; i++) {
-        operands[i]._fillRefSubstitutions(context, alterations);
+        operands[i]._fillRefSubstitutions(typeContext, alterations);
       }
       return this.type;
     }

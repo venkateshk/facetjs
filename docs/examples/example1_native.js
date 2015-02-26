@@ -5,21 +5,30 @@ simpleDriver = facet.legacy.simpleDriver;
 diamondsData = require('../../data/diamonds.js');
 diamondDriver = legacyDriver(simpleDriver(diamondsData));
 
+// ----------------------------------
+
+var context = {
+  diamonds: diamondDriver
+};
+
 ex = facet()
-  .def("diamonds", facet('diamonds')).filter(facet("color").is('D')))
+  .def("diamonds", facet('diamonds').filter(facet("color").is('D')))
   .apply('Count', facet('diamonds').count())
   .apply('TotalPrice', '$diamonds.sum($price)');
-  //.apply('Cuts',
-  //  facet("diamonds").split("$cut", 'Cut')
-  //    .def('diamonds', facet('diamonds').filter(facet('cut').is('$^Cut')))
-  //    .apply('Count', facet('diamonds').count())
-  //    .sort('$Count', 'descending')
-  //    .limit(2)
-  //);
 
-ex.compute({
-  diamonds: diamondDriver
-}).then(function(data) {
+ex.compute(context).then(function(data) {
   // Log the data while converting it to a readable standard
-  console.log(data.toJS());
+  console.log(JSON.stringify(data.toJS(), null, 2));
 }).done();
+
+// ----------------------------------
+
+/*
+Output:
+[
+  {
+    "Count": 6775,
+    "TotalPrice": 21476439
+  }
+]
+*/

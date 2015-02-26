@@ -42,7 +42,7 @@ describe "resolve", ->
 
       expect(->
         ex.resolve({ foo: 'bar' })
-      ).to.throw('xx')
+      ).to.throw('add must have an operand of type NUMBER at position 0')
 
 
   describe "resolves", ->

@@ -125,8 +125,18 @@ module Core {
             } else {
               throw new Error("unknown object"); //ToDo: better error
             }
-          } else {
+          } else if (param.op) {
             expressionJS = <ExpressionJS>param;
+          } else if (Array.isArray(param)) {
+            expressionJS = { op: 'literal', value: Set.fromJS(param) };
+          } else if (param.hasOwnProperty('start') && param.hasOwnProperty('end')) {
+            if (typeof param.start === 'number') {
+              expressionJS = { op: 'literal', value: NumberRange.fromJS(param) };
+            } else {
+              expressionJS = { op: 'literal', value: TimeRange.fromJS(param) };
+            }
+          } else {
+            throw new Error('unknown parameter');
           }
           break;
 
@@ -586,7 +596,7 @@ module Core {
     // Evaluation
     public compute(drivers: Lookup<Driver> = null) {
       var deferred = <Q.Deferred<Dataset>>Q.defer();
-      // ToDo: typecheck2 the expression
+
       var simple = this.simplify();
       if (drivers) {
         var driverObjects: Driver[] = [];

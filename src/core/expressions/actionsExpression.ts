@@ -267,7 +267,7 @@ module Core {
       return typeContext;
     }
 
-    public evaluate(context: Lookup<any> = null): Dataset {
+    public evaluate(context: Datum = {}): Dataset {
       var operand = this.operand;
 
       if (operand.isOp('label')) {

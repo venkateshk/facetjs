@@ -1,6 +1,5 @@
 var druidRequester = require('facetjs-druid-requester').druidRequester;
 var facet = require('../../build/facet');
-var TimeRange = facet.core.TimeRange;
 var legacyDriver = facet.core.legacyDriver;
 var druidDriver = facet.legacy.druidDriver;
 
@@ -16,13 +15,19 @@ var wikiDriver = legacyDriver(druidDriver({
   approximate: true
 }));
 
-var timeRange = new TimeRange({
-  start: new Date("2013-02-26T00:00:00Z"),
-  end: new Date("2013-02-27T00:00:00Z")
-});
+// ----------------------------------
+
+var context = {
+  wiki: wikiDriver
+};
 
 ex = facet()
-  .def("wiki", facet('wiki').filter(facet("time").in(timeRange)))
+  .def("wiki",
+    facet('wiki').filter(facet("time").in({
+      start: new Date("2013-02-26T00:00:00Z"),
+      end: new Date("2013-02-27T00:00:00Z")
+    }))
+  )
   .apply('Count', facet('wiki').count())
   .apply('TotalAdded', '$wiki.sum($added)')
   .apply('Pages',
@@ -32,13 +37,12 @@ ex = facet()
       .limit(6)
   );
 
-ex.compute({
-  wiki: wikiDriver
-}).then(function(data) {
+ex.compute(context).then(function(data) {
   // Log the data while converting it to a readable standard
   console.log(JSON.stringify(data.toJS(), null, 2));
 }).done();
 
+// ----------------------------------
 
 /*
 Output:

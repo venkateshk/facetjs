@@ -3,7 +3,7 @@
 facet = require('../../../build/facet')
 { Expression, Dataset } = facet.core
 
-describe "compute", ->
+describe "compute native", ->
   data = [
     { cut: 'Good',  price: 400 }
     { cut: 'Good',  price: 300 }
@@ -52,7 +52,7 @@ describe "compute", ->
     ds = Dataset.fromJS(data)
 
     ex = facet()
-    .apply('Data', facet(ds))
+    .def('Data', facet(ds))
     .apply('Cuts'
       facet('Data').group('$cut')
     )
@@ -61,7 +61,6 @@ describe "compute", ->
     p.then((v) ->
       expect(v.toJS()).to.deep.equal([
         {
-          "Data": data
           "Cuts": {
             "type": "SET"
             "setType": "STRING"
@@ -76,7 +75,7 @@ describe "compute", ->
     ds = Dataset.fromJS(data)
 
     ex = facet()
-      .apply('Data', facet(ds))
+      .def('Data', facet(ds))
       .apply('Cuts'
         facet('Data').group('$cut').label('Cut')
       )
@@ -85,7 +84,6 @@ describe "compute", ->
     p.then((v) ->
       expect(v.toJS()).to.deep.equal([
         {
-          "Data": data
           "Cuts": [
             { "Cut": "Good" }
             { "Cut": "Great" }
@@ -100,7 +98,7 @@ describe "compute", ->
     ds = Dataset.fromJS(data)
 
     ex = facet()
-      .apply('Data', facet(ds))
+      .def('Data', facet(ds))
       .apply('Cuts'
         facet('Data').group('$cut').label('Cut')
           .apply('Six', 6)
@@ -113,7 +111,6 @@ describe "compute", ->
     p.then((v) ->
       expect(v.toJS()).to.deep.equal([
         {
-          "Data": data
           "Cuts": [
             {
               "Cut": "Good"
@@ -140,7 +137,7 @@ describe "compute", ->
     ds = Dataset.fromJS(data)
 
     ex = facet()
-      .apply('Data', facet(ds))
+      .def('Data', facet(ds))
       .apply('Cuts'
         facet('Data').group('$cut').label('Cut')
           .apply('Data', facet('^Data').filter(facet('cut').is('$^Cut')))
@@ -152,7 +149,6 @@ describe "compute", ->
     p.then((v) ->
       expect(v.toJS()).to.deep.equal([
         {
-          "Data": data
           "Cuts": [
             {
               "Cut": "Good"

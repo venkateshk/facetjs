@@ -2,6 +2,7 @@ module Core {
   export interface DatasetValue {
     source: string;
     data?: Datum[];
+    driver?: Driver;
   }
 
 // =====================================================================================
@@ -27,6 +28,11 @@ module Core {
         datasetJS = {
           source: 'native',
           data: datasetJS
+        }
+      } else if (typeof datasetJS === 'function'){
+        datasetJS = {
+          source: 'remote',
+          driver: datasetJS
         }
       }
       if (!datasetJS.hasOwnProperty("source")) {
@@ -219,7 +225,7 @@ module Core {
     var js: Datum = {};
     for (var k in datum) {
       if (!datum.hasOwnProperty(k)) continue;
-      if (k[0] === '_') continue;
+      if (k === '$def') continue;
       js[k] = valueToJSInlineType(datum[k]);
     }
     return js;
@@ -397,37 +403,32 @@ module Core {
     static fromJS(datasetJS: any): RemoteDataset {
       return new RemoteDataset({
         source: datasetJS.source,
-        data: datasetJS.data.map(datumFromJS)
+        driver: datasetJS.driver
       })
     }
 
-    public data: Datum[];
+    public driver: Driver;
 
     constructor(parameters: DatasetValue) {
       super(parameters, dummyObject);
-      this.data = parameters.data;
-      this._ensureSource("native");
-      if (!Array.isArray(this.data)) {
-        throw new TypeError("must have a `data` array")
-      }
+      this.driver = parameters.driver;
+      this._ensureSource("remote");
     }
 
     public valueOf(): DatasetValue {
       var value = super.valueOf();
-      value.data = this.data;
+      value.driver = this.driver;
       return value;
     }
 
     public toJS(): any {
       var js = super.toJS();
-      js.data = this.data.map(datumToJS);
       return js;
     }
 
     public equals(other: RemoteDataset): boolean {
       return super.equals(other) &&
-        this.data.length === other.data.length;
-      // ToDo: probably add something else here?
+        this.driver === other.driver;
     }
   }
 

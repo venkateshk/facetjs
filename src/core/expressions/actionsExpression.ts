@@ -206,18 +206,10 @@ module Core {
       });
     }
 
-    private _performActionsOnNativeDataset(dataset: NativeDataset, context: Lookup<any>): NativeDataset {
+    private _performActionsOnNativeDataset(dataset: NativeDataset, context: Datum): NativeDataset {
       var actions = this.actions;
       if (context) {
-        actions = actions.map((action) => {
-          return action.substitute((ex: Expression, genDiff: number) => {
-            if (genDiff === 0 && ex.isOp('ref') && (<RefExpression>ex).generations === '^') {
-              return new LiteralExpression({ op: 'literal', value: context[(<RefExpression>ex).name] });
-            } else {
-              return null;
-            }
-          }, 0); // ToDo: Remove this 0
-        });
+        actions = (<ActionsExpression>this.resolve(context)).actions;
       }
 
       for (var i = 0; i < actions.length; i++) {
@@ -235,6 +227,16 @@ module Core {
               });
             } else {
               dataset = dataset.apply((<ApplyAction>action).name, actionExpression.getFn());
+            }
+            break;
+
+          case 'def':
+            if (actionExpression instanceof ActionsExpression || actionExpression instanceof LabelExpression) {
+              dataset = dataset.def((<ApplyAction>action).name, (d: Datum) => {
+                return actionExpression.evaluate(d)
+              });
+            } else {
+              dataset = dataset.def((<ApplyAction>action).name, actionExpression.getFn());
             }
             break;
 

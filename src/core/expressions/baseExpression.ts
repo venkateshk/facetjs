@@ -574,17 +574,34 @@ module Core {
     /**
      * Resolves one level of dependencies that refer outside of this expression.
      *
-     * @param context
+     * @param context The context containing the values to resolve to
+     * @param leaveIfNotFound If the reference is not in the context leave it (instead of throwing and error)
+     * @return The resolved expression
      */
-    public resolve(context: Datum): Expression {
+    public resolve(context: Datum, leaveIfNotFound: boolean = false): Expression {
       return this.substitute((ex: Expression, genDiff: number) => {
         if (ex instanceof RefExpression) {
           var refGen = ex.generations.length;
           if (genDiff === refGen) {
-            if (!context.hasOwnProperty(ex.name)) {
-              throw new Error('could not resolve ' + ex.toString() + ' because is was not in the context');
+            var foundValue: any = null;
+            var valueFound: boolean = false;
+            if (context.hasOwnProperty(ex.name)) {
+              foundValue = context[ex.name];
+              valueFound = true;
+            } else if (context.$def && context.$def.hasOwnProperty(ex.name)) {
+              foundValue = context.$def[ex.name];
+              valueFound = true;
+            } else {
+              if (leaveIfNotFound) {
+                valueFound = false;
+              } else {
+                throw new Error('could not resolve ' + ex.toString() + ' because is was not in the context');
+              }
             }
-            return new LiteralExpression({ op: 'literal', value: context[ex.name] });
+
+            if(valueFound) {
+              return new LiteralExpression({op: 'literal', value: foundValue});
+            }
           } else if (genDiff < refGen) {
             throw new Error('went too deep during resolve on: ' + ex.toString());
           }

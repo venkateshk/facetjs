@@ -25,7 +25,7 @@ facet() // [{}]
   // [{ diamonds: <Dataset>, Count: 2342, TotalPrice: 234534 }]
 
   .apply('Cuts',
-    facet("DiamondsMain").split("$cut").union(facet("DiamondsCmp").split("$cut"))
+    facet("DiamondsMain").group("$cut").union(facet("DiamondsCmp").group("$cut"))
 
       // Set(['good', 'v good', 'ideal', 'bad'])
       .label('Cut')

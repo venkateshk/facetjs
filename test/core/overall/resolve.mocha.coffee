@@ -47,6 +47,31 @@ describe "resolve", ->
 
   describe "resolves", ->
     it "works in a basic case", ->
+      ex = facet('foo').add('$bar')
+
+      context = {
+        foo: 7
+      }
+
+      ex = ex.resolve(context, true)
+      expect(ex.toJS()).to.deep.equal(
+        facet(7).add('$bar').toJS()
+      )
+
+    it "works in a basic case (and simplifies)", ->
+      ex = facet('foo').add(3)
+
+      context = {
+        foo: 7
+      }
+
+      ex = ex.resolve(context, true).simplify()
+      expect(ex.toJS()).to.deep.equal(
+        facet(10).toJS()
+      )
+
+
+    it "works in a basic actions case", ->
       ex = facet()
         .apply('num', '$^foo + 1')
         .apply('subData',

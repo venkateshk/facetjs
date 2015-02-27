@@ -70,7 +70,6 @@ describe "resolve", ->
         facet(10).toJS()
       )
 
-
     it "works in a basic actions case", ->
       ex = facet()
         .apply('num', '$^foo + 1')
@@ -104,6 +103,31 @@ describe "resolve", ->
             facet()
               .apply('x', '$^num * 3')
               .apply('y', 70)
+          )
+          .toJS()
+      )
+
+    it "works in a basic actions case (in $def)", ->
+      ex = facet()
+        .apply('num', '$^foo + 1')
+        .apply('subData',
+          facet()
+            .apply('x', '$^num * 3')
+            .apply('y', '$^^foo * 10')
+        )
+
+      context = {
+        $def: { foo: 7 }
+      }
+
+      ex = ex.resolve(context)
+      expect(ex.toJS()).to.deep.equal(
+        facet()
+          .apply('num', '7 + 1')
+          .apply('subData',
+            facet()
+              .apply('x', '$^num * 3')
+              .apply('y', '7 * 10')
           )
           .toJS()
       )

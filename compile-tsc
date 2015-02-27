@@ -13,6 +13,9 @@ node_modules/.bin/tsc --noImplicitAny --noEmitOnError --declaration --removeComm
   src/core/datatypes/timeRange.ts \
   \
   src/core/expressions/baseExpression.ts \
+  src/core/expressions/unaryExpression.ts \
+  src/core/expressions/binaryExpression.ts \
+  src/core/expressions/naryExpression.ts \
   src/core/expressions/actionsExpression.ts \
   src/core/expressions/addExpression.ts \
   src/core/expressions/aggregateExpression.ts \

@@ -1,6 +1,12 @@
 module Core {
+  export interface AttributeMeta {
+    type: string;
+    datasetType?: Lookup<any>;
+  }
+
   export interface DatasetValue {
     source: string;
+    attributes?: Lookup<AttributeMeta>;
     data?: Datum[];
     driver?: Driver;
   }
@@ -17,7 +23,6 @@ module Core {
     }
 
     static classMap: Lookup<typeof Dataset> = {};
-
     static register(ex: typeof Dataset): void {
       var op = (<any>ex).name.replace('Dataset', '').replace(/^\w/, (s: string) => s.toLowerCase());
       Dataset.classMap[op] = ex;
@@ -51,11 +56,15 @@ module Core {
     }
 
     public source: string;
+    public attributes: Lookup<AttributeMeta> = null;
 
     constructor(parameters: DatasetValue, dummy: Dummy = null) {
       this.source = parameters.source;
       if (dummy !== dummyObject) {
         throw new TypeError("can not call `new Dataset` directly use Dataset.fromJS instead");
+      }
+      if (parameters.attributes) {
+        this.attributes = parameters.attributes;
       }
     }
 
@@ -93,6 +102,18 @@ module Core {
       return Dataset.isDataset(other) &&
         this.source === other.source;
     }
+
+    public getType(): Lookup<any> {
+      var attributes = this.attributes;
+      if (!attributes) throw new Error("dataset has not been introspected");
+      var myType: Lookup<any> = {};
+      for (var attrName in attributes) {
+        if (!attributes.hasOwnProperty(attrName)) continue;
+        var attrType = attributes[attrName];
+        myType[attrName] = attrType.type === 'DATASET' ? attrType.datasetType : attrType.type;
+      }
+      return myType;
+    }
   }
   check = Dataset;
 
@@ -124,89 +145,6 @@ module Core {
 
   function isString(str: string) {
     return typeof str === "string";
-  }
-
-  export function valueFromJS(v: any, type: string = null): any {
-    if (v == null) {
-      return null;
-    } else if (Array.isArray(v)) {
-      return NativeDataset.fromJS({
-        source: 'native',
-        data: v
-      })
-    } else if (typeof v === 'object') {
-      switch (type || v.type) {
-        case 'NUMBER':
-          var n = Number(v.value);
-          if (isNaN(n)) throw new Error("bad number value '" + String(v.value) + "'");
-          return n;
-
-        case 'NUMBER_RANGE':
-          return NumberRange.fromJS(v);
-
-        case 'TIME':
-          return type ? v : new Date(v.value);
-
-        case 'TIME_RANGE':
-          return TimeRange.fromJS(v);
-
-        case 'SHAPE':
-          return Shape.fromJS(v);
-
-        case 'SET':
-          return Set.fromJS(v);
-
-        default:
-          if (v.toISOString) {
-            return v; // Allow native date
-          } else {
-            throw new Error('can not have an object without a `type` as a datum value');
-          }
-      }
-    } else if (typeof v === 'string' && type === 'TIME') {
-      return new Date(v);
-    }
-    return v;
-  }
-
-  export function valueToJS(v: any): any {
-    if (v == null) {
-      return null;
-    } else {
-      var typeofV = typeof v;
-      if (typeofV === 'object') {
-        if (v.toISOString) {
-          return v;
-        } else {
-          return v.toJS();
-        }
-      } else if (typeofV === 'number' && !isFinite(v)) {
-        return String(v)
-      }
-    }
-    return v;
-  }
-
-  export function valueToJSInlineType(v: any): any {
-    if (v == null) {
-      return null;
-    } else {
-      var typeofV = typeof v;
-      if (typeofV === 'object') {
-        if (v.toISOString) {
-          return { type: 'TIME', value: v };
-        } else {
-          var js = v.toJS();
-          if (!Array.isArray(js)) {
-            js.type = v.constructor.type;
-          }
-          return js;
-        }
-      } else if (typeofV === 'number' && !isFinite(v)) {
-        return { type: 'NUMBER', value: String(v) };
-      }
-    }
-    return v;
   }
 
   function datumFromJS(js: Datum): Datum {
@@ -367,28 +305,34 @@ module Core {
     }
 
     // Introspection
-    public introspect(): Lookup<any> {
+    public introspect(): void {
       var data = this.data;
       if (!data.length) return null;
       var sample = data[0];
 
-      var attributeTypes: Lookup<any> = {};
+      var attributes: Lookup<AttributeMeta> = {};
       Object.keys(sample).forEach((attributeName) => {
         var attributeValue = sample[attributeName];
         var type: string = null;
         if (isDate(attributeValue)) {
-          type = 'TIME';
+          attributes[attributeName] = { type: 'TIME' };
         } else if (isNumber(attributeValue)) {
-          type = 'NUMBER';
+          attributes[attributeName] = { type: 'NUMBER' };
         } else if (isString(attributeValue)) {
-          type = 'STRING';
+          attributes[attributeName] = { type: 'STRING' };
         } else if (attributeValue instanceof Dataset) {
-          type = attributeValue.introspect();
+          attributes[attributeName] = {
+            type: 'DATASET',
+            datasetType: attributeValue.getType()
+          }
         }
-
-        attributeTypes[attributeName] = type;
       });
-      return attributeTypes;
+      this.attributes = attributes;
+    }
+
+    public getType(): Lookup<any> {
+      if (!this.attributes) this.introspect();
+      return super.getType();
     }
   }
 

@@ -6,6 +6,7 @@ mkdir -p build
 node_modules/.bin/tsc --noImplicitAny --noEmitOnError --declaration --removeComments --out build/facet.js \
   src/init.ts \
   \
+  src/core/datatypes/common.ts \
   src/core/datatypes/dataset.ts \
   src/core/datatypes/numberRange.ts \
   src/core/datatypes/set.ts \

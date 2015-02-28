@@ -554,10 +554,16 @@ module Core {
     /**
      * Rewrites the expression with all the references typed correctly and resolved to the correct parental level
      *
-     * @param typeContext
+     * @param context The datum within which the check is happening
      * @returns {Expression}
      */
-    public referenceCheck(typeContext: any) {
+    public referenceCheck(context: Datum) {
+      var typeContext: Lookup<any> = {};
+      for (var k in context) {
+        if (!context.hasOwnProperty(k)) continue;
+        typeContext[k] = getTypeFull(context[k]);
+      }
+
       var alterations: Alteration[] = [];
       this._fillRefSubstitutions(typeContext, alterations); // This return the final type
       function substitutionFn(ex: Expression): Expression {
@@ -608,6 +614,10 @@ module Core {
         }
         return null;
       }, 0);
+    }
+
+    public generatePlan(context: Datum): Expression[] {
+      throw new Error("make me")
     }
 
     // Evaluation

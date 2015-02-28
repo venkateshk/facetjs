@@ -190,3 +190,64 @@ describe "compute native", ->
       ])
       testComplete()
     ).done()
+
+  describe "it works and re-selects", ->
+    ds = Dataset.fromJS(data)
+    midData = null
+
+    it "works with simple group/label and subData filter with applies", (testComplete) ->
+      ex = facet()
+        .def('Data', facet(ds))
+        .apply('Count', '$Data.count()')
+        .apply('Price', '$Data.sum($price)')
+        .apply('Cuts'
+          facet('Data').group('$cut').label('Cut')
+            .def('Data', facet('^Data').filter(facet('cut').is('$^Cut')))
+            .apply('Count', '$Data.count()')
+            .apply('Price', '$Data.sum($price)')
+        )
+
+      p = ex.compute()
+      p.then((v) ->
+        midData = v
+        expect(midData.toJS()).to.deep.equal([
+          {
+            "Count": 5
+            "Price": 1084
+            "Cuts": [
+              {
+                "Cut": "Good"
+                "Count": 2
+                "Price": 700
+              }
+              {
+                "Cut": "Great"
+                "Count": 1
+                "Price": 124
+              }
+              {
+                "Cut": "Wow"
+                "Count": 2
+                "Price": 260
+              }
+            ]
+          }
+        ])
+        testComplete()
+      ).done()
+
+    it "re-selects", (testComplete) ->
+      ex = facet(midData)
+        .apply('CountOver2', '$Count / 2')
+        .apply('Cuts'
+          facet('Cuts')
+            .apply('AvgPrice', '$Data.sum($price) / $Data.count()')
+        )
+
+      p = ex.compute()
+      p.then((v) ->
+        expect(v.toJS()).to.deep.equal([
+
+        ])
+        testComplete()
+      ).done()

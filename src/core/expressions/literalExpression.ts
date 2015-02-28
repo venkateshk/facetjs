@@ -1,5 +1,4 @@
 module Core {
-
   export class LiteralExpression extends Expression {
     static fromJS(parameters: ExpressionJS): Expression {
       var value: ExpressionValue = {
@@ -25,27 +24,7 @@ module Core {
       if (typeof this.value === 'undefined') {
         throw new TypeError("must have a `value`")
       }
-      var typeofValue = typeof value;
-      if (typeofValue === 'object') {
-        if (value === null) {
-          this.type = 'NULL';
-        } else if (value.toISOString) {
-          this.type = 'TIME';
-        } else {
-          this.type = value.constructor.type;
-          if (!this.type) {
-            throw new Error("can not have an object without a type");
-          }
-          if (this.type === 'SET') {
-            this.type += '/' + this.value.setType;
-          }
-        }
-      } else {
-        if (typeofValue !== 'boolean' && typeofValue !== 'number' && typeofValue !== 'string') {
-          throw new TypeError('unsupported type literal type ' + typeofValue);
-        }
-        this.type = typeofValue.toUpperCase();
-      }
+      this.type = getType(value);
     }
 
     public valueOf(): ExpressionValue {
@@ -104,7 +83,7 @@ module Core {
 
     public _fillRefSubstitutions(typeContext: any, alterations: Alteration[]): any {
       if (this.type == 'DATASET') {
-        var newTypeContext = this.value.introspect();
+        var newTypeContext = this.value.getType();
         newTypeContext.$parent = typeContext;
         return newTypeContext;
       } else {

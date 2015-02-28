@@ -56,6 +56,21 @@ module Core {
         (!this.attribute || this.attribute.equals(other.attribute));
     }
 
+    public substitute(substitutionFn: SubstitutionFn, genDiff: number): Expression {
+      var sub = substitutionFn(this, genDiff);
+      if (sub) return sub;
+      var subOperand = this.operand.substitute(substitutionFn, genDiff);
+      var subAttribute: Expression = null;
+      if (this.attribute) {
+        subAttribute = this.attribute.substitute(substitutionFn, genDiff + 1);
+      }
+      if (this.operand === subOperand && this.attribute === subAttribute) return this;
+      var value = this.valueOf();
+      value.operand = subOperand;
+      value.attribute = subAttribute;
+      return new AggregateExpression(value);
+    }
+
     public toString(): string {
       return 'agg_' + this.fn + '(' + this.operand.toString() + ')';
     }

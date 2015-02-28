@@ -20,7 +20,7 @@ module Core {
     }
 
     public toString(): string {
-      return 'timeOffset(' + this.operand.toString() + ')';
+      return this.operand.toString() + '.timeOffset(' + this.duration.toString() + ')';
     }
 
     public valueOf(): ExpressionValue {

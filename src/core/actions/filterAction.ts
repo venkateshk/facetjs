@@ -17,7 +17,7 @@ module Core {
     }
 
     public toString(): string {
-      return 'Filter(' + this.expression.toString() + ')';
+      return '.filter(' + this.expression.toString() + ')';
     }
   }
 

@@ -29,7 +29,7 @@ module Core {
     }
 
     public toString(): string {
-      return 'actions(' + this.operand.toString() + ')';
+      return this.operand.toString() + this.actions.map((action) => action.toString()).join('\n  ');
     }
 
     private _getSimpleActions(): Action[] {
@@ -140,6 +140,7 @@ module Core {
       var value = this.valueOf();
       value.operand = this.operand.simplify();
       value.actions = this.actions.map((action) => action.simplify()); //this._getSimpleActions();
+      if (value.actions.length === 0) return value.operand;
       return new ActionsExpression(value);
     }
 
@@ -269,6 +270,96 @@ module Core {
       return typeContext;
     }
 
+    public _genPlan(hook: string): Expression[] {
+      function hookToRef(hook: string): RefExpression {
+        return new RefExpression({
+          op: 'ref',
+          name: hook,
+          type: 'DATASET'
+        })
+      }
+
+      var plan: Expression[] = [];
+      var operand = this.operand;
+      var actions = this.actions;
+      if (!actions.length) throw new Error("Can not plan with empty actions");
+
+      if (operand instanceof LiteralExpression && operand.value.basis()) {
+        var simpleActions: Action[] = [];
+        var complexActions: Action[] = [];
+        for (var i = 0; i < actions.length; i++) {
+          var action = actions[i];
+          var complex = action instanceof ApplyAction && action.expression.type === 'DATASET'; // ToDo: make this better
+          if (complex || complexActions.length) {
+            complexActions.push(action);
+          } else {
+            simpleActions.push(action);
+          }
+        }
+
+        plan.push(new ActionsExpression({
+          op: 'actions',
+          operand: hookToRef(hook),
+          actions: simpleActions
+        }));
+
+        for (var i = 0; i < complexActions.length; i++) {
+          var complexApply = <ApplyAction>(complexActions[i]);
+          var complexApplyName = complexApply.name;
+          var subPlan = complexApply.expression._genPlan(complexApplyName);
+          for (var j = 0; j < subPlan.length; j++) {
+            plan.push(new ActionsExpression({
+              op: 'actions',
+              operand: hookToRef(hook),
+              actions: [new ApplyAction({
+                action: 'apply',
+                name: complexApplyName,
+                expression: subPlan[j]
+              })]
+            }));
+          }
+        }
+      } else if (operand instanceof LabelExpression) {
+        var simpleActions: Action[] = [];
+        var complexActions: Action[] = [];
+        for (var i = 0; i < actions.length; i++) {
+          var action = actions[i];
+          var complex = action instanceof ApplyAction && action.expression.type === 'DATASET'; // ToDo: make this better
+          if (complex || complexActions.length) {
+            complexActions.push(action);
+          } else {
+            simpleActions.push(action);
+          }
+        }
+
+        plan.push(new ActionsExpression({
+          op: 'actions',
+          operand: operand,
+          actions: simpleActions
+        }));
+
+        for (var i = 0; i < complexActions.length; i++) {
+          var complexApply = <ApplyAction>(complexActions[i]);
+          var complexApplyName = complexApply.name;
+          var subPlan = complexApply.expression._genPlan(complexApplyName);
+          for (var j = 0; j < subPlan.length; j++) {
+            plan.push(new ActionsExpression({
+              op: 'actions',
+              operand: hookToRef(hook),
+              actions: [new ApplyAction({
+                action: 'apply',
+                name: complexApplyName,
+                expression: subPlan[j]
+              })]
+            }));
+          }
+        }
+      } else {
+        throw new Error("Can not plan")
+      }
+      return plan;
+    }
+
     public evaluate(context: Datum = {}): Dataset {
       var operand = this.operand;
 
@@ -292,5 +383,4 @@ module Core {
   }
 
   Expression.register(ActionsExpression);
-
 }

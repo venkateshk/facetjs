@@ -12,7 +12,7 @@ module Core {
     }
 
     public toString(): string {
-      return 'not(' + this.operand.toString() + ')';
+      return this.operand.toString() + '.not()';
     }
 
     protected _makeFn(operandFn: Function): Function {

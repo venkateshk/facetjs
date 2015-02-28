@@ -29,7 +29,7 @@ module Core {
     }
 
     public toString(): string {
-      return 'match(' + this.operand.toString() + ', /' + this.regexp + '/)';
+      return this.operand.toString() +  '.match(/' + this.regexp + '/)';
     }
 
     public equals(other: MatchExpression): boolean {

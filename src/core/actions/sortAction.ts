@@ -32,7 +32,7 @@ module Core {
     }
 
     public toString(): string {
-      return 'Sort(' + this.expression.toString() + ', ' + this.direction + ')';
+      return '.sort(' + this.expression.toString() + ', ' + this.direction + ')';
     }
 
     public equals(other: SortAction): boolean {

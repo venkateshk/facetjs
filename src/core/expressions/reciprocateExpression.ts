@@ -12,7 +12,7 @@ module Core {
     }
 
     public toString(): string {
-      return '1/(' + this.operand.toString() + ')';
+      return this.operand.toString() + '.reciprocate()';
     }
 
     protected _makeFn(operandFn: Function): Function {

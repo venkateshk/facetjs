@@ -36,15 +36,15 @@ describe "planner", ->
           )
       )
 
-    ex = ex.referenceCheck(context)
-    expect(ex.generatePlan(context).map((e) -> e.toJS())).to.deep.equal([
+    #ex = ex.referenceCheck(context)
+    expect(ex.generatePlan().map((e) -> e.toJS())).to.deep.equal([
 
-      facet()
+      facet('next:DATASET')
         .def("diamonds", facet('diamonds').filter(facet("color").is('D')))
         .apply('Count', facet('diamonds').count())
         .apply('TotalPrice', facet('diamonds').sum('$price'))
     ,
-      facet('next')
+      facet('next:DATASET')
         .apply('Cuts',
           facet("diamonds").group("$cut").label('Cut')
             .def('diamonds', facet('diamonds').filter(facet('cut').is('$^Cut')))
@@ -53,9 +53,9 @@ describe "planner", ->
             .limit(2)
         )
     ,
-      facet('next')
+      facet('next:DATASET')
         .apply('Cuts',
-          facet('Cuts')
+          facet('Cuts:DATASET')
             .apply('Carats',
               facet("diamonds").group(facet("carat").numberBucket(0.25)).label('Carat')
                 .def('diamonds', facet('diamonds').filter(facet("carat").numberBucket(0.25).is('$^Carat')))

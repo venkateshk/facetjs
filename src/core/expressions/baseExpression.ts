@@ -566,6 +566,7 @@ module Core {
 
       var alterations: Alteration[] = [];
       this._fillRefSubstitutions(typeContext, alterations); // This return the final type
+      if (!alterations.length) return this;
       function substitutionFn(ex: Expression): Expression {
         if (!ex.isOp('ref')) return null;
         for (var i = 0; i < alterations.length; i++) {
@@ -616,8 +617,13 @@ module Core {
       }, 0);
     }
 
-    public generatePlan(context: Datum): Expression[] {
-      throw new Error("make me")
+    // Planner
+    public _genPlan(hook: string): Expression[] {
+      throw new Error("can not call _genPlan directly");
+    }
+
+    public generatePlan(): Expression[] {
+      return this._genPlan('next');
     }
 
     // Evaluation

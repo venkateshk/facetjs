@@ -30,7 +30,7 @@ module Core {
     }
 
     public toString(): string {
-      return 'label(' + this.operand.toString() + ' as ' + this.name + ')';
+      return this.operand.toString() + ".label('" + this.name + "')";
     }
 
     public equals(other: LabelExpression): boolean {

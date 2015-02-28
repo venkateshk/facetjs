@@ -11,7 +11,7 @@ module Core {
     }
 
     public toString(): string {
-      return 'negate(' + this.operand.toString() + ')';
+      return this.operand.toString() + '.negate()';
     }
 
     protected _makeFn(operandFn: Function): Function {

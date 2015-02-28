@@ -72,7 +72,7 @@ module Core {
     }
 
     public toString(): string {
-      return 'agg_' + this.fn + '(' + this.operand.toString() + ')';
+      return this.operand.toString() + '.' + this.fn + '(' + (this.attribute ? this.attribute.toString() : '') + ')';
     }
 
     public getComplexity(): number {

@@ -91,7 +91,7 @@ module Core {
     }
 
     public toString(): string {
-      return "<Dataset:" + this.source + ">";
+      return "[Dataset: " + this.source + "]";
     }
 
     public toJSON(): any {
@@ -101,6 +101,10 @@ module Core {
     public equals(other: Dataset): boolean {
       return Dataset.isDataset(other) &&
         this.source === other.source;
+    }
+
+    public basis(): boolean {
+      return false;
     }
 
     public getType(): Lookup<any> {
@@ -204,6 +208,11 @@ module Core {
       return super.equals(other) &&
         this.data.length === other.data.length;
         // ToDo: probably add something else here?
+    }
+
+    public basis(): boolean {
+      var data = this.data;
+      return data.length === 1 && Object.keys(data[0]).length === 0;
     }
 
     // Actions

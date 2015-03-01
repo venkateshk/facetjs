@@ -74,6 +74,7 @@ node_modules/.bin/tsc --noImplicitAny --noEmitOnError --declaration --removeComm
   src/legacy/driver/nativeDriver.ts \
   \
   src/core/driver/legacyDriver.ts \
+  src/core/driver/druidDriver.ts \
   \
   src/exports.ts \
   && \

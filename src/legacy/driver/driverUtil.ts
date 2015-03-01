@@ -51,7 +51,7 @@ module Legacy.driverUtil {
     return dateToIntervalPart(start) + "/" + dateToIntervalPart(end);
   }
 
-  export function timeFilterToIntervals(filter: FacetFilter, forceInterval: boolean) {
+  export function timeFilterToIntervals(filter: FacetFilter, forceInterval: boolean): string[] {
     if (filter.type === "true") {
       if (forceInterval) throw new Error("must have an interval");
       return ["1000-01-01/3000-01-01"];

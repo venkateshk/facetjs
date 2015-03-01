@@ -1,12 +1,12 @@
 module Core {
-  export interface AttributeMeta {
+  export interface AttributeInfo {
     type: string;
     datasetType?: Lookup<any>;
   }
 
   export interface DatasetValue {
     source: string;
-    attributes?: Lookup<AttributeMeta>;
+    attributes?: Lookup<AttributeInfo>;
     data?: Datum[];
     driver?: Driver;
   }
@@ -56,7 +56,7 @@ module Core {
     }
 
     public source: string;
-    public attributes: Lookup<AttributeMeta> = null;
+    public attributes: Lookup<AttributeInfo> = null;
 
     constructor(parameters: DatasetValue, dummy: Dummy = null) {
       this.source = parameters.source;
@@ -319,7 +319,7 @@ module Core {
       if (!data.length) return null;
       var sample = data[0];
 
-      var attributes: Lookup<AttributeMeta> = {};
+      var attributes: Lookup<AttributeInfo> = {};
       Object.keys(sample).forEach((attributeName) => {
         var attributeValue = sample[attributeName];
         var type: string = null;

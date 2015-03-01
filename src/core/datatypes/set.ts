@@ -82,10 +82,14 @@ module Core {
       };
     }
 
+    public getValues(): any[] {
+      return hashToJS(this.elements);
+    }
+
     public toJS(): SetJS {
       return {
         setType: this.setType,
-        elements: hashToJS(this.elements)
+        elements: this.getValues()
       };
     }
 

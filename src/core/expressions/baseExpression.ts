@@ -46,10 +46,27 @@ module Core {
     to: Expression;
   }
 
+  export interface Separation {
+    included: Expression;
+    excluded: Expression;
+  }
+
   export var possibleTypes = ['NULL', 'BOOLEAN', 'NUMBER', 'TIME', 'STRING', 'NUMBER_RANGE', 'TIME_RANGE', 'SET', 'DATASET'];
 
-  export var checkArrayEquality = function(a: Array<any>, b: Array<any>) {
-    return a.every((item, i) =>  (item === b[i]));
+  export function dedupSort(a: string[]): string[] {
+    a = a.sort();
+    var newA: string[] = [];
+    var last: string = null;
+    for (var i = 0; i < a.length; i++) {
+      var v = a[i];
+      if (v !== last) newA.push(v);
+      last = v;
+    }
+    return newA
+  }
+
+  export function checkArrayEquality<T>(a: Array<T>, b: Array<T>): boolean {
+    return a.length === b.length && a.every((item, i) => (item === b[i]));
   };
 
   /**
@@ -328,10 +345,21 @@ module Core {
     }
 
     /**
+     * A check to see if the expression contains any Datasets inside of it.
+     * If it does not it can often be handled differently.
+     *
+     * @returns {boolean}
+     */
+    public containsDataset(): boolean {
+      return this.type === 'DATASET';
+    }
+
+    /**
      * Performs a substitution by recursively applying the given substitutionFn to every sub-expression
      * if substitutionFn returns an expression than it is replaced; if null is returned no action is taken.
      *
-     * @param substitutionFn
+     * @param substitutionFn The function with which to substitute
+     * @param genDiff The number of context generations offset from the caller and this expression
      */
     public substitute(substitutionFn: SubstitutionFn, genDiff: number): Expression {
       var sub = substitutionFn(this, genDiff);
@@ -348,7 +376,7 @@ module Core {
       throw new Error('should never be called directly');
     }
 
-    public getFnJS(wrap: boolean = true) {
+    public getFnJS(wrap: boolean = true): string {
       var rawFnJS = this._getRawFnJS();
       if (wrap) {
         return 'function(d){return ' + rawFnJS + ';}';
@@ -356,6 +384,27 @@ module Core {
         return rawFnJS;
       }
     }
+
+    public separateViaAnd(refName: string): Separation {
+      if (typeof refName !== 'string') throw new Error('must have refName');
+      if (this.type !== 'BOOLEAN') return null;
+      var myRef = this.getReferences();
+      if (myRef.length > 1 && myRef.indexOf(refName) !== -1) return null;
+      if (myRef[0] === refName) {
+        return {
+          included: this,
+          excluded: Expression.TRUE
+        }
+      } else {
+        return {
+          included: Expression.TRUE,
+          excluded: this
+        }
+      }
+    }
+
+    // ------------------------------------------------------------------------
+    // API behaviour
 
     // Action constructors
     protected _performAction(action: Action): Expression {

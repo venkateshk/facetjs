@@ -88,6 +88,10 @@ module Core {
       return new AggregateExpression(value)
     }
 
+    public containsDataset(): boolean {
+      return true;
+    }
+
     protected _makeFn(operandFn: Function): Function {
       var fn = this.fn;
       var attribute = this.attribute;

@@ -95,6 +95,27 @@ module Core {
       });
     }
 
+    public separateViaAnd(refName: string): Separation {
+      if (typeof refName !== 'string') throw new Error('must have refName');
+      //if (!this.simple) return this.simplify().separateViaAnd(refName);
+
+      var includedExpressions: Expression[] = [];
+      var excludedExpressions: Expression[] = [];
+      var operands = this.operands;
+      for (var i = 0; i < operands.length; i++) {
+        var operand = operands[i];
+        var sep = operand.separateViaAnd(refName);
+        if (sep === null) return null;
+        includedExpressions.push(sep.included);
+        excludedExpressions.push(sep.excluded);
+      }
+
+      return {
+        included: new AndExpression({op: 'and', operands: includedExpressions}).simplify(),
+        excluded: new AndExpression({op: 'and', operands: excludedExpressions}).simplify()
+      };
+    }
+
     protected _makeFn(operandFns: Function[]): Function {
       throw new Error("should never be called directly");
     }

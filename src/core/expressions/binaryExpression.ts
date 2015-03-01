@@ -79,6 +79,10 @@ module Core {
       return new (Expression.classMap[this.op])(value);
     }
 
+    public containsDataset(): boolean {
+      return this.lhs.containsDataset() || this.rhs.containsDataset();
+    }
+
     public getOperandOfType(type: string): Expression[] {
       var ret: Expression[] = [];
 
@@ -96,7 +100,7 @@ module Core {
     }
 
     public getReferences(): string[] {
-      return this.lhs.getReferences().concat(this.rhs.getReferences()).sort();
+      return dedupSort(this.lhs.getReferences().concat(this.rhs.getReferences()));
     }
 
     public substitute(substitutionFn: SubstitutionFn, genDiff: number): Expression {

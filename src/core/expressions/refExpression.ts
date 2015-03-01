@@ -49,7 +49,7 @@ module Core {
     }
 
     public toString(): string {
-      return '$' + this.generations + this.name;
+      return '$' + this.generations + this.name + (this.type ? ':' + this.type : '');
     }
 
     public equals(other: RefExpression): boolean {
@@ -59,7 +59,7 @@ module Core {
     }
 
     public getReferences(): string[] {
-      return [this.toString()];
+      return [this.name];
     }
 
     public getFn(): Function {

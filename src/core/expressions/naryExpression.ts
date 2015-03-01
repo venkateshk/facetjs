@@ -79,8 +79,12 @@ module Core {
       }
     }
 
+    public containsDataset(): boolean {
+      return this.operands.some((operand) => operand.containsDataset());
+    }
+
     public getReferences(): string[] {
-      return Array.prototype.concat.apply([], this.operands.map((operand) => operand.getReferences())).sort();
+      return dedupSort(Array.prototype.concat.apply([], this.operands.map((operand) => operand.getReferences())));
     }
 
     public getOperandOfType(type: string): Expression[] {

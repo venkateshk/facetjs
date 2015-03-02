@@ -25,7 +25,7 @@ module Core {
     }
 
     public toString(): string {
-      return 'timeBucket(' + this.operand.toString() + ')';
+      return this.operand.toString() + '.timeBucket(' + this.duration.toString() + ', ' + this.timezone.toString() + ')';
     }
 
     public valueOf(): ExpressionValue {

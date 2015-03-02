@@ -111,4 +111,34 @@ module Core {
     }
     return v;
   }
+
+  // Remote stuff
+
+  export interface Capabilety {
+    (ex: Expression): boolean;
+  }
+
+  export interface FilterCapabilities {
+    canIs?: Capabilety;
+    canAnd?: Capabilety;
+    canOr?: Capabilety;
+    canNot?: Capabilety;
+  }
+
+  export interface ApplyCombineCapabilities {
+    canSum?: Capabilety;
+    canMin?: Capabilety;
+    canMax?: Capabilety;
+    canGroup?: Capabilety;
+  }
+
+  export interface SplitCapabilities {
+    canTotal?: ApplyCombineCapabilities;
+    canSplit?: ApplyCombineCapabilities;
+  }
+
+  export interface DatastoreQuery {
+    query: any;
+    post: (result: any) => Q.Promise<Dataset>;
+  }
 }

@@ -57,6 +57,7 @@ module Core {
     }
 
     public simplify(): Expression {
+      if (this.simple) return this;
       var simpleOperands: Expression[] = this.operands.map((operand) => operand.simplify());
 
       var special = this._specialSimplify(simpleOperands);
@@ -71,9 +72,10 @@ module Core {
 
       if (nonLiteralOperands.length) {
         nonLiteralOperands.push(literalExpression);
-        var value = this.valueOf();
-        value.operands = nonLiteralOperands;
-        return new (Expression.classMap[this.op])(value);
+        var simpleValue = this.valueOf();
+        simpleValue.operands = nonLiteralOperands;
+        simpleValue.simple = true;
+        return new (Expression.classMap[this.op])(simpleValue);
       } else {
         return literalExpression
       }

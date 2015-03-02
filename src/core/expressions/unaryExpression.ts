@@ -46,6 +46,7 @@ module Core {
     }
 
     public simplify(): Expression {
+      if (this.simple) return this;
       var simpleOperand = this.operand.simplify();
 
       var special = this._specialSimplify(simpleOperand);
@@ -58,9 +59,10 @@ module Core {
         })
       }
 
-      var value = this.valueOf();
-      value.operand = simpleOperand;
-      return new (Expression.classMap[this.op])(value);
+      var simpleValue = this.valueOf();
+      simpleValue.operand = simpleOperand;
+      simpleValue.simple = true;
+      return new (Expression.classMap[this.op])(simpleValue);
     }
 
     public containsDataset(): boolean {

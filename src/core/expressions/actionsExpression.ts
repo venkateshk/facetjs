@@ -137,11 +137,13 @@ module Core {
     }
 
     public simplify(): Expression {
-      var value = this.valueOf();
-      value.operand = this.operand.simplify();
-      value.actions = this.actions.map((action) => action.simplify()); //this._getSimpleActions();
-      if (value.actions.length === 0) return value.operand;
-      return new ActionsExpression(value);
+      if (this.simple) return this;
+      var simpleValue = this.valueOf();
+      simpleValue.operand = this.operand.simplify();
+      simpleValue.actions = this.actions.map((action) => action.simplify()); //this._getSimpleActions();
+      if (simpleValue.actions.length === 0) return simpleValue.operand;
+      simpleValue.simple = true;
+      return new ActionsExpression(simpleValue);
     }
 
     public equals(other: ActionsExpression): boolean {

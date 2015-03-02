@@ -31,6 +31,7 @@ module Core {
     }
 
     public simplify(): Expression {
+      if (this.simple) return this;
       var finalOperands: Expression[];
       var groupedOperands: { [key: string]: Expression[]; };
       var mergedExpression: Expression;
@@ -89,10 +90,10 @@ module Core {
         return finalOperands[0];
       }
 
-      return new OrExpression({
-        op: 'or',
-        operands: finalOperands
-      });
+      var simpleValue = this.valueOf();
+      simpleValue.operands = finalOperands;
+      simpleValue.simple = true;
+      return new OrExpression(simpleValue);
     }
 
     protected _makeFn(operandFns: Function[]): Function {

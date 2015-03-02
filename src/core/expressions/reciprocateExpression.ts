@@ -23,7 +23,12 @@ module Core {
       return "1/(" + operandFnJS + ")"
     }
 
-    // UNARY
+    protected _specialSimplify(simpleOperand: Expression): Expression {
+      if (simpleOperand instanceof ReciprocateExpression) {
+        return simpleOperand.operand;
+      }
+      return null;
+    }
   }
 
   Expression.register(ReciprocateExpression);

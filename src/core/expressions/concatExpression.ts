@@ -12,10 +12,11 @@ module Core {
     }
 
     public toString(): string {
-      return 'concat(' + this.operands.map((operand) => operand.toString()) + ')';
+      return this.operands.map((operand) => operand.toString()).join(' ++ ');
     }
 
     public simplify(): Expression {
+      if (this.simple) return this;
       var simplifiedOperands = this.operands.map((operand) => operand.simplify());
       var hasLiteralOperandsOnly = simplifiedOperands.every((operand) => operand.isOp('literal'));
 
@@ -39,9 +40,10 @@ module Core {
         }
       }
 
-      var value = this.valueOf();
-      value.operands = simplifiedOperands;
-      return new ConcatExpression(value);
+      var simpleValue = this.valueOf();
+      simpleValue.operands = simplifiedOperands;
+      simpleValue.simple = true;
+      return new ConcatExpression(simpleValue);
     }
 
     protected _makeFn(operandFns: Function[]): Function {

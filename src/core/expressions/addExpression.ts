@@ -15,31 +15,6 @@ module Core {
       return 'add(' + this.operands.map((operand) => operand.toString()) + ')';
     }
 
-    public simplify(): Expression {
-      var newOperands: Expression[] = [];
-      var literalValue: number = 0;
-      for (var i = 0; i < this.operands.length; i++) {
-        var simplifiedOperand: Expression = this.operands[i].simplify();
-        if (simplifiedOperand.isOp('literal')) {
-          literalValue += (<LiteralExpression>simplifiedOperand).value;
-        } else {
-          newOperands.push(simplifiedOperand);
-        }
-      }
-
-      if (newOperands.length === 0) {
-        return new LiteralExpression({ op: 'literal', value: literalValue });
-      } else {
-        if (literalValue) {
-          newOperands.push(new LiteralExpression({ op: 'literal', value: literalValue }));
-        }
-        return new AddExpression({
-          op: 'add',
-          operands: newOperands
-        })
-      }
-    }
-
     protected _makeFn(operandFns: Function[]): Function {
       return (d: Datum) => {
         var res = 0;

@@ -25,6 +25,7 @@ module Core {
         throw new TypeError("must have a `value`")
       }
       this.type = getType(value);
+      this.simple = true;
     }
 
     public valueOf(): ExpressionValue {

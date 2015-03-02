@@ -22,7 +22,12 @@ module Core {
       return "-(" + operandFnJS + ")"
     }
 
-    // UNARY
+    protected _specialSimplify(simpleOperand: Expression): Expression {
+      if (simpleOperand instanceof NegateExpression) {
+        return simpleOperand.operand;
+      }
+      return null;
+    }
   }
 
   Expression.register(NegateExpression);

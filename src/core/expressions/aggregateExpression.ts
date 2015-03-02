@@ -80,12 +80,14 @@ module Core {
     }
 
     public simplify(): Expression {
-      var value = this.valueOf();
-      value.operand = this.operand.simplify();
+      if (this.simple) return this;
+      var simpleValue = this.valueOf();
+      simpleValue.operand = this.operand.simplify();
       if (this.attribute) {
-        value.attribute = this.attribute.simplify();
+        simpleValue.attribute = this.attribute.simplify();
       }
-      return new AggregateExpression(value)
+      simpleValue.simple = true;
+      return new AggregateExpression(simpleValue)
     }
 
     public containsDataset(): boolean {

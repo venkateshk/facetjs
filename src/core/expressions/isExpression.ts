@@ -137,6 +137,11 @@ module Core {
       return '(' + lhsFnJS + '===' + rhsFnJS + ')';
     }
 
+    protected _specialSimplify(simpleLhs: Expression, simpleRhs: Expression): Expression {
+      if (simpleLhs.equals(simpleRhs)) return Expression.TRUE;
+      return null;
+    }
+
     // BINARY
   }
 

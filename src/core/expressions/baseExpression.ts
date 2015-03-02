@@ -6,6 +6,8 @@ module Core {
   export interface ExpressionValue {
     op: string;
     type?: string;
+    simple?: boolean;
+    remote?: boolean;
     value?: any;
     name?: string;
     lhs?: Expression;
@@ -108,6 +110,7 @@ module Core {
   export class Expression implements ImmutableInstance<ExpressionValue, ExpressionJS> {
     static FALSE: LiteralExpression;
     static TRUE: LiteralExpression;
+
     static isExpression(candidate: any): boolean {
       return isInstanceOf(candidate, Expression);
     }
@@ -206,12 +209,16 @@ module Core {
 
     public op: string;
     public type: string;
+    public simple: boolean;
+    public remote: boolean;
 
     constructor(parameters: ExpressionValue, dummy: Dummy = null) {
       this.op = parameters.op;
       if (dummy !== dummyObject) {
         throw new TypeError("can not call `new Expression` directly use Expression.fromJS instead");
       }
+      if (parameters.simple) this.simple = true;
+      if (parameters.remote) this.remote = true;
     }
 
     protected _ensureOp(op: string) {
@@ -225,9 +232,10 @@ module Core {
     }
 
     public valueOf(): ExpressionValue {
-      return {
-        op: this.op
-      };
+      var value: ExpressionValue = { op: this.op };
+      if (this.simple) value.simple = true;
+      if (this.remote) value.remote = true;
+      return value;
     }
 
     /**
@@ -671,8 +679,25 @@ module Core {
       throw new Error("can not call _genPlan directly");
     }
 
-    public generatePlan(): Expression[] {
+    public getExpressionBreakdown(): Expression[] {
       return this._genPlan('next');
+    }
+
+    public getQueryPlan(): any[] {
+      var breakdown = this.getExpressionBreakdown();
+
+      var temp = DruidDataset.fromJS({
+        source: 'druid',
+        dataSource: 'moon_child',
+        timeAttribute: 'time',
+        forceInterval: true,
+        approximate: true,
+        context: null
+      });
+
+      return breakdown.map((part) => {
+        return temp.generateQuery(part).query;
+      });
     }
 
     // Evaluation

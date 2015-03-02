@@ -32,6 +32,7 @@ module Core {
         }
         this.type = parameters.type;
       }
+      this.simple = true;
     }
 
     public valueOf(): ExpressionValue {

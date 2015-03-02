@@ -7,8 +7,16 @@ module Core {
   export interface DatasetValue {
     source: string;
     attributes?: Lookup<AttributeInfo>;
+
+    // Native
     data?: Datum[];
-    driver?: Driver;
+
+    // Druid
+    dataSource?: any; // ToDo: string | string[]
+    timeAttribute?: string;
+    forceInterval?: boolean;
+    approximate?: boolean;
+    context?: Lookup<any>;
   }
 
 // =====================================================================================
@@ -353,37 +361,8 @@ module Core {
   export class RemoteDataset extends Dataset {
     static type = 'DATASET';
 
-    static fromJS(datasetJS: any): RemoteDataset {
-      return new RemoteDataset({
-        source: datasetJS.source,
-        driver: datasetJS.driver
-      })
-    }
-
-    public driver: Driver;
-
-    constructor(parameters: DatasetValue) {
-      super(parameters, dummyObject);
-      this.driver = parameters.driver;
-      this._ensureSource("remote");
-    }
-
-    public valueOf(): DatasetValue {
-      var value = super.valueOf();
-      value.driver = this.driver;
-      return value;
-    }
-
-    public toJS(): any {
-      var js = super.toJS();
-      return js;
-    }
-
-    public equals(other: RemoteDataset): boolean {
-      return super.equals(other) &&
-        this.driver === other.driver;
+    public generateQuery(ex: Expression): DatastoreQuery {
+      throw new Error("can not call this directly");
     }
   }
-
-  Dataset.register(RemoteDataset);
 }

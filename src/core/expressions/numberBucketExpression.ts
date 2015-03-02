@@ -1,5 +1,4 @@
 module Core {
-
   export class NumberBucketExpression extends UnaryExpression {
     static fromJS(parameters: ExpressionJS): NumberBucketExpression {
       var value = UnaryExpression.jsToValue(parameters);
@@ -20,7 +19,7 @@ module Core {
     }
 
     public toString(): string {
-      return 'numberBucket(' + this.operand.toString() + ')';
+      return this.operand.toString() + '.numberBucket(' + this.size + (this.offset ? (', ' + this.offset) : '') + ')';
     }
 
     public valueOf(): ExpressionValue {
@@ -56,8 +55,6 @@ module Core {
     protected _makeFnJS(operandFnJS: string): string {
       throw new Error("implement me");
     }
-
-    // UNARY
   }
 
   Expression.register(NumberBucketExpression);

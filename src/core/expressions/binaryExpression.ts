@@ -23,8 +23,6 @@ module Core {
     public lhs: Expression;
     public rhs: Expression;
 
-    protected simple: boolean;
-
     constructor(parameters: ExpressionValue, dummyObject: Dummy) {
       super(parameters, dummyObject);
       this.lhs = parameters.lhs;
@@ -60,6 +58,7 @@ module Core {
     }
 
     public simplify(): Expression {
+      if (this.simple) return this;
       var simpleLhs = this.lhs.simplify();
       var simpleRhs = this.rhs.simplify();
 
@@ -73,10 +72,11 @@ module Core {
         })
       }
 
-      var value = this.valueOf();
-      value.lhs = simpleLhs;
-      value.rhs = simpleRhs;
-      return new (Expression.classMap[this.op])(value);
+      var simpleValue = this.valueOf();
+      simpleValue.lhs = simpleLhs;
+      simpleValue.rhs = simpleRhs;
+      simpleValue.simple = true;
+      return new (Expression.classMap[this.op])(simpleValue);
     }
 
     public containsDataset(): boolean {

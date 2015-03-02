@@ -7,8 +7,12 @@ describe "planner", ->
   it "works in advanced case", ->
     context = {
       diamonds: Dataset.fromJS({
-        source: 'remote'
-        driver: () -> null # NoOp
+        source: 'druid',
+        dataSource: 'moon_child',
+        timeAttribute: 'time',
+        forceInterval: true,
+        approximate: true,
+        context: null
         attributes: {
           color: { type: 'STRING' }
           cut: { type: 'STRING' }
@@ -37,7 +41,7 @@ describe "planner", ->
       )
 
     #ex = ex.referenceCheck(context)
-    expect(ex.generatePlan().map((e) -> e.toJS())).to.deep.equal([
+    expect(ex.getExpressionBreakdown().map((e) -> e.toJS())).to.deep.equal([
 
       facet('next:DATASET')
         .def("diamonds", facet('diamonds').filter(facet("color").is('D')))
@@ -66,3 +70,5 @@ describe "planner", ->
         )
 
     ].map((e) -> e.toJS()))
+
+    console.log("ex.getQueryPlan()", ex.getQueryPlan());

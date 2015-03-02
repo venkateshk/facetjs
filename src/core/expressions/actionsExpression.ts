@@ -286,7 +286,9 @@ module Core {
       var actions = this.actions;
       if (!actions.length) throw new Error("Can not plan with empty actions");
 
-      if (operand instanceof LiteralExpression && operand.value.basis()) {
+      var isBasis = operand instanceof LiteralExpression && operand.value.basis();
+      var isLabel = operand instanceof LabelExpression;
+      if (isBasis || isLabel) {
         var simpleActions: Action[] = [];
         var complexActions: Action[] = [];
         for (var i = 0; i < actions.length; i++) {
@@ -301,42 +303,7 @@ module Core {
 
         plan.push(new ActionsExpression({
           op: 'actions',
-          operand: hookToRef(hook),
-          actions: simpleActions
-        }));
-
-        for (var i = 0; i < complexActions.length; i++) {
-          var complexApply = <ApplyAction>(complexActions[i]);
-          var complexApplyName = complexApply.name;
-          var subPlan = complexApply.expression._genPlan(complexApplyName);
-          for (var j = 0; j < subPlan.length; j++) {
-            plan.push(new ActionsExpression({
-              op: 'actions',
-              operand: hookToRef(hook),
-              actions: [new ApplyAction({
-                action: 'apply',
-                name: complexApplyName,
-                expression: subPlan[j]
-              })]
-            }));
-          }
-        }
-      } else if (operand instanceof LabelExpression) {
-        var simpleActions: Action[] = [];
-        var complexActions: Action[] = [];
-        for (var i = 0; i < actions.length; i++) {
-          var action = actions[i];
-          var complex = action instanceof ApplyAction && action.expression.type === 'DATASET'; // ToDo: make this better
-          if (complex || complexActions.length) {
-            complexActions.push(action);
-          } else {
-            simpleActions.push(action);
-          }
-        }
-
-        plan.push(new ActionsExpression({
-          op: 'actions',
-          operand: operand,
+          operand: isBasis ? hookToRef(hook) : operand,
           actions: simpleActions
         }));
 
@@ -380,8 +347,6 @@ module Core {
         throw new Error('can not support that yet (not literal)');
       }
     }
-
-    // UNARY
   }
 
   Expression.register(ActionsExpression);

@@ -12,6 +12,7 @@ module Core {
 
     public generations: string;
     public name: string;
+    public remote: boolean;
 
     constructor(parameters: ExpressionValue) {
       super(parameters, dummyObject);
@@ -26,6 +27,7 @@ module Core {
       if (typeof this.name !== 'string' || this.name.length === 0) {
         throw new TypeError("must have a nonempty `name`");
       }
+      this.remote = Boolean(parameters.remote);
       if (parameters.type) {
         if (possibleTypes.indexOf(parameters.type) === -1) {
           throw new TypeError('unsupported type ' + parameters.type);
@@ -82,6 +84,10 @@ module Core {
       return 'd.' + this.name;
     }
 
+    public isRemote(): boolean {
+      return this.remote;
+    }
+
     public _fillRefSubstitutions(typeContext: any, alterations: Alteration[]): any {
       var numGenerations = this.generations.length;
 
@@ -101,21 +107,28 @@ module Core {
       if (!myTypeContext) throw new Error('could not resolve ' + this.toString());
 
       var contextType = myTypeContext[this.name];
-      var myType: string = (typeof contextType === 'object') ? 'DATASET' : contextType;
+
+      var myType: string = contextType;
+      var myRemote: boolean = this.remote;
+      if (typeof contextType === 'object') {
+        myType = 'DATASET';
+        myRemote = Boolean(contextType.$remote);
+      }
 
       if (this.type && this.type !== myType) {
         throw new TypeError("type mismatch in " + this.toString() + " (has: " + this.type + " needs: " + myType + ")");
       }
 
       // Check if it needs to be replaced
-      if (!this.type || genBack > 0) {
+      if (!this.type || genBack > 0 || this.remote !== myRemote) {
         var newGenerations = this.generations + repeat('^', genBack);
         alterations.push({
           from: this,
           to: new RefExpression({
             op: 'ref',
             name: newGenerations + this.name,
-            type: myType
+            type: myType,
+            remote: myRemote
           })
         })
       }

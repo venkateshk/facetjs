@@ -7,8 +7,8 @@ module Core {
     op: string;
     type?: string;
     simple?: boolean;
-    remote?: boolean;
     value?: any;
+    remote?: boolean;
     name?: string;
     lhs?: Expression;
     rhs?: Expression;
@@ -69,7 +69,7 @@ module Core {
 
   export function checkArrayEquality<T>(a: Array<T>, b: Array<T>): boolean {
     return a.length === b.length && a.every((item, i) => (item === b[i]));
-  };
+  }
 
   /**
    * The expression starter function. Performs different operations depending on the type and value of the input
@@ -210,7 +210,6 @@ module Core {
     public op: string;
     public type: string;
     public simple: boolean;
-    public remote: boolean;
 
     constructor(parameters: ExpressionValue, dummy: Dummy = null) {
       this.op = parameters.op;
@@ -218,7 +217,6 @@ module Core {
         throw new TypeError("can not call `new Expression` directly use Expression.fromJS instead");
       }
       if (parameters.simple) this.simple = true;
-      if (parameters.remote) this.remote = true;
     }
 
     protected _ensureOp(op: string) {
@@ -234,7 +232,6 @@ module Core {
     public valueOf(): ExpressionValue {
       var value: ExpressionValue = { op: this.op };
       if (this.simple) value.simple = true;
-      if (this.remote) value.remote = true;
       return value;
     }
 

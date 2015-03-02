@@ -68,6 +68,10 @@ module Core {
       return () => value;
     }
 
+    public isRemote(): boolean {
+      return this.value instanceof Dataset && this.value.source !== 'native';
+    }
+
     public _getRawFnJS(): string {
       return JSON.stringify(this.value); // ToDo: what to do with higher objects?
     }
@@ -86,6 +90,7 @@ module Core {
       if (this.type == 'DATASET') {
         var newTypeContext = this.value.getType();
         newTypeContext.$parent = typeContext;
+        newTypeContext.$remote = this.isRemote();
         return newTypeContext;
       } else {
         return this.type;

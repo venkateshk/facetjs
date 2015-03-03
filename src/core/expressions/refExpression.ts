@@ -20,7 +20,7 @@ module Core {
     'SET/NUMBER_RANGE': 1,
     'SET/TIME_RANGE': 1,
     'DATASET': 1
-  }
+  };
 
   export class RefExpression extends Expression {
     static NAME_REGEXP = /^(\^*)([a-z_]\w*)$/i;

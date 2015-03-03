@@ -114,6 +114,23 @@ module Core {
 
   // Remote stuff
 
+  export function datumHasRemote(datum: Datum): boolean {
+    for (var k in datum) {
+      if (!datum.hasOwnProperty(k)) continue;
+      var v = datum[k];
+      if (k === '$def') {
+        for (var dk in v) {
+          if (!v.hasOwnProperty(dk)) continue;
+          var dv = v[dk];
+          if (dv instanceof Dataset && dv.hasRemote()) return true;
+        }
+      } else if (v instanceof Dataset && v.hasRemote()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   export interface Capabilety {
     (ex: Expression): boolean;
   }

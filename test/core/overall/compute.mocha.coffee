@@ -247,7 +247,31 @@ describe "compute native", ->
       p = ex.compute()
       p.then((v) ->
         expect(v.toJS()).to.deep.equal([
-
+          {
+            "Count": 5
+            "CountOver2": 2.5
+            "Cuts": [
+              {
+                "AvgPrice": 350
+                "Count": 2
+                "Cut": "Good"
+                "Price": 700
+              }
+              {
+                "AvgPrice": 124
+                "Count": 1
+                "Cut": "Great"
+                "Price": 124
+              }
+              {
+                "AvgPrice": 130
+                "Count": 2
+                "Cut": "Wow"
+                "Price": 260
+              }
+            ]
+            "Price": 1084
+          }
         ])
         testComplete()
       ).done()

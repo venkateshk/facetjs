@@ -93,13 +93,27 @@ module Core {
       return this.operands.filter((operand) => operand.isOp(type));
     }
 
+    public every(iter: BooleanExpressionIterator): boolean {
+      var pass = iter(this);
+      if (!pass) return false;
+      return this.operands.every((operand) => operand.every(iter));
+    }
+
+    public some(iter: BooleanExpressionIterator): boolean {
+      var pass = iter(this);
+      if (pass) return true;
+      return this.operands.some((operand) => operand.some(iter));
+    }
+
     public substitute(substitutionFn: SubstitutionFn, genDiff: number): Expression {
       var sub = substitutionFn(this, genDiff);
       if (sub) return sub;
       var subOperands = this.operands.map((operand) => operand.substitute(substitutionFn, genDiff));
       if (this.operands.every((op, i) => op === subOperands[i])) return this;
+
       var value = this.valueOf();
       value.operands = subOperands;
+      delete value.simple;
       return new (Expression.classMap[this.op])(value);
     }
 

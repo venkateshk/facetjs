@@ -104,7 +104,10 @@ module Core {
         myTypeContext = myTypeContext.$parent;
         genBack++;
       }
-      if (!myTypeContext) throw new Error('could not resolve ' + this.toString());
+      if (!myTypeContext) {
+        console.log("typeContext", typeContext);
+        throw new Error('could not resolve ' + this.toString());
+      }
 
       var contextType = myTypeContext[this.name];
 

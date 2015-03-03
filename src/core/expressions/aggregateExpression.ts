@@ -56,6 +56,14 @@ module Core {
         (!this.attribute || this.attribute.equals(other.attribute));
     }
 
+    protected _specialEvery(iter: BooleanExpressionIterator): boolean {
+      return this.attribute ? this.attribute.every(iter) : true;
+    }
+
+    protected _specialSome(iter: BooleanExpressionIterator): boolean {
+      return this.attribute ? this.attribute.some(iter) : false;
+    }
+
     public substitute(substitutionFn: SubstitutionFn, genDiff: number): Expression {
       var sub = substitutionFn(this, genDiff);
       if (sub) return sub;
@@ -65,9 +73,11 @@ module Core {
         subAttribute = this.attribute.substitute(substitutionFn, genDiff + 1);
       }
       if (this.operand === subOperand && this.attribute === subAttribute) return this;
+
       var value = this.valueOf();
       value.operand = subOperand;
       value.attribute = subAttribute;
+      delete value.simple;
       return new AggregateExpression(value);
     }
 
@@ -81,8 +91,17 @@ module Core {
 
     public simplify(): Expression {
       if (this.simple) return this;
+      var simpleOperand = this.operand.simplify();
+
+      if (simpleOperand.isOp('literal')) { // ToDo: also make sure that attribute does not have ^s
+        return new LiteralExpression({
+          op: 'literal',
+          value: this._makeFn(simpleOperand.getFn())()
+        })
+      }
+
       var simpleValue = this.valueOf();
-      simpleValue.operand = this.operand.simplify();
+      simpleValue.operand = simpleOperand;
       if (this.attribute) {
         simpleValue.attribute = this.attribute.simplify();
       }
@@ -113,8 +132,6 @@ module Core {
       }
       return this.fn === 'group' ? ('SET/' + attributeType) : this.type;
     }
-
-    // UNARY
   }
 
   Expression.register(AggregateExpression);

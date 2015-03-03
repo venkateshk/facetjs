@@ -143,6 +143,14 @@ module Core {
       return new (Action.classMap[this.action])(value);
     }
 
+    public every(iter: BooleanExpressionIterator): boolean {
+      return this.expression ? this.expression.every(iter) : true;
+    }
+
+    public some(iter: BooleanExpressionIterator): boolean {
+      return this.expression ? this.expression.some(iter) : false;
+    }
+
     public substitute(substitutionFn: SubstitutionFn, genDiff: number): Action {
       if (!this.expression) return this;
       var subExpression = this.expression.substitute(substitutionFn, genDiff);

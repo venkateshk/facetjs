@@ -157,44 +157,30 @@ module Core {
       return true;
     }
 
+    protected _specialEvery(iter: BooleanExpressionIterator): boolean {
+      return this.actions.every((action) => action.every(iter))
+    }
+
+    protected _specialSome(iter: BooleanExpressionIterator): boolean {
+      return this.actions.some((action) => action.every(iter))
+    }
+
     public substitute(substitutionFn: SubstitutionFn, genDiff: number): Expression {
       var sub = substitutionFn(this, genDiff);
       if (sub) return sub;
       var subOperand = this.operand.substitute(substitutionFn, genDiff);
       var subActions = this.actions.map((action) => action.substitute(substitutionFn, genDiff + 1));
       if (this.operand === subOperand && this.actions.every((action, i) => action === subActions[i])) return this;
+
       var value = this.valueOf();
       value.operand = subOperand;
       value.actions = subActions;
+      delete value.simple;
       return new ActionsExpression(value);
     }
 
     protected _makeFn(operandFn: Function): Function {
-      var actions = this.actions;
-      return (d: Datum) => {
-        var dataset = operandFn(d);
-        for (var i = 0; i < actions.length; i++) {
-          var action = actions[i];
-          switch (action.action) {
-            case 'filter':
-              dataset = dataset.filter(action.expression.getFn());
-              break;
-
-            case 'apply':
-              dataset = dataset.apply((<ApplyAction>action).name, action.expression.getFn());
-              break;
-
-            case 'sort':
-              dataset = dataset.sort(action.expression.getFn(), (<SortAction>action).direction);
-              break;
-
-            case 'limit':
-              dataset = dataset.limit((<LimitAction>action).limit);
-              break;
-          }
-        }
-        return dataset;
-      }
+      throw new Error("can not call makeFn on actions");
     }
 
     protected _makeFnJS(operandFnJS: string): string {
@@ -207,53 +193,6 @@ module Core {
         operand: this.operand,
         actions: this.actions.concat(action)
       });
-    }
-
-    private _performActionsOnNativeDataset(dataset: NativeDataset, context: Datum): NativeDataset {
-      var actions = this.actions;
-      if (context) {
-        actions = (<ActionsExpression>this.resolve(context)).actions;
-      }
-
-      for (var i = 0; i < actions.length; i++) {
-        var action = actions[i];
-        var actionExpression = action.expression;
-        switch (action.action) {
-          case 'filter':
-            dataset = dataset.filter(action.expression.getFn());
-            break;
-
-          case 'apply':
-            if (actionExpression instanceof ActionsExpression || actionExpression instanceof LabelExpression) {
-              dataset = dataset.apply((<ApplyAction>action).name, (d: Datum) => {
-                return actionExpression.evaluate(d)
-              });
-            } else {
-              dataset = dataset.apply((<ApplyAction>action).name, actionExpression.getFn());
-            }
-            break;
-
-          case 'def':
-            if (actionExpression instanceof ActionsExpression || actionExpression instanceof LabelExpression) {
-              dataset = dataset.def((<ApplyAction>action).name, (d: Datum) => {
-                return actionExpression.evaluate(d)
-              });
-            } else {
-              dataset = dataset.def((<ApplyAction>action).name, actionExpression.getFn());
-            }
-            break;
-
-          case 'sort':
-            dataset = dataset.sort(actionExpression.getFn(), (<SortAction>action).direction);
-            break;
-
-          case 'limit':
-            dataset = dataset.limit((<LimitAction>action).limit);
-            break;
-        }
-      }
-
-      return dataset;
     }
 
     public _fillRefSubstitutions(typeContext: any, alterations: Alteration[]): any {
@@ -272,7 +211,7 @@ module Core {
       return typeContext;
     }
 
-    public _genPlan(hook: string): Expression[] {
+    public _getExpressionBreakdown(hook: string): Expression[] {
       function hookToRef(hook: string): RefExpression {
         return new RefExpression({
           op: 'ref',
@@ -310,7 +249,7 @@ module Core {
         for (var i = 0; i < complexActions.length; i++) {
           var complexApply = <ApplyAction>(complexActions[i]);
           var complexApplyName = complexApply.name;
-          var subPlan = complexApply.expression._genPlan(complexApplyName);
+          var subPlan = complexApply.expression._getExpressionBreakdown(complexApplyName);
           for (var j = 0; j < subPlan.length; j++) {
             plan.push(new ActionsExpression({
               op: 'actions',
@@ -329,23 +268,47 @@ module Core {
       return plan;
     }
 
-    public evaluate(context: Datum = {}): Dataset {
+    public computeResolvedNative(): Dataset {
       var operand = this.operand;
+      var actions = this.actions;
 
-      if (operand.isOp('label')) {
-        return this._performActionsOnNativeDataset(<NativeDataset>((<LabelExpression>operand).evaluate(context)), context);
-      }
+      var dataset = operand.computeResolvedNative();
 
-      if (operand.isOp('literal')) {
-        var ds = <Dataset>(<LiteralExpression>operand).value;
-        if (ds.source === 'native') {
-          return this._performActionsOnNativeDataset(<NativeDataset>ds, context);
-        } else {
-          throw new Error('can not support that yet (not native)');
+      for (var i = 0; i < actions.length; i++) {
+        var action = actions[i];
+        var actionExpression = action.expression;
+
+        if (action instanceof FilterAction) {
+          dataset = dataset.filter(action.expression.getFn());
+
+        } else if (action instanceof ApplyAction) {
+          if (actionExpression instanceof ActionsExpression) {
+            dataset = dataset.apply(action.name, (d: Datum) => {
+              return actionExpression.computeNative(d)
+            });
+          } else {
+            dataset = dataset.apply(action.name, actionExpression.getFn());
+          }
+
+        } else if (action instanceof DefAction) {
+          if (actionExpression instanceof ActionsExpression) {
+            dataset = dataset.def(action.name, (d: Datum) => {
+              return actionExpression.computeNative(d)
+            });
+          } else {
+            dataset = dataset.def(action.name, actionExpression.getFn());
+          }
+
+        } else if (action instanceof SortAction) {
+          dataset = dataset.sort(actionExpression.getFn(), action.direction);
+
+        } else if (action instanceof LimitAction) {
+          dataset = dataset.limit(action.limit);
+
         }
-      } else {
-        throw new Error('can not support that yet (not literal)');
       }
+
+      return dataset;
     }
   }
 

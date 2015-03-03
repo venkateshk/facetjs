@@ -81,13 +81,35 @@ module Core {
       }
     }
 
+    protected _specialEvery(iter: BooleanExpressionIterator): boolean {
+      return true;
+    }
+
+    public every(iter: BooleanExpressionIterator): boolean {
+      var pass = iter(this);
+      if (!pass) return false;
+      return this.operand.every(iter) && this._specialEvery(iter);
+    }
+
+    protected _specialSome(iter: BooleanExpressionIterator): boolean {
+      return false;
+    }
+
+    public some(iter: BooleanExpressionIterator): boolean {
+      var pass = iter(this);
+      if (pass) return true;
+      return this.operand.some(iter) || this._specialSome(iter);
+    }
+
     public substitute(substitutionFn: SubstitutionFn, genDiff: number): Expression {
       var sub = substitutionFn(this, genDiff);
       if (sub) return sub;
       var subOperand = this.operand.substitute(substitutionFn, genDiff);
       if (this.operand === subOperand) return this;
+
       var value = this.valueOf();
       value.operand = subOperand;
+      delete value.simple;
       return new (Expression.classMap[this.op])(value);
     }
 

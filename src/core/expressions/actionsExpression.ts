@@ -138,8 +138,22 @@ module Core {
 
     public simplify(): Expression {
       if (this.simple) return this;
+
+      var simpleOperand = this.operand.simplify();
+
+      // Fold filters into remote datasets
+      function isFilter(action: Action) { return action instanceof FilterAction; }
+      if (simpleOperand instanceof LiteralExpression && simpleOperand.isRemote() && this.actions.every(isFilter)) {
+        var remoteDataset = <RemoteDataset>(simpleOperand.value);
+        this.actions.forEach((action) => remoteDataset = remoteDataset.addFilter(action.expression))
+        return new LiteralExpression({
+          op: 'literal',
+          value: remoteDataset
+        })
+      }
+
       var simpleValue = this.valueOf();
-      simpleValue.operand = this.operand.simplify();
+      simpleValue.operand = simpleOperand;
       simpleValue.actions = this.actions.map((action) => action.simplify()); //this._getSimpleActions();
       if (simpleValue.actions.length === 0) return simpleValue.operand;
       simpleValue.simple = true;

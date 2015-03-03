@@ -11,14 +11,13 @@ module Core {
     static FALSE_INTERVAL = ["1000-01-01/1000-01-02"];
 
     static fromJS(datasetJS: any): DruidDataset {
-      return new DruidDataset({
-        source: datasetJS.source,
-        dataSource: datasetJS.dataSource,
-        timeAttribute: datasetJS.timeAttribute,
-        forceInterval: datasetJS.forceInterval,
-        approximate: datasetJS.approximate,
-        context: datasetJS.context
-      })
+      var value = Dataset.jsToValue(datasetJS);
+      value.dataSource = datasetJS.dataSource;
+      value.timeAttribute = datasetJS.timeAttribute;
+      value.forceInterval = datasetJS.forceInterval;
+      value.approximate = datasetJS.approximate;
+      value.context = datasetJS.context;
+      return new DruidDataset(value);
     }
 
     public dataSource: any; // ToDo: string | string[]

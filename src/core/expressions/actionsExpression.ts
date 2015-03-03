@@ -242,7 +242,7 @@ module Core {
 
         plan.push(new ActionsExpression({
           op: 'actions',
-          operand: isBasis ? hookToRef(hook) : operand,
+          operand: operand,
           actions: simpleActions
         }));
 

@@ -43,6 +43,22 @@ module Core {
   export class Dataset implements ImmutableInstance<DatasetValue, any> {
     static type = 'DATASET';
 
+    static jsToValue(parameters: any): DatasetValue {
+      var value: DatasetValue = {
+        source: parameters.source
+      };
+      var attributes = parameters.attributes;
+      if (attributes) {
+        if (typeof attributes !== 'object') {
+          throw new TypeError("invalid attributes");
+        } else {
+          value.attributes = attributes;
+        }
+      }
+
+      return value;
+    }
+
     static isDataset(candidate: any): boolean {
       return isInstanceOf(candidate, Dataset);
     }
@@ -206,10 +222,9 @@ module Core {
     static type = 'DATASET';
 
     static fromJS(datasetJS: any): NativeDataset {
-      return new NativeDataset({
-        source: datasetJS.source,
-        data: datasetJS.data.map(datumFromJS)
-      })
+      var value = Dataset.jsToValue(datasetJS);
+      value.data = datasetJS.data.map(datumFromJS);
+      return new NativeDataset(value)
     }
 
     public data: Datum[];
@@ -388,6 +403,10 @@ module Core {
 
   export class RemoteDataset extends Dataset {
     static type = 'DATASET';
+
+    public toString(): string {
+      return "RemoteDataset(" + this.source + ")";
+    }
 
     public hasRemote(): boolean {
       return true;

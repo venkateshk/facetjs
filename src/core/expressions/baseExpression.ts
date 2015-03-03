@@ -729,9 +729,9 @@ module Core {
         } else {
           // ToDo: fill this in
         }
-        context = {
-          next: new NativeDataset({ source: 'native', data: [{}] }) // ToDo: this needs to be the result of the prev query simulation
-        }
+        var next = partExpression.simulateResolved();
+        //console.log("next", next.toJS()[0].Cuts);
+        context = { next: next }
       }
 
       return generatedQueries;
@@ -748,17 +748,17 @@ module Core {
 
     public getRemoteDatasets(): RemoteDataset[] {
       // ToDo: make an each function and use it
-      var remoteDatasets: RemoteDataset[] = [];
+      var remoteDatasets: RemoteDataset[][] = [];
       this.every(function(ex: Expression) {
-        if (ex instanceof LiteralExpression && ex.isRemote()) {
-          remoteDatasets.push(<RemoteDataset>ex.value);
+        if (ex instanceof LiteralExpression && ex.type === 'DATASET') {
+          remoteDatasets.push((<Dataset>ex.value).getRemoteDatasets());
         }
         return true;
       });
-      return remoteDatasets;
+      return mergeRemoteDatasets(remoteDatasets);
     }
 
-    public computeResolvedNative(): any {
+    public computeNativeResolved(): any {
       throw new Error("can not call this directly");
     }
 
@@ -770,7 +770,16 @@ module Core {
      */
     public computeNative(context: Datum = {}): any {
       var resolved = this.resolve(context).simplify();
-      return resolved.computeResolvedNative();
+      return resolved.computeNativeResolved();
+    }
+
+    public simulateResolved(): any {
+      throw new Error("can not call this directly");
+    }
+
+    public simulate(context: Datum = {}): any {
+      var resolved = this.resolve(context).simplify();
+      return resolved.simulateResolved();
     }
 
     /**

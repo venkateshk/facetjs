@@ -57,6 +57,18 @@ module Core {
     }
   }
 
+  export function mergeRemoteDatasets(remoteGroups: RemoteDataset[][]): RemoteDataset[] {
+    var seen: Lookup<RemoteDataset> = {};
+    remoteGroups.forEach((remoteGroup) => {
+      remoteGroup.forEach((remote) => {
+        var hash = remote.toHash();
+        if (seen[hash]) return;
+        seen[hash] = remote;
+      })
+    });
+    return Object.keys(seen).sort().map((k) => seen[k]);
+  }
+
 // =====================================================================================
 // =====================================================================================
 
@@ -173,6 +185,10 @@ module Core {
         this.source === other.source;
     }
 
+    public toHash(): string {
+      return this.source;
+    }
+
     public basis(): boolean {
       return false;
     }
@@ -191,6 +207,10 @@ module Core {
 
     public hasRemote(): boolean {
       return false;
+    }
+
+    public getRemoteDatasets(): RemoteDataset[] {
+      throw new Error("can not call this directly")
     }
   }
   check = Dataset;
@@ -406,17 +426,18 @@ module Core {
         this.attributes = {};
         return;
       }
-      var sample = data[0];
+      var datum = data[0];
 
       var attributes: Lookup<AttributeInfo> = {};
-      Object.keys(sample).forEach((attributeName) => {
-        var attributeValue = sample[attributeName];
-        if (attributeName === '$def') {
-          Object.keys(attributeValue).forEach((attributeName) => {
-            attributes[attributeName] = getAttributeInfo(attributeValue[attributeName]);
-          })
+      Object.keys(datum).forEach((applyName) => {
+        var applyValue = datum[applyName];
+        if (applyName !== '$def') {
+          attributes[applyName] = getAttributeInfo(applyValue);
         } else {
-          attributes[attributeName] = getAttributeInfo(attributeValue);
+          Object.keys(applyValue).forEach((defName) => {
+            var defValue = applyValue[defName];
+            attributes[defName] = getAttributeInfo(defValue);
+          })
         }
       });
       this.attributes = attributes;
@@ -425,6 +446,28 @@ module Core {
     public getType(): Lookup<any> {
       this.introspect();
       return super.getType();
+    }
+
+    public getRemoteDatasets(): RemoteDataset[] {
+      if (this.data.length === 0) return [];
+      var datum = this.data[0];
+      var remoteDatasets: RemoteDataset[][] = [];
+      Object.keys(datum).forEach((applyName) => {
+        var applyValue = datum[applyName];
+        if (applyName !== '$def') {
+          if (applyValue instanceof Dataset) {
+            remoteDatasets.push(applyValue.getRemoteDatasets());
+          }
+        } else {
+          Object.keys(applyValue).forEach((defName) => {
+            var defValue = applyValue[defName];
+            if (defValue instanceof Dataset) {
+              remoteDatasets.push(defValue.getRemoteDatasets());
+            }
+          })
+        }
+      });
+      return mergeRemoteDatasets(remoteDatasets);
     }
   }
 
@@ -474,6 +517,10 @@ module Core {
 
     public hasRemote(): boolean {
       return true;
+    }
+
+    public getRemoteDatasets(): RemoteDataset[] {
+      return [this];
     }
 
     public addFilter(anotherFilter: Expression): RemoteDataset {

@@ -218,7 +218,11 @@ module Core {
       var druidQuery: Druid.Query = {
         queryType: 'timeseries', // For now
         dataSource: 'blah',
-        intervals: filterAndIntervals.intervals
+        intervals: filterAndIntervals.intervals,
+        // ToDo: for now
+        context: {
+          ex: ex.toString()
+        }
       };
 
       if (filterAndIntervals.filter) {

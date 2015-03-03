@@ -718,7 +718,7 @@ module Core {
 
       var generatedQueries: any[] = [];
       for (var i = 0; i < breakdown.length; i++) {
-        var partExpression = breakdown[i].resolve(context);
+        var partExpression = breakdown[i].resolve(context).simplify();
         //console.log("-------------------------------");
         //console.log("partExpression\n", partExpression.toString());
         var remoteDatasets = partExpression.getRemoteDatasets();

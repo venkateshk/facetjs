@@ -93,7 +93,7 @@ module Core {
       if (this.simple) return this;
       var simpleOperand = this.operand.simplify();
 
-      if (simpleOperand.isOp('literal')) { // ToDo: also make sure that attribute does not have ^s
+      if (simpleOperand instanceof LiteralExpression && !simpleOperand.isRemote()) { // ToDo: also make sure that attribute does not have ^s
         return new LiteralExpression({
           op: 'literal',
           value: this._makeFn(simpleOperand.getFn())()
@@ -131,6 +131,19 @@ module Core {
         attributeType = this.attribute._fillRefSubstitutions(datasetContext, alterations);
       }
       return this.fn === 'group' ? ('SET/' + attributeType) : this.type;
+    }
+
+    public simulateResolved(): any {
+      if (this.fn === 'group') {
+        var attribute = this.attribute;
+        if (attribute instanceof RefExpression) {
+          return Set.fromJS(['some_' + attribute.name]);
+        } else {
+          return Set.fromJS(['something']);
+        }
+      } else {
+        return 4;
+      }
     }
   }
 

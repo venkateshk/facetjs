@@ -110,7 +110,11 @@ module Core {
       }
     }
 
-    public computeResolvedNative(): any {
+    public computeNativeResolved(): any {
+      return this.value;
+    }
+
+    public simulateResolved(): any {
       return this.value;
     }
   }

@@ -282,12 +282,8 @@ module Core {
       return plan;
     }
 
-    public computeResolvedNative(): Dataset {
-      var operand = this.operand;
+    private _applyActionsToDataset(dataset: NativeDataset): NativeDataset {
       var actions = this.actions;
-
-      var dataset = operand.computeResolvedNative();
-
       for (var i = 0; i < actions.length; i++) {
         var action = actions[i];
         var actionExpression = action.expression;
@@ -311,6 +307,48 @@ module Core {
             });
           } else {
             dataset = dataset.def(action.name, actionExpression.getFn());
+          }
+
+        } else if (action instanceof SortAction) {
+          dataset = dataset.sort(actionExpression.getFn(), action.direction);
+
+        } else if (action instanceof LimitAction) {
+          dataset = dataset.limit(action.limit);
+
+        }
+      }
+
+      return dataset;
+    }
+
+    public computeNativeResolved(): NativeDataset {
+      return this._applyActionsToDataset(this.operand.computeNativeResolved());
+    }
+
+    public simulateResolved(): Dataset {
+      var actions = this.actions;
+      var dataset = this.operand.simulateResolved();
+
+      for (var i = 0; i < actions.length; i++) {
+        var action = actions[i];
+        var actionExpression = action.expression;
+
+        if (action instanceof ApplyAction) {
+          if (actionExpression instanceof ActionsExpression) {
+            dataset = dataset.apply(action.name, (d: Datum) => {
+              return actionExpression.simulate(d)
+            });
+          } else {
+            dataset = dataset.apply(action.name, () => 5);
+          }
+
+        } else if (action instanceof DefAction) {
+          if (actionExpression instanceof ActionsExpression || action.expression.type === 'DATASET') {
+            dataset = dataset.def(action.name, (d: Datum) => {
+              return actionExpression.simulate(d)
+            });
+          } else {
+            dataset = dataset.def(action.name, () => 3);
           }
 
         } else if (action instanceof SortAction) {

@@ -1,7 +1,7 @@
 { expect } = require("chai")
 
 facet = require('../../../build/facet')
-{ Expression } = facet.core
+{ Expression, NativeDataset } = facet.core
 
 describe "resolve", ->
   describe "errors if", ->

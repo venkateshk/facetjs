@@ -11,6 +11,27 @@ module Core {
     // Native
     data?: Datum[];
 
+    // Remote
+    filter?: Expression;
+
+    // Druid
+    dataSource?: any; // ToDo: string | string[]
+    timeAttribute?: string;
+    forceInterval?: boolean;
+    approximate?: boolean;
+    context?: Lookup<any>;
+  }
+
+  export interface DatasetJS {
+    source: string;
+    attributes?: Lookup<AttributeInfo>;
+
+    // Native
+    data?: Datum[];
+
+    // Remote
+    filter?: ExpressionJS;
+
     // Druid
     dataSource?: any; // ToDo: string | string[]
     timeAttribute?: string;
@@ -120,19 +141,27 @@ module Core {
     }
 
     public valueOf(): DatasetValue {
-      return {
+      var value: DatasetValue = {
         source: this.source
       };
+      if (this.attributes) {
+        value.attributes = this.attributes;
+      }
+      return value;
     }
 
     public toJS(): any {
-      return {
+      var js: DatasetJS = {
         source: this.source
       };
+      if (this.attributes) {
+        js.attributes = this.attributes;
+      }
+      return js;
     }
 
     public toString(): string {
-      return "[Dataset: " + this.source + "]";
+      return "Dataset(" + this.source + ")";
     }
 
     public toJSON(): any {
@@ -373,7 +402,10 @@ module Core {
       if (this.attributes) return;
 
       var data = this.data;
-      if (!data.length) return;
+      if (!data.length) {
+        this.attributes = {};
+        return;
+      }
       var sample = data[0];
 
       var attributes: Lookup<AttributeInfo> = {};
@@ -404,12 +436,51 @@ module Core {
   export class RemoteDataset extends Dataset {
     static type = 'DATASET';
 
+    static jsToValue(parameters: any): DatasetValue {
+      var value = Dataset.jsToValue(parameters);
+      value.filter = parameters.filter || Expression.TRUE;
+      return value;
+    }
+
+    public filter: Expression;
+
+    constructor(parameters: DatasetValue, dummy: Dummy = null) {
+      super(parameters, dummyObject);
+      this.filter = parameters.filter;
+    }
+
+    public valueOf(): DatasetValue {
+      var value = super.valueOf();
+      value.filter = this.filter;
+      return value;
+    }
+
+    public toJS(): DatasetJS {
+      var js = super.toJS();
+      if (!this.filter.equals(Expression.TRUE)) {
+        js.filter = this.filter.toJS();
+      }
+      return js;
+    }
+
     public toString(): string {
       return "RemoteDataset(" + this.source + ")";
     }
 
+    public equals(other: RemoteDataset): boolean {
+      return super.equals(other) &&
+        this.filter.equals(other.filter);
+    }
+
     public hasRemote(): boolean {
       return true;
+    }
+
+    public addFilter(anotherFilter: Expression): RemoteDataset {
+      if (anotherFilter.type !== 'BOOLEAN') throw new Error('must be a boolean');
+      var value = this.valueOf();
+      value.filter = value.filter.and(anotherFilter).simplify();
+      return <RemoteDataset>(new (Dataset.classMap[this.source])(value));
     }
 
     public generateQuery(ex: Expression): DatastoreQuery {

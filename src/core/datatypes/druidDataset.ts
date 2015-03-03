@@ -11,7 +11,7 @@ module Core {
     static FALSE_INTERVAL = ["1000-01-01/1000-01-02"];
 
     static fromJS(datasetJS: any): DruidDataset {
-      var value = Dataset.jsToValue(datasetJS);
+      var value = RemoteDataset.jsToValue(datasetJS);
       value.dataSource = datasetJS.dataSource;
       value.timeAttribute = datasetJS.timeAttribute;
       value.forceInterval = datasetJS.forceInterval;
@@ -35,6 +35,39 @@ module Core {
       this.forceInterval = parameters.forceInterval;
       this.approximate = parameters.approximate;
       this.context = parameters.context;
+    }
+
+    public valueOf(): DatasetValue {
+      var value = super.valueOf();
+      value.dataSource = this.dataSource;
+      value.timeAttribute = this.timeAttribute;
+      value.forceInterval = this.forceInterval;
+      value.approximate = this.approximate;
+      value.context = this.context;
+      return value;
+    }
+
+    public toJS(): DatasetJS {
+      var js = super.toJS();
+      js.dataSource = this.dataSource;
+      js.timeAttribute = this.timeAttribute;
+      js.forceInterval = this.forceInterval;
+      js.approximate = this.approximate;
+      js.context = this.context;
+      return js;
+    }
+
+    public toString(): string {
+      return "DruidDataset(" + this.dataSource + ")";
+    }
+
+    public equals(other: DruidDataset): boolean {
+      return super.equals(other) &&
+        String(this.dataSource) === String(other.dataSource) &&
+        this.timeAttribute === other.timeAttribute &&
+        this.forceInterval === other.forceInterval &&
+        this.approximate === other.approximate &&
+        this.context === other.context;
     }
 
     public getAttributeMeta(attr: string): Legacy.AttributeMeta {

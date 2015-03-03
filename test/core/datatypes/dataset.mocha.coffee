@@ -88,22 +88,46 @@ describe "Dataset", ->
           "Count": 298
         }
       ]
+
+      {
+        source: 'druid',
+        dataSource: 'moon_child',
+        timeAttribute: 'time',
+        forceInterval: true,
+        approximate: true,
+        context: null
+        attributes: {
+          color: { type: 'STRING' }
+          cut: { type: 'STRING' }
+          carat: { type: 'STRING' }
+          price: { type: 'NUMBER' }
+        }
+      }
+
+      {
+        source: 'druid',
+        dataSource: 'wiki',
+        timeAttribute: 'time',
+        forceInterval: true,
+        approximate: true,
+        context: null
+      }
     ], {
       newThrows: true
     })
 
-  describe "introspect (NativeDataset)", ->
+  describe "getType (NativeDataset)", ->
     it "works in empty case", ->
-      expect(Dataset.fromJS([]).introspect()).to.equal(null)
+      expect(Dataset.fromJS([]).getType()).to.deep.equal({})
 
     it "works in singleton case", ->
-      expect(Dataset.fromJS([{}]).introspect()).to.deep.equal({})
+      expect(Dataset.fromJS([{}]).getType()).to.deep.equal({})
 
     it "works in basic case", ->
       expect(Dataset.fromJS([
         { x: 1, y: "hello", z: new Date(1000) }
         { x: 2, y: "woops", z: new Date(1001) }
-      ]).introspect()).to.deep.equal({
+      ]).getType()).to.deep.equal({
         x: "NUMBER"
         y: "STRING"
         z: "TIME"
@@ -129,7 +153,7 @@ describe "Dataset", ->
             { a: 51.6, b: 'W00p' }
           ]
         }
-      ]).introspect()).to.deep.equal({
+      ]).getType()).to.deep.equal({
         subData: { a: 'NUMBER', b: 'STRING' }
         x: "NUMBER"
         y: "STRING"

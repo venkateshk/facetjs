@@ -25,4 +25,16 @@ describe "stringification", ->
           )
       )
 
-    expect(ex.toString()).to.equal('')
+    expect(ex.toString()).to.equal("""
+      facet().def(diamonds, $diamonds.filter($color = D))
+        .apply(Count, $diamonds.count())
+        .apply(TotalPrice, $diamonds.sum($price))
+        .apply(Cuts, $diamonds.group($cut).label('Cut').def(diamonds, $diamonds.filter($cut = $^Cut))
+        .apply(Count, $diamonds.count())
+        .sort($Count, descending)
+        .limit(2)
+        .apply(Carats, $diamonds.group($carat.numberBucket(0.25)).label('Carat').def(diamonds, $diamonds.filter($carat.numberBucket(0.25) = $^Carat))
+        .apply(Count, $diamonds.count())
+        .sort($Count, descending)
+        .limit(3)))
+    """)

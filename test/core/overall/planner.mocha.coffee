@@ -71,4 +71,4 @@ describe "planner", ->
 
     ].map((e) -> e.toJS()))
 
-    console.log("ex.getQueryPlan()", ex.getQueryPlan());
+    #console.log("ex.getQueryPlan()", ex.getQueryPlan());

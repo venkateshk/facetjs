@@ -57,8 +57,6 @@ module Core {
     excluded: Expression;
   }
 
-  export var possibleTypes = ['NULL', 'BOOLEAN', 'NUMBER', 'TIME', 'STRING', 'NUMBER_RANGE', 'TIME_RANGE', 'SET', 'DATASET'];
-
   export function dedupSort(a: string[]): string[] {
     a = a.sort();
     var newA: string[] = [];
@@ -105,6 +103,15 @@ module Core {
     }
   }
 
+  function parseExpression(str: string): ExpressionJS {
+    try {
+      return expressionParser.parse(str);
+    } catch (e) {
+      // Re-throw to add the stacktrace
+      throw new Error('Parse error ' + e.message + ' on `' + str + '`');
+    }
+  }
+
   var check: ImmutableClass<ExpressionValue, ExpressionJS>;
 
   /**
@@ -126,7 +133,7 @@ module Core {
      * @returns {Expression}
      */
     static parse(str: string): Expression {
-      return Expression.fromJS(expressionParser.parse(str));
+      return Expression.fromJS(parseExpression(str));
     }
 
     /**
@@ -172,7 +179,7 @@ module Core {
           if (/^\w+$/.test(param)) {
             expressionJS = { op: 'literal', value: param };
           } else {
-            expressionJS = expressionParser.parse(param);
+            expressionJS = parseExpression(param);
           }
           break;
 

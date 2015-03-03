@@ -107,6 +107,14 @@ module Core {
       return this.remote;
     }
 
+    public every(iter: BooleanExpressionIterator): boolean {
+      return iter(this);
+    }
+
+    public some(iter: BooleanExpressionIterator): boolean {
+      return iter(this);
+    }
+
     public _fillRefSubstitutions(typeContext: any, alterations: Alteration[]): any {
       var numGenerations = this.generations.length;
 

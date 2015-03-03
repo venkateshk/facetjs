@@ -16,6 +16,7 @@ describe "planner", ->
         attributes: {
           color: { type: 'STRING' }
           cut: { type: 'STRING' }
+          carat: { type: 'STRING' }
           price: { type: 'NUMBER' }
         }
       })
@@ -40,10 +41,9 @@ describe "planner", ->
           )
       )
 
-    #ex = ex.referenceCheck(context)
     expect(ex.getExpressionBreakdown().map((e) -> e.toJS())).to.deep.equal([
 
-      facet('next:DATASET')
+      facet()
         .def("diamonds", facet('diamonds').filter(facet("color").is('D')))
         .apply('Count', facet('diamonds').count())
         .apply('TotalPrice', facet('diamonds').sum('$price'))
@@ -71,4 +71,4 @@ describe "planner", ->
 
     ].map((e) -> e.toJS()))
 
-    #console.log("ex.getQueryPlan()", ex.getQueryPlan());
+    #console.log("ex.simulateQueryPlan()", ex.simulateQueryPlan(context));

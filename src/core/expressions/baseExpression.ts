@@ -702,7 +702,9 @@ module Core {
       }, 0);
     }
 
+    // ---------------------------------------------------------
     // Planner
+
     public _getExpressionBreakdown(hook: string): Expression[] {
       throw new Error("can not call _getExpressionBreakdown directly");
     }
@@ -711,29 +713,49 @@ module Core {
       return this._getExpressionBreakdown('next');
     }
 
-    public simulateQueryPlan(): any[] {
-      var breakdown = this.getExpressionBreakdown();
+    public simulateQueryPlan(context: Datum): any[] {
+      var breakdown = this.referenceCheck(context).getExpressionBreakdown();
 
-      var temp = DruidDataset.fromJS({
-        source: 'druid',
-        dataSource: 'moon_child',
-        timeAttribute: 'time',
-        forceInterval: true,
-        approximate: true,
-        context: null
-      });
+      var generatedQueries: any[] = [];
+      for (var i = 0; i < breakdown.length; i++) {
+        var partExpression = breakdown[i].resolve(context);
+        //console.log("-------------------------------");
+        //console.log("partExpression\n", partExpression.toString());
+        var remoteDatasets = partExpression.getRemoteDatasets();
+        if (remoteDatasets.length > 1) throw new Error("can not handle multiple remote datasets (yet)");
+        if (remoteDatasets.length === 1) {
+          var generatedQuery = remoteDatasets[0].generateQuery(partExpression).query;
+          generatedQueries.push(generatedQuery);
+        } else {
+          // ToDo: fill this in
+        }
+        context = {
+          next: new NativeDataset({ source: 'native', data: [{}] }) // ToDo: this needs to be the result of the prev query simulation
+        }
+      }
 
-      return breakdown.map((part) => {
-        return temp.generateQuery(part).query;
-      });
+      return generatedQueries;
     }
 
     // ---------------------------------------------------------
     // Evaluation
+
     public hasRemote(): boolean {
       return this.some(function(ex: Expression) {
         return ex instanceof LiteralExpression && ex.isRemote();
-      })
+      });
+    }
+
+    public getRemoteDatasets(): RemoteDataset[] {
+      // ToDo: make an each function and use it
+      var remoteDatasets: RemoteDataset[] = [];
+      this.every(function(ex: Expression) {
+        if (ex instanceof LiteralExpression && ex.isRemote()) {
+          remoteDatasets.push(<RemoteDataset>ex.value);
+        }
+        return true;
+      });
+      return remoteDatasets;
     }
 
     public computeResolvedNative(): any {

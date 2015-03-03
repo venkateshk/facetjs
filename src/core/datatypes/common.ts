@@ -9,7 +9,11 @@ module Core {
       } else {
         var type = value.constructor.type;
         if (!type) {
-          throw new Error("can not have an object without a type");
+          if (Expression.isExpression(value)) {
+            throw new Error("expression used as datum value " + value.toString());
+          } else {
+            throw new Error("can not have an object without a type");
+          }
         }
         if (type === 'SET') {
           type += '/' + value.setType;

@@ -105,8 +105,6 @@ describe "compute native", ->
           .apply('Seven', facet('Six').add(1))
       )
 
-    #console.log("ex.toJS()", JSON.stringify(ex.toJS(), null, 2));
-
     p = ex.compute()
     p.then((v) ->
       expect(v.toJS()).to.deep.equal([
@@ -133,6 +131,39 @@ describe "compute native", ->
       testComplete()
     ).done()
 
+  it "works with context", (testComplete) ->
+    ds = Dataset.fromJS(data)
+
+    ex = facet()
+      .def('Data', facet(ds))
+      .apply('Cuts'
+        facet('Data').split('$cut', 'Cut')
+          .apply('CountPlusX', '$Data.count() + $x')
+      )
+
+    p = ex.compute({ x: 13 })
+    p.then((v) ->
+      expect(v.toJS()).to.deep.equal([
+        {
+          "Cuts": [
+            {
+              "CountPlusX": 15
+              "Cut": "Good"
+            }
+            {
+              "CountPlusX": 14
+              "Cut": "Great"
+            }
+            {
+              "CountPlusX": 15
+              "Cut": "Wow"
+            }
+          ]
+        }
+      ])
+      testComplete()
+    ).done()
+
   it "works with simple group/label and subData filter", (testComplete) ->
     ds = Dataset.fromJS(data)
 
@@ -142,8 +173,6 @@ describe "compute native", ->
         facet('Data').group('$cut').label('Cut')
           .apply('Data', facet('^Data').filter(facet('cut').is('$^Cut')))
       )
-
-    #console.log("ex.toJS()", JSON.stringify(ex.toJS(), null, 2));
     
     p = ex.compute()
     p.then((v) ->

@@ -3,6 +3,25 @@ module Core {
     return new Array(times + 1).join(str);
   }
 
+  export var possibleTypes: Lookup<number> = {
+    'NULL': 1,
+    'BOOLEAN': 1,
+    'NUMBER': 1,
+    'TIME': 1,
+    'STRING': 1,
+    'NUMBER_RANGE': 1,
+    'TIME_RANGE': 1,
+    'SET': 1,
+    'SET/NULL': 1,
+    'SET/BOOLEAN': 1,
+    'SET/NUMBER': 1,
+    'SET/TIME': 1,
+    'SET/STRING': 1,
+    'SET/NUMBER_RANGE': 1,
+    'SET/TIME_RANGE': 1,
+    'DATASET': 1
+  };
+
   export class RefExpression extends Expression {
     static NAME_REGEXP = /^(\^*)([a-z_]\w*)$/i;
 
@@ -29,7 +48,7 @@ module Core {
       }
       this.remote = Boolean(parameters.remote);
       if (parameters.type) {
-        if (possibleTypes.indexOf(parameters.type) === -1) {
+        if (!possibleTypes[parameters.type]) {
           throw new TypeError('unsupported type ' + parameters.type);
         }
         this.type = parameters.type;
@@ -104,7 +123,9 @@ module Core {
         myTypeContext = myTypeContext.$parent;
         genBack++;
       }
-      if (!myTypeContext) throw new Error('could not resolve ' + this.toString());
+      if (!myTypeContext) {
+        throw new Error('could not resolve ' + this.toString());
+      }
 
       var contextType = myTypeContext[this.name];
 

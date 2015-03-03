@@ -47,7 +47,12 @@ module Core {
     }
 
     public toString(): string {
-      return String(this.value);
+      var value = this.value;
+      if (value instanceof Dataset && value.basis()) {
+        return 'facet()';
+      } else {
+        return String(value);
+      }
     }
 
     public equals(other: LiteralExpression): boolean {
@@ -66,6 +71,14 @@ module Core {
     public getFn(): Function {
       var value = this.value;
       return () => value;
+    }
+
+    public every(iter: BooleanExpressionIterator): boolean {
+      return iter(this);
+    }
+
+    public some(iter: BooleanExpressionIterator): boolean {
+      return iter(this);
     }
 
     public isRemote(): boolean {
@@ -95,6 +108,10 @@ module Core {
       } else {
         return this.type;
       }
+    }
+
+    public computeResolvedNative(): any {
+      return this.value;
     }
   }
 

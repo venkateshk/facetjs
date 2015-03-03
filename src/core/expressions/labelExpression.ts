@@ -30,7 +30,7 @@ module Core {
     }
 
     public toString(): string {
-      return this.operand.toString() + ".label('" + this.name + ')';
+      return this.operand.toString() + ".label('" + this.name + "')";
     }
 
     public equals(other: LabelExpression): boolean {
@@ -39,7 +39,12 @@ module Core {
     }
 
     protected _makeFn(operandFn: Function): Function {
-      throw new Error("can not call makeFn on label");
+      var name = this.name;
+      return (d: Datum) => {
+        var mySet = operandFn(d);
+        if (!mySet) return null;
+        return mySet.label(name);
+      }
     }
 
     protected _makeFnJS(operandFnJS: string): string {
@@ -54,13 +59,6 @@ module Core {
 
       return newContext;
     }
-
-    public evaluate(context: Lookup<any> = null): Dataset {
-      var mySet: Set = this.operand.getFn()(context);
-      return mySet.label(this.name);
-    }
-
-    // UNARY
   }
 
   Expression.register(LabelExpression);

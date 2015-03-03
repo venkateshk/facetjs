@@ -3,6 +3,10 @@ module Core {
     (ex: Expression, genDiff: number): Expression;
   }
 
+  export interface BooleanExpressionIterator {
+    (ex: Expression): boolean;
+  }
+
   export interface ExpressionValue {
     op: string;
     type?: string;
@@ -53,8 +57,6 @@ module Core {
     excluded: Expression;
   }
 
-  export var possibleTypes = ['NULL', 'BOOLEAN', 'NUMBER', 'TIME', 'STRING', 'NUMBER_RANGE', 'TIME_RANGE', 'SET', 'DATASET'];
-
   export function dedupSort(a: string[]): string[] {
     a = a.sort();
     var newA: string[] = [];
@@ -101,6 +103,15 @@ module Core {
     }
   }
 
+  function parseExpression(str: string): ExpressionJS {
+    try {
+      return expressionParser.parse(str);
+    } catch (e) {
+      // Re-throw to add the stacktrace
+      throw new Error('Parse error ' + e.message + ' on `' + str + '`');
+    }
+  }
+
   var check: ImmutableClass<ExpressionValue, ExpressionJS>;
 
   /**
@@ -122,7 +133,7 @@ module Core {
      * @returns {Expression}
      */
     static parse(str: string): Expression {
-      return Expression.fromJS(expressionParser.parse(str));
+      return Expression.fromJS(parseExpression(str));
     }
 
     /**
@@ -168,7 +179,7 @@ module Core {
           if (/^\w+$/.test(param)) {
             expressionJS = { op: 'literal', value: param };
           } else {
-            expressionJS = expressionParser.parse(param);
+            expressionJS = parseExpression(param);
           }
           break;
 
@@ -308,7 +319,7 @@ module Core {
      * @returns {string[]}
      */
     public getReferences(): string[] {
-      throw new Error('please implement');
+      throw new Error('can not call on base');
     }
 
     /**
@@ -318,7 +329,7 @@ module Core {
      * @returns {Expression[]}
      */
     public getOperandOfType(type: string): Expression[] {
-      throw new Error('please implement');
+      throw new Error('can not call on base');
     }
 
     /**
@@ -327,7 +338,7 @@ module Core {
      * @returns {Expression}
      */
     public mergeAnd(a: Expression): Expression {
-      throw new Error('please implement');
+      throw new Error('can not call on base');
     }
 
     /**
@@ -336,7 +347,7 @@ module Core {
      * @returns {Expression}
      */
     public mergeOr(a: Expression): Expression {
-      throw new Error('please implement');
+      throw new Error('can not call on base');
     }
 
     /**
@@ -357,6 +368,26 @@ module Core {
      */
     public containsDataset(): boolean {
       return this.type === 'DATASET';
+    }
+
+    /**
+     * Runs iter over all the sub expression and return true if iter returns true for everything;
+     *
+     * @param iter The function to run
+     * @returns {boolean}
+     */
+    public every(iter: BooleanExpressionIterator): boolean {
+      throw new Error('can not call on base');
+    }
+
+    /**
+     * Runs iter over all the sub expression and return true if iter returns true for anything;
+     *
+     * @param iter The function to run
+     * @returns {boolean}
+     */
+    public some(iter: BooleanExpressionIterator): boolean {
+      throw new Error('can not call on base');
     }
 
     /**
@@ -617,7 +648,7 @@ module Core {
         if (!context.hasOwnProperty(k)) continue;
         typeContext[k] = getTypeFull(context[k]);
       }
-
+      
       var alterations: Alteration[] = [];
       this._fillRefSubstitutions(typeContext, alterations); // This return the final type
       if (!alterations.length) return this;
@@ -672,15 +703,15 @@ module Core {
     }
 
     // Planner
-    public _genPlan(hook: string): Expression[] {
-      throw new Error("can not call _genPlan directly");
+    public _getExpressionBreakdown(hook: string): Expression[] {
+      throw new Error("can not call _getExpressionBreakdown directly");
     }
 
     public getExpressionBreakdown(): Expression[] {
-      return this._genPlan('next');
+      return this._getExpressionBreakdown('next');
     }
 
-    public getQueryPlan(): any[] {
+    public simulateQueryPlan(): any[] {
       var breakdown = this.getExpressionBreakdown();
 
       var temp = DruidDataset.fromJS({
@@ -697,15 +728,45 @@ module Core {
       });
     }
 
+    // ---------------------------------------------------------
     // Evaluation
-    public compute(drivers: Lookup<Driver> = null) {
-      var deferred = <Q.Deferred<Dataset>>Q.defer();
+    public hasRemote(): boolean {
+      return this.some(function(ex: Expression) {
+        return ex instanceof LiteralExpression && ex.isRemote();
+      })
+    }
 
-      var simple = this.simplify();
-      if (drivers) {
+    public computeResolvedNative(): any {
+      throw new Error("can not call this directly");
+    }
+
+    /**
+     * Computes an expression synchronously if possible
+     *
+     * @param context The context within which to compute the expression
+     * @returns {any}
+     */
+    public computeNative(context: Datum = {}): any {
+      var resolved = this.resolve(context).simplify();
+      return resolved.computeResolvedNative();
+    }
+
+    /**
+     * Computes a general asynchronous expression
+     *
+     * @param context The context within which to compute the expression
+     * @returns {Q.Promise<any>}
+     */
+    public compute(context: Datum = {}): Q.Promise<any> {
+      //var deferred = <Q.Deferred<any>>Q.defer();
+
+      var simple = this.referenceCheck(context).simplify();
+      if (datumHasRemote(context) || simple.hasRemote()) {
+        throw new Error('re-implement me');
+        /*
         var driverObjects: Driver[] = [];
-        Object.keys(drivers).forEach((driverName) => {
-          var driver = drivers[driverName];
+        Object.keys(context).forEach((driverName) => {
+          var driver = context[driverName];
           if (driverObjects.indexOf(driver) === -1) driverObjects.push(driver);
         });
         if (driverObjects.length !== 1) {
@@ -713,16 +774,9 @@ module Core {
           return deferred.promise;
         }
         return driverObjects[0](simple);
+        */
       } else {
-        if (simple instanceof LiteralExpression) {
-          deferred.resolve(simple.value);
-        } else if (simple instanceof ActionsExpression || simple instanceof LabelExpression) {
-          deferred.resolve(simple.evaluate());
-        } else {
-          deferred.reject(new Error('can not handle that yet: ' + simple.op));
-          // ToDo: implement logic
-        }
-        return deferred.promise;
+        return Q(simple.computeNative(context));
       }
     }
   }

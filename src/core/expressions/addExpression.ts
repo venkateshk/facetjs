@@ -12,7 +12,7 @@ module Core {
     }
 
     public toString(): string {
-      return 'add(' + this.operands.map((operand) => operand.toString()) + ')';
+      return '(' + this.operands.map((operand) => operand.toString()).join(' + ') + ')';
     }
 
     protected _makeFn(operandFns: Function[]): Function {

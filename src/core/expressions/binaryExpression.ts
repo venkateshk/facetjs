@@ -103,15 +103,29 @@ module Core {
       return dedupSort(this.lhs.getReferences().concat(this.rhs.getReferences()));
     }
 
+    public every(iter: BooleanExpressionIterator): boolean {
+      var pass = iter(this);
+      if (!pass) return false;
+      return this.lhs.every(iter) && this.rhs.every(iter);
+    }
+
+    public some(iter: BooleanExpressionIterator): boolean {
+      var pass = iter(this);
+      if (pass) return true;
+      return this.lhs.some(iter) || this.rhs.some(iter);
+    }
+
     public substitute(substitutionFn: SubstitutionFn, genDiff: number): Expression {
       var sub = substitutionFn(this, genDiff);
       if (sub) return sub;
       var subLhs = this.lhs.substitute(substitutionFn, genDiff);
       var subRhs = this.rhs.substitute(substitutionFn, genDiff);
       if (this.lhs === subLhs && this.rhs === subRhs) return this;
+
       var value = this.valueOf();
       value.lhs = subLhs;
       value.rhs = subRhs;
+      delete value.simple;
       return new (Expression.classMap[this.op])(value);
     }
 

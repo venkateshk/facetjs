@@ -19,6 +19,23 @@ module Core {
     context?: Lookup<any>;
   }
 
+  function getAttributeInfo(attributeValue: any): AttributeInfo {
+    if (isDate(attributeValue)) {
+      return { type: 'TIME' };
+    } else if (isNumber(attributeValue)) {
+      return { type: 'NUMBER' };
+    } else if (isString(attributeValue)) {
+      return { type: 'STRING' };
+    } else if (attributeValue instanceof Dataset) {
+      return {
+        type: 'DATASET',
+        datasetType: attributeValue.getType()
+      }
+    } else {
+      throw new Error("Could not introspect");
+    }
+  }
+
 // =====================================================================================
 // =====================================================================================
 
@@ -126,6 +143,10 @@ module Core {
       }
       return myType;
     }
+
+    public hasRemote(): boolean {
+      return false;
+    }
   }
   check = Dataset;
 
@@ -212,6 +233,10 @@ module Core {
       return this.data.map(datumToJS);
     }
 
+    public toString(): string {
+      return "NativeDataset(" + this.data.length + ")";
+    }
+
     public equals(other: NativeDataset): boolean {
       return super.equals(other) &&
         this.data.length === other.data.length;
@@ -223,6 +248,11 @@ module Core {
       return data.length === 1 && Object.keys(data[0]).length === 0;
     }
 
+    public hasRemote(): boolean {
+      if (!this.data.length) return false;
+      return datumHasRemote(this.data[0]);
+    }
+
     // Actions
     public apply(name: string, exFn: Function): NativeDataset {
       // Note this works in place, fix that later if needed.
@@ -232,6 +262,7 @@ module Core {
         var datum = data[i];
         datum[name] = exFn(datum);
       }
+      this.attributes = null; // Since we did the change in place, blow out the attributes
       return this;
     }
 
@@ -244,6 +275,7 @@ module Core {
         datum.$def = datum.$def || {};
         datum.$def[name] = exFn(datum);
       }
+      this.attributes = null; // Since we did the change in place, blow out the attributes
       return this;
     }
 
@@ -323,32 +355,28 @@ module Core {
 
     // Introspection
     public introspect(): void {
+      if (this.attributes) return;
+
       var data = this.data;
-      if (!data.length) return null;
+      if (!data.length) return;
       var sample = data[0];
 
       var attributes: Lookup<AttributeInfo> = {};
       Object.keys(sample).forEach((attributeName) => {
         var attributeValue = sample[attributeName];
-        var type: string = null;
-        if (isDate(attributeValue)) {
-          attributes[attributeName] = { type: 'TIME' };
-        } else if (isNumber(attributeValue)) {
-          attributes[attributeName] = { type: 'NUMBER' };
-        } else if (isString(attributeValue)) {
-          attributes[attributeName] = { type: 'STRING' };
-        } else if (attributeValue instanceof Dataset) {
-          attributes[attributeName] = {
-            type: 'DATASET',
-            datasetType: attributeValue.getType()
-          }
+        if (attributeName === '$def') {
+          Object.keys(attributeValue).forEach((attributeName) => {
+            attributes[attributeName] = getAttributeInfo(attributeValue[attributeName]);
+          })
+        } else {
+          attributes[attributeName] = getAttributeInfo(attributeValue);
         }
       });
       this.attributes = attributes;
     }
 
     public getType(): Lookup<any> {
-      if (!this.attributes) this.introspect();
+      this.introspect();
       return super.getType();
     }
   }
@@ -360,6 +388,10 @@ module Core {
 
   export class RemoteDataset extends Dataset {
     static type = 'DATASET';
+
+    public hasRemote(): boolean {
+      return true;
+    }
 
     public generateQuery(ex: Expression): DatastoreQuery {
       throw new Error("can not call this directly");

@@ -23,6 +23,7 @@
       <w>hadoop</w>
       <w>ifnull</w>
       <w>inorder</w>
+      <w>iter</w>
       <w>locators</w>
       <w>memoized</w>
       <w>metas</w>
@@ -30,8 +31,10 @@
       <w>postorder</w>
       <w>preorder</w>
       <w>requesters</w>
+      <w>stacktrace</w>
       <w>stderr</w>
       <w>stdout</w>
+      <w>stringification</w>
       <w>stringifier</w>
       <w>substr</w>
       <w>tickmark</w>

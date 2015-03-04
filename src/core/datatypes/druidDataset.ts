@@ -4,6 +4,16 @@ module Core {
     intervals: string[];
   }
 
+  export interface QueryPattern {
+    dataSourceName: string;
+    filter: Expression;
+    split?: Expression;
+    label?: string;
+    applies: ApplyAction[];
+    sort?: SortAction;
+    limit?: LimitAction;
+  }
+
   export class DruidDataset extends RemoteDataset {
     static type = 'DATASET';
 
@@ -211,47 +221,123 @@ module Core {
       }
     }
 
-    public generateQuery(ex: Expression): DatastoreQuery {
-      var filterAndIntervals = this.filterToDruid(Expression.TRUE);
-
-      var post: (v: any) => Q.Promise<Dataset>;
-      var druidQuery: Druid.Query = {
-        queryType: 'timeseries', // For now
-        dataSource: 'blah',
-        intervals: filterAndIntervals.intervals,
-        // ToDo: for now
-        context: {
-          ex: ex.toString()
-        }
-      };
-
-      if (filterAndIntervals.filter) {
-        druidQuery.filter = filterAndIntervals.filter;
-      }
-
+    private totalPattern(ex: Expression): QueryPattern {
       if (ex instanceof ActionsExpression) {
         var operand = ex.operand;
-        if (operand instanceof LiteralExpression) {
-          druidQuery.granularity = 'all';
-
-          post = (v: any): Q.Promise<Dataset> => {
-            throw new Error();
+        var actions = ex.actions;
+        if (operand instanceof LiteralExpression && operand.value.basis() && actions.length > 1) {
+          var action: Action = actions[0];
+          var queryPattern: QueryPattern = null;
+          if (action instanceof DefAction) {
+            queryPattern = {
+              dataSourceName: action.name,
+              filter: (<RemoteDataset>(<LiteralExpression>action.expression).value).filter, // ToDo: make this a function
+              applies: []
+            }
+          } else {
+            return null;
           }
-        } else if (operand instanceof LabelExpression) {
-          druidQuery.queryType = 'topN';
-          druidQuery.granularity = 'all';
 
-          post = (v: any): Q.Promise<Dataset> => {
-            throw new Error();
+          for (var i = 1; i < actions.length; i++) {
+            action = actions[i];
+            if (action instanceof ApplyAction) {
+              queryPattern.applies.push(action);
+            } else {
+              return null;
+            }
           }
+
+          return queryPattern;
+        } else {
+          return null;
         }
       } else {
-        throw new Error("must be an actions expression");
+        return null;
       }
+    }
 
-      return {
-        query: druidQuery,
-        post: post
+    private splitPattern(ex: Expression): QueryPattern {
+      if (ex instanceof ActionsExpression) {
+        var labelOperand = ex.operand;
+        var actions = ex.actions;
+        if (labelOperand instanceof LabelExpression && actions.length > 1) {
+          var groupAggregate = labelOperand.operand;
+          if (groupAggregate instanceof AggregateExpression) {
+            var action: Action = actions[0];
+            var queryPattern: QueryPattern = null;
+            if (action instanceof DefAction) {
+              queryPattern = {
+                dataSourceName: action.name,
+                filter: (<RemoteDataset>(<LiteralExpression>action.expression).value).filter, // ToDo: make this a function
+                split: groupAggregate.attribute,
+                label: labelOperand.name,
+                applies: []
+              }
+            } else {
+              return null;
+            }
+
+            for (var i = 1; i < actions.length; i++) {
+              action = actions[i];
+              if (action instanceof ApplyAction) {
+                queryPattern.applies.push(action);
+              } else if (action instanceof SortAction) {
+                queryPattern.sort = action;
+              } else if (action instanceof LimitAction) {
+                queryPattern.limit = action;
+              } else {
+                return null;
+              }
+            }
+
+            return queryPattern;
+          } else {
+            return null;
+          }
+        } else {
+          return null;
+        }
+      } else {
+        return null;
+      }
+    }
+
+    public generateQueries(ex: Expression): DatastoreQuery {
+      var queryPattern: QueryPattern;
+      if (queryPattern = this.totalPattern(ex)) {
+        var filterAndIntervals = this.filterToDruid(queryPattern.filter);
+
+        var post: (v: any) => Q.Promise<any> = (v) => Q.reject(new Error());
+        var druidQuery: Druid.Query = {
+          //context: { ex: ex.toString() },
+          queryType: 'timeseries', // For now
+          dataSource: this.dataSource,
+          intervals: filterAndIntervals.intervals,
+          granularity: 'all',
+          x_aggregates: queryPattern.applies.map((ex) => ex.toJS())
+        };
+        if (filterAndIntervals.filter) {
+          druidQuery.filter = filterAndIntervals.filter;
+        }
+        return {
+          queries: [druidQuery],
+          post: post
+        }
+      } else {
+        var filterAndIntervals = this.filterToDruid(Expression.TRUE);
+
+        var post: (v: any) => Q.Promise<any> = (v) => Q.reject(new Error());
+        var druidQuery: Druid.Query = {
+          context: { ex: ex.toString() },
+          queryType: 'timeseries', // For now
+          dataSource: this.dataSource,
+          intervals: filterAndIntervals.intervals,
+          granularity: 'blah'
+        };
+        return {
+          queries: [druidQuery],
+          post: post
+        }
       }
     }
   }

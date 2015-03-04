@@ -154,12 +154,13 @@ module Core {
   }
 
   export interface SplitCapabilities {
+    canSelect?: ApplyCombineCapabilities;
     canTotal?: ApplyCombineCapabilities;
     canSplit?: ApplyCombineCapabilities;
   }
 
   export interface DatastoreQuery {
-    query: any;
-    post: (result: any) => Q.Promise<Dataset>;
+    queries: any[];
+    post: (result: any) => Q.Promise<any>;
   }
 }

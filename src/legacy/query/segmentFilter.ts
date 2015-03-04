@@ -51,7 +51,7 @@ module Legacy {
       if (typeof parameters !== "object") {
         throw new Error("unrecognizable segment filter");
       }
-      if (!parameters.hasOwnProperty("type")) {
+      if (!hasOwnProperty(parameters, "type")) {
         throw new Error("type must be defined");
       }
       if (typeof parameters.type !== "string") {

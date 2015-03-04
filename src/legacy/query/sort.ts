@@ -46,7 +46,7 @@ module Legacy {
       if (typeof parameters !== "object") {
         throw new Error("unrecognizable sort");
       }
-      if (!parameters.hasOwnProperty("compare")) {
+      if (!hasOwnProperty(parameters, "compare")) {
         throw new Error("compare must be defined");
       }
       if (typeof parameters.compare !== "string") {

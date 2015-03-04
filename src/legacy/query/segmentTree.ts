@@ -155,7 +155,7 @@ module Legacy {
 
     public selfClean() {
       for (var k in this) {
-        if (!this.hasOwnProperty(k)) continue;
+        if (!hasOwnProperty(this, k)) continue;
         if (k[0] === "_") {
           delete (<any>this)[k];
         }
@@ -205,7 +205,7 @@ module Legacy {
       if (!this.prop) {
         return false;
       }
-      return this.prop.hasOwnProperty(propName);
+      return hasOwnProperty(this.prop, propName);
     }
 
     public getProp(propName: string): any {

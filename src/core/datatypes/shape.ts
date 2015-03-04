@@ -52,7 +52,7 @@ module Core {
       if (typeof parameters !== "object") {
         throw new Error("unrecognizable shape");
       }
-      if (!parameters.hasOwnProperty("shape")) {
+      if (!hasOwnProperty(parameters, "shape")) {
         throw new Error("shape must be defined");
       }
       if (typeof parameters.shape !== "string") {

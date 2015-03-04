@@ -1,13 +1,5 @@
 module Core {
-  import LegacyDriver = Legacy.Driver;
   import LegacyQuery = Legacy.FacetQuery;
-
-  export interface Translation {
-    query: () => Q.Promise<Dataset>;
-    path: string[];
-    name: string;
-    leftOver?: Expression;
-  }
 
   function makeFacetFilter(expression: Expression): any {
     if (expression.type !== 'BOOLEAN') return null;
@@ -326,7 +318,7 @@ module Core {
     (ex: Expression): Q.Promise<Dataset>;
   }
 
-  export function legacyDriver(legacyDriver: LegacyDriver.FacetDriver): Driver {
+  export function legacyDriver(legacyDriver: Legacy.Driver.FacetDriver): Driver {
     return function(ex: Expression): Q.Promise<Dataset> {
       var legacyQuery = legacyTranslator(ex);
       return legacyDriver({
@@ -335,6 +327,45 @@ module Core {
         var splitNames = legacyQuery.getSplits().map((split) => split.name);
         return segmentTreesToDataset([segmentTree], splitNames);
       })
+    }
+  }
+
+  export class LegacyDataset extends RemoteDataset {
+    static type = 'DATASET';
+
+    static fromJS(datasetJS: any): LegacyDataset {
+      var value = RemoteDataset.jsToValue(datasetJS);
+      value.driver = datasetJS.driver;
+      return new LegacyDataset(value);
+    }
+
+    public driver: Legacy.Driver.FacetDriver;
+
+    constructor(parameters: DatasetValue) {
+      super(parameters, dummyObject);
+      this._ensureSource("legacy");
+      this.driver = parameters.driver;
+    }
+
+    public valueOf(): DatasetValue {
+      var value = super.valueOf();
+      value.driver = this.driver;
+      return value;
+    }
+
+    public toJS(): DatasetJS {
+      var js = super.toJS();
+      js.driver = this.driver;
+      return js;
+    }
+
+    public toString(): string {
+      return "LegacyDataset";
+    }
+
+    public equals(other: LegacyDataset): boolean {
+      return super.equals(other) &&
+        this.driver === other.driver;
     }
   }
 }

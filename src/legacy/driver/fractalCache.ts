@@ -42,7 +42,7 @@ module Legacy {
     }
 
     public get(hash: string): T {
-      if (this.store.hasOwnProperty(hash)) {
+      if (hasOwnProperty(this.store, hash)) {
         var storeSlot = this.store[hash];
         storeSlot.time = this.currentTime();
         return storeSlot.value;
@@ -52,7 +52,7 @@ module Legacy {
     }
 
     public set(hash: string, value: T): void {
-      if (!this.store.hasOwnProperty(hash)) {
+      if (!hasOwnProperty(this.store, hash)) {
         this.size++;
       }
       this.store[hash] = {

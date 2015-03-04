@@ -59,6 +59,7 @@ describe "Dataset", ->
             { x: 1, y: 2 }
             { x: 2, y: 3 }
           ]
+          hasOwnProperty: 'troll'
         }
       ]
 
@@ -115,6 +116,25 @@ describe "Dataset", ->
     ], {
       newThrows: true
     })
+
+  describe "does not die with hasOwnProperty", ->
+    it "survives", ->
+      expect(Dataset.fromJS({
+        source: 'druid',
+        dataSource: 'wiki',
+        timeAttribute: 'time',
+        forceInterval: true,
+        approximate: true,
+        context: null,
+        hasOwnProperty: 'troll'
+      }).toJS()).to.deep.equal({
+        source: 'druid',
+        dataSource: 'wiki',
+        timeAttribute: 'time',
+        forceInterval: true,
+        approximate: true,
+        context: null
+      })
 
   describe "getType (NativeDataset)", ->
     it "works in empty case", ->

@@ -14,6 +14,9 @@ module Core {
     // Remote
     filter?: Expression;
 
+    // Legacy
+    driver?: Legacy.Driver.FacetDriver;
+
     // Druid
     dataSource?: any; // ToDo: string | string[]
     timeAttribute?: string;
@@ -31,6 +34,9 @@ module Core {
 
     // Remote
     filter?: ExpressionJS;
+
+    // Legacy
+    driver?: Legacy.Driver.FacetDriver;
 
     // Druid
     dataSource?: any; // ToDo: string | string[]
@@ -114,7 +120,7 @@ module Core {
           driver: datasetJS
         }
       }
-      if (!datasetJS.hasOwnProperty("source")) {
+      if (!hasOwnProperty(datasetJS, "source")) {
         throw new Error("dataset `source` must be defined");
       }
       var source: string = datasetJS.source;
@@ -198,7 +204,7 @@ module Core {
       if (!attributes) throw new Error("dataset has not been introspected");
       var myType: Lookup<any> = {};
       for (var attrName in attributes) {
-        if (!attributes.hasOwnProperty(attrName)) continue;
+        if (!hasOwnProperty(attributes, attrName)) continue;
         var attrType = attributes[attrName];
         myType[attrName] = attrType.type === 'DATASET' ? attrType.datasetType : attrType.type;
       }
@@ -248,9 +254,9 @@ module Core {
   function datumFromJS(js: Datum): Datum {
     if (typeof js !== 'object') throw new TypeError("datum must be an object");
 
-    var datum: Datum = {};
+    var datum: Datum = Object.create(null);
     for (var k in js) {
-      if (!js.hasOwnProperty(k)) continue;
+      if (!hasOwnProperty(js, k)) continue;
       datum[k] = valueFromJS(js[k]);
     }
 
@@ -260,7 +266,6 @@ module Core {
   function datumToJS(datum: Datum): Datum {
     var js: Datum = {};
     for (var k in datum) {
-      if (!datum.hasOwnProperty(k)) continue;
       if (k === '$def') continue;
       js[k] = valueToJSInlineType(datum[k]);
     }
@@ -336,7 +341,7 @@ module Core {
       var n = data.length;
       for (var i = 0; i < n; i++) {
         var datum = data[i];
-        datum.$def = datum.$def || {};
+        datum.$def = datum.$def || Object.create(null);
         datum.$def[name] = exFn(datum);
       }
       this.attributes = null; // Since we did the change in place, blow out the attributes
@@ -530,7 +535,7 @@ module Core {
       return <RemoteDataset>(new (Dataset.classMap[this.source])(value));
     }
 
-    public generateQueries(ex: Expression): DatastoreQuery {
+    public generateQueries(ex: Expression): DatastoreQuery[] {
       throw new Error("can not call this directly");
     }
   }

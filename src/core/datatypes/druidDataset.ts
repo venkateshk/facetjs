@@ -14,6 +14,19 @@ module Core {
     limit?: LimitAction;
   }
 
+  // [{ applyName: 'Cuts', label: 'Cut', value: 'good-cut' }], name: 'Carats'
+  export interface PathPart {
+    applyName: string;
+    label: string;
+    value: any;
+  }
+
+  export interface AttachPoint {
+    path: PathPart[];
+    name: string;
+    expression: Expression;
+  }
+
   export class DruidDataset extends RemoteDataset {
     static type = 'DATASET';
 
@@ -268,7 +281,7 @@ module Core {
             if (action instanceof DefAction) {
               queryPattern = {
                 dataSourceName: action.name,
-                filter: (<RemoteDataset>(<LiteralExpression>action.expression).value).filter, // ToDo: make this a function
+                filter: (<RemoteDataset>(<LiteralExpression>groupAggregate.operand).value).filter, // ToDo: make this a function
                 split: groupAggregate.attribute,
                 label: labelOperand.name,
                 applies: []
@@ -302,12 +315,69 @@ module Core {
       }
     }
 
-    public generateQueries(ex: Expression): DatastoreQuery {
-      var queryPattern: QueryPattern;
-      if (queryPattern = this.totalPattern(ex)) {
+    private getAttachPoints(ex: ActionsExpression): AttachPoint[] {
+      var operand = ex.operand;
+      var actions = ex.actions;
+
+      var action = actions[0];
+      if (actions.length === 1 && action instanceof ApplyAction && operand instanceof LiteralExpression) {
+        var contexts = (<NativeDataset>operand.value).data;
+        var applyName = action.name;
+        var applyExpression = action.expression;
+
+        return Array.prototype.concat.apply([], contexts.map((datum): AttachPoint[] => {
+          console.log("datum", JSON.stringify(datum, null, 2));
+          var resolvedExpression = <ActionsExpression>(applyExpression.resolve(datum).simplify());
+          if (resolvedExpression.operand instanceof LabelExpression) {
+            return [{
+              path: [],
+              name: applyName,
+              expression: resolvedExpression
+            }]
+          } else {
+            console.log("recurse resolvedExpression", resolvedExpression.toString());
+            var attachPoints = this.getAttachPoints(resolvedExpression);
+            // ToDo: update paths
+            return attachPoints;
+          }
+        }, this))
+
+      } else if (actions.every((action) => action instanceof DefAction || (action instanceof ApplyAction && action.expression.type == 'NUMBER'))) {
+        return [{
+          path: [],
+          name: null,
+          expression: ex
+        }]
+
+      } else {
+        throw new Error("not supported: " + ex.toString());
+      }
+    }
+
+    public attachPathToQuery(attachPath: AttachPoint): DatastoreQuery {
+      if (attachPath.name) {
+        var queryPattern = this.splitPattern(attachPath.expression);
+        console.log("split queryPattern", JSON.stringify(queryPattern.filter, null, 2));
+        if (!queryPattern) throw new Error("does not match splitPattern");
+
         var filterAndIntervals = this.filterToDruid(queryPattern.filter);
 
         var post: (v: any) => Q.Promise<any> = (v) => Q.reject(new Error());
+        var druidQuery: Druid.Query = {
+          context: { ex: attachPath.expression.toString() },
+          queryType: 'timeseries', // For now
+          dataSource: this.dataSource,
+          intervals: filterAndIntervals.intervals,
+          granularity: 'blah'
+        };
+
+      } else {
+        var queryPattern = this.totalPattern(attachPath.expression);
+        if (!queryPattern) throw new Error("does not match totalPattern");
+
+        var filterAndIntervals = this.filterToDruid(queryPattern.filter);
+
+        var post: (v: any) => Q.Promise<any> = (v) => Q(null);
         var druidQuery: Druid.Query = {
           //context: { ex: ex.toString() },
           queryType: 'timeseries', // For now
@@ -319,26 +389,18 @@ module Core {
         if (filterAndIntervals.filter) {
           druidQuery.filter = filterAndIntervals.filter;
         }
-        return {
-          queries: [druidQuery],
-          post: post
-        }
-      } else {
-        var filterAndIntervals = this.filterToDruid(Expression.TRUE);
-
-        var post: (v: any) => Q.Promise<any> = (v) => Q.reject(new Error());
-        var druidQuery: Druid.Query = {
-          context: { ex: ex.toString() },
-          queryType: 'timeseries', // For now
-          dataSource: this.dataSource,
-          intervals: filterAndIntervals.intervals,
-          granularity: 'blah'
-        };
-        return {
-          queries: [druidQuery],
-          post: post
-        }
       }
+
+      return {
+        query: druidQuery,
+        post: post
+      }
+    }
+
+    public generateQueries(ex: Expression): DatastoreQuery[] {
+      console.log("generateQueries");
+      var attachPaths = this.getAttachPoints(<ActionsExpression>ex);
+      return attachPaths.map(this.attachPathToQuery, this);
     }
   }
   Dataset.register(DruidDataset);

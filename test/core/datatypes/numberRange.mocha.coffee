@@ -22,6 +22,17 @@ describe "NumberRange", ->
       }
     ])
 
+  describe "does not die with hasOwnProperty", ->
+    it "survives", ->
+      expect(NumberRange.fromJS({
+        start: 7
+        end:   9
+        hasOwnProperty: 'troll'
+      }).toJS()).to.deep.equal({
+        start: 7
+        end:   9
+      })
+
   describe "errors", ->
     it "throws on bad numbers", ->
       expect(->

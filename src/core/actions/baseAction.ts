@@ -35,7 +35,7 @@ module Core {
     }
 
     static fromJS(actionJS: ActionJS): Action {
-      if (!actionJS.hasOwnProperty("action")) {
+      if (!hasOwnProperty(actionJS, "action")) {
         throw new Error("action must be defined");
       }
       var action = actionJS.action;

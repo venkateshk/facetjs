@@ -33,3 +33,15 @@ describe "Actions", ->
     ], {
       newThrows: true
     })
+
+  it "does not die with hasOwnProperty", ->
+    expect(Action.fromJS({
+      action: 'apply'
+      name: 'Five'
+      expression: { op: 'literal', value: 5 }
+      hasOwnProperty: 'troll'
+    }).toJS()).deep.equal({
+      action: 'apply'
+      name: 'Five'
+      expression: { op: 'literal', value: 5 }
+    })

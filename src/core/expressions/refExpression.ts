@@ -48,7 +48,7 @@ module Core {
       }
       this.remote = Boolean(parameters.remote);
       if (parameters.type) {
-        if (!possibleTypes.hasOwnProperty(parameters.type)) {
+        if (!hasOwnProperty(possibleTypes, parameters.type)) {
           throw new TypeError("unsupported type '" + parameters.type + "'");
         }
         this.type = parameters.type;
@@ -88,9 +88,9 @@ module Core {
       if (this.generations.length) throw new Error("can not call getFn on unresolved expression");
       var name = this.name;
       return (d: Datum) => {
-        if (d.hasOwnProperty(name)) {
+        if (hasOwnProperty(d, name)) {
           return d[name];
-        } else if (d.$def && d.$def.hasOwnProperty(name)) {
+        } else if (d.$def && hasOwnProperty(d.$def, name)) {
           return d.$def[name];
         } else {
           return null;

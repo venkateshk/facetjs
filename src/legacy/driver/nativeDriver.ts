@@ -291,7 +291,7 @@ module Legacy {
               var key = parallelSplitFn(d);
               var keyString = String(key);
 
-              if (!bucketValue.hasOwnProperty(keyString)) {
+              if (!hasOwnProperty(bucketValue, keyString)) {
                 keys.push(keyString);
                 bucketValue[keyString] = key;
               }

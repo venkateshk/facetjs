@@ -34,14 +34,14 @@ module Legacy {
     static classMap: any;
 
     static fromJS(parameters: AttributeMetaJS): AttributeMeta {
-      if (parameters.type === "range" && !parameters.hasOwnProperty('rangeSize')) {
+      if (parameters.type === "range" && !hasOwnProperty(parameters, 'rangeSize')) {
         parameters.rangeSize = (<any>parameters).size; // Back compatibility
       }
 
       if (typeof parameters !== "object") {
         throw new Error("unrecognizable attributeMeta");
       }
-      if (!parameters.hasOwnProperty("type")) {
+      if (!hasOwnProperty(parameters, "type")) {
         throw new Error("type must be defined");
       }
       if (typeof parameters.type !== "string") {

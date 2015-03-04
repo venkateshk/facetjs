@@ -119,38 +119,36 @@ module Core {
   // Remote stuff
 
   export function datumHasRemote(datum: Datum): boolean {
-    for (var k in datum) {
-      if (!datum.hasOwnProperty(k)) continue;
-      var v = datum[k];
-      if (k === '$def') {
-        for (var dk in v) {
-          if (!v.hasOwnProperty(dk)) continue;
-          var dv = v[dk];
-          if (dv instanceof Dataset && dv.hasRemote()) return true;
+    for (var applyName in datum) {
+      var applyValue = datum[applyName];
+      if (applyName === '$def') {
+        for (var defName in applyValue) {
+          var defValue = applyValue[defName];
+          if (defValue instanceof Dataset && defValue.hasRemote()) return true;
         }
-      } else if (v instanceof Dataset && v.hasRemote()) {
+      } else if (applyValue instanceof Dataset && applyValue.hasRemote()) {
         return true;
       }
     }
     return false;
   }
 
-  export interface Capabilety {
+  export interface Capability {
     (ex: Expression): boolean;
   }
 
   export interface FilterCapabilities {
-    canIs?: Capabilety;
-    canAnd?: Capabilety;
-    canOr?: Capabilety;
-    canNot?: Capabilety;
+    canIs?: Capability;
+    canAnd?: Capability;
+    canOr?: Capability;
+    canNot?: Capability;
   }
 
   export interface ApplyCombineCapabilities {
-    canSum?: Capabilety;
-    canMin?: Capabilety;
-    canMax?: Capabilety;
-    canGroup?: Capabilety;
+    canSum?: Capability;
+    canMin?: Capability;
+    canMax?: Capability;
+    canGroup?: Capability;
   }
 
   export interface SplitCapabilities {
@@ -160,7 +158,7 @@ module Core {
   }
 
   export interface DatastoreQuery {
-    queries: any[];
+    query: any;
     post: (result: any) => Q.Promise<any>;
   }
 }

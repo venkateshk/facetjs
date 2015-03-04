@@ -2,7 +2,7 @@ module Legacy {
   export module Driver {
     export interface Request {
       query: FacetQuery;
-      context?: { [key: string]: any };
+      context?: Lookup<any>;
     }
 
     export interface IntermediateCallback {

@@ -48,8 +48,8 @@ module Core {
       }
       this.remote = Boolean(parameters.remote);
       if (parameters.type) {
-        if (!possibleTypes[parameters.type]) {
-          throw new TypeError('unsupported type ' + parameters.type);
+        if (!possibleTypes.hasOwnProperty(parameters.type)) {
+          throw new TypeError("unsupported type '" + parameters.type + "'");
         }
         this.type = parameters.type;
       }

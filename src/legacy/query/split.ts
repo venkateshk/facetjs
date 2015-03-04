@@ -60,7 +60,7 @@ module Legacy {
       if (typeof parameters !== "object") {
         throw new Error("unrecognizable split");
       }
-      if (!parameters.hasOwnProperty("bucket")) {
+      if (!hasOwnProperty(parameters, "bucket")) {
         throw new Error("bucket must be defined");
       }
       if (typeof parameters.bucket !== "string") {
@@ -484,10 +484,10 @@ module Legacy {
         if (split.bucket === "tuple") {
           throw new Error("tuple splits can not be nested");
         }
-        if (!split.hasOwnProperty("name")) {
+        if (!hasOwnProperty(split, "name")) {
           throw new Error("a split within a tuple must have a name");
         }
-        if (split.hasOwnProperty("segmentFilter")) {
+        if (hasOwnProperty(split, "segmentFilter")) {
           throw new Error("a split within a tuple should not have a segmentFilter");
         }
       });
@@ -552,10 +552,10 @@ module Legacy {
         if (split.bucket === "parallel") {
           throw new Error("parallel splits can not be nested");
         }
-        if (split.hasOwnProperty("name")) {
+        if (hasOwnProperty(split, "name")) {
           throw new Error("a split within a parallel must not have a name");
         }
-        if (split.hasOwnProperty("segmentFilter")) {
+        if (hasOwnProperty(split, "segmentFilter")) {
           throw new Error("a split within a parallel should not have a segmentFilter");
         }
       });

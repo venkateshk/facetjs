@@ -160,7 +160,7 @@ module Core {
             expressionJS = <ExpressionJS>param;
           } else if (Array.isArray(param)) {
             expressionJS = { op: 'literal', value: Set.fromJS(param) };
-          } else if (param.hasOwnProperty('start') && param.hasOwnProperty('end')) {
+          } else if (hasOwnProperty(param, 'start') && hasOwnProperty(param, 'end')) {
             if (typeof param.start === 'number') {
               expressionJS = { op: 'literal', value: NumberRange.fromJS(param) };
             } else {
@@ -203,7 +203,7 @@ module Core {
      * @returns {any}
      */
     static fromJS(expressionJS: ExpressionJS): Expression {
-      if (!expressionJS.hasOwnProperty("op")) {
+      if (!hasOwnProperty(expressionJS, "op")) {
         throw new Error("op must be defined");
       }
       var op = expressionJS.op;
@@ -645,7 +645,7 @@ module Core {
     public referenceCheck(context: Datum) {
       var typeContext: Lookup<any> = {};
       for (var k in context) {
-        if (!context.hasOwnProperty(k)) continue;
+        if (!hasOwnProperty(context, k)) continue;
         typeContext[k] = getTypeFull(context[k]);
       }
       
@@ -677,10 +677,10 @@ module Core {
           if (genDiff === refGen) {
             var foundValue: any = null;
             var valueFound: boolean = false;
-            if (context.hasOwnProperty(ex.name)) {
+            if (hasOwnProperty(context, ex.name)) {
               foundValue = context[ex.name];
               valueFound = true;
-            } else if (context.$def && context.$def.hasOwnProperty(ex.name)) {
+            } else if (context.$def && hasOwnProperty(context.$def, ex.name)) {
               foundValue = context.$def[ex.name];
               valueFound = true;
             } else {

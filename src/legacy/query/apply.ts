@@ -61,7 +61,7 @@ module Legacy {
     static fromJS(parameters: FacetApplyJS, datasetContext: string = DEFAULT_DATASET): FacetApply {
       if (typeof parameters !== "object") throw new Error("unrecognizable apply");
       var ApplyConstructor: any;
-      if (parameters.hasOwnProperty("aggregate")) {
+      if (hasOwnProperty(parameters, "aggregate")) {
         if (typeof parameters.aggregate !== "string") {
           throw new Error("aggregate must be a string");
         }
@@ -69,7 +69,7 @@ module Legacy {
         if (!ApplyConstructor) {
           throw new Error("unsupported aggregate '" + parameters.aggregate + "'");
         }
-      } else if (parameters.hasOwnProperty("arithmetic")) {
+      } else if (hasOwnProperty(parameters, "arithmetic")) {
         if (typeof parameters.arithmetic !== "string") {
           throw new Error("arithmetic must be a string");
         }

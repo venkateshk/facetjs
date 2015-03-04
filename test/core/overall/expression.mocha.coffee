@@ -73,6 +73,18 @@ describe "Expression", ->
     })
 
 
+  describe "does not die with hasOwnProperty", ->
+    it "survives", ->
+      expect(Expression.fromJS({
+        op: 'literal'
+        value: 'Honda'
+        hasOwnProperty: 'troll'
+      }).toJS()).to.deep.equal({
+        op: 'literal'
+        value: 'Honda'
+      })
+
+
   describe "errors", ->
     it "does not like an expression without op", ->
       expect(->

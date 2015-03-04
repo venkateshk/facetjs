@@ -15,7 +15,7 @@ module Core {
 
   function hashFromJS(xs: Array<string>, setType: string): Lookup<any> {
     var keyFn: (v: any) => string = setType === 'TIME' ? dateString : String;
-    var hash: Lookup<any> = {};
+    var hash: Lookup<any> = Object.create(null);
     for (var i = 0; i < xs.length; i++) {
       var x = valueFromJS(xs[i], setType);
       hash[keyFn(x)] = x;
@@ -98,7 +98,7 @@ module Core {
     }
 
     public toString(): string {
-      return this.elements.toString();
+      return 'Set_' + this.setType + '(' + Object.keys(this.elements).length + ')';
     }
 
     public equals(other: Set): boolean {
@@ -121,12 +121,12 @@ module Core {
       var newValues: Lookup<any> = {};
 
       for (var k in thisValues) {
-        if (!(thisValues.hasOwnProperty(k) && thisValues[k])) continue;
+        if (!hasOwnProperty(thisValues, k)) continue;
         newValues[k] = thisValues[k];
       }
 
       for (var k in otherValues) {
-        if (!(otherValues.hasOwnProperty(k) && otherValues[k])) continue;
+        if (!hasOwnProperty(otherValues, k)) continue;
         newValues[k] = otherValues[k];
       }
 
@@ -146,8 +146,7 @@ module Core {
       var newValues: Lookup<any> = {};
 
       for (var k in thisValues) {
-        if (!thisValues.hasOwnProperty(k)) continue;
-        if (otherValues.hasOwnProperty(k)) {
+        if (hasOwnProperty(thisValues, k) && hasOwnProperty(otherValues, k)) {
           newValues[k] = thisValues[k];
         }
       }
@@ -159,7 +158,7 @@ module Core {
     }
 
     public test(value: any): boolean {
-      return this.elements.hasOwnProperty(String(value));
+      return hasOwnProperty(this.elements, String(value));
     }
 
     public add(value: any): Set {
@@ -168,7 +167,7 @@ module Core {
       newValues[String(value)] = value;
 
       for (var k in elements) {
-        if (!elements.hasOwnProperty(k)) continue;
+        if (!hasOwnProperty(elements, k)) continue;
         newValues[k] = elements[k];
       }
 

@@ -53,16 +53,33 @@ var async = <Async>require("async");
 var chronology = <typeof Chronology>require("chronology");
 var Chronology_delete_me_ = chronology;
 
+// --------------------------------------------------------
+
+interface Lookup<T> {
+  [key: string]: T;
+}
+
+var objectHasOwnProperty = Object.prototype.hasOwnProperty;
+function hasOwnProperty(obj: any, key: string): boolean {
+  return objectHasOwnProperty.call(obj, key);
+}
+
+function shallowCopy(obj: Lookup<any>): Lookup<any> {
+  var newObj: any = {};
+  for (var k in obj) {
+    if (!hasOwnProperty(obj, k)) continue;
+    newObj[k] = obj[k];
+  }
+  return newObj;
+}
+
+
 module Core {
   export interface Parser {
     parse: (str: string) => any;
   }
 
   export var expressionParser = <Parser>require("../parser/expression");
-
-  export interface Lookup<T> {
-    [key: string]: T;
-  }
 
   export interface Dummy {}
 
@@ -81,15 +98,6 @@ module Core {
     [attribute: string]: any;
     $def?: Lookup<any>;
   }
-
-  export function shallowCopy(obj: Lookup<any>): Lookup<any> {
-    var newObj: any = {};
-    for (var k in obj) {
-      if (!obj.hasOwnProperty(k)) continue;
-      newObj[k] = obj[k];
-    }
-    return newObj;
-  }
 }
 
 module Legacy {
@@ -99,10 +107,6 @@ module Legacy {
 
   export var filterParser = <Parser>require("../parser/filter");
   export var applyParser = <Parser>require("../parser/apply");
-
-  export interface Lookup<T> {
-    [key: string]: T;
-  }
 
   export interface Dummy {}
 

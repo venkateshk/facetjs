@@ -100,7 +100,7 @@ module Legacy {
             if (typeof command !== "object") {
               throw new Error("unrecognizable command");
             }
-            if (!command.hasOwnProperty("operation")) {
+            if (!hasOwnProperty(command, "operation")) {
               throw new Error("operation not defined");
             }
             if (typeof command.operation !== "string") {

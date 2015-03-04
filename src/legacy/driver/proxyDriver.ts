@@ -21,7 +21,7 @@ module Legacy {
 
       var context = request.context || {};
       for (var k in posterContext) {
-        if (!posterContext.hasOwnProperty(k)) continue;
+        if (!hasOwnProperty(posterContext, k)) continue;
         context[k] = posterContext[k];
       }
 

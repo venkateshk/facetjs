@@ -18,6 +18,17 @@ describe "TimeRange", ->
       }
     ])
 
+  describe "does not die with hasOwnProperty", ->
+    it "survives", ->
+      expect(TimeRange.fromJS({
+        start: new Date('2015-01-26T04:54:10Z')
+        end:   new Date('2015-01-26T05:54:10Z')
+        hasOwnProperty: 'troll'
+      }).toJS()).to.deep.equal({
+        start: new Date('2015-01-26T04:54:10Z')
+        end:   new Date('2015-01-26T05:54:10Z')
+      })
+
   describe "upgrades", ->
     it "upgrades from a string", ->
       timeRange = TimeRange.fromJS({

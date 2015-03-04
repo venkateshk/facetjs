@@ -2,6 +2,11 @@
 
 tests = require './sharedTests'
 describe 'RefExpression', ->
+  describe "errors", ->
+    beforeEach ->
+      this.expression = { op: 'ref', name: 'lol', type: 'toString' }
+
+    tests.errorsFromJS("unsupported type 'toString'")
 
   describe 'RefExpression with categorical set', ->
     beforeEach ->

@@ -724,7 +724,7 @@ module Core {
         var remoteDatasets = partExpression.getRemoteDatasets();
         if (remoteDatasets.length > 1) throw new Error("can not handle multiple remote datasets (yet)");
         if (remoteDatasets.length === 1) {
-          var generatedQuery = remoteDatasets[0].generateQuery(partExpression).query;
+          var generatedQuery = remoteDatasets[0].generateQueries(partExpression).queries[0];
           generatedQueries.push(generatedQuery);
         } else {
           // ToDo: fill this in

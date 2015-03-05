@@ -702,6 +702,16 @@ module Core {
       }, 0);
     }
 
+    public resolved(): boolean {
+      return this.every((ex: Expression) => {
+        if (ex instanceof RefExpression) {
+          return ex.generations.length === 0;
+        } else {
+          return true;
+        }
+      })
+    }
+
     // ---------------------------------------------------------
     // Planner
 

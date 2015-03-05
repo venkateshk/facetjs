@@ -12,7 +12,7 @@ module Core {
           if (Expression.isExpression(value)) {
             throw new Error("expression used as datum value " + value.toString());
           } else {
-            throw new Error("can not have an object without a type");
+            throw new Error("can not have an object without a type: " + JSON.stringify(value));
           }
         }
         if (type === 'SET') {

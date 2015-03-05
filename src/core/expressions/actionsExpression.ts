@@ -152,8 +152,10 @@ module Core {
       var simpleOperand = this.operand.simplify();
 
       // Fold filters into remote datasets
-      function isFilter(action: Action) { return action instanceof FilterAction; }
-      if (simpleOperand instanceof LiteralExpression && simpleOperand.isRemote() && this.actions.every(isFilter)) {
+      function isResolvedFilter(action: Action) {
+        return action instanceof FilterAction && action.expression.resolved();
+      }
+      if (simpleOperand instanceof LiteralExpression && simpleOperand.isRemote() && this.actions.every(isResolvedFilter)) {
         var remoteDataset = <RemoteDataset>(simpleOperand.value);
         this.actions.forEach((action) => remoteDataset = remoteDataset.addFilter(action.expression))
         return new LiteralExpression({

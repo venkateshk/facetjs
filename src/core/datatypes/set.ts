@@ -23,8 +23,8 @@ module Core {
     return hash;
   }
 
-  function hashToJS(hash: Lookup<any>): Array<any> {
-    return Object.keys(hash).sort().map((k) => valueToJS(hash[k]));
+  function hashToValues(hash: Lookup<any>): Array<any> {
+    return Object.keys(hash).sort().map((k) => hash[k]);
   }
 
   function guessSetType(thing: any): string {
@@ -83,13 +83,13 @@ module Core {
     }
 
     public getValues(): any[] {
-      return hashToJS(this.elements);
+      return hashToValues(this.elements);
     }
 
     public toJS(): SetJS {
       return {
         setType: this.setType,
-        elements: this.getValues()
+        elements: this.getValues().map(valueToJS)
       };
     }
 
@@ -180,7 +180,7 @@ module Core {
     public label(name: string): Dataset {
       return new NativeDataset({
         source: 'native',
-        data: this.toJS().elements.map((v) => {
+        data: this.getValues().map((v) => {
           var datum: Datum = {};
           datum[name] = v;
           return datum

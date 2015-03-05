@@ -46,10 +46,11 @@ module Core {
       simplifiedOperands = this.operands.map((operand) => operand.simplify());
 
       for (var i = 0; i < simplifiedOperands.length; i++) {
-        if (simplifiedOperands[i].isOp('and')) {
-          mergedSimplifiedOperands = mergedSimplifiedOperands.concat((<AndExpression>simplifiedOperands[i]).operands);
+        var simplifiedOperand = simplifiedOperands[i];
+        if (simplifiedOperand instanceof AndExpression) {
+          mergedSimplifiedOperands = mergedSimplifiedOperands.concat((simplifiedOperand).operands);
         } else {
-          mergedSimplifiedOperands.push(simplifiedOperands[i]);
+          mergedSimplifiedOperands.push(simplifiedOperand);
         }
       }
 
@@ -81,20 +82,19 @@ module Core {
       finalOperands = finalOperands.filter((operand) => !(operand.isOp('literal') && (<LiteralExpression>operand).value === true));
 
       if (finalOperands.some((operand) => operand.isOp('literal') && (<LiteralExpression>operand).value === false)) {
-        return new LiteralExpression({
-          op: 'literal',
-          value: false
-        });
+        return Expression.FALSE;
       }
 
-      if (finalOperands.length === 1) {
+      if (finalOperands.length === 0) {
+        return Expression.TRUE;
+      } else if (finalOperands.length === 1) {
         return finalOperands[0];
+      } else {
+        var simpleValue = this.valueOf();
+        simpleValue.operands = finalOperands;
+        simpleValue.simple = true;
+        return new AndExpression(simpleValue);
       }
-
-      var simpleValue = this.valueOf();
-      simpleValue.operands = finalOperands;
-      simpleValue.simple = true;
-      return new AndExpression(simpleValue);
     }
 
     public separateViaAnd(refName: string): Separation {

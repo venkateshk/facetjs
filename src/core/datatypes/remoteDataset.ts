@@ -23,7 +23,6 @@ module Core {
       var applyExpression = action.expression;
 
       return concatMap(contexts, (datum): AttachPoint[] => {
-        console.log("datum", JSON.stringify(datum, null, 2));
         var resolvedExpression = <ActionsExpression>(applyExpression.resolve(datum).simplify());
         if (resolvedExpression.operand instanceof LabelExpression) {
           return [{
@@ -32,7 +31,6 @@ module Core {
             actions: resolvedExpression
           }]
         } else {
-          console.log("recurse resolvedExpression", resolvedExpression.toString());
           var attachPoints = getAttachPoints(resolvedExpression);
           // ToDo: update paths
           return attachPoints;

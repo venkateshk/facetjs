@@ -5,6 +5,23 @@ facet = require('../../../build/facet')
 { Set } = facet.core
 
 describe 'AndExpression', ->
+  describe 'empty expressions', ->
+    beforeEach ->
+      this.expression = { op: 'and', operands: [] }
+
+    tests.complexityIs(1)
+    tests.simplifiedExpressionIs({op: 'literal', value: true})
+
+  describe 'with true expressions', ->
+    beforeEach ->
+      this.expression = { op: 'and', operands: [
+        { op: 'literal', value: true },
+        { op: 'literal', value: true }
+      ] }
+
+    tests.complexityIs(3)
+    tests.simplifiedExpressionIs({op: 'literal', value: true})
+
   describe 'with boolean expressions', ->
     beforeEach ->
       this.expression = { op: 'and', operands: [

@@ -187,8 +187,10 @@ module Core {
 
           return timeRanges.map((timeRange) => timeRange.toInterval());
         } else {
-          throw new Error("can not convert " + filter.toString() + " to Druid filter");
+          throw new Error("can not convert " + filter.toString() + " to Druid interval");
         }
+      } else {
+        throw new Error("can not convert " + filter.toString() + " to Druid interval");
       }
     }
 
@@ -214,11 +216,10 @@ module Core {
     public attachPathToQuery(attachPath: AttachPoint): DatastoreQuery {
       if (attachPath.name) {
         var queryPattern = attachPath.actions.splitPattern();
-        console.log("split queryPattern", JSON.stringify(queryPattern.filter, null, 2));
         if (!queryPattern) throw new Error("does not match splitPattern");
 
         var filterAndIntervals = this.filterToDruid(queryPattern.filter);
-
+        
         var post: (v: any) => Q.Promise<any> = (v) => Q(null);
         var druidQuery: Druid.Query = {
           context: { ex: attachPath.actions.toString() },
@@ -227,6 +228,9 @@ module Core {
           intervals: filterAndIntervals.intervals,
           granularity: 'blah'
         };
+        if (filterAndIntervals.filter) {
+          druidQuery.filter = filterAndIntervals.filter;
+        }
 
       } else {
         var queryPattern = attachPath.actions.totalPattern();
@@ -255,7 +259,6 @@ module Core {
     }
 
     public generateQueries(ex: Expression): DatastoreQuery[] {
-      console.log("generateQueries");
       var attachPaths = getAttachPoints(<ActionsExpression>ex);
       return attachPaths.map(this.attachPathToQuery, this);
     }

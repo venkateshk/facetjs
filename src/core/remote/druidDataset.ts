@@ -219,10 +219,10 @@ module Core {
 
         var filterAndIntervals = this.filterToDruid(queryPattern.filter);
 
-        var post: (v: any) => Q.Promise<any> = (v) => Q.reject(new Error());
+        var post: (v: any) => Q.Promise<any> = (v) => Q(null);
         var druidQuery: Druid.Query = {
           context: { ex: attachPath.actions.toString() },
-          queryType: 'timeseries', // For now   
+          queryType: 'timeseries', // For now
           dataSource: this.dataSource,
           intervals: filterAndIntervals.intervals,
           granularity: 'blah'

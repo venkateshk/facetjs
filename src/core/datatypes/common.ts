@@ -158,7 +158,7 @@ module Core {
   }
 
   export interface DatastoreQuery {
-    queries: any[];
+    query: any;
     post: (result: any) => Q.Promise<any>;
   }
 }

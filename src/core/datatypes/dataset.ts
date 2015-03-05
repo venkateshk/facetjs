@@ -535,7 +535,7 @@ module Core {
       return <RemoteDataset>(new (Dataset.classMap[this.source])(value));
     }
 
-    public generateQueries(ex: Expression): DatastoreQuery {
+    public generateQueries(ex: Expression): DatastoreQuery[] {
       throw new Error("can not call this directly");
     }
   }

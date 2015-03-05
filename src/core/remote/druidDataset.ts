@@ -203,13 +203,68 @@ module Core {
           filter: null
         }
       } else {
-        var sep = filter.separateViaAnd('time'); // ToDo generalize 'time'
+        var sep = filter.separateViaAnd(this.timeAttribute);
         if (!sep) throw new Error("could not separate time filter in " + filter.toString());
 
         return {
           intervals: this.timeFilterToIntervals(sep.included),
           filter: this.timelessFilterToDruid(sep.excluded)
         }
+      }
+    }
+
+    public splitToDruid(splitExpression: Expression, label: string): any {
+      var dimension: any;
+
+      if (splitExpression instanceof RefExpression) {
+        if (splitExpression.name === label) {
+          dimension = label
+        } else {
+          dimension = {
+            type: "default",
+            dimension: splitExpression.name,
+            outputName: label
+          }
+        }
+      } else if (splitExpression instanceof TimeBucketExpression) {
+        dimension = {
+          type: "fake_time_bucket",
+          outputName: label
+        }
+      } else if (splitExpression instanceof NumberBucketExpression) {
+        dimension = {
+          type: "fake_number_bucket",
+          outputName: label
+        }
+      } else {
+        dimension = {
+          type: "fake",
+          outputName: label
+        }
+      }
+
+      return {
+        dimension: dimension
+      };
+    }
+
+    public applyToAggregation(apply: ApplyAction): Druid.Aggregation {
+      var aggregateExpression = apply.expression;
+      if (aggregateExpression instanceof AggregateExpression) {
+        var attribute = aggregateExpression.attribute;
+        var aggregation: Druid.Aggregation = {
+          name: apply.name,
+          type: aggregateExpression.fn === "sum" ? "doubleSum" : aggregateExpression.fn
+        };
+        if (attribute instanceof RefExpression) {
+          aggregation.fieldName = attribute.name;
+        } else if (attribute) {
+          throw new Error('can not support derived attributes (yet)')
+        }
+        return aggregation;
+
+      } else {
+        throw new Error('can not support non aggregate aggregateExpression')
       }
     }
 
@@ -233,11 +288,14 @@ module Core {
         druidQuery.queryType = 'timeseries';
         druidQuery.intervals = filterAndIntervals.intervals;
         druidQuery.granularity = 'blah';
-        druidQuery.aggregations = <any>queryPattern.applies.map((ex) => ex.toJS());
+        druidQuery.aggregations = queryPattern.applies.map(this.applyToAggregation, this);
 
         if (filterAndIntervals.filter) {
           druidQuery.filter = filterAndIntervals.filter;
         }
+
+        var splitSpec = this.splitToDruid(queryPattern.split, queryPattern.label);
+        druidQuery.dimension = splitSpec.dimension;
 
       } else {
         var queryPattern = attachPath.actions.totalPattern();
@@ -248,7 +306,7 @@ module Core {
         var post: (v: any) => Q.Promise<any> = (v) => Q(null);
 
         druidQuery.intervals = filterAndIntervals.intervals;
-        druidQuery.aggregations = <any>queryPattern.applies.map((ex) => ex.toJS());
+        druidQuery.aggregations = queryPattern.applies.map(this.applyToAggregation, this);
 
         if (filterAndIntervals.filter) {
           druidQuery.filter = filterAndIntervals.filter;

@@ -1,4 +1,14 @@
 module Core {
+  export interface QueryPattern {
+    dataSourceName: string;
+    filter: Expression;
+    split?: Expression;
+    label?: string;
+    applies: ApplyAction[];
+    sort?: SortAction;
+    limit?: LimitAction;
+  }
+
   export class ActionsExpression extends UnaryExpression {
     static fromJS(parameters: ExpressionJS): ActionsExpression {
       var value = UnaryExpression.jsToValue(parameters);
@@ -362,6 +372,80 @@ module Core {
 
       return dataset;
     }
+
+    public totalPattern(): QueryPattern {
+      var operand = this.operand;
+      var actions = this.actions;
+      if (operand instanceof LiteralExpression && operand.value.basis() && actions.length > 1) {
+        var action: Action = actions[0];
+        var queryPattern: QueryPattern = null;
+        if (action instanceof DefAction) {
+          queryPattern = {
+            dataSourceName: action.name,
+            filter: (<RemoteDataset>(<LiteralExpression>action.expression).value).filter, // ToDo: make this a function
+            applies: []
+          }
+        } else {
+          return null;
+        }
+
+        for (var i = 1; i < actions.length; i++) {
+          action = actions[i];
+          if (action instanceof ApplyAction) {
+            queryPattern.applies.push(action);
+          } else {
+            return null;
+          }
+        }
+
+        return queryPattern;
+      } else {
+        return null;
+      }
+    }
+
+    public splitPattern(): QueryPattern {
+      var labelOperand = this.operand;
+      var actions = this.actions;
+      if (labelOperand instanceof LabelExpression && actions.length > 1) {
+        var groupAggregate = labelOperand.operand;
+        if (groupAggregate instanceof AggregateExpression) {
+          var action: Action = actions[0];
+          var queryPattern: QueryPattern = null;
+          if (action instanceof DefAction) {
+            queryPattern = {
+              dataSourceName: action.name,
+              filter: (<RemoteDataset>(<LiteralExpression>groupAggregate.operand).value).filter, // ToDo: make this a function
+              split: groupAggregate.attribute,
+              label: labelOperand.name,
+              applies: []
+            }
+          } else {
+            return null;
+          }
+
+          for (var i = 1; i < actions.length; i++) {
+            action = actions[i];
+            if (action instanceof ApplyAction) {
+              queryPattern.applies.push(action);
+            } else if (action instanceof SortAction) {
+              queryPattern.sort = action;
+            } else if (action instanceof LimitAction) {
+              queryPattern.limit = action;
+            } else {
+              return null;
+            }
+          }
+
+          return queryPattern;
+        } else {
+          return null;
+        }
+      } else {
+        return null;
+      }
+    }
+
   }
 
   Expression.register(ActionsExpression);

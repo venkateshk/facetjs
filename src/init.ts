@@ -83,6 +83,10 @@ function shallowCopy(obj: Lookup<any>): Lookup<any> {
   return newObj;
 }
 
+function concatMap<T, U>(arr: T[], fn: (t: T) => U[]): U[] {
+  return Array.prototype.concat.apply([], arr.map(fn));
+}
+
 
 module Core {
   export var expressionParser = <Parser>require("../parser/expression");

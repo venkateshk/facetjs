@@ -8,12 +8,14 @@ node_modules/.bin/tsc --noImplicitAny --noEmitOnError --declaration --removeComm
   \
   src/core/datatypes/common.ts \
   src/core/datatypes/dataset.ts \
-  src/core/datatypes/druidDataset.ts \
-  src/core/datatypes/legacyDataset.ts \
+  src/core/datatypes/nativeDataset.ts \
+  src/core/datatypes/remoteDataset.ts \
   src/core/datatypes/numberRange.ts \
   src/core/datatypes/set.ts \
   src/core/datatypes/shape.ts \
   src/core/datatypes/timeRange.ts \
+  src/core/remote/druidDataset.ts \
+  src/core/remote/legacyDataset.ts \
   \
   src/core/expressions/baseExpression.ts \
   src/core/expressions/unaryExpression.ts \

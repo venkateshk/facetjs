@@ -4,29 +4,6 @@ module Core {
     intervals: string[];
   }
 
-  export interface QueryPattern {
-    dataSourceName: string;
-    filter: Expression;
-    split?: Expression;
-    label?: string;
-    applies: ApplyAction[];
-    sort?: SortAction;
-    limit?: LimitAction;
-  }
-
-  // [{ applyName: 'Cuts', label: 'Cut', value: 'good-cut' }], name: 'Carats'
-  export interface PathPart {
-    applyName: string;
-    label: string;
-    value: any;
-  }
-
-  export interface AttachPoint {
-    path: PathPart[];
-    name: string;
-    expression: Expression;
-  }
-
   export class DruidDataset extends RemoteDataset {
     static type = 'DATASET';
 
@@ -234,137 +211,17 @@ module Core {
       }
     }
 
-    private totalPattern(ex: Expression): QueryPattern {
-      if (ex instanceof ActionsExpression) {
-        var operand = ex.operand;
-        var actions = ex.actions;
-        if (operand instanceof LiteralExpression && operand.value.basis() && actions.length > 1) {
-          var action: Action = actions[0];
-          var queryPattern: QueryPattern = null;
-          if (action instanceof DefAction) {
-            queryPattern = {
-              dataSourceName: action.name,
-              filter: (<RemoteDataset>(<LiteralExpression>action.expression).value).filter, // ToDo: make this a function
-              applies: []
-            }
-          } else {
-            return null;
-          }
-
-          for (var i = 1; i < actions.length; i++) {
-            action = actions[i];
-            if (action instanceof ApplyAction) {
-              queryPattern.applies.push(action);
-            } else {
-              return null;
-            }
-          }
-
-          return queryPattern;
-        } else {
-          return null;
-        }
-      } else {
-        return null;
-      }
-    }
-
-    private splitPattern(ex: Expression): QueryPattern {
-      if (ex instanceof ActionsExpression) {
-        var labelOperand = ex.operand;
-        var actions = ex.actions;
-        if (labelOperand instanceof LabelExpression && actions.length > 1) {
-          var groupAggregate = labelOperand.operand;
-          if (groupAggregate instanceof AggregateExpression) {
-            var action: Action = actions[0];
-            var queryPattern: QueryPattern = null;
-            if (action instanceof DefAction) {
-              queryPattern = {
-                dataSourceName: action.name,
-                filter: (<RemoteDataset>(<LiteralExpression>groupAggregate.operand).value).filter, // ToDo: make this a function
-                split: groupAggregate.attribute,
-                label: labelOperand.name,
-                applies: []
-              }
-            } else {
-              return null;
-            }
-
-            for (var i = 1; i < actions.length; i++) {
-              action = actions[i];
-              if (action instanceof ApplyAction) {
-                queryPattern.applies.push(action);
-              } else if (action instanceof SortAction) {
-                queryPattern.sort = action;
-              } else if (action instanceof LimitAction) {
-                queryPattern.limit = action;
-              } else {
-                return null;
-              }
-            }
-
-            return queryPattern;
-          } else {
-            return null;
-          }
-        } else {
-          return null;
-        }
-      } else {
-        return null;
-      }
-    }
-
-    private getAttachPoints(ex: ActionsExpression): AttachPoint[] {
-      var operand = ex.operand;
-      var actions = ex.actions;
-
-      var action = actions[0];
-      if (actions.length === 1 && action instanceof ApplyAction && operand instanceof LiteralExpression) {
-        var contexts = (<NativeDataset>operand.value).data;
-        var applyName = action.name;
-        var applyExpression = action.expression;
-
-        return Array.prototype.concat.apply([], contexts.map((datum): AttachPoint[] => {
-          console.log("datum", JSON.stringify(datum, null, 2));
-          var resolvedExpression = <ActionsExpression>(applyExpression.resolve(datum).simplify());
-          if (resolvedExpression.operand instanceof LabelExpression) {
-            return [{
-              path: [],
-              name: applyName,
-              expression: resolvedExpression
-            }]
-          } else {
-            console.log("recurse resolvedExpression", resolvedExpression.toString());
-            var attachPoints = this.getAttachPoints(resolvedExpression);
-            // ToDo: update paths
-            return attachPoints;
-          }
-        }, this))
-
-      } else if (actions.every((action) => action instanceof DefAction || (action instanceof ApplyAction && action.expression.type == 'NUMBER'))) {
-        return [{
-          path: [],
-          name: null,
-          expression: ex
-        }]
-
-      } else {
-        throw new Error("not supported: " + ex.toString());
-      }
-    }
-
     public attachPathToQuery(attachPath: AttachPoint): DatastoreQuery {
       if (attachPath.name) {
-        var queryPattern = this.splitPattern(attachPath.expression);
+        var queryPattern = attachPath.actions.splitPattern();
         console.log("split queryPattern", JSON.stringify(queryPattern.filter, null, 2));
         if (!queryPattern) throw new Error("does not match splitPattern");
 
         var filterAndIntervals = this.filterToDruid(queryPattern.filter);
 
-        var post: (v: any) => Q.Promise<any> = (v) => Q.reject(new Error());
+        var post: (v: any) => Q.Promise<any> = (v) => Q(null);
         var druidQuery: Druid.Query = {
-          context: { ex: attachPath.expression.toString() },
+          context: { ex: attachPath.actions.toString() },
           queryType: 'timeseries', // For now
           dataSource: this.dataSource,
           intervals: filterAndIntervals.intervals,
@@ -372,7 +229,7 @@ module Core {
         };
 
       } else {
-        var queryPattern = this.totalPattern(attachPath.expression);
+        var queryPattern = attachPath.actions.totalPattern();
         if (!queryPattern) throw new Error("does not match totalPattern");
 
         var filterAndIntervals = this.filterToDruid(queryPattern.filter);
@@ -399,7 +256,7 @@ module Core {
 
     public generateQueries(ex: Expression): DatastoreQuery[] {
       console.log("generateQueries");
-      var attachPaths = this.getAttachPoints(<ActionsExpression>ex);
+      var attachPaths = getAttachPoints(<ActionsExpression>ex);
       return attachPaths.map(this.attachPathToQuery, this);
     }
   }

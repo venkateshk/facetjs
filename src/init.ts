@@ -59,6 +59,16 @@ interface Lookup<T> {
   [key: string]: T;
 }
 
+interface Parser {
+  parse: (str: string) => any;
+}
+
+interface Dummy {}
+
+// --------------------------------------------------------
+
+var dummyObject: Dummy = {};
+
 var objectHasOwnProperty = Object.prototype.hasOwnProperty;
 function hasOwnProperty(obj: any, key: string): boolean {
   return objectHasOwnProperty.call(obj, key);
@@ -75,15 +85,7 @@ function shallowCopy(obj: Lookup<any>): Lookup<any> {
 
 
 module Core {
-  export interface Parser {
-    parse: (str: string) => any;
-  }
-
   export var expressionParser = <Parser>require("../parser/expression");
-
-  export interface Dummy {}
-
-  export var dummyObject: Dummy = {};
 
   export var isInstanceOf = HigherObject.isInstanceOf;
   export var isHigherObject = HigherObject.isHigherObject;
@@ -101,16 +103,8 @@ module Core {
 }
 
 module Legacy {
-  export interface Parser {
-    parse: (str: string) => any;
-  }
-
   export var filterParser = <Parser>require("../parser/filter");
   export var applyParser = <Parser>require("../parser/apply");
-
-  export interface Dummy {}
-
-  export var dummyObject: Dummy = {};
 
   export var isInstanceOf = HigherObject.isInstanceOf;
 

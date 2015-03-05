@@ -14,6 +14,19 @@ module Core {
     limit?: LimitAction;
   }
 
+  // [{ applyName: 'Cuts', label: 'Cut', value: 'good-cut' }], name: 'Carats'
+  export interface PathPart {
+    applyName: string;
+    label: string;
+    value: any;
+  }
+
+  export interface AttachPath {
+    path: PathPart[];
+    name: string;
+    expression: Expression;
+  }
+
   export class DruidDataset extends RemoteDataset {
     static type = 'DATASET';
 
@@ -299,6 +312,22 @@ module Core {
         }
       } else {
         return null;
+      }
+    }
+
+    private getAttachPaths(ex: ActionsExpression, context: Datum): AttachPath[] {
+      var operand = ex.operand;
+      var actions = ex.actions;
+
+      var action = actions[0];
+      if (actions.length === 1 && action instanceof ApplyAction) {
+
+      } else {
+        return [{
+          path: [],
+          name: null,
+          expression: ex
+        }]
       }
     }
 

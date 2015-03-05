@@ -14,6 +14,9 @@ module Core {
     // Remote
     filter?: Expression;
 
+    // Legacy
+    driver?: Legacy.Driver.FacetDriver;
+
     // Druid
     dataSource?: any; // ToDo: string | string[]
     timeAttribute?: string;
@@ -31,6 +34,9 @@ module Core {
 
     // Remote
     filter?: ExpressionJS;
+
+    // Legacy
+    driver?: Legacy.Driver.FacetDriver;
 
     // Druid
     dataSource?: any; // ToDo: string | string[]

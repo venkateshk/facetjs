@@ -214,6 +214,13 @@ module Core {
     }
 
     public attachPathToQuery(attachPath: AttachPoint): DatastoreQuery {
+      var druidQuery: Druid.Query = {
+        queryType: 'timeseries',
+        dataSource: this.dataSource,
+        intervals: null,
+        granularity: 'all'
+      };
+
       if (attachPath.name) {
         var queryPattern = attachPath.actions.splitPattern();
         if (!queryPattern) throw new Error("does not match splitPattern");
@@ -221,13 +228,13 @@ module Core {
         var filterAndIntervals = this.filterToDruid(queryPattern.filter);
         
         var post: (v: any) => Q.Promise<any> = (v) => Q(null);
-        var druidQuery: Druid.Query = {
-          context: { ex: attachPath.actions.toString() },
-          queryType: 'timeseries', // For now
-          dataSource: this.dataSource,
-          intervals: filterAndIntervals.intervals,
-          granularity: 'blah'
-        };
+
+        druidQuery.context = { ex: attachPath.actions.toString() };
+        druidQuery.queryType = 'timeseries';
+        druidQuery.intervals = filterAndIntervals.intervals;
+        druidQuery.granularity = 'blah';
+        druidQuery.aggregations = <any>queryPattern.applies.map((ex) => ex.toJS());
+
         if (filterAndIntervals.filter) {
           druidQuery.filter = filterAndIntervals.filter;
         }
@@ -239,14 +246,10 @@ module Core {
         var filterAndIntervals = this.filterToDruid(queryPattern.filter);
 
         var post: (v: any) => Q.Promise<any> = (v) => Q(null);
-        var druidQuery: Druid.Query = {
-          //context: { ex: ex.toString() },
-          queryType: 'timeseries', // For now
-          dataSource: this.dataSource,
-          intervals: filterAndIntervals.intervals,
-          granularity: 'all',
-          x_aggregates: queryPattern.applies.map((ex) => ex.toJS())
-        };
+
+        druidQuery.intervals = filterAndIntervals.intervals;
+        druidQuery.aggregations = <any>queryPattern.applies.map((ex) => ex.toJS());
+
         if (filterAndIntervals.filter) {
           druidQuery.filter = filterAndIntervals.filter;
         }

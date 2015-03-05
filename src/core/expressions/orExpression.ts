@@ -32,6 +32,7 @@ module Core {
 
     public simplify(): Expression {
       if (this.simple) return this;
+
       var finalOperands: Expression[];
       var groupedOperands: { [key: string]: Expression[]; };
       var mergedExpression: Expression;
@@ -80,20 +81,19 @@ module Core {
       finalOperands = finalOperands.filter((operand) => !(operand.isOp('literal') && (<LiteralExpression>operand).value === false));
 
       if (finalOperands.some((operand) => operand.isOp('literal') && (<LiteralExpression>operand).value === true)) {
-        return new LiteralExpression({
-          op: 'literal',
-          value: true
-        });
+        return Expression.TRUE;
       }
 
-      if (finalOperands.length === 1) {
+      if (finalOperands.length === 0) {
+        return Expression.FALSE;
+      } else if (finalOperands.length === 1) {
         return finalOperands[0];
+      } else {
+        var simpleValue = this.valueOf();
+        simpleValue.operands = finalOperands;
+        simpleValue.simple = true;
+        return new OrExpression(simpleValue);
       }
-
-      var simpleValue = this.valueOf();
-      simpleValue.operands = finalOperands;
-      simpleValue.simple = true;
-      return new OrExpression(simpleValue);
     }
 
     protected _makeFn(operandFns: Function[]): Function {

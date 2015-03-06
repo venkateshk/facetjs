@@ -8,7 +8,7 @@ describe "planner", ->
     context = {
       diamonds: Dataset.fromJS({
         source: 'druid',
-        dataSource: 'moon_child',
+        dataSource: 'diamonds',
         timeAttribute: 'time',
         forceInterval: true,
         approximate: true,

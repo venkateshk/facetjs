@@ -4,6 +4,12 @@ module Core {
     intervals: string[];
   }
 
+  export interface DruidSplit {
+    queryType: string;
+    dimension: any;
+    granularity: any;
+  }
+
   export class DruidDataset extends RemoteDataset {
     static type = 'DATASET';
 
@@ -213,10 +219,14 @@ module Core {
       }
     }
 
-    public splitToDruid(splitExpression: Expression, label: string): any {
-      var dimension: any;
+    public splitToDruid(splitExpression: Expression, label: string): DruidSplit {
+      var queryType: string;
+      var dimension: any = null;
+      var granularity: any = 'all';
 
       if (splitExpression instanceof RefExpression) {
+        //var attributeMeta = this.getAttributeMeta(splitExpression.name);
+        queryType = 'topN';
         if (splitExpression.name === label) {
           dimension = label
         } else {
@@ -226,16 +236,59 @@ module Core {
             outputName: label
           }
         }
+
       } else if (splitExpression instanceof TimeBucketExpression) {
-        dimension = {
-          type: "fake_time_bucket",
-          outputName: label
+        var refExpression = splitExpression.operand;
+        if (refExpression instanceof RefExpression) {
+          if (refExpression.name === this.timeAttribute) {
+            queryType = 'timeseries';
+            granularity = {
+              type: "period",
+              period: splitExpression.duration,
+              timeZone: splitExpression.timezone
+            }
+          } else {
+            // ToDo: add this maybe?
+            throw new Error('can not time bucket non time dimension: ' + refExpression.toString())
+          }
+
+        } else {
+          throw new Error('can not convert complex time bucket: ' + refExpression.toString())
         }
+
       } else if (splitExpression instanceof NumberBucketExpression) {
-        dimension = {
-          type: "fake_number_bucket",
-          outputName: label
+        var refExpression = splitExpression.operand;
+        if (refExpression instanceof RefExpression) {
+          var attributeMeta = this.getAttributeMeta(refExpression.name);
+          switch (attributeMeta.type) {
+            case 'default': // ToDo: fix this
+            case 'NUMBER':
+              var floorExpression = Legacy.driverUtil.continuousFloorExpression("d", "Math.floor", splitExpression.size, splitExpression.offset);
+
+              queryType = "topN";
+              dimension = {
+                type: "extraction",
+                dimension: refExpression.name,
+                outputName: label,
+                dimExtractionFn: {
+                  type: "javascript",
+                  "function": "function(d){d=Number(d); if(isNaN(d)) return 'null'; return " + floorExpression + ";}"
+                }
+              };
+              break;
+
+            case 'NUMBER_RANGE':
+              // ToDo: fill in
+              break;
+
+            default:
+              throw new Error("can not number bucket an attribute of type: " + attributeMeta.type)
+          }
+
+        } else {
+          throw new Error('can not convert complex number bucket: ' + refExpression.toString())
         }
+
       } else {
         dimension = {
           type: "fake",
@@ -244,7 +297,9 @@ module Core {
       }
 
       return {
-        dimension: dimension
+        queryType: queryType,
+        dimension: dimension,
+        granularity: granularity
       };
     }
 
@@ -284,10 +339,7 @@ module Core {
         
         var post: (v: any) => Q.Promise<any> = (v) => Q(null);
 
-        druidQuery.context = { ex: attachPath.actions.toString() };
-        druidQuery.queryType = 'timeseries';
         druidQuery.intervals = filterAndIntervals.intervals;
-        druidQuery.granularity = 'blah';
         druidQuery.aggregations = queryPattern.applies.map(this.applyToAggregation, this);
 
         if (filterAndIntervals.filter) {
@@ -295,7 +347,9 @@ module Core {
         }
 
         var splitSpec = this.splitToDruid(queryPattern.split, queryPattern.label);
-        druidQuery.dimension = splitSpec.dimension;
+        druidQuery.queryType = splitSpec.queryType;
+        druidQuery.granularity = splitSpec.granularity;
+        if (splitSpec.dimension) druidQuery.dimension = splitSpec.dimension;
 
       } else {
         var queryPattern = attachPath.actions.totalPattern();

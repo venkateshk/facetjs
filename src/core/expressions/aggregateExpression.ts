@@ -19,7 +19,7 @@ module Core {
 
       case 'TIME_RANGE':
         if (ex instanceof TimeBucketExpression) {
-          var start = new Date('2015-03-14T00:00:00');
+          var start = ex.duration.floor(new Date('2015-03-14T00:00:00'), ex.timezone);
           return { start: start, end: ex.duration.move(start, ex.timezone, 1) };
         } else {
           return { start: new Date('2015-03-14T00:00:00'), end: new Date('2015-03-15T00:00:00') };
@@ -98,8 +98,8 @@ module Core {
       return this.attribute ? this.attribute.every(iter) : true;
     }
 
-    protected _specialSome(iter: BooleanExpressionIterator): boolean {
-      return this.attribute ? this.attribute.some(iter) : false;
+    protected _specialForEach(iter: VoidExpressionIterator): void {
+      if (this.attribute) this.attribute.forEach(iter);
     }
 
     public substitute(substitutionFn: SubstitutionFn, genDiff: number): Expression {

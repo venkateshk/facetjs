@@ -27,8 +27,8 @@ describe "simulate", ->
         }
       })
       timeFilter: TimeRange.fromJS({
-        start: new Date('2015-03-14T00:00:00')
-        end:   new Date('2015-03-21T00:00:00')
+        start: new Date('2015-03-12T00:00:00')
+        end:   new Date('2015-03-19T00:00:00')
       })
     }
 
@@ -75,7 +75,7 @@ describe "simulate", ->
           "value": "D"
         }
         "granularity": "all"
-        "intervals": ["2015-03-14/2015-03-21"]
+        "intervals": ["2015-03-12/2015-03-19"]
         "queryType": "timeseries"
       }
       # -----------------
@@ -98,7 +98,7 @@ describe "simulate", ->
           "value": "D"
         }
         "granularity": "all"
-        "intervals": ["2015-03-14/2015-03-21"]
+        "intervals": ["2015-03-12/2015-03-19"]
         "queryType": "topN"
       }
       # -----------------
@@ -131,7 +131,7 @@ describe "simulate", ->
           "timeZone": "America/Los_Angeles"
           "type": "period"
         }
-        "intervals": ["2015-03-14/2015-03-21"]
+        "intervals": ["2015-03-12/2015-03-19"]
         "queryType": "timeseries"
       }
       # -----------------
@@ -152,8 +152,23 @@ describe "simulate", ->
           "outputName": "Carat"
           "type": "extraction"
         }
+        "filter": {
+          "fields": [
+            {
+              "dimension": "color"
+              "type": "selector"
+              "value": "D"
+            }
+            {
+              "dimension": "cut"
+              "type": "selector"
+              "value": "some_cut"
+            }
+          ]
+          "type": "and"
+        }
         "granularity": "all"
-        "intervals": ["1000-01-01/1000-01-02"] # ToDo: WTF?!
+        "intervals": ["2015-03-13T07/2015-03-14T07"]
         "queryType": "topN"
       }
     ])

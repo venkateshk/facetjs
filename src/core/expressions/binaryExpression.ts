@@ -109,10 +109,10 @@ module Core {
       return this.lhs.every(iter) && this.rhs.every(iter);
     }
 
-    public some(iter: BooleanExpressionIterator): boolean {
-      var pass = iter(this);
-      if (pass) return true;
-      return this.lhs.some(iter) || this.rhs.some(iter);
+    public forEach(iter: VoidExpressionIterator): void {
+      iter(this);
+      this.lhs.forEach(iter);
+      this.rhs.forEach(iter);
     }
 
     public substitute(substitutionFn: SubstitutionFn, genDiff: number): Expression {

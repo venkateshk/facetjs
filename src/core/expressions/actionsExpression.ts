@@ -184,11 +184,11 @@ module Core {
     }
 
     protected _specialEvery(iter: BooleanExpressionIterator): boolean {
-      return this.actions.every((action) => action.every(iter))
+      return this.actions.every((action) => action.every(iter));
     }
 
-    protected _specialSome(iter: BooleanExpressionIterator): boolean {
-      return this.actions.some((action) => action.every(iter))
+    protected _specialForEach(iter: VoidExpressionIterator): void {
+      return this.actions.forEach((action) => action.forEach(iter));
     }
 
     public substitute(substitutionFn: SubstitutionFn, genDiff: number): Expression {

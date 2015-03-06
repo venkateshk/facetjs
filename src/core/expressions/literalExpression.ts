@@ -77,7 +77,7 @@ module Core {
       return iter(this);
     }
 
-    public some(iter: BooleanExpressionIterator): boolean {
+    public forEach(iter: VoidExpressionIterator): void {
       return iter(this);
     }
 

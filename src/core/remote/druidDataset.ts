@@ -244,8 +244,8 @@ module Core {
             queryType = 'timeseries';
             granularity = {
               type: "period",
-              period: splitExpression.duration,
-              timeZone: splitExpression.timezone
+              period: splitExpression.duration.toString(),
+              timeZone: splitExpression.timezone.toString()
             }
           } else {
             // ToDo: add this maybe?

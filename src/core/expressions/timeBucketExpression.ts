@@ -61,8 +61,6 @@ module Core {
     protected _makeFnJS(operandFnJS: string): string {
       throw new Error("implement me");
     }
-
-    // UNARY
   }
 
   Expression.register(TimeBucketExpression);

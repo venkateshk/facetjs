@@ -7,6 +7,10 @@ module Core {
     (ex: Expression): boolean;
   }
 
+  export interface VoidExpressionIterator {
+    (ex: Expression): void;
+  }
+
   export interface ExpressionValue {
     op: string;
     type?: string;
@@ -371,7 +375,7 @@ module Core {
     }
 
     /**
-     * Runs iter over all the sub expression and return true if iter returns true for everything;
+     * Runs iter over all the sub expression and return true if iter returns true for everything
      *
      * @param iter The function to run
      * @returns {boolean}
@@ -381,12 +385,22 @@ module Core {
     }
 
     /**
-     * Runs iter over all the sub expression and return true if iter returns true for anything;
+     * Runs iter over all the sub expression and return true if iter returns true for anything
      *
      * @param iter The function to run
      * @returns {boolean}
      */
     public some(iter: BooleanExpressionIterator): boolean {
+      return !this.every((ex: Expression) => !iter(ex));
+    }
+
+    /**
+     * Runs iter over all the sub expressions
+     *
+     * @param iter The function to run
+     * @returns {boolean}
+     */
+    public forEach(iter: VoidExpressionIterator): void {
       throw new Error('can not call on base');
     }
 
@@ -757,13 +771,11 @@ module Core {
     }
 
     public getRemoteDatasets(): RemoteDataset[] {
-      // ToDo: make an each function and use it
       var remoteDatasets: RemoteDataset[][] = [];
-      this.every(function(ex: Expression) {
+      this.forEach(function(ex: Expression) {
         if (ex instanceof LiteralExpression && ex.type === 'DATASET') {
           remoteDatasets.push((<Dataset>ex.value).getRemoteDatasets());
         }
-        return true;
       });
       return mergeRemoteDatasets(remoteDatasets);
     }

@@ -99,10 +99,9 @@ module Core {
       return this.operands.every((operand) => operand.every(iter));
     }
 
-    public some(iter: BooleanExpressionIterator): boolean {
-      var pass = iter(this);
-      if (pass) return true;
-      return this.operands.some((operand) => operand.some(iter));
+    public forEach(iter: VoidExpressionIterator): void {
+      iter(this);
+      this.operands.forEach((operand) => operand.forEach(iter));
     }
 
     public substitute(substitutionFn: SubstitutionFn, genDiff: number): Expression {

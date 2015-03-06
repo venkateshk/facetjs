@@ -147,8 +147,8 @@ module Core {
       return this.expression ? this.expression.every(iter) : true;
     }
 
-    public some(iter: BooleanExpressionIterator): boolean {
-      return this.expression ? this.expression.some(iter) : false;
+    public forEach(iter: VoidExpressionIterator): void {
+      if (this.expression) this.expression.forEach(iter);
     }
 
     public substitute(substitutionFn: SubstitutionFn, genDiff: number): Action {

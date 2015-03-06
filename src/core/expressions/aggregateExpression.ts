@@ -98,8 +98,8 @@ module Core {
       return this.attribute ? this.attribute.every(iter) : true;
     }
 
-    protected _specialSome(iter: BooleanExpressionIterator): boolean {
-      return this.attribute ? this.attribute.some(iter) : false;
+    protected _specialForEach(iter: VoidExpressionIterator): void {
+      if (this.attribute) this.attribute.forEach(iter);
     }
 
     public substitute(substitutionFn: SubstitutionFn, genDiff: number): Expression {

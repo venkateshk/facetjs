@@ -91,14 +91,13 @@ module Core {
       return this.operand.every(iter) && this._specialEvery(iter);
     }
 
-    protected _specialSome(iter: BooleanExpressionIterator): boolean {
-      return false;
+    protected _specialForEach(iter: VoidExpressionIterator): void {
     }
 
-    public some(iter: BooleanExpressionIterator): boolean {
-      var pass = iter(this);
-      if (pass) return true;
-      return this.operand.some(iter) || this._specialSome(iter);
+    public forEach(iter: VoidExpressionIterator): void {
+      iter(this);
+      this.operand.forEach(iter);
+      this._specialForEach(iter);
     }
 
     public substitute(substitutionFn: SubstitutionFn, genDiff: number): Expression {

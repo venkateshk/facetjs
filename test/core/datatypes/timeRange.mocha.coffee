@@ -69,3 +69,11 @@ describe "TimeRange", ->
       expect(
         TimeRange.fromJS({ start: '2015-01-26T00:00:00', end: '2015-01-26T01:00:00' }).intersect(TimeRange.fromJS({ start: '2015-01-26T01:00:00', end: '2015-01-26T02:00:00' }))
       ).to.deep.equal(null)
+
+  describe "#toInterval", ->
+    it "upgrades from a string", ->
+      timeRange = TimeRange.fromJS({
+        start: '2015-01-26T04:54:10Z'
+        end:   '2015-01-26T05:00:00Z'
+      })
+      expect(timeRange.toInterval()).to.equal('2015-01-26T04:54:10/2015-01-26T05')

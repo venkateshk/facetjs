@@ -385,7 +385,6 @@ module Core {
             aggregateOperand.actions.length === 1 &&
             aggregateOperand.actions[0] instanceof FilterAction &&
             this.canUseNativeAggregateFilter(aggregateOperand.actions[0].expression)) {
-            console.log("b");
             aggregation = {
               type: "filtered",
               name: action.name,
@@ -410,14 +409,17 @@ module Core {
       var nameIndex = 0;
 
       applies.forEach((apply) => {
-        var expression: Expression;
-        if (apply.expression instanceof AggregateExpression) { // ToDo: simplify this by adding a deapth count as an argument to substitute
-          expression = apply.expression;
-          knownExpressions[expression.toString()] = apply.name;
-        } else {
-          expression = apply.expression.substitute((ex) => {
+        actions.push(new ApplyAction({
+          action: 'apply',
+          name: apply.name,
+          expression: apply.expression.substitute((ex: Expression, depth: number) => {
             if (ex instanceof AggregateExpression) {
               var key = ex.toString();
+              if (depth === 0) {
+                knownExpressions[key] = apply.name;
+                return null;
+              }
+
               var name: string;
               if (hasOwnProperty(knownExpressions, key)) {
                 name = knownExpressions[key];
@@ -438,12 +440,7 @@ module Core {
                 type: 'NUMBER'
               });
             }
-          }, 0)
-        }
-        actions.push(new ApplyAction({
-          action: 'apply',
-          name: apply.name,
-          expression: expression
+          })
         }));
       });
 

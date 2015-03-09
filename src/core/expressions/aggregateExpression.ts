@@ -102,13 +102,13 @@ module Core {
       if (this.attribute) this.attribute.forEach(iter);
     }
 
-    public substitute(substitutionFn: SubstitutionFn, genDiff: number): Expression {
-      var sub = substitutionFn(this, genDiff);
+    public _substituteHelper(substitutionFn: SubstitutionFn, depth: number, genDiff: number): Expression {
+      var sub = substitutionFn(this, depth, genDiff);
       if (sub) return sub;
-      var subOperand = this.operand.substitute(substitutionFn, genDiff);
+      var subOperand = this.operand._substituteHelper(substitutionFn, depth + 1, genDiff);
       var subAttribute: Expression = null;
       if (this.attribute) {
-        subAttribute = this.attribute.substitute(substitutionFn, genDiff + 1);
+        subAttribute = this.attribute._substituteHelper(substitutionFn, depth + 1, genDiff + 1);
       }
       if (this.operand === subOperand && this.attribute === subAttribute) return this;
 

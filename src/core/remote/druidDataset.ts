@@ -10,6 +10,11 @@ module Core {
     granularity: any;
   }
 
+  export interface AggregationsAndPostAggregations {
+    aggregations: Druid.Aggregation[];
+    postAggregations: Druid.PostAggregation[];
+  }
+
   export class DruidDataset extends RemoteDataset {
     static type = 'DATASET';
 
@@ -78,6 +83,21 @@ module Core {
 
     public getAttributeMeta(attr: string): Legacy.AttributeMeta {
       return Legacy.AttributeMeta.DEFAULT
+    }
+
+    public canUseNativeAggregateFilter(filterExpression: Expression): boolean {
+      if (filterExpression.type !== 'BOOLEAN') throw new Error("must be a BOOLEAN filter");
+
+      return filterExpression.every((ex) => {
+        if (ex instanceof IsExpression) {
+          return ex.lhs.isOp('ref') && ex.rhs.isOp('literal')
+        } else if (ex instanceof InExpression) {
+          return ex.lhs.isOp('ref') && ex.rhs.isOp('literal')
+        } else if (ex.isOp('literal') || ex.isOp('ref') || ex.isOp('not') || ex.isOp('and') || ex.isOp('or')) {
+          return true;
+        }
+        return false
+      });
     }
 
     public timelessFilterToDruid(filter: Expression): Druid.Filter {
@@ -303,24 +323,149 @@ module Core {
       };
     }
 
-    public applyToAggregation(apply: ApplyAction): Druid.Aggregation {
-      var aggregateExpression = apply.expression;
-      if (aggregateExpression instanceof AggregateExpression) {
-        var attribute = aggregateExpression.attribute;
-        var aggregation: Druid.Aggregation = {
-          name: apply.name,
-          type: aggregateExpression.fn === "sum" ? "doubleSum" : aggregateExpression.fn
+    public expressionToPostAggregation(ex: Expression): Druid.PostAggregation {
+      if (ex instanceof RefExpression) {
+        return {
+          type: 'fieldAccess', // or "hyperUniqueCardinality"
+          fieldName: ex.name
         };
-        if (attribute instanceof RefExpression) {
-          aggregation.fieldName = attribute.name;
-        } else if (attribute) {
-          throw new Error('can not support derived attributes (yet)')
-        }
-        return aggregation;
-
+      } else if (ex instanceof LiteralExpression) {
+        if (ex.type !== 'NUMBER') throw new Error("must be a NUMBER type");
+        return {
+          type: 'constant',
+          value: ex.value
+        };
+      } else if (ex instanceof AddExpression) {
+        return {
+          type: 'arithmetic',
+          fn: '+',
+          fields: ex.operands.map(this.expressionToPostAggregation, this)
+        };
+      } else if (ex instanceof MultiplyExpression) {
+        return {
+          type: 'arithmetic',
+          fn: '*',
+          fields: ex.operands.map(this.expressionToPostAggregation, this)
+        };
       } else {
-        throw new Error('can not support non aggregate aggregateExpression')
+        throw new Error("can not convert expression to post agg: " + ex.toString());
       }
+    }
+
+    public actionToPostAggregation(action: Action): Druid.PostAggregation {
+      if (action instanceof ApplyAction || action instanceof DefAction) {
+        var postAgg = this.expressionToPostAggregation(action.expression);
+        postAgg.name = action.name;
+        return postAgg;
+      } else {
+        throw new Error("must be a def or apply action");
+      }
+    }
+
+    public actionToAggregation(action: Action): Druid.Aggregation {
+      if (action instanceof ApplyAction || action instanceof DefAction) {
+        var aggregateExpression = action.expression;
+        if (aggregateExpression instanceof AggregateExpression) {
+          var attribute = aggregateExpression.attribute;
+          var aggregation: Druid.Aggregation = {
+            name: action.name,
+            type: aggregateExpression.fn === "sum" ? "doubleSum" : aggregateExpression.fn
+          };
+          if (aggregateExpression.fn !== 'count') {
+            if (attribute instanceof RefExpression) {
+              aggregation.fieldName = attribute.name;
+            } else if (attribute) {
+              throw new Error('can not support derived attributes (yet)');
+            }
+          }
+
+          // See if we want to do a filtered aggregate
+          var aggregateOperand = aggregateExpression.operand;
+          if (aggregateOperand instanceof ActionsExpression &&
+            aggregateOperand.actions.length === 1 &&
+            aggregateOperand.actions[0] instanceof FilterAction &&
+            this.canUseNativeAggregateFilter(aggregateOperand.actions[0].expression)) {
+            console.log("b");
+            aggregation = {
+              type: "filtered",
+              name: action.name,
+              filter: this.timelessFilterToDruid(aggregateOperand.actions[0].expression),
+              aggregator: aggregation
+            };
+          }
+
+          return aggregation;
+
+        } else {
+          throw new Error('can not support non aggregate aggregateExpression');
+        }
+      } else {
+        throw new Error("must be a def or apply action");
+      }
+    }
+
+    public breakUpApplies(applies: ApplyAction[]): Action[] {
+      var knownExpressions: Lookup<string> = {};
+      var actions: Action[] = [];
+      var nameIndex = 0;
+
+      applies.forEach((apply) => {
+        var expression: Expression;
+        if (apply.expression instanceof AggregateExpression) { // ToDo: simplify this by adding a deapth count as an argument to substitute
+          expression = apply.expression;
+          knownExpressions[expression.toString()] = apply.name;
+        } else {
+          expression = apply.expression.substitute((ex) => {
+            if (ex instanceof AggregateExpression) {
+              var key = ex.toString();
+              var name: string;
+              if (hasOwnProperty(knownExpressions, key)) {
+                name = knownExpressions[key];
+              } else {
+                name = '_sd_' + nameIndex;
+                nameIndex++;
+                actions.push(new DefAction({
+                  action: 'def',
+                  name: name,
+                  expression: ex
+                }));
+                knownExpressions[key] = name;
+              }
+
+              return new RefExpression({
+                op: 'ref',
+                name: name,
+                type: 'NUMBER'
+              });
+            }
+          }, 0)
+        }
+        actions.push(new ApplyAction({
+          action: 'apply',
+          name: apply.name,
+          expression: expression
+        }));
+      });
+
+      return actions;
+    }
+
+    public applyToDruid(applies: ApplyAction[]): AggregationsAndPostAggregations {
+      var aggregations: Druid.Aggregation[] = [];
+      var postAggregations: Druid.PostAggregation[] = [];
+
+      this.breakUpApplies(applies).forEach((action) => {
+        if (action.expression instanceof AggregateExpression) {
+          aggregations.push(this.actionToAggregation(action));
+        } else {
+          postAggregations.push(this.actionToPostAggregation(action));
+        }
+      });
+
+      return {
+        aggregations: aggregations,
+        postAggregations: postAggregations
+      };
     }
 
     public attachPathToQuery(attachPath: AttachPoint): DatastoreQuery {
@@ -340,10 +485,16 @@ module Core {
         var post: (v: any) => Q.Promise<any> = (v) => Q(null);
 
         druidQuery.intervals = filterAndIntervals.intervals;
-        druidQuery.aggregations = queryPattern.applies.map(this.applyToAggregation, this);
-
         if (filterAndIntervals.filter) {
           druidQuery.filter = filterAndIntervals.filter;
+        }
+
+        var aggregationsAndPostAggregations = this.applyToDruid(queryPattern.applies);
+        if (aggregationsAndPostAggregations.aggregations.length) {
+          druidQuery.aggregations = aggregationsAndPostAggregations.aggregations;
+        }
+        if (aggregationsAndPostAggregations.postAggregations.length) {
+          druidQuery.postAggregations = aggregationsAndPostAggregations.postAggregations;
         }
 
         var splitSpec = this.splitToDruid(queryPattern.split, queryPattern.label);
@@ -360,10 +511,16 @@ module Core {
         var post: (v: any) => Q.Promise<any> = (v) => Q(null);
 
         druidQuery.intervals = filterAndIntervals.intervals;
-        druidQuery.aggregations = queryPattern.applies.map(this.applyToAggregation, this);
-
         if (filterAndIntervals.filter) {
           druidQuery.filter = filterAndIntervals.filter;
+        }
+
+        var aggregationsAndPostAggregations = this.applyToDruid(queryPattern.applies);
+        if (aggregationsAndPostAggregations.aggregations.length) {
+          druidQuery.aggregations = aggregationsAndPostAggregations.aggregations;
+        }
+        if (aggregationsAndPostAggregations.postAggregations.length) {
+          druidQuery.postAggregations = aggregationsAndPostAggregations.postAggregations;
         }
       }
 

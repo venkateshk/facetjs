@@ -24,6 +24,7 @@ describe "simulate", ->
           cut: { type: 'STRING' }
           carat: { type: 'STRING' }
           price: { type: 'NUMBER' }
+          tax: { type: 'NUMBER' }
         }
       })
       timeFilter: TimeRange.fromJS({
@@ -34,8 +35,11 @@ describe "simulate", ->
 
     ex = facet()
       .def("diamonds", facet('diamonds').filter(facet("color").is('D').and(facet("time").in('$timeFilter'))))
-      .apply('Count', facet('diamonds').count())
-      .apply('TotalPrice', facet('diamonds').sum('$price'))
+      .apply('Count', '$diamonds.count()')
+      .apply('TotalPrice', '$diamonds.sum($price)')
+      .apply('PriceTimes2', '$diamonds.sum($price) * 2')
+      .apply('PriceAndTax', '$diamonds.sum($price) * $diamonds.sum($tax)')
+      .apply('PriceGoodCut', facet('diamonds').filter(facet('cut').is('good')).sum('$price'))
       .apply('Cuts',
         facet("diamonds").split("$cut", 'Cut')
           .apply('Count', facet('diamonds').count())
@@ -67,7 +71,62 @@ describe "simulate", ->
             "name": "TotalPrice"
             "type": "doubleSum"
           }
-        ]
+          {
+            "fieldName": "tax"
+            "name": "_sd_0"
+            "type": "doubleSum"
+          }
+          {
+            "aggregator": {
+              "fieldName": "price"
+              "name": "PriceGoodCut"
+              "type": "doubleSum"
+            }
+            "filter": {
+              "dimension": "cut"
+              "type": "selector"
+              "value": "good"
+            }
+            "name": "PriceGoodCut"
+            "type": "filtered"
+          }
+        ],
+        "postAggregations": [
+          {
+            "fields": [
+              {
+                "fieldName": "TotalPrice"
+                "type": "fieldAccess"
+              }
+              {
+                "type": "constant"
+                "value": 2
+              }
+            ]
+            "fn": "*"
+            "name": "PriceTimes2"
+            "type": "arithmetic"
+          }
+          {
+            "fields": [
+              {
+                "fieldName": "TotalPrice"
+                "type": "fieldAccess"
+              }
+              {
+                "fieldName": "_sd_0"
+                "type": "fieldAccess"
+              }
+              {
+                "type": "constant"
+                "value": 1
+              }
+            ]
+            "fn": "*"
+            "name": "PriceAndTax"
+            "type": "arithmetic"
+          }
+        ],
         "dataSource": "diamonds"
         "filter": {
           "dimension": "color"

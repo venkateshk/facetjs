@@ -191,11 +191,11 @@ module Core {
       return this.actions.forEach((action) => action.forEach(iter));
     }
 
-    public substitute(substitutionFn: SubstitutionFn, genDiff: number): Expression {
-      var sub = substitutionFn(this, genDiff);
+    public _substituteHelper(substitutionFn: SubstitutionFn, depth: number, genDiff: number): Expression {
+      var sub = substitutionFn(this, depth, genDiff);
       if (sub) return sub;
-      var subOperand = this.operand.substitute(substitutionFn, genDiff);
-      var subActions = this.actions.map((action) => action.substitute(substitutionFn, genDiff + 1));
+      var subOperand = this.operand._substituteHelper(substitutionFn, depth + 1, genDiff);
+      var subActions = this.actions.map((action) => action._substituteHelper(substitutionFn, depth + 1, genDiff + 1));
       if (this.operand === subOperand && this.actions.every((action, i) => action === subActions[i])) return this;
 
       var value = this.valueOf();

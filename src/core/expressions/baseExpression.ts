@@ -1,6 +1,6 @@
 module Core {
   export interface SubstitutionFn {
-    (ex: Expression, genDiff: number): Expression;
+    (ex: Expression, depth?: number, genDiff?: number): Expression;
   }
 
   export interface BooleanExpressionIterator {
@@ -411,8 +411,12 @@ module Core {
      * @param substitutionFn The function with which to substitute
      * @param genDiff The number of context generations offset from the caller and this expression
      */
-    public substitute(substitutionFn: SubstitutionFn, genDiff: number): Expression {
-      var sub = substitutionFn(this, genDiff);
+    public substitute(substitutionFn: SubstitutionFn): Expression {
+      return this._substituteHelper(substitutionFn, 0, 0);
+    }
+
+    public _substituteHelper(substitutionFn: SubstitutionFn, depth: number, genDiff: number): Expression {
+      var sub = substitutionFn(this, depth, genDiff);
       if (sub) return sub;
       return this;
     }
@@ -674,7 +678,7 @@ module Core {
         }
         return null;
       }
-      return this.substitute(substitutionFn, 0);
+      return this.substitute(substitutionFn);
     }
 
     /**
@@ -685,7 +689,7 @@ module Core {
      * @return The resolved expression
      */
     public resolve(context: Datum, leaveIfNotFound: boolean = false): Expression {
-      return this.substitute((ex: Expression, genDiff: number) => {
+      return this.substitute((ex: Expression, depth: number, genDiff: number) => {
         if (ex instanceof RefExpression) {
           var refGen = ex.generations.length;
           if (genDiff === refGen) {
@@ -713,7 +717,7 @@ module Core {
           }
         }
         return null;
-      }, 0);
+      });
     }
 
     public resolved(): boolean {

@@ -100,10 +100,10 @@ module Core {
       this._specialForEach(iter);
     }
 
-    public substitute(substitutionFn: SubstitutionFn, genDiff: number): Expression {
-      var sub = substitutionFn(this, genDiff);
+    public _substituteHelper(substitutionFn: SubstitutionFn, depth: number, genDiff: number): Expression {
+      var sub = substitutionFn(this, depth, genDiff);
       if (sub) return sub;
-      var subOperand = this.operand.substitute(substitutionFn, genDiff);
+      var subOperand = this.operand._substituteHelper(substitutionFn, depth + 1, genDiff);
       if (this.operand === subOperand) return this;
 
       var value = this.valueOf();

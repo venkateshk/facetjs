@@ -70,5 +70,3 @@ describe "planner", ->
         )
 
     ].map((e) -> e.toJS()))
-
-    console.log("ex.simulateQueryPlan()", ex.simulateQueryPlan(context).map((q) -> JSON.stringify(q, null, 2)).join('\n------------------\n'));

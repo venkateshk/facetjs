@@ -151,9 +151,9 @@ module Core {
       if (this.expression) this.expression.forEach(iter);
     }
 
-    public substitute(substitutionFn: SubstitutionFn, genDiff: number): Action {
+    public _substituteHelper(substitutionFn: SubstitutionFn, depth: number, genDiff: number): Action {
       if (!this.expression) return this;
-      var subExpression = this.expression.substitute(substitutionFn, genDiff);
+      var subExpression = this.expression._substituteHelper(substitutionFn, depth, genDiff);
       if (this.expression === subExpression) return this;
       var value = this.valueOf();
       value.expression = subExpression;

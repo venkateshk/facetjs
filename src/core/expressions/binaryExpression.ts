@@ -115,11 +115,11 @@ module Core {
       this.rhs.forEach(iter);
     }
 
-    public substitute(substitutionFn: SubstitutionFn, genDiff: number): Expression {
-      var sub = substitutionFn(this, genDiff);
+    public _substituteHelper(substitutionFn: SubstitutionFn, depth: number, genDiff: number): Expression {
+      var sub = substitutionFn(this, depth, genDiff);
       if (sub) return sub;
-      var subLhs = this.lhs.substitute(substitutionFn, genDiff);
-      var subRhs = this.rhs.substitute(substitutionFn, genDiff);
+      var subLhs = this.lhs._substituteHelper(substitutionFn, depth, genDiff);
+      var subRhs = this.rhs._substituteHelper(substitutionFn, depth, genDiff);
       if (this.lhs === subLhs && this.rhs === subRhs) return this;
 
       var value = this.valueOf();

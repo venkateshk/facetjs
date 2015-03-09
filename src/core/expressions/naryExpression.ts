@@ -104,10 +104,10 @@ module Core {
       this.operands.forEach((operand) => operand.forEach(iter));
     }
 
-    public substitute(substitutionFn: SubstitutionFn, genDiff: number): Expression {
-      var sub = substitutionFn(this, genDiff);
+    public _substituteHelper(substitutionFn: SubstitutionFn, depth: number, genDiff: number): Expression {
+      var sub = substitutionFn(this, depth, genDiff);
       if (sub) return sub;
-      var subOperands = this.operands.map((operand) => operand.substitute(substitutionFn, genDiff));
+      var subOperands = this.operands.map((operand) => operand._substituteHelper(substitutionFn, depth + 1, genDiff));
       if (this.operands.every((op, i) => op === subOperands[i])) return this;
 
       var value = this.valueOf();

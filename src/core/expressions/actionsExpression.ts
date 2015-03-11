@@ -5,6 +5,7 @@ module Core {
     split?: Expression;
     label?: string;
     applies: ApplyAction[];
+    sortOrigin?: string;
     sort?: SortAction;
     limit?: LimitAction;
   }
@@ -431,6 +432,7 @@ module Core {
             if (action instanceof ApplyAction) {
               queryPattern.applies.push(action);
             } else if (action instanceof SortAction) {
+              queryPattern.sortOrigin = 'apply'; // ToDo: fix this
               queryPattern.sort = action;
             } else if (action instanceof LimitAction) {
               queryPattern.limit = action;

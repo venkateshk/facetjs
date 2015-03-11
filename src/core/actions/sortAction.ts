@@ -17,6 +17,9 @@ module Core {
       if (this.direction !== 'descending' && this.direction !== 'ascending') {
         throw new Error("direction must be 'descending' or 'ascending'");
       }
+      if (!this.expression.isOp('ref')) {
+        throw new Error("must be a reference expression (for now): " + this.toString());
+      }
     }
 
     public valueOf(): ActionValue {

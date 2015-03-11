@@ -157,8 +157,38 @@ module Core {
     canSplit?: ApplyCombineCapabilities;
   }
 
+  // --------------------------
+
+  // [{ applyName: 'Cuts', label: 'Cut', value: 'good-cut' }], name: 'Carats'
+  export interface PathPart {
+    applyName: string;
+    label: string;
+    value: any;
+  }
+
+  export interface ExpressionAttachPoint {
+    path: PathPart[];
+    name: string;
+    actions: ActionsExpression;
+  }
+
+  // --------------------------
+
+  export interface PostProcess {
+    (result: any): any;
+  }
+
   export interface DatastoreQuery {
     query: any;
-    post: (result: any) => Q.Promise<any>;
+    post: PostProcess;
+  }
+
+  // --------------------------
+
+  export interface QueryAttachPoint {
+    path: PathPart[];
+    name: string;
+    query: any;
+    post: PostProcess;
   }
 }

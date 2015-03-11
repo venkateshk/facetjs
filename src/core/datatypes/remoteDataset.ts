@@ -1,18 +1,5 @@
 module Core {
-  // [{ applyName: 'Cuts', label: 'Cut', value: 'good-cut' }], name: 'Carats'
-  export interface PathPart {
-    applyName: string;
-    label: string;
-    value: any;
-  }
-
-  export interface AttachPoint {
-    path: PathPart[];
-    name: string;
-    actions: ActionsExpression;
-  }
-
-  export function getAttachPoints(ex: ActionsExpression): AttachPoint[] {
+  export function getAttachPoints(ex: ActionsExpression): ExpressionAttachPoint[] {
     var operand = ex.operand;
     var actions = ex.actions;
 
@@ -22,7 +9,7 @@ module Core {
       var applyName = action.name;
       var applyExpression = action.expression;
 
-      return concatMap(contexts, (datum): AttachPoint[] => {
+      return concatMap(contexts, (datum): ExpressionAttachPoint[] => {
         var resolvedExpression = <ActionsExpression>(applyExpression.resolve(datum).simplify());
         if (resolvedExpression.operand instanceof LabelExpression) {
           return [{
@@ -103,8 +90,21 @@ module Core {
       return <RemoteDataset>(new (Dataset.classMap[this.source])(value));
     }
 
-    public generateQueries(ex: Expression): DatastoreQuery[] {
-      throw new Error("can not call this directly");
+    public actionsToQuery(actions: ActionsExpression): DatastoreQuery {
+      throw new Error("can not call directly");
+    }
+
+    public generateQueries(ex: Expression): QueryAttachPoint[] {
+      var attachPaths = getAttachPoints(<ActionsExpression>ex);
+      return attachPaths.map((attachPath) => {
+        var datastoreQuery = this.actionsToQuery(attachPath.actions);
+        return {
+          path: attachPath.path,
+          name: attachPath.name,
+          query: datastoreQuery.query,
+          post: datastoreQuery.post
+        }
+      }, this);
     }
   }
 }

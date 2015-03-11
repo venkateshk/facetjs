@@ -26,15 +26,15 @@ describe "simulate", ->
           price: { type: 'NUMBER' }
           tax: { type: 'NUMBER' }
         }
-      })
-      timeFilter: TimeRange.fromJS({
-        start: new Date('2015-03-12T00:00:00')
-        end:   new Date('2015-03-19T00:00:00')
+        filter: facet("time").in(TimeRange.fromJS({
+          start: new Date('2015-03-12T00:00:00')
+          end:   new Date('2015-03-19T00:00:00')
+        }))
       })
     }
 
     ex = facet()
-      .def("diamonds", facet('diamonds').filter(facet("color").is('D').and(facet("time").in('$timeFilter'))))
+      .def("diamonds", facet('diamonds').filter(facet("color").is('D')))
       .apply('Count', '$diamonds.count()')
       .apply('TotalPrice', '$diamonds.sum($price)')
       .apply('PriceTimes2', '$diamonds.sum($price) * 2')
@@ -158,7 +158,9 @@ describe "simulate", ->
         }
         "granularity": "all"
         "intervals": ["2015-03-12/2015-03-19"]
+        "metric": "Count"
         "queryType": "topN"
+        "threshold": 2
       }
       # -----------------
       {
@@ -228,6 +230,8 @@ describe "simulate", ->
         }
         "granularity": "all"
         "intervals": ["2015-03-13T07/2015-03-14T07"]
+        "metric": "Count"
         "queryType": "topN"
+        "threshold": 3
       }
     ])

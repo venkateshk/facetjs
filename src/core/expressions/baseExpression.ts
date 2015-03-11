@@ -754,11 +754,9 @@ module Core {
         if (remoteDatasets.length === 1) {
           var generatedQuery = remoteDatasets[0].generateQueries(partExpression)[0].query;
           generatedQueries.push(generatedQuery);
-        } else {
-          // ToDo: fill this in
-        }
+        } // Nothing to do if remoteDatasets.length === 0
+
         var next = partExpression.simulateResolved();
-        //console.log("next", next.toJS()[0].Cuts);
         context = { next: next }
       }
 
@@ -814,24 +812,53 @@ module Core {
      * @param context The context within which to compute the expression
      * @returns {Q.Promise<any>}
      */
-    public compute(context: Datum = {}): Q.Promise<any> {
-      //var deferred = <Q.Deferred<any>>Q.defer();
-
+    public compute(context: Datum = {}, requester: Requester.FacetRequester<any> = null): Q.Promise<any> {
       var simple = this.referenceCheck(context).simplify();
       if (datumHasRemote(context) || simple.hasRemote()) {
-        throw new Error('re-implement me');
-        /*
-        var driverObjects: Driver[] = [];
-        Object.keys(context).forEach((driverName) => {
-          var driver = context[driverName];
-          if (driverObjects.indexOf(driver) === -1) driverObjects.push(driver);
-        });
-        if (driverObjects.length !== 1) {
-          deferred.reject(new Error('must have exactly one driver defined (for now)'));
-          return deferred.promise;
+        if (!requester) {
+          throw new Error("must have a requester");
         }
-        return driverObjects[0](simple);
-        */
+
+        var breakdown = simple.referenceCheck(context).getExpressionBreakdown();
+
+        var promise = Q(null);
+        breakdown.forEach((partExpression, partNumber) => {
+          var leaf = partNumber === breakdown.length - 1;
+          promise = promise.then((next) => {
+            var ctx: Datum = next ? { next: next } : context;
+            var partExpressionResolved = partExpression.resolve(ctx).simplify();
+
+            var dataSourceDefActions: DefAction[] = null;
+            if (partExpressionResolved instanceof ActionsExpression) {
+              dataSourceDefActions = <DefAction[]>partExpressionResolved.actions.filter((a) => {
+                return a instanceof DefAction && a.expression.type === 'DATASET';
+              });
+            }
+
+            var remoteDatasets = partExpressionResolved.getRemoteDatasets();
+            if (remoteDatasets.length > 1) throw new Error("can not handle multiple remote datasets (yet)");
+            if (remoteDatasets.length < 1) throw new Error('fill this in: ' + partExpressionResolved.toString());
+
+            var generated = remoteDatasets[0].generateQueries(partExpressionResolved)[0];
+            //console.log("gen", generated);
+            return requester({ query: generated.query }).then((res) => {
+              var ds = generated.post(res);
+              // Re-compute any defActions that were lost
+              if (ds instanceof NativeDataset && !leaf && dataSourceDefActions) {
+                dataSourceDefActions.forEach((dataSourceDefAction) => {
+                  ds.def(dataSourceDefAction.name, dataSourceDefAction.expression.getFn())
+                })
+              }
+              if (generated.name) {
+                (<NativeDataset>next).data[0][generated.name] = ds;
+                return next;
+              } else {
+                return ds;
+              }
+            });
+          })
+        })
+        return promise;
       } else {
         return Q(simple.computeNative(context));
       }

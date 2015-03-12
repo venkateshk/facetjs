@@ -1,5 +1,6 @@
 module Core {
   export interface QueryPattern {
+    pattern: string;
     dataSourceName: string;
     filter: Expression;
     split?: Expression;
@@ -376,14 +377,16 @@ module Core {
       return dataset;
     }
 
-    public totalPattern(): QueryPattern {
+    public getQueryPattern(): QueryPattern {
+      var queryPattern: QueryPattern = null;
       var operand = this.operand;
       var actions = this.actions;
       if (operand instanceof LiteralExpression && operand.value.basis() && actions.length > 1) {
         var action: Action = actions[0];
-        var queryPattern: QueryPattern = null;
+
         if (action instanceof DefAction) {
           queryPattern = {
+            pattern: 'total',
             dataSourceName: action.name,
             filter: (<RemoteDataset>(<LiteralExpression>action.expression).value).filter, // ToDo: make this a function
             applies: []
@@ -401,26 +404,17 @@ module Core {
           }
         }
 
-        return queryPattern;
-      } else {
-        return null;
-      }
-    }
-
-    public splitPattern(): QueryPattern {
-      var labelOperand = this.operand;
-      var actions = this.actions;
-      if (labelOperand instanceof LabelExpression && actions.length > 1) {
-        var groupAggregate = labelOperand.operand;
+      } if (operand instanceof LabelExpression && actions.length > 1) {
+        var groupAggregate = operand.operand;
         if (groupAggregate instanceof AggregateExpression) {
           var action: Action = actions[0];
-          var queryPattern: QueryPattern = null;
           if (action instanceof DefAction) {
             queryPattern = {
+              pattern: 'split',
               dataSourceName: action.name,
               filter: (<RemoteDataset>(<LiteralExpression>groupAggregate.operand).value).filter, // ToDo: make this a function
               split: groupAggregate.attribute,
-              label: labelOperand.name,
+              label: operand.name,
               applies: []
             }
           } else {
@@ -440,14 +434,12 @@ module Core {
               return null;
             }
           }
-
-          return queryPattern;
         } else {
           return null;
         }
-      } else {
-        return null;
       }
+
+      return queryPattern;
     }
 
   }

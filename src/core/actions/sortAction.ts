@@ -42,6 +42,11 @@ module Core {
       return super.equals(other) &&
         this.direction === other.direction;
     }
+
+    public refName(): string {
+      var expression = this.expression;
+      return (expression instanceof RefExpression) ? expression.name : null
+    }
   }
 
   Action.register(SortAction);

@@ -492,7 +492,6 @@ module Core {
     }
 
     public actionsToQuery(actions: ActionsExpression): DatastoreQuery {
-      var queryPattern: QueryPattern;
       var druidQuery: Druid.Query = {
         queryType: 'timeseries',
         dataSource: this.dataSource,
@@ -500,8 +499,8 @@ module Core {
         granularity: 'all'
       };
 
-      queryPattern = actions.totalPattern();
-      if (queryPattern) {
+      var queryPattern = actions.getQueryPattern();
+      if (queryPattern.pattern === 'total') {
         var filterAndIntervals = this.filterToDruid(queryPattern.filter);
 
         druidQuery.intervals = filterAndIntervals.intervals;
@@ -521,10 +520,8 @@ module Core {
           query: druidQuery,
           post: postProcessTotal
         };
-      }
 
-      queryPattern = actions.splitPattern();
-      if (queryPattern) {
+      } else if (queryPattern.pattern === 'split') {
         var filterAndIntervals = this.filterToDruid(queryPattern.filter);
 
         druidQuery.intervals = filterAndIntervals.intervals;

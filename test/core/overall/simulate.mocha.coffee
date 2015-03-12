@@ -48,8 +48,8 @@ describe "simulate", ->
           .apply('Time',
             facet("diamonds").split(facet("time").timeBucket('P1D', 'America/Los_Angeles'), 'Timestamp')
               .apply('TotalPrice', facet('diamonds').sum('$price'))
-              .sort('$Timestamp', 'ascending')
-              .limit(10)
+              #.sort('$Timestamp', 'ascending')
+              #.limit(10)
               .apply('Carats',
                 facet("diamonds").split(facet("carat").numberBucket(0.25), 'Carat')
                   .apply('Count', facet('diamonds').count())

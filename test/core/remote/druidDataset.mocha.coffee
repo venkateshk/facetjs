@@ -48,10 +48,10 @@ describe "DruidDataset actually", ->
           .apply('Count', '$wiki.count()')
           .sort('$Count', 'descending')
           .limit(2)
-#         .apply('Time',
-#           facet("diamonds").split(facet("time").timeBucket('P1D', 'America/Los_Angeles'), 'Timestamp')
-#             .apply('TotalPrice', facet('diamonds').sum('$price'))
-#             .sort('$Timestamp', 'ascending')
+          .apply('Time',
+            facet("diamonds").split(facet("time").timeBucket('P1D', 'America/Los_Angeles'), 'Timestamp')
+              .apply('TotalPrice', facet('diamonds').sum('$price'))
+              .sort('$Timestamp', 'ascending')
 #             .limit(10)
 #             .apply('Carats',
 #               facet("diamonds").split(facet("carat").numberBucket(0.25), 'Carat')
@@ -59,7 +59,7 @@ describe "DruidDataset actually", ->
 #                 .sort('$Count', 'descending')
 #                 .limit(3)
 #             )
-#         )
+          )
       )
 
     ex.compute(context, druidPass).then((result) ->

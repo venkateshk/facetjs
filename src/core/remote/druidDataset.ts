@@ -542,12 +542,18 @@ module Core {
         druidQuery.granularity = splitSpec.granularity;
         if (splitSpec.dimension) druidQuery.dimension = splitSpec.dimension;
 
-        if (druidQuery.queryType === 'timeseries' && (queryPattern.sort || queryPattern.limit)) {
-          throw new Error('can not sort or limit within timeseries query');
+        if (druidQuery.queryType === 'timeseries') {
+          if (queryPattern.sort && (queryPattern.sort.direction !== 'ascending' || queryPattern.sort.refName() !== queryPattern.label)) {
+            throw new Error('can not sort within timeseries query');
+          }
+
+          if (queryPattern.limit) {
+            throw new Error('can not limit within timeseries query');
+          }
         }
 
         var sortAction = queryPattern.sort;
-        if (sortAction) {
+        if (sortAction && druidQuery.queryType !== 'timeseries') {
           var metric: any = (<RefExpression>sortAction.expression).name;
           if (queryPattern.sortOrigin === 'label') {
             metric = {type: 'lexicographic'};

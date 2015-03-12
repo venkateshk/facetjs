@@ -108,11 +108,11 @@ module Core {
     }
 
     public every(iter: BooleanExpressionIterator): boolean {
-      return iter(this);
+      return iter(this) !== false;
     }
 
     public forEach(iter: VoidExpressionIterator): void {
-      return iter(this);
+      iter(this);
     }
 
     public _fillRefSubstitutions(typeContext: any, alterations: Alteration[]): any {

@@ -119,8 +119,8 @@ module Core {
           return ex.lhs.isOp('ref') && ex.rhs.isOp('literal')
         } else if (ex instanceof InExpression) {
           return ex.lhs.isOp('ref') && ex.rhs.isOp('literal')
-        } else if (ex.isOp('literal') || ex.isOp('ref') || ex.isOp('not') || ex.isOp('and') || ex.isOp('or')) {
-          return true;
+        } else if (ex.isOp('not') || ex.isOp('and') || ex.isOp('or')) {
+          return null; // search within
         }
         return false
       });

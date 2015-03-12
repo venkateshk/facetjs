@@ -50,6 +50,8 @@ module Core {
       var value = this.value;
       if (value instanceof Dataset && value.basis()) {
         return 'facet()';
+      } else if (this.type === 'STRING') {
+        return JSON.stringify(value);
       } else {
         return String(value);
       }
@@ -74,11 +76,11 @@ module Core {
     }
 
     public every(iter: BooleanExpressionIterator): boolean {
-      return iter(this);
+      return iter(this) !== false;
     }
 
     public forEach(iter: VoidExpressionIterator): void {
-      return iter(this);
+      iter(this);
     }
 
     public isRemote(): boolean {

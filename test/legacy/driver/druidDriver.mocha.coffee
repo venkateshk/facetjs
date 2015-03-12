@@ -560,10 +560,6 @@ describe "Druid driver", ->
             "categorical": true
           },
           {
-            "name": "newpage",
-            "categorical": true
-          },
-          {
             "name": "page",
             "categorical": true
           },
@@ -601,10 +597,6 @@ describe "Druid driver", ->
           },
           {
             "name": "delta",
-            "numeric": true
-          },
-          {
-            "name": "variation"
             "numeric": true
           }
         ])

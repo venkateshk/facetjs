@@ -166,9 +166,12 @@ module Core {
     value: any;
   }
 
-  export interface ExpressionAttachPoint {
+  export interface AttachPoint {
     path: PathPart[];
     name: string;
+  }
+
+  export interface ExpressionAttachPoint extends AttachPoint {
     actions: ActionsExpression;
   }
 
@@ -185,9 +188,7 @@ module Core {
 
   // --------------------------
 
-  export interface QueryAttachPoint {
-    path: PathPart[];
-    name: string;
+  export interface QueryAttachPoint extends AttachPoint {
     query: any;
     post: PostProcess;
   }

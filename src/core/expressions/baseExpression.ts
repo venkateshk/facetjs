@@ -391,7 +391,10 @@ module Core {
      * @returns {boolean}
      */
     public some(iter: BooleanExpressionIterator): boolean {
-      return !this.every((ex: Expression) => !iter(ex));
+      return !this.every((ex: Expression) => {
+        var v = iter(ex);
+        return (v == null) ? null : !v;
+      });
     }
 
     /**
@@ -722,11 +725,7 @@ module Core {
 
     public resolved(): boolean {
       return this.every((ex: Expression) => {
-        if (ex instanceof RefExpression) {
-          return ex.generations.length === 0;
-        } else {
-          return true;
-        }
+        return (ex instanceof RefExpression) ? ex.generations.length === 0 : null; // Search within
       })
     }
 
@@ -850,7 +849,7 @@ module Core {
                 })
               }
               if (generated.name) {
-                (<NativeDataset>next).data[0][generated.name] = ds;
+                (<NativeDataset>next).materialize(generated, ds);
                 return next;
               } else {
                 return ds;

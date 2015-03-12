@@ -266,6 +266,34 @@ module Core {
       });
       return mergeRemoteDatasets(remoteDatasets);
     }
+
+    private _materializeHelper(attachPoint: AttachPoint, pathIndex: number, datum: Datum, value: any): void {
+      var pathPart = attachPoint.path[pathIndex];
+      if (pathPart) {
+        var pathPartLabel = pathPart.label;
+        var pathPartValue = pathPart.value;
+        var nextDataset = <NativeDataset>datum[pathPart.applyName];
+        if (!(nextDataset instanceof NativeDataset)) {
+          throw new Error("could not find applyName to materialize " + pathPart.applyName);
+        }
+        var moreData: Datum[] = nextDataset.data;
+        for (var i = 0; i < moreData.length; i++) {
+          var nextDatum = moreData[i];
+          if (nextDatum[pathPartLabel] === pathPartValue) {
+            this._materializeHelper(attachPoint, pathIndex + 1, nextDatum, value);
+            break;
+          }
+        }
+        throw new Error("could not find path to materialize")
+      } else {
+        datum[attachPoint.name] = value;
+      }
+    }
+
+    public materialize(attachPoint: AttachPoint, value: any): void {
+      if (!attachPoint.name) throw new Error('attach point must have name');
+      this._materializeHelper(attachPoint, 0, this.data[0], value);
+    }
   }
 
   Dataset.register(NativeDataset);

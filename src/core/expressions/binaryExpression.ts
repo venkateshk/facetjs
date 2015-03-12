@@ -105,7 +105,7 @@ module Core {
 
     public every(iter: BooleanExpressionIterator): boolean {
       var pass = iter(this);
-      if (!pass) return false;
+      if (pass != null) return pass;
       return this.lhs.every(iter) && this.rhs.every(iter);
     }
 

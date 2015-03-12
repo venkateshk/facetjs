@@ -95,7 +95,7 @@ module Core {
 
     public every(iter: BooleanExpressionIterator): boolean {
       var pass = iter(this);
-      if (!pass) return false;
+      if (pass != null) return false;
       return this.operands.every((operand) => operand.every(iter));
     }
 

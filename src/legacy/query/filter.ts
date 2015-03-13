@@ -7,12 +7,32 @@ module Legacy {
     return a < b ? b : a;
   }
 
-  function rangesIntersect(range1: any[], range2: any[]) {
-    if (range2[1] < range1[0] || range2[0] > range1[1]) {
-      return false;
-    } else {
-      return range1[0] <= range2[1] && range2[0] <= range1[1];
+  type Range = any[];
+
+  function intersectRanges(range1: Range, range2: Range): Range {
+    var s = larger(range1[0], range2[0]);
+    var l = smaller(range1[1], range2[1]);
+    return (s <= l) ? [s, l] : null;
+  }
+
+  function unionRanges(range1: Range, range2: Range): Range {
+    if (!intersectRanges(range1, range2)) return null;
+    return [smaller(range1[0], range2[0]), larger(range1[1], range2[1])];
+  }
+
+  function intersectRangeSets(range1s: Range[], range2s: Range[]): Range[] {
+    var newRanges: Range[] = [];
+    for (var i = 0; i < range1s.length; i++) {
+      var range1 = range1s[i];
+      for (var j = 0; j < range2s.length; j++) {
+        var range2 = range2s[j];
+        var intersect = intersectRanges(range1, range2);
+        if (intersect) {
+          newRanges.push(intersect);
+        }
+      }
     }
+    return newRanges;
   }
 
   function union(...arraySets: any[][]) {
@@ -32,6 +52,22 @@ module Legacy {
 
   function intersection<T>(set1: T[], set2: T[]): T[] {
     return set1.filter((value) => set2.indexOf(value) !== -1);
+  }
+
+  function getOredRanges(filter: FacetFilter): Range[] {
+    if (filter.type === 'within') {
+      return [(<WithinFilter>filter).range];
+    } else if (filter.type === 'or') {
+      var commonAttribute: string = null;
+      var allWithins = (<OrFilter>filter).filters.every((f) => {
+        if (f.type !== 'within') return false;
+        commonAttribute = commonAttribute || (<WithinFilter>f).attribute;
+        return commonAttribute === (<WithinFilter>f).attribute;
+      });
+      if (!allWithins) return null;
+      return (<OrFilter>filter).filters.map((wf: WithinFilter) => wf.range);
+    }
+    return null;
   }
 
   function compare(a: any, b: any): number {
@@ -889,6 +925,24 @@ module Legacy {
 
       if (filter1.equals(filter2)) return filter1;
 
+      var oredRanges1 = getOredRanges(filter1);
+      var oredRanges2 = getOredRanges(filter2);
+      if (oredRanges1 && oredRanges2) {
+        var ranges = intersectRangeSets(oredRanges1, oredRanges2);
+        var sampleWithin = <WithinFilter>(filter1.type === 'or' ? (<OrFilter>filter1).filters[0] : filter1);
+        var attribute = sampleWithin ? sampleWithin.attribute : null;
+        switch (ranges.length) {
+          case 0:
+            return FacetFilter.FALSE;
+
+          case 1:
+            return new WithinFilter({ attribute: attribute, range: ranges[0] });
+
+          default:
+            return new OrFilter(ranges.map((range) => new WithinFilter({ attribute: attribute, range: range })));
+        }
+      }
+
       if (filter1SortType !== filter2SortType) return;
 
       if (!((filter1.attribute != null) && (filter1.attribute === filter2.attribute))) return;
@@ -898,20 +952,9 @@ module Legacy {
         case "within":
           var filter1Range = (<WithinFilter>filter1).range;
           var filter2Range = (<WithinFilter>filter2).range;
-          var start1 = filter1Range[0];
-          var end1 = filter1Range[1];
-          var start2 = filter2Range[0];
-          var end2 = filter2Range[1];
-          var newStart = larger(start1, start2);
-          var newEnd = smaller(end1, end2);
-          if (newStart <= newEnd) {
-            return new WithinFilter({
-              attribute: attribute,
-              range: [newStart, newEnd]
-            });
-          } else {
-            return FacetFilter.FALSE;
-          }
+          var intersectRange = intersectRanges(filter1Range, filter2Range);
+          if (!intersectRange) return FacetFilter.FALSE;
+          return new WithinFilter({ attribute: attribute, range: intersectRange });
           break;
         case "in":
           return new InFilter({
@@ -1084,15 +1127,9 @@ module Legacy {
         case "within":
           var filter1Range = (<WithinFilter>filter1).range;
           var filter2Range = (<WithinFilter>filter2).range;
-          if (!rangesIntersect(filter1Range, filter2Range)) return;
-          var start1 = filter1Range[0];
-          var end1 = filter1Range[1];
-          var start2 = filter2Range[0];
-          var end2 = filter2Range[1];
-          return new WithinFilter({
-            attribute: filter1.attribute,
-            range: [smaller(start1, start2), larger(end1, end2)]
-          });
+          var unionRange = unionRanges(filter1Range, filter2Range);
+          if (!unionRange) return;
+          return new WithinFilter({ attribute: filter1.attribute, range: unionRange });
         case "in":
           return new InFilter({
             attribute: attribute,

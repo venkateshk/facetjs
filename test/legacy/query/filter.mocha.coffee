@@ -1085,6 +1085,47 @@ describe "FacetFilter", ->
         ]
       })
 
+    it "works for an AND of WITHIN and OR", ->
+      expect(FacetFilter.fromJS({
+        type: 'and'
+        filters: [
+          {
+            type: 'within'
+            attribute: 'time'
+            range: [new Date('2013/01/01'), new Date('2014/01/01')]
+          }
+          {
+            type: 'or'
+            filters: [
+              {
+                type: 'within'
+                attribute: 'time'
+                range: [new Date('2013/01/05'), new Date('2013/01/08')]
+              }
+              {
+                type: 'within'
+                attribute: 'time'
+                range: [new Date('2013/01/10'), new Date('2013/01/20')]
+              }
+            ]
+          }
+        ]
+      }).simplify().toJS()).to.deep.equal({
+        type: 'or'
+        filters: [
+          {
+            type: 'within'
+            attribute: 'time'
+            range: [new Date('2013/01/05'), new Date('2013/01/08')]
+          }
+          {
+            type: 'within'
+            attribute: 'time'
+            range: [new Date('2013/01/10'), new Date('2013/01/20')]
+          }
+        ]
+      })
+
     it "stops merging successfully for complicated filters", ->
       expect(FacetFilter.fromJS({
         type: 'and'

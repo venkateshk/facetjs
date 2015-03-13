@@ -494,8 +494,6 @@ describe "Druid driver", ->
           }
         ])
 
-
-
   describe "introspects", ->
     druidPass = druidRequester({
       host: info.druidHost
@@ -560,10 +558,6 @@ describe "Druid driver", ->
             "categorical": true
           },
           {
-            "name": "newpage",
-            "categorical": true
-          },
-          {
             "name": "page",
             "categorical": true
           },
@@ -601,10 +595,6 @@ describe "Druid driver", ->
           },
           {
             "name": "delta",
-            "numeric": true
-          },
-          {
-            "name": "variation"
             "numeric": true
           }
         ])
@@ -866,14 +856,16 @@ describe "Druid driver", ->
     druidPass = druidRequester({
       host: info.druidHost
     })
+    driver = null
 
-    driver = druidDriver({
-      requester: druidPass
-      dataSource: 'wikipedia_editstream'
-      timeAttribute: 'time'
-      approximate: true
-      forceInterval: true
-    })
+    beforeEach ->
+      driver = druidDriver({
+        requester: druidPass
+        dataSource: 'wikipedia_editstream'
+        timeAttribute: 'time'
+        approximate: true
+        forceInterval: true
+      })
 
     it "should work with a null filter", (testComplete) ->
       query = FacetQuery.fromJS([
@@ -920,21 +912,49 @@ describe "Druid driver", ->
         testComplete()
       ).done()
 
-    it "should get max time only", (testComplete) ->
-      query = FacetQuery.fromJS([
-        {
-          operation: "filter"
-          type: "within"
-          attribute: "timestamp"
-          range: [new Date("2010-01-01T00:00:00"), new Date("2045-01-01T00:00:00")]
-        }
-        { operation: 'apply', name: 'Max', aggregate: 'max', attribute: 'time' }
-      ])
-      driver({query}).then((result) ->
-        expect(result.prop.Max).to.be.an.instanceof(Date)
-        expect(isNaN(result.prop.Max.getTime())).to.be.false
-        testComplete()
-      ).done()
+    describe 'with dataSourceMetaData', ->
+      beforeEach ->
+        driver = druidDriver({
+          requester: druidPass
+          dataSource: 'wikipedia_editstream'
+          timeAttribute: 'time'
+          approximate: true
+          useDataSourceMetadata: true
+          forceInterval: true
+        })
+
+      it "should get max time only", (testComplete) ->
+        query = FacetQuery.fromJS([
+          {
+            operation: "filter"
+            type: "within"
+            attribute: "timestamp"
+            range: [new Date("2010-01-01T00:00:00"), new Date("2045-01-01T00:00:00")]
+          }
+          { operation: 'apply', name: 'Max', aggregate: 'max', attribute: 'time' }
+        ])
+        driver({query}).then((result) ->
+          expect(result.prop.Max).to.be.an.instanceof(Date)
+          expect(isNaN(result.prop.Max.getTime())).to.be.false
+          testComplete()
+        ).done()
+
+    describe 'with vanilla', ->
+      it "should get max time only", (testComplete) ->
+        query = FacetQuery.fromJS([
+          {
+            operation: "filter"
+            type: "within"
+            attribute: "timestamp"
+            range: [new Date("2010-01-01T00:00:00"), new Date("2045-01-01T00:00:00")]
+          }
+          { operation: 'apply', name: 'Max', aggregate: 'max', attribute: 'time' }
+        ])
+        driver({query}).then((result) ->
+          expect(result.prop.Max).to.be.an.instanceof(Date)
+          expect(isNaN(result.prop.Max.getTime())).to.be.false
+          testComplete()
+        ).done()
 
     it "should complain if min/max time is mixed with other applies", (testComplete) ->
       query = FacetQuery.fromJS([

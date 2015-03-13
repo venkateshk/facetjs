@@ -83,6 +83,7 @@ module Legacy {
     attributeMetas: Lookup<AttributeMeta>;
     forceInterval: boolean;
     approximate: boolean;
+    useDataSourceMetadata: boolean;
     context: any;
   }
 
@@ -155,6 +156,7 @@ module Legacy {
     public forceInterval: boolean;
     public intervals: string[];
     public approximate: boolean;
+    public useDataSourceMetadata: boolean;
     public granularity: any; // ToDo: string | Druid.Granularity;
     public filter: Druid.Filter = null;
     public aggregations: Druid.Aggregation[] = [];
@@ -175,6 +177,7 @@ module Legacy {
       this.attributeMetas = parameters.attributeMetas;
       this.forceInterval = parameters.forceInterval;
       this.approximate = parameters.approximate;
+      this.useDataSourceMetadata = parameters.useDataSourceMetadata;
       this.granularity = "all";
       this.intervals = null;
 
@@ -829,6 +832,9 @@ module Legacy {
       var maxTimeOnly = applies.length === 1 && applies[0].aggregate === "max";
       if (maxTimeOnly) {
         queryObj.queryType = "maxTime";
+        if (queryBuilder.useDataSourceMetadata) {
+          queryObj.queryType = "dataSourceMetadata";
+        }
       }
 
       requester({
@@ -847,7 +853,11 @@ module Legacy {
           var apply = applies[i];
           var name = apply.name;
           var aggregate = apply.aggregate;
-          prop[name] = <any>(new Date(maxTimeOnly ? result : result[aggregate + "Time"]));
+          if (maxTimeOnly) {
+            prop[name] = <any>(new Date(queryBuilder.useDataSourceMetadata ? result.maxIngestedEventTime : result));
+          } else {
+            prop[name] = <any>(new Date(result[aggregate + "Time"]));
+          }
         }
 
         callback(null, [prop]);
@@ -1456,6 +1466,7 @@ module Legacy {
     attributeMetas: Lookup<AttributeMeta>;
     forceInterval: boolean;
     approximate: boolean;
+    useDataSourceMetadata: boolean;
     filter: FacetFilter;
     concurrentQueryLimit: number;
     queryLimit: number;
@@ -1471,6 +1482,7 @@ module Legacy {
     var timeAttribute = parameters.timeAttribute || "timestamp";
     var attributeMetas = parameters.attributeMetas || {};
     var approximate = Boolean(parameters.approximate);
+    var useDataSourceMetadata = Boolean(parameters.useDataSourceMetadata);
     var filter = parameters.filter;
     var forceInterval = parameters.forceInterval;
     var concurrentQueryLimit = parameters.concurrentQueryLimit || 16;
@@ -1539,6 +1551,7 @@ module Legacy {
                 attributeMetas: attributeMetas,
                 forceInterval: forceInterval,
                 approximate: approximate,
+                useDataSourceMetadata: useDataSourceMetadata,
                 context: context
               },
               parentSegment: parentSegment,

@@ -12,7 +12,16 @@ module Core {
     data?: Datum[];
 
     // Remote
+    mode?: string;
+    derivedAttributes?: ApplyAction[];
     filter?: Expression;
+    split?: Expression;
+    label?: string;
+    applies?: ApplyAction[];
+    sort?: SortAction;
+    sortOrigin?: string;
+    limit?: LimitAction;
+    havingFilter?: Expression;
 
     // Legacy
     driver?: Legacy.Driver.FacetDriver;

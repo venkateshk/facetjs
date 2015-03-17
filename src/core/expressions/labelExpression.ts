@@ -51,6 +51,23 @@ module Core {
       throw new Error("implement me");
     }
 
+    protected _specialSimplify(simpleOperand: Expression): Expression {
+      if (simpleOperand instanceof AggregateExpression && simpleOperand.fn === 'group') {
+        var remoteDatasetLiteral = simpleOperand.operand;
+        if (remoteDatasetLiteral instanceof LiteralExpression && remoteDatasetLiteral.isRemote()) {
+          var remoteDataset: RemoteDataset = remoteDatasetLiteral.value;
+
+          var newRemoteDataset = remoteDataset.addSplit(simpleOperand.attribute, this.name);
+          if (!newRemoteDataset) return null;
+          return new LiteralExpression({
+            op: 'literal',
+            value: newRemoteDataset
+          })
+        }
+      }
+      return null;
+    }
+
     public _fillRefSubstitutions(typeContext: any, alterations: Alteration[]): any {
       var setType = this.operand._fillRefSubstitutions(typeContext, alterations);
       var newContext: any = { $parent: typeContext };

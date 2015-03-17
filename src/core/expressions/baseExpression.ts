@@ -570,7 +570,7 @@ module Core {
       });
     }
 
-    // Split // .split(attr, l, d) = .group(attr).label(l).def(d, facet(d).filter(ex = ^l))
+    // Split // .split(attr, l, d) = .group(attr).label(l).def(d, facet(^d).filter(ex = ^l))
     public split(attribute: any, name: string, dataName: string = null): Expression {
       if (!Expression.isExpression(attribute)) attribute = Expression.fromJSLoose(attribute);
       if (!dataName) {
@@ -581,7 +581,7 @@ module Core {
         }
       }
       return this.group(attribute).label(name)
-        .def(dataName, facet(dataName).filter(attribute.is(facet('^' + name))));
+        .def(dataName, facet('^' + dataName).filter(attribute.is(facet('^' + name))));
     }
 
     // Expression constructors (Binary)

@@ -152,24 +152,43 @@ module Core {
       if (this.simple) return this;
 
       var simpleOperand = this.operand.simplify();
+      var simpleActions = this.actions.map((action) => action.simplify()); //this._getSimpleActions();
 
-      // Fold filters into remote datasets
-      function isResolvedFilter(action: Action) {
-        return action instanceof FilterAction && action.expression.resolved();
-      }
-      if (simpleOperand instanceof LiteralExpression && simpleOperand.isRemote() && this.actions.every(isResolvedFilter)) {
-        var remoteDataset = <RemoteDataset>(simpleOperand.value);
-        this.actions.forEach((action) => remoteDataset = remoteDataset.addFilter(action.expression))
-        return new LiteralExpression({
-          op: 'literal',
-          value: remoteDataset
-        })
+      // These are actions on a remote dataset
+      var remoteDatasets = this.getRemoteDatasets();
+      if (simpleOperand instanceof LiteralExpression && remoteDatasets.length) {
+        var remoteDataset: RemoteDataset;
+        if ((<LiteralExpression>simpleOperand).isRemote()) {
+          remoteDataset = (<LiteralExpression>simpleOperand).value;
+        } else {
+          if (remoteDatasets.length === 1) {
+            remoteDataset = remoteDatasets[0].makeTotal();
+          } else {
+            throw new Error('not done yet')
+          }
+        }
+
+        if (remoteDataset) {
+          while (simpleActions.length) {
+            var action: Action = simpleActions[0];
+            var newRemoteDataset = remoteDataset.addAction(action);
+            if (!newRemoteDataset) break;
+            simpleActions.shift();
+            remoteDataset = newRemoteDataset;
+          }
+          if ((<LiteralExpression>simpleOperand).value !== remoteDataset) {
+            simpleOperand = new LiteralExpression({
+              op: 'literal',
+              value: remoteDataset
+            })
+          }
+        }
       }
 
+      if (simpleActions.length === 0) return simpleOperand;
       var simpleValue = this.valueOf();
       simpleValue.operand = simpleOperand;
-      simpleValue.actions = this.actions.map((action) => action.simplify()); //this._getSimpleActions();
-      if (simpleValue.actions.length === 0) return simpleValue.operand;
+      simpleValue.actions = simpleActions;
       simpleValue.simple = true;
       return new ActionsExpression(simpleValue);
     }

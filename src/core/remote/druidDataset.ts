@@ -41,6 +41,17 @@ module Core {
     return new NativeDataset({ source: 'native', data: res[0].result });
   }
 
+  function makePostProcessTimeseries(duration: Duration, timezone: Timezone, label: string): PostProcess {
+    return (res: Druid.DruidResults): NativeDataset => {
+      if (!correctTopNResult(res)) {
+        var err = new Error("unexpected result from Druid (topN)");
+        (<any>err).result = res; // ToDo: special error type
+        throw err;
+      }
+      return new NativeDataset({ source: 'native', data: res[0].result });
+    }
+  }
+
   export class DruidDataset extends RemoteDataset {
     static type = 'DATASET';
 
@@ -92,10 +103,6 @@ module Core {
       js.approximate = this.approximate;
       js.context = this.context;
       return js;
-    }
-
-    public toString(): string {
-      return "DruidDataset(" + this.dataSource + ")";
     }
 
     public equals(other: DruidDataset): boolean {
@@ -265,7 +272,10 @@ module Core {
       }
     }
 
-    public splitToDruid(splitExpression: Expression, label: string): DruidSplit {
+    public splitToDruid(): DruidSplit {
+      var splitExpression = this.split;
+      var label = this.label;
+
       var queryType: string;
       var dimension: any = null;
       var granularity: any = 'all';
@@ -491,7 +501,7 @@ module Core {
       };
     }
 
-    public actionsToQuery(actions: ActionsExpression): DatastoreQuery {
+    public getQuery(): Druid.Query {
       var druidQuery: Druid.Query = {
         queryType: 'timeseries',
         dataSource: this.dataSource,
@@ -499,83 +509,90 @@ module Core {
         granularity: 'all'
       };
 
-      var queryPattern = actions.getQueryPattern();
-      if (queryPattern.pattern === 'total') {
-        var filterAndIntervals = this.filterToDruid(queryPattern.filter);
+      switch (this.mode) {
+        case 'total':
+          var filterAndIntervals = this.filterToDruid(this.filter);
 
-        druidQuery.intervals = filterAndIntervals.intervals;
-        if (filterAndIntervals.filter) {
-          druidQuery.filter = filterAndIntervals.filter;
-        }
-
-        var aggregationsAndPostAggregations = this.applyToDruid(queryPattern.applies);
-        if (aggregationsAndPostAggregations.aggregations.length) {
-          druidQuery.aggregations = aggregationsAndPostAggregations.aggregations;
-        }
-        if (aggregationsAndPostAggregations.postAggregations.length) {
-          druidQuery.postAggregations = aggregationsAndPostAggregations.postAggregations;
-        }
-
-        return {
-          query: druidQuery,
-          post: postProcessTotal
-        };
-
-      } else if (queryPattern.pattern === 'split') {
-        var filterAndIntervals = this.filterToDruid(queryPattern.filter);
-
-        druidQuery.intervals = filterAndIntervals.intervals;
-        if (filterAndIntervals.filter) {
-          druidQuery.filter = filterAndIntervals.filter;
-        }
-
-        var aggregationsAndPostAggregations = this.applyToDruid(queryPattern.applies);
-        if (aggregationsAndPostAggregations.aggregations.length) {
-          druidQuery.aggregations = aggregationsAndPostAggregations.aggregations;
-        }
-        if (aggregationsAndPostAggregations.postAggregations.length) {
-          druidQuery.postAggregations = aggregationsAndPostAggregations.postAggregations;
-        }
-
-        var splitSpec = this.splitToDruid(queryPattern.split, queryPattern.label);
-        druidQuery.queryType = splitSpec.queryType;
-        druidQuery.granularity = splitSpec.granularity;
-        if (splitSpec.dimension) druidQuery.dimension = splitSpec.dimension;
-
-        if (druidQuery.queryType === 'timeseries') {
-          if (queryPattern.sort && (queryPattern.sort.direction !== 'ascending' || queryPattern.sort.refName() !== queryPattern.label)) {
-            throw new Error('can not sort within timeseries query');
+          druidQuery.intervals = filterAndIntervals.intervals;
+          if (filterAndIntervals.filter) {
+            druidQuery.filter = filterAndIntervals.filter;
           }
 
-          if (queryPattern.limit) {
-            throw new Error('can not limit within timeseries query');
+          var aggregationsAndPostAggregations = this.applyToDruid(this.applies);
+          if (aggregationsAndPostAggregations.aggregations.length) {
+            druidQuery.aggregations = aggregationsAndPostAggregations.aggregations;
           }
-        }
-
-        var sortAction = queryPattern.sort;
-        if (sortAction && druidQuery.queryType !== 'timeseries') {
-          var metric: any = (<RefExpression>sortAction.expression).name;
-          if (queryPattern.sortOrigin === 'label') {
-            metric = {type: 'lexicographic'};
+          if (aggregationsAndPostAggregations.postAggregations.length) {
+            druidQuery.postAggregations = aggregationsAndPostAggregations.postAggregations;
           }
-          if (sortAction.direction === 'ascending') {
-            metric = {type: "inverted", metric: metric};
+
+          return druidQuery;
+
+        case 'split':
+          var filterAndIntervals = this.filterToDruid(this.filter);
+
+          druidQuery.intervals = filterAndIntervals.intervals;
+          if (filterAndIntervals.filter) {
+            druidQuery.filter = filterAndIntervals.filter;
           }
-          druidQuery.metric = metric;
-        }
 
-        if (queryPattern.limit) {
-          druidQuery.threshold = queryPattern.limit.limit;
-        }
+          var aggregationsAndPostAggregations = this.applyToDruid(this.applies);
+          if (aggregationsAndPostAggregations.aggregations.length) {
+            druidQuery.aggregations = aggregationsAndPostAggregations.aggregations;
+          }
+          if (aggregationsAndPostAggregations.postAggregations.length) {
+            druidQuery.postAggregations = aggregationsAndPostAggregations.postAggregations;
+          }
 
-        return {
-          query: druidQuery,
-          post: postProcessTopN // ToDo: what if timeseries
-        };
+          var splitSpec = this.splitToDruid();
+          druidQuery.queryType = splitSpec.queryType;
+          druidQuery.granularity = splitSpec.granularity;
+          if (splitSpec.dimension) druidQuery.dimension = splitSpec.dimension;
+
+          if (druidQuery.queryType === 'timeseries') {
+            if (this.sort && (this.sort.direction !== 'ascending' || this.sort.refName() !== this.label)) {
+              throw new Error('can not sort within timeseries query');
+            }
+
+            if (this.limit) {
+              throw new Error('can not limit within timeseries query');
+            }
+          }
+
+          var sortAction = this.sort;
+          if (sortAction && druidQuery.queryType !== 'timeseries') {
+            var metric: any = (<RefExpression>sortAction.expression).name;
+            if (this.sortOrigin === 'label') {
+              metric = { type: 'lexicographic' };
+            }
+            if (sortAction.direction === 'ascending') {
+              metric = { type: "inverted", metric: metric };
+            }
+            druidQuery.metric = metric;
+          }
+
+          if (this.limit) {
+            druidQuery.threshold = this.limit.limit;
+          }
+
+          return druidQuery;
+
+        default:
+          throw new Error("can not get query for: " + this.mode);
       }
+    }
 
-      // Should not get here
-      throw new Error('could not match a known query pattern: ' + actions.toString());
+    public getPostProcess(): PostProcess {
+      switch (this.mode) {
+        case 'total':
+          return postProcessTotal;
+
+        case 'split':
+          return postProcessTopN; // ToDo: more here
+
+        default:
+          throw new Error("can not post process: " + this.mode);
+      }
     }
   }
   Dataset.register(DruidDataset);

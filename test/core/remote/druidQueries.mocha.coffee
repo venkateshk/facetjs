@@ -49,10 +49,10 @@ describe "DruidDataset actually", ->
           .sort('$Count', 'descending')
           .limit(2)
           .apply('Time',
-            facet("wiki").split(facet("time").timeBucket('P1D', 'America/Los_Angeles'), 'Timestamp')
+            facet("wiki").split(facet("time").timeBucket('PT1H', 'America/Los_Angeles'), 'Timestamp')
               .apply('TotalAdded', '$wiki.sum($added)')
               .sort('$Timestamp', 'ascending')
-#             .limit(10)
+              .limit(3)
 #             .apply('Carats',
 #               facet("diamonds").split(facet("carat").numberBucket(0.25), 'Carat')
 #                 .apply('Count', facet('diamonds').count())
@@ -71,10 +71,62 @@ describe "DruidDataset actually", ->
             {
               "Count": 124
               "Page": "Wikipedia:Administrator_intervention_against_vandalism"
+              "Time": [
+                {
+                  "Timestamp": {
+                    "end": new Date('2013-02-26T01:00:00.000Z')
+                    "start": new Date('2013-02-26T00:00:00.000Z')
+                    "type": "TIME_RANGE"
+                  }
+                  "TotalAdded": 692
+                }
+                {
+                  "Timestamp": {
+                    "end": new Date('2013-02-26T02:00:00.000Z')
+                    "start": new Date('2013-02-26T01:00:00.000Z')
+                    "type": "TIME_RANGE"
+                  }
+                  "TotalAdded": 1370
+                }
+                {
+                  "Timestamp": {
+                    "end": new Date('2013-02-26T03:00:00.000Z')
+                    "start": new Date('2013-02-26T02:00:00.000Z')
+                    "type": "TIME_RANGE"
+                  }
+                  "TotalAdded": 945
+                }
+              ]
             }
             {
               "Count": 88
               "Page": "Wikipedia:Reference_desk/Science"
+              "Time": [
+                {
+                  "Timestamp": {
+                    "end": new Date('2013-02-26T01:00:00.000Z')
+                    "start": new Date('2013-02-26T00:00:00.000Z')
+                    "type": "TIME_RANGE"
+                  }
+                  "TotalAdded": 1978
+                }
+                {
+                  "Timestamp": {
+                    "end": new Date('2013-02-26T02:00:00.000Z')
+                    "start": new Date('2013-02-26T01:00:00.000Z')
+                    "type": "TIME_RANGE"
+                  }
+                  "TotalAdded": 4070
+                }
+                {
+                  "Timestamp": {
+                    "end": new Date('2013-02-26T03:00:00.000Z')
+                    "start": new Date('2013-02-26T02:00:00.000Z')
+                    "type": "TIME_RANGE"
+                  }
+                  "TotalAdded": 1301
+                }
+              ]
             }
           ]
         }

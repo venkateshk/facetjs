@@ -42,13 +42,39 @@ module Core {
   }
 
   function makePostProcessTimeseries(duration: Duration, timezone: Timezone, label: string): PostProcess {
-    return (res: Druid.DruidResults): NativeDataset => {
-      if (!correctTopNResult(res)) {
-        var err = new Error("unexpected result from Druid (topN)");
+    return (res: Druid.TimeseriesResults): NativeDataset => {
+      if (!correctTimeseriesResult(res)) {
+        var err = new Error("unexpected result from Druid (timeseries)");
         (<any>err).result = res; // ToDo: special error type
         throw err;
       }
-      return new NativeDataset({ source: 'native', data: res[0].result });
+      //var warp = split.warp;
+      //var warpDirection = split.warpDirection;
+      var canonicalDurationLengthAndThenSome = duration.getCanonicalLength() * 1.5;
+      return new NativeDataset({
+        source: 'native',
+        data: res.map((d: any, i: number) => {
+          var rangeStart = new Date(d.timestamp);
+          var next = res[i + 1];
+          var nextTimestamp: Date;
+          if (next) {
+            nextTimestamp = new Date(next.timestamp);
+          }
+
+          var rangeEnd = (nextTimestamp && rangeStart.valueOf() < nextTimestamp.valueOf() &&
+                          nextTimestamp.valueOf() - rangeStart.valueOf() < canonicalDurationLengthAndThenSome) ?
+                          nextTimestamp : duration.move(rangeStart, timezone, 1);
+
+          //if (warp) {
+          //  rangeStart = warp.move(rangeStart, timezone, warpDirection);
+          //  range//End = warp.move(rangeEnd, timezone, warpDirection);
+          //}
+
+          var datum: Datum = d.result;
+          datum[label] = new TimeRange({ start: rangeStart, end: rangeEnd });
+          return datum;
+        })
+      });
     }
   }
 
@@ -113,6 +139,31 @@ module Core {
         this.approximate === other.approximate &&
         this.context === other.context;
     }
+
+    // -----------------
+
+    public canHandleSort(sortAction: SortAction): boolean {
+      if (this.split instanceof TimeBucketExpression) {
+        var sortExpression = sortAction.expression;
+        if (sortExpression instanceof RefExpression) {
+          return sortExpression.name === this.label;
+        } else {
+          return false;
+        }
+      } else {
+        return true;
+      }
+    }
+
+    public canHandleLimit(limitAction: LimitAction): boolean {
+      return !(this.split instanceof TimeBucketExpression);
+    }
+
+    public canHandleHavingFilter(ex: Expression): boolean {
+      return false;
+    }
+
+    // -----------------
 
     public getAttributeMeta(attr: string): Legacy.AttributeMeta {
       return Legacy.AttributeMeta.DEFAULT
@@ -588,7 +639,12 @@ module Core {
           return postProcessTotal;
 
         case 'split':
-          return postProcessTopN; // ToDo: more here
+          var split = this.split;
+          if (split instanceof TimeBucketExpression) {
+            return makePostProcessTimeseries(split.duration, split.timezone, this.label);
+          } else {
+            return postProcessTopN;
+          }
 
         default:
           throw new Error("can not post process: " + this.mode);

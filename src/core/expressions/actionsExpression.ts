@@ -306,6 +306,52 @@ module Core {
 
       return dataset;
     }
+
+    public _computeResolved(): Q.Promise<any> {
+      var actions = this.actions;
+      return this.operand._computeResolved().then((dataset) => {
+        for (var i = 0; i < actions.length; i++) {
+          var action = actions[i];
+          var actionExpression = action.expression;
+
+          if (action instanceof FilterAction) {
+            dataset = dataset.filter(action.expression.getFn());
+
+          } else if (action instanceof ApplyAction) {
+            if (actionExpression instanceof ActionsExpression) {
+              dataset = dataset.applyPromise(action.name, (d: Datum) => {
+                return actionExpression.resolve(d).simplify()._computeResolved();
+              });
+            } else {
+              dataset = dataset.apply(action.name, actionExpression.getFn());
+            }
+
+          } else if (action instanceof DefAction) {
+            if (actionExpression instanceof ActionsExpression) {
+              dataset = dataset.def(action.name, (d: Datum) => {
+                var simple = actionExpression.resolve(d).simplify();
+                if (simple instanceof LiteralExpression) {
+                  return simple.value;
+                } else {
+                  return simple._computeResolved();
+                }
+              });
+            } else {
+              dataset = dataset.def(action.name, actionExpression.getFn());
+            }
+
+          } else if (action instanceof SortAction) {
+            dataset = dataset.sort(actionExpression.getFn(), action.direction);
+
+          } else if (action instanceof LimitAction) {
+            dataset = dataset.limit(action.limit);
+
+          }
+        }
+
+        return dataset;
+      })
+    }
   }
 
   Expression.register(ActionsExpression);

@@ -36,7 +36,7 @@ describe "DruidDataset actually", ->
           start: new Date("2013-02-26T00:00:00Z")
           end: new Date("2013-02-27T00:00:00Z")
         }))
-      })
+      }, druidPass)
     }
 
     ex = facet()
@@ -49,8 +49,8 @@ describe "DruidDataset actually", ->
           .sort('$Count', 'descending')
           .limit(2)
           .apply('Time',
-            facet("diamonds").split(facet("time").timeBucket('P1D', 'America/Los_Angeles'), 'Timestamp')
-              .apply('TotalPrice', facet('diamonds').sum('$price'))
+            facet("wiki").split(facet("time").timeBucket('P1D', 'America/Los_Angeles'), 'Timestamp')
+              .apply('TotalAdded', '$wiki.sum($added)')
               .sort('$Timestamp', 'ascending')
 #             .limit(10)
 #             .apply('Carats',
@@ -62,7 +62,7 @@ describe "DruidDataset actually", ->
           )
     )
 
-    ex.compute(context, druidPass).then((result) ->
+    ex.compute(context).then((result) ->
       expect(result.toJS()).to.deep.equal([
         {
           "Count": 308675

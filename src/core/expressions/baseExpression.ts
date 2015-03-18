@@ -412,7 +412,6 @@ module Core {
      * if substitutionFn returns an expression than it is replaced; if null is returned no action is taken.
      *
      * @param substitutionFn The function with which to substitute
-     * @param genDiff The number of context generations offset from the caller and this expression
      */
     public substitute(substitutionFn: SubstitutionFn): Expression {
       return this._substituteHelper(substitutionFn, 0, 0);
@@ -752,6 +751,10 @@ module Core {
       throw new Error("can not call this directly");
     }
 
+    public _computeResolved(): Q.Promise<any> {
+      throw new Error("can not call this directly");
+    }
+
     public simulateQueryPlan(context: Datum): any[] {
       var generatedQueries: any[] = [];
       this.referenceCheck(context).resolve(context).simplify()._computeNativeResolved(generatedQueries);
@@ -772,62 +775,13 @@ module Core {
      * Computes a general asynchronous expression
      *
      * @param context The context within which to compute the expression
-     * @param requester The requester to fufil the requests
      * @returns {Q.Promise<any>}
      */
-    public compute(context: Datum = {}, requester: Requester.FacetRequester<any> = null): Q.Promise<any> {
+    public compute(context: Datum = {}): Q.Promise<any> {
       if (!datumHasRemote(context) && !this.hasRemote()) {
         return Q(this.computeNative(context));
       }
-
-      var simple = this.referenceCheck(context).simplify();
-      if (!requester) {
-        throw new Error("must have a requester");
-      }
-
-      var promise = Q(null);
-      /*
-      var breakdown = simple.referenceCheck(context).getExpressionBreakdown();
-
-      breakdown.forEach((partExpression, partNumber) => {
-        var leaf = partNumber === breakdown.length - 1;
-        promise = promise.then((next) => {
-          var ctx: Datum = next ? {next: next} : context;
-          var partExpressionResolved = partExpression.resolve(ctx).simplify();
-
-          var dataSourceDefActions: DefAction[] = null;
-          if (partExpressionResolved instanceof ActionsExpression) {
-            dataSourceDefActions = <DefAction[]>partExpressionResolved.actions.filter((a) => {
-              return a instanceof DefAction && a.expression.type === 'DATASET';
-            });
-          }
-
-          var remoteDatasets = partExpressionResolved.getRemoteDatasets();
-          if (remoteDatasets.length > 1) throw new Error("can not handle multiple remote datasets (yet)");
-          if (remoteDatasets.length < 1) throw new Error('fill this in: ' + partExpressionResolved.toString());
-
-          var generated = remoteDatasets[0].generateQueries(partExpressionResolved)[0];
-          //console.log("gen", generated);
-          return requester({query: generated.query}).then((res) => {
-            var ds = generated.post(res);
-            // Re-compute any defActions that were lost
-            if (ds instanceof NativeDataset && !leaf && dataSourceDefActions) {
-              dataSourceDefActions.forEach((dataSourceDefAction) => {
-                ds.def(dataSourceDefAction.name, dataSourceDefAction.expression.getFn())
-              })
-            }
-            if (generated.name) {
-              (<NativeDataset>next).materialize(generated, ds);
-              return next;
-            } else {
-              return ds;
-            }
-          });
-        })
-      })
-      */
-
-      return promise;
+      return this.referenceCheck(context).resolve(context).simplify()._computeResolved();
     }
   }
   check = Expression;

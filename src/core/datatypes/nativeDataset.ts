@@ -1,4 +1,12 @@
 module Core {
+  export interface ComputeFn {
+    (d: Datum): any;
+  }
+
+  export interface ComputePromiseFn {
+    (d: Datum): Q.Promise<any>;
+  }
+
   export interface DirectionFn {
     (a: any, b: any): number;
   }
@@ -67,7 +75,7 @@ module Core {
   export class NativeDataset extends Dataset {
     static type = 'DATASET';
 
-    static fromJS(datasetJS: any): NativeDataset {
+    static fromJS(datasetJS: any, requester: Requester.FacetRequester<any> = null): NativeDataset {
       var value = Dataset.jsToValue(datasetJS);
       value.data = datasetJS.data.map(datumFromJS);
       return new NativeDataset(value)
@@ -115,7 +123,7 @@ module Core {
     }
 
     // Actions
-    public apply(name: string, exFn: Function): NativeDataset {
+    public apply(name: string, exFn: ComputeFn): NativeDataset {
       // Note this works in place, fix that later if needed.
       var data = this.data;
       var n = data.length;
@@ -127,7 +135,20 @@ module Core {
       return this;
     }
 
-    public def(name: string, exFn: Function): NativeDataset {
+    public applyPromise(name: string, exFn: ComputePromiseFn): Q.Promise<NativeDataset> {
+      // Note this works in place, fix that later if needed.
+      var ds = this;
+      var promises = this.data.map(exFn);
+      return Q.all(promises).then((values) => {
+        var data = ds.data;
+        var n = data.length;
+        for (var i = 0; i < n; i++) data[i][name] = values[i];
+        this.attributes = null; // Since we did the change in place, blow out the attributes
+        return ds;
+      });
+    }
+
+    public def(name: string, exFn: ComputeFn): NativeDataset {
       // Note this works in place, fix that later if needed.
       var data = this.data;
       var n = data.length;
@@ -140,14 +161,14 @@ module Core {
       return this;
     }
 
-    public filter(exFn: Function): NativeDataset {
+    public filter(exFn: ComputeFn): NativeDataset {
       return new NativeDataset({
         source: 'native',
         data: this.data.filter((datum) => exFn(datum))
       })
     }
 
-    public sort(exFn: Function, direction: string): NativeDataset {
+    public sort(exFn: ComputeFn, direction: string): NativeDataset {
       // Note this works in place, fix that later if needed.
       var directionFn = directionFns[direction];
       this.data.sort((a, b) => directionFn(exFn(a), exFn(b)));

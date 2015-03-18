@@ -121,6 +121,15 @@ module Core {
         return this.value;
       }
     }
+
+    public _computeResolved(): Q.Promise<any> {
+      var value = this.value;
+      if (value instanceof RemoteDataset) {
+        return value.queryValues();
+      } else {
+        return Q(this.value);
+      }
+    }
   }
 
   Expression.FALSE = <LiteralExpression>(new LiteralExpression({op: 'literal', value: false}));

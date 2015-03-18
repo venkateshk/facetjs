@@ -12,6 +12,7 @@ module Core {
     data?: Datum[];
 
     // Remote
+    requester?: Requester.FacetRequester<any>;
     mode?: string;
     derivedAttributes?: ApplyAction[];
     filter?: Expression;
@@ -101,7 +102,7 @@ module Core {
       Dataset.classMap[op] = ex;
     }
 
-    static fromJS(datasetJS: any): Dataset {
+    static fromJS(datasetJS: any, requester: Requester.FacetRequester<any> = null): Dataset {
       if (Array.isArray(datasetJS)) {
         datasetJS = {
           source: 'native',
@@ -125,7 +126,7 @@ module Core {
         throw new Error("unsupported dataset '" + source + "'");
       }
 
-      return ClassFn.fromJS(datasetJS);
+      return ClassFn.fromJS(datasetJS, requester);
     }
 
     public source: string;

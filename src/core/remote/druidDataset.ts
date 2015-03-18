@@ -58,8 +58,8 @@ module Core {
     static TRUE_INTERVAL = ["1000-01-01/3000-01-01"];
     static FALSE_INTERVAL = ["1000-01-01/1000-01-02"];
 
-    static fromJS(datasetJS: any): DruidDataset {
-      var value = RemoteDataset.jsToValue(datasetJS);
+    static fromJS(datasetJS: any, requester: Requester.FacetRequester<any> = null): DruidDataset {
+      var value = RemoteDataset.jsToValue(datasetJS, requester);
       value.dataSource = datasetJS.dataSource;
       value.timeAttribute = datasetJS.timeAttribute;
       value.forceInterval = datasetJS.forceInterval;

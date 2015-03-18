@@ -40,12 +40,14 @@ module Core {
   export class RemoteDataset extends Dataset {
     static type = 'DATASET';
 
-    static jsToValue(parameters: any): DatasetValue {
+    static jsToValue(parameters: any, requester: Requester.FacetRequester<any> = null): DatasetValue {
       var value = Dataset.jsToValue(parameters);
       value.filter = parameters.filter || Expression.TRUE;
+      if (requester) value.requester = requester;
       return value;
     }
 
+    public requester: Requester.FacetRequester<any>;
     public mode: string; // raw, total, split (potential aggregate mode)
     public derivedAttributes: ApplyAction[];
     public filter: Expression;
@@ -60,15 +62,9 @@ module Core {
     //public fullJoin: RemoteDataset; // ToDo: maybe a good idea to have chain joins
     //public leftJoin: RemoteDataset;
 
-    // ToDo: notes
-    // need .select aggregator == .firstInGroup()
-    // Remote dataset to number (maxTime)
-    // .apply('maxTime', $data.max($time))
-    // => .apply($maxTime, ds.apply($tmp, $max($time)).select($tmp))
-    // side q: allow .apply($maxTime, $data.max($time)) ?
-
     constructor(parameters: DatasetValue, dummy: Dummy = null) {
       super(parameters, dummyObject);
+      this.requester = parameters.requester;
       this.mode = parameters.mode || 'raw';
       this.derivedAttributes = parameters.derivedAttributes || [];
       this.filter = parameters.filter || Expression.TRUE;
@@ -94,6 +90,7 @@ module Core {
 
     public valueOf(): DatasetValue {
       var value = super.valueOf();
+      value.requester = this.requester;
       value.mode = this.mode;
       value.derivedAttributes = this.derivedAttributes;
       value.filter = this.filter;
@@ -171,6 +168,8 @@ module Core {
     public canHandleHavingFilter(ex: Expression): boolean {
       return true;
     }
+
+    // -----------------
 
     public makeTotal(): RemoteDataset {
       if (this.mode !== 'raw') return null; // Can only split on 'raw' datasets
@@ -310,6 +309,18 @@ module Core {
 
     public getPostProcess(): PostProcess {
       throw new Error("can not call getPostProcess directly");
+    }
+
+    public queryValues(): Q.Promise<NativeDataset> {
+      if (!this.requester) {
+        return <Q.Promise<NativeDataset>>Q.reject(new Error('must have a requester to actually do queries'));
+      }
+      try {
+        var query = this.getQuery();
+      } catch (e) {
+        return <Q.Promise<NativeDataset>>Q.reject(e);
+      }
+      return this.requester({ query: query }).then(this.getPostProcess());
     }
   }
 }

@@ -112,12 +112,14 @@ module Core {
       }
     }
 
-    public computeNativeResolved(): any {
-      return this.value;
-    }
-
-    public simulateResolved(): any {
-      return this.value;
+    public _computeNativeResolved(queries: any[]): any {
+      var value = this.value;
+      if (value instanceof RemoteDataset) {
+        if (queries) queries.push(value.getQuery());
+        return value.simulate();
+      } else {
+        return this.value;
+      }
     }
   }
 

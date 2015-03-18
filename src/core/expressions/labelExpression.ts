@@ -76,10 +76,6 @@ module Core {
 
       return newContext;
     }
-
-    public simulateResolved(): any {
-      return this.operand.simulateResolved().label(this.name);
-    }
   }
 
   Expression.register(LabelExpression);

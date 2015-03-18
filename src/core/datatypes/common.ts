@@ -133,63 +133,9 @@ module Core {
     return false;
   }
 
-  export interface Capability {
-    (ex: Expression): boolean;
-  }
-
-  export interface FilterCapabilities {
-    canIs?: Capability;
-    canAnd?: Capability;
-    canOr?: Capability;
-    canNot?: Capability;
-  }
-
-  export interface ApplyCombineCapabilities {
-    canSum?: Capability;
-    canMin?: Capability;
-    canMax?: Capability;
-    canGroup?: Capability;
-  }
-
-  export interface SplitCapabilities {
-    canSelect?: ApplyCombineCapabilities;
-    canTotal?: ApplyCombineCapabilities;
-    canSplit?: ApplyCombineCapabilities;
-  }
-
-  // --------------------------
-
-  // [{ applyName: 'Cuts', label: 'Cut', value: 'good-cut' }], name: 'Carats'
-  export interface PathPart {
-    applyName: string;
-    label: string;
-    value: any;
-  }
-
-  export interface AttachPoint {
-    path: PathPart[];
-    name: string;
-  }
-
-  export interface ExpressionAttachPoint extends AttachPoint {
-    actions: ActionsExpression;
-  }
-
   // --------------------------
 
   export interface PostProcess {
     (result: any): any;
-  }
-
-  export interface DatastoreQuery {
-    query: any;
-    post: PostProcess;
-  }
-
-  // --------------------------
-
-  export interface QueryAttachPoint extends AttachPoint {
-    query: any;
-    post: PostProcess;
   }
 }

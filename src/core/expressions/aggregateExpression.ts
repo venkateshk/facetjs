@@ -1,42 +1,4 @@
 module Core {
-  function getSampleValue(ex: Expression): any {
-    switch (ex.type) {
-      case 'BOOLEAN':
-        return true;
-
-      case 'NUMBER':
-        return 4;
-
-      case 'NUMBER_RANGE':
-        if (ex instanceof NumberBucketExpression) {
-          return { start: ex.offset, end: ex.offset + ex.size };
-        } else {
-          return { start: 0, end: 1 };
-        }
-
-      case 'TIME':
-        return new Date('2015-03-14T00:00:00');
-
-      case 'TIME_RANGE':
-        if (ex instanceof TimeBucketExpression) {
-          var start = ex.duration.floor(new Date('2015-03-14T00:00:00'), ex.timezone);
-          return { start: start, end: ex.duration.move(start, ex.timezone, 1) };
-        } else {
-          return { start: new Date('2015-03-14T00:00:00'), end: new Date('2015-03-15T00:00:00') };
-        }
-
-      case 'STRING':
-        if (ex instanceof RefExpression) {
-          return 'some_' + ex.name;
-        } else {
-          return 'something';
-        }
-
-      default:
-        throw new Error("unsupported simulation on: " + ex.type);
-    }
-  }
-
   export class AggregateExpression extends UnaryExpression {
     static fromJS(parameters: ExpressionJS): AggregateExpression {
       var value = UnaryExpression.jsToValue(parameters);
@@ -169,17 +131,6 @@ module Core {
         attributeType = this.attribute._fillRefSubstitutions(datasetContext, alterations);
       }
       return this.fn === 'group' ? ('SET/' + attributeType) : this.type;
-    }
-
-    public simulateResolved(): any {
-      if (this.fn === 'group') {
-        return Set.fromJS({
-          setType: this.attribute.type,
-          elements: [getSampleValue(this.attribute)]
-        });
-      } else {
-        return 4;
-      }
     }
   }
 

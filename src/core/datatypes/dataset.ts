@@ -17,6 +17,7 @@ module Core {
     filter?: Expression;
     split?: Expression;
     label?: string;
+    defs?: DefAction[];
     applies?: ApplyAction[];
     sort?: SortAction;
     sortOrigin?: string;

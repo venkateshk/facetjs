@@ -8,31 +8,31 @@ if not WallTime.rules
 facet = require('../../../build/facet')
 { Expression, Dataset, TimeRange } = facet.core
 
+context = {
+  diamonds: Dataset.fromJS({
+    source: 'druid',
+    dataSource: 'diamonds',
+    timeAttribute: 'time',
+    forceInterval: true,
+    approximate: true,
+    context: null
+    attributes: {
+      time: { type: 'TIME' }
+      color: { type: 'STRING' }
+      cut: { type: 'STRING' }
+      carat: { type: 'STRING' }
+      price: { type: 'NUMBER' }
+      tax: { type: 'NUMBER' }
+    }
+    filter: facet("time").in(TimeRange.fromJS({
+      start: new Date('2015-03-12T00:00:00')
+      end:   new Date('2015-03-19T00:00:00')
+    }))
+  })
+}
+
 describe "simulate", ->
   it "works in advanced case", ->
-    context = {
-      diamonds: Dataset.fromJS({
-        source: 'druid',
-        dataSource: 'diamonds',
-        timeAttribute: 'time',
-        forceInterval: true,
-        approximate: true,
-        context: null
-        attributes: {
-          time: { type: 'TIME' }
-          color: { type: 'STRING' }
-          cut: { type: 'STRING' }
-          carat: { type: 'STRING' }
-          price: { type: 'NUMBER' }
-          tax: { type: 'NUMBER' }
-        }
-        filter: facet("time").in(TimeRange.fromJS({
-          start: new Date('2015-03-12T00:00:00')
-          end:   new Date('2015-03-19T00:00:00')
-        }))
-      })
-    }
-
     ex = facet()
       .def("diamonds", facet('diamonds').filter(facet("color").is('D')))
       .apply('Count', '$diamonds.count()')

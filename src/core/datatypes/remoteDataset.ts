@@ -1,38 +1,39 @@
 module Core {
-  export function getAttachPoints(ex: ActionsExpression): ExpressionAttachPoint[] {
-    var operand = ex.operand;
-    var actions = ex.actions;
+  function getSampleValue(valueType: string, ex: Expression): any {
+    switch (valueType) {
+      case 'BOOLEAN':
+        return true;
 
-    var action = actions[0];
-    if (actions.length === 1 && action instanceof ApplyAction && operand instanceof LiteralExpression) {
-      var contexts = (<NativeDataset>operand.value).data;
-      var applyName = action.name;
-      var applyExpression = action.expression;
+      case 'NUMBER':
+        return 4;
 
-      return concatMap(contexts, (datum): ExpressionAttachPoint[] => {
-        var resolvedExpression = <ActionsExpression>(applyExpression.resolve(datum).simplify());
-        if (resolvedExpression.operand instanceof LabelExpression) {
-          return [{
-            path: [],
-            name: applyName,
-            actions: resolvedExpression
-          }]
+      case 'NUMBER_RANGE':
+        if (ex instanceof NumberBucketExpression) {
+          return new NumberRange({ start: ex.offset, end: ex.offset + ex.size });
         } else {
-          var attachPoints = getAttachPoints(resolvedExpression);
-          // ToDo: update paths
-          return attachPoints;
+          return new NumberRange({ start: 0, end: 1 });
         }
-      })
 
-    } else if (actions.every((action) => action instanceof DefAction || (action instanceof ApplyAction && action.expression.type == 'NUMBER'))) {
-      return [{
-        path: [],
-        name: null,
-        actions: ex
-      }]
+      case 'TIME':
+        return new Date('2015-03-14T00:00:00');
 
-    } else {
-      throw new Error("not supported: " + ex.toString());
+      case 'TIME_RANGE':
+        if (ex instanceof TimeBucketExpression) {
+          var start = ex.duration.floor(new Date('2015-03-14T00:00:00'), ex.timezone);
+          return new TimeRange({ start: start, end: ex.duration.move(start, ex.timezone, 1) });
+        } else {
+          return new TimeRange({ start: new Date('2015-03-14T00:00:00'), end: new Date('2015-03-15T00:00:00') });
+        }
+
+      case 'STRING':
+        if (ex instanceof RefExpression) {
+          return 'some_' + ex.name;
+        } else {
+          return 'something';
+        }
+
+      default:
+        throw new Error("unsupported simulation on: " + valueType);
     }
   }
 
@@ -50,13 +51,14 @@ module Core {
     public filter: Expression;
     public split: Expression;
     public label: string;
+    public defs: DefAction[];
     public applies: ApplyAction[];
     public sort: SortAction;
     public sortOrigin: string;
     public limit: LimitAction;
     public havingFilter: Expression;
-    public fullJoin: RemoteDataset; // ToDo: maybe a good idea to have chain joins
-    public leftJoin: RemoteDataset;
+    //public fullJoin: RemoteDataset; // ToDo: maybe a good idea to have chain joins
+    //public leftJoin: RemoteDataset;
 
     // ToDo: notes
     // need .select aggregator == .firstInGroup()
@@ -72,6 +74,7 @@ module Core {
       this.filter = parameters.filter || Expression.TRUE;
       this.split = parameters.split;
       this.label = parameters.label;
+      this.defs = parameters.defs;
       this.applies = parameters.applies;
       this.sort = parameters.sort;
       this.sortOrigin = parameters.sortOrigin;
@@ -79,6 +82,7 @@ module Core {
       this.havingFilter = parameters.havingFilter;
 
       if (this.mode !== 'raw') {
+        this.defs = this.defs || [];
         this.applies = this.applies || [];
 
         if (this.mode === 'split') {
@@ -95,6 +99,7 @@ module Core {
       value.filter = this.filter;
       value.split = this.split;
       value.label = this.label;
+      value.defs = this.defs;
       value.applies = this.applies;
       value.sort = this.sort;
       value.sortOrigin = this.sortOrigin;
@@ -220,6 +225,7 @@ module Core {
               var otherDataset: RemoteDataset = expression.value;
               value.derivedAttributes = otherDataset.derivedAttributes;
               value.filter = otherDataset.filter;
+              value.defs = value.defs.concat(action);
             } else {
               return null;
             }
@@ -231,8 +237,10 @@ module Core {
             if (defExpression instanceof ActionsExpression &&
               defExpression.actions.length === 1 &&
               defExpression.actions[0].action === 'filter' &&
-              defExpression.actions[0].expression.equals(this.split.is(new RefExpression({ op: 'ref', name: '^' + this.label })))) {
-              // segmentDatasetName
+              defExpression.actions[0].expression.equals(
+                this.split.is(new RefExpression({ op: 'ref', name: '^' + this.label, type: this.split.type })))
+            ) {
+              value.defs = value.defs.concat(action);
 
             } else {
               return null;
@@ -249,7 +257,7 @@ module Core {
         if (this.mode === 'raw') {
           value.derivedAttributes = value.derivedAttributes.concat(action);
         } else {
-          value.applies = value.applies.concat(action)
+          value.applies = value.applies.concat(action);
         }
 
       } else if (action instanceof SortAction) {
@@ -269,28 +277,39 @@ module Core {
 
     // -----------------
 
+    public simulate(): NativeDataset {
+      var datum: Datum = {};
+
+      if (this.mode === 'raw') {
+        var attributes = this.attributes;
+        for (var attributeName in attributes) {
+          if (!attributes.hasOwnProperty(attributeName)) continue;
+          datum[attributeName] = getSampleValue(attributes[attributeName].type, null);
+        }
+      } else {
+        if (this.mode === 'split') {
+          datum[this.label] = getSampleValue(this.split.type, this.split);
+        }
+
+        var applies = this.applies;
+        for (var i = 0; i < applies.length; i++) {
+          var apply = applies[i];
+          datum[apply.name] = getSampleValue(apply.expression.type, apply.expression);
+        }
+      }
+
+      return new NativeDataset({
+        source: 'native',
+        data: [datum]
+      });
+    }
+
     public getQuery(): any {
       throw new Error("can not call getQuery directly");
     }
 
     public getPostProcess(): PostProcess {
       throw new Error("can not call getPostProcess directly");
-    }
-
-    public generateQueries(ex: Expression): QueryAttachPoint[] {
-      /*
-      var attachPaths = getAttachPoints(<ActionsExpression>ex);
-      return attachPaths.map((attachPath) => {
-        var datastoreQuery = this.actionsToQuery(attachPath.actions);
-        return {
-          path: attachPath.path,
-          name: attachPath.name,
-          query: datastoreQuery.query,
-          post: datastoreQuery.post
-        }
-      }, this);
-      */
-      return null;
     }
   }
 }

@@ -41,24 +41,65 @@ describe "RemoteDataset", ->
         .apply('Count', '$wiki.count()')
         .apply('TotalAdded', '$wiki.sum($added)')
 
-      ex = ex.resolve(context).simplify()
+      ex = ex.referenceCheck(context).resolve(context).simplify()
 
       remoteDataset = ex.value
       expect(remoteDataset.derivedAttributes).to.have.length(1)
+      expect(remoteDataset.defs).to.have.length(1)
       expect(remoteDataset.applies).to.have.length(2)
 
-    it "a split", ->
+      expect(remoteDataset.simulate().toJS()).to.deep.equal([
+        {
+          "Count": 4
+          "TotalAdded": 4
+        }
+      ])
+
+    it "a split on string", ->
       ex = facet('wiki').split("$page", 'Page')
         .apply('Count', '$wiki.count()')
         .apply('Added', '$wiki.sum($added)')
         .sort('$Count', 'descending')
         .limit(5)
 
-      ex = ex.resolve(context).simplify()
+      ex = ex.referenceCheck(context).resolve(context).simplify()
 
       expect(ex.op).to.equal('literal')
       remoteDataset = ex.value
+      expect(remoteDataset.defs).to.have.length(1)
       expect(remoteDataset.applies).to.have.length(2)
+
+      expect(remoteDataset.simulate().toJS()).to.deep.equal([
+        "Added": 4
+        "Count": 4
+        "Page": "some_page"
+      ])
+
+    it "a split on time", ->
+      ex = facet('wiki').split(facet("time").timeBucket('P1D', 'America/Los_Angeles'), 'Timestamp')
+        .apply('Count', '$wiki.count()')
+        .apply('Added', '$wiki.sum($added)')
+        .sort('$Count', 'descending')
+        .limit(5)
+
+      ex = ex.referenceCheck(context).resolve(context).simplify()
+
+      expect(ex.op).to.equal('literal')
+      remoteDataset = ex.value
+      expect(remoteDataset.defs).to.have.length(1)
+      expect(remoteDataset.applies).to.have.length(2)
+
+      expect(remoteDataset.simulate().toJS()).to.deep.equal([
+        {
+          "Added": 4
+          "Count": 4
+          "Timestamp": {
+            "start": new Date('2015-03-13T07:00:00.000Z')
+            "end": new Date('2015-03-14T07:00:00.000Z')
+            "type": "TIME_RANGE"
+          }
+        }
+      ])
 
     it "a total and a split", ->
       ex = facet()
@@ -77,6 +118,11 @@ describe "RemoteDataset", ->
             .limit(5)
         )
 
-      ex = ex.resolve(context).simplify()
-      
-      console.log("ex.toString()", ex.toString());
+      ex = ex.referenceCheck(context).resolve(context).simplify()
+
+      expect(ex.op).to.equal('actions')
+      expect(ex.actions).to.have.length(2)
+
+      remoteDataset = ex.operand.value
+      expect(remoteDataset.defs).to.have.length(1)
+      expect(remoteDataset.applies).to.have.length(2)

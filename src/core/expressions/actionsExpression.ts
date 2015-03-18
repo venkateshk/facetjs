@@ -180,7 +180,10 @@ module Core {
             simpleOperand = new LiteralExpression({
               op: 'literal',
               value: remoteDataset
-            })
+            });
+            if (simpleActions.length) {
+              simpleActions = (<Action[]>remoteDataset.defs).concat(simpleActions);
+            }
           }
         }
       }
@@ -258,64 +261,9 @@ module Core {
       return typeContext;
     }
 
-    public _getExpressionBreakdown(hook: string): Expression[] {
-      function hookToRef(hook: string): RefExpression {
-        return new RefExpression({
-          op: 'ref',
-          name: hook,
-          type: 'DATASET'
-        })
-      }
+    public _computeNativeResolved(queries: any[]): NativeDataset {
+      var dataset = this.operand._computeNativeResolved(queries);
 
-      var plan: Expression[] = [];
-      var operand = this.operand;
-      var actions = this.actions;
-      if (!actions.length) throw new Error("Can not plan with empty actions");
-
-      var isBasis = operand instanceof LiteralExpression && operand.value.basis();
-      var isLabel = operand instanceof LabelExpression;
-      if (isBasis || isLabel) {
-        var simpleActions: Action[] = [];
-        var complexActions: Action[] = [];
-        for (var i = 0; i < actions.length; i++) {
-          var action = actions[i];
-          var complex = action instanceof ApplyAction && action.expression.type === 'DATASET'; // ToDo: make this better
-          if (complex || complexActions.length) {
-            complexActions.push(action);
-          } else {
-            simpleActions.push(action);
-          }
-        }
-
-        plan.push(new ActionsExpression({
-          op: 'actions',
-          operand: operand,
-          actions: simpleActions
-        }));
-
-        for (var i = 0; i < complexActions.length; i++) {
-          var complexApply = <ApplyAction>(complexActions[i]);
-          var complexApplyName = complexApply.name;
-          var subPlan = complexApply.expression._getExpressionBreakdown(complexApplyName);
-          for (var j = 0; j < subPlan.length; j++) {
-            plan.push(new ActionsExpression({
-              op: 'actions',
-              operand: hookToRef(hook),
-              actions: [new ApplyAction({
-                action: 'apply',
-                name: complexApplyName,
-                expression: subPlan[j]
-              })]
-            }));
-          }
-        }
-      } else {
-        throw new Error("Can not plan")
-      }
-      return plan;
-    }
-
-    private _applyActionsToDataset(dataset: NativeDataset): NativeDataset {
       var actions = this.actions;
       for (var i = 0; i < actions.length; i++) {
         var action = actions[i];
@@ -327,7 +275,7 @@ module Core {
         } else if (action instanceof ApplyAction) {
           if (actionExpression instanceof ActionsExpression) {
             dataset = dataset.apply(action.name, (d: Datum) => {
-              return actionExpression.computeNative(d)
+              return actionExpression.resolve(d).simplify()._computeNativeResolved(queries)
             });
           } else {
             dataset = dataset.apply(action.name, actionExpression.getFn());
@@ -336,7 +284,12 @@ module Core {
         } else if (action instanceof DefAction) {
           if (actionExpression instanceof ActionsExpression) {
             dataset = dataset.def(action.name, (d: Datum) => {
-              return actionExpression.computeNative(d)
+              var simple = actionExpression.resolve(d).simplify();
+              if (simple instanceof LiteralExpression) {
+                return simple.value;
+              } else {
+                return simple._computeNativeResolved(queries);
+              }
             });
           } else {
             dataset = dataset.def(action.name, actionExpression.getFn());
@@ -353,114 +306,6 @@ module Core {
 
       return dataset;
     }
-
-    public computeNativeResolved(): NativeDataset {
-      return this._applyActionsToDataset(this.operand.computeNativeResolved());
-    }
-
-    public simulateResolved(): Dataset {
-      var actions = this.actions;
-      var dataset = this.operand.simulateResolved();
-
-      for (var i = 0; i < actions.length; i++) {
-        var action = actions[i];
-        var actionExpression = action.expression;
-
-        if (action instanceof ApplyAction) {
-          if (actionExpression instanceof ActionsExpression) {
-            dataset = dataset.apply(action.name, (d: Datum) => {
-              return actionExpression.simulate(d)
-            });
-          } else {
-            dataset = dataset.apply(action.name, () => 5);
-          }
-
-        } else if (action instanceof DefAction) {
-          if (actionExpression instanceof ActionsExpression || action.expression.type === 'DATASET') {
-            dataset = dataset.def(action.name, (d: Datum) => {
-              return actionExpression.simulate(d)
-            });
-          } else {
-            dataset = dataset.def(action.name, () => 3);
-          }
-
-        } else if (action instanceof SortAction) {
-          dataset = dataset.sort(actionExpression.getFn(), action.direction);
-
-        } else if (action instanceof LimitAction) {
-          dataset = dataset.limit(action.limit);
-
-        }
-      }
-
-      return dataset;
-    }
-
-    public getQueryPattern(): QueryPattern {
-      var queryPattern: QueryPattern = null;
-      var operand = this.operand;
-      var actions = this.actions;
-      if (operand instanceof LiteralExpression && operand.value.basis() && actions.length > 1) {
-        var action: Action = actions[0];
-
-        if (action instanceof DefAction) {
-          queryPattern = {
-            pattern: 'total',
-            dataSourceName: action.name,
-            filter: (<RemoteDataset>(<LiteralExpression>action.expression).value).filter, // ToDo: make this a function
-            applies: []
-          }
-        } else {
-          return null;
-        }
-
-        for (var i = 1; i < actions.length; i++) {
-          action = actions[i];
-          if (action instanceof ApplyAction) {
-            queryPattern.applies.push(action);
-          } else {
-            return null;
-          }
-        }
-
-      } if (operand instanceof LabelExpression && actions.length > 1) {
-        var groupAggregate = operand.operand;
-        if (groupAggregate instanceof AggregateExpression) {
-          var action: Action = actions[0];
-          if (action instanceof DefAction) {
-            queryPattern = {
-              pattern: 'split',
-              dataSourceName: action.name,
-              filter: (<RemoteDataset>(<LiteralExpression>groupAggregate.operand).value).filter, // ToDo: make this a function
-              split: groupAggregate.attribute,
-              label: operand.name,
-              applies: []
-            }
-          } else {
-            return null;
-          }
-
-          for (var i = 1; i < actions.length; i++) {
-            action = actions[i];
-            if (action instanceof ApplyAction) {
-              queryPattern.applies.push(action);
-            } else if (action instanceof SortAction) {
-              queryPattern.sortOrigin = 'apply'; // ToDo: fix this
-              queryPattern.sort = action;
-            } else if (action instanceof LimitAction) {
-              queryPattern.limit = action;
-            } else {
-              return null;
-            }
-          }
-        } else {
-          return null;
-        }
-      }
-
-      return queryPattern;
-    }
-
   }
 
   Expression.register(ActionsExpression);

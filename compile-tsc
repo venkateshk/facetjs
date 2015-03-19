@@ -7,6 +7,7 @@ node_modules/.bin/tsc --noImplicitAny --noEmitOnError --declaration --removeComm
   src/init.ts \
   \
   src/core/datatypes/common.ts \
+  src/core/datatypes/attributeInfo.ts \
   src/core/datatypes/dataset.ts \
   src/core/datatypes/nativeDataset.ts \
   src/core/datatypes/remoteDataset.ts \

@@ -1,9 +1,4 @@
 module Core {
-  export interface AttributeInfo {
-    type: string;
-    datasetType?: Lookup<any>;
-  }
-
   export interface DatasetValue {
     source: string;
     attributes?: Lookup<AttributeInfo>;

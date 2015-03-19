@@ -36,16 +36,16 @@ module Core {
 
   function getAttributeInfo(attributeValue: any): AttributeInfo {
     if (isDate(attributeValue)) {
-      return { type: 'TIME' };
+      return new AttributeInfo({ type: 'TIME' });
     } else if (isNumber(attributeValue)) {
-      return { type: 'NUMBER' };
+      return new AttributeInfo({ type: 'NUMBER' });
     } else if (isString(attributeValue)) {
-      return { type: 'STRING' };
+      return new AttributeInfo({ type: 'STRING' });
     } else if (attributeValue instanceof Dataset) {
-      return {
+      return new AttributeInfo({
         type: 'DATASET',
         datasetType: attributeValue.getType()
-      }
+      })
     } else {
       throw new Error("Could not introspect");
     }

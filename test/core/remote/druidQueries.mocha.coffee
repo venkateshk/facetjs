@@ -53,12 +53,12 @@ describe "DruidDataset actually", ->
               .apply('TotalAdded', '$wiki.sum($added)')
               .sort('$Timestamp', 'ascending')
               .limit(3)
-#             .apply('Carats',
-#               facet("diamonds").split(facet("carat").numberBucket(0.25), 'Carat')
-#                 .apply('Count', facet('diamonds').count())
-#                 .sort('$Count', 'descending')
-#                 .limit(3)
-#             )
+#              .apply('Carats',
+#                facet("wiki").split(facet("added").numberBucket(0.25), 'Added')
+#                  .apply('Count', facet('wiki').count())
+#                  .sort('$Count', 'descending')
+#                  .limit(3)
+#              )
           )
     )
 

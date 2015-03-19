@@ -235,3 +235,46 @@ describe "simulate", ->
         "threshold": 3
       }
     ])
+
+  it "works with having filter", ->
+    ex = facet("diamonds").split("$cut", 'Cut')
+      .apply('Count', facet('diamonds').count())
+      .sort('$Count', 'descending')
+      .filter(facet('Count').greaterThan(100))
+      .limit(10)
+
+    expect(ex.simulateQueryPlan(context)).to.deep.equal([
+      {
+        "aggregations": [
+          {
+            "name": "Count"
+            "type": "count"
+          }
+        ]
+        "dataSource": "diamonds"
+        "dimensions": [
+          {
+            "dimension": "cut"
+            "outputName": "Cut"
+            "type": "default"
+          }
+        ]
+        "granularity": "all"
+        "having": {
+          "aggregation": "Count"
+          "type": "greaterThan"
+          "value": 100
+        }
+        "intervals": [
+          "2015-03-12/2015-03-19"
+        ]
+        "limitSpec": {
+          "columns": [
+            "Count"
+          ]
+          "limit": 10
+          "type": "default"
+        }
+        "queryType": "groupBy"
+      }
+    ])

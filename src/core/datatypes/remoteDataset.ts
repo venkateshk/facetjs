@@ -84,6 +84,7 @@ module Core {
         if (this.mode === 'split') {
           if (!this.split) throw new Error('must have split in split mode');
           if (!this.label) throw new Error('must have label in split mode');
+          this.havingFilter = this.havingFilter || Expression.TRUE;
         }
       }
     }
@@ -256,6 +257,7 @@ module Core {
         if (this.mode === 'raw') {
           value.derivedAttributes = value.derivedAttributes.concat(action);
         } else {
+          if (action.name === this.label) return null;
           value.applies = value.applies.concat(action);
         }
 

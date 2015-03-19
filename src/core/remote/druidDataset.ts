@@ -6,8 +6,9 @@ module Core {
 
   export interface DruidSplit {
     queryType: string;
-    dimension: any;
     granularity: any;
+    dimension?: any;
+    dimensions?: any[];
   }
 
   export interface AggregationsAndPostAggregations {
@@ -157,10 +158,6 @@ module Core {
 
     public canHandleLimit(limitAction: LimitAction): boolean {
       return !(this.split instanceof TimeBucketExpression);
-    }
-
-    public canHandleHavingFilter(ex: Expression): boolean {
-      return false;
     }
 
     // -----------------
@@ -329,19 +326,22 @@ module Core {
 
       var queryType: string;
       var dimension: any = null;
+      var dimensions: any[] = null;
       var granularity: any = 'all';
 
       if (splitExpression instanceof RefExpression) {
-        //var attributeMeta = this.getAttributeMeta(splitExpression.name);
-        queryType = 'topN';
-        if (splitExpression.name === label) {
-          dimension = label
+        var dimensionSpec = (splitExpression.name === label) ?
+                            label : { type: "default", dimension: splitExpression.name, outputName: label };
+
+        if (this.havingFilter.equals(Expression.TRUE) && this.limit) {
+          //var attributeMeta = this.getAttributeMeta(splitExpression.name);
+          queryType = 'topN';
+          dimension = dimensionSpec;
+
         } else {
-          dimension = {
-            type: "default",
-            dimension: splitExpression.name,
-            outputName: label
-          }
+          queryType = 'groupBy';
+          dimensions = [dimensionSpec];
+
         }
 
       } else if (splitExpression instanceof TimeBucketExpression) {
@@ -397,16 +397,14 @@ module Core {
         }
 
       } else {
-        dimension = {
-          type: "fake",
-          outputName: label
-        }
+        throw new Error('can not convert expression: ' + splitExpression.toString())
       }
 
       return {
         queryType: queryType,
+        granularity: granularity,
         dimension: dimension,
-        granularity: granularity
+        dimensions: dimensions
       };
     }
 
@@ -552,6 +550,94 @@ module Core {
       };
     }
 
+    public havingFilterToDruid(filter: Expression): Druid.Having {
+      if (filter instanceof LiteralExpression) {
+        if (filter.value === true) {
+          return null;
+        } else {
+          throw new Error("should never get here");
+        }
+
+      } else if (filter instanceof IsExpression) {
+        var lhs = filter.lhs;
+        var rhs = filter.rhs;
+        if (lhs instanceof RefExpression && rhs instanceof LiteralExpression) {
+          return {
+            type: "equalTo",
+            aggregation: lhs.name,
+            value: rhs.value
+          };
+
+        } else {
+          throw new Error("can not convert " + filter.toString() + " to Druid filter");
+        }
+
+      } else if (filter instanceof InExpression) {
+        var lhs = filter.lhs;
+        var rhs = filter.rhs;
+        if (lhs instanceof RefExpression && rhs instanceof LiteralExpression) {
+          var rhsType = rhs.type;
+          if (rhsType === 'SET/STRING') {
+            return {
+              type: "or",
+              fields: rhs.value.getValues().map((value: string) => {
+                return {
+                  type: "equalTo",
+                  aggregation: lhs.name,
+                  value: value
+                }
+              })
+            };
+
+          } else if (rhsType === 'NUMBER_RANGE') {
+            throw new Error("to do");
+
+          } else if (rhsType === 'TIME_RANGE') {
+            throw new Error("can not time filter on non-primary time dimension");
+
+          } else {
+            throw new Error("not supported " + rhsType);
+          }
+        } else {
+          throw new Error("can not convert " + filter.toString() + " to Druid having filter");
+        }
+
+      } else if (filter instanceof LessThanExpression) {
+        var lhs = filter.lhs;
+        var rhs = filter.rhs;
+        if (lhs instanceof RefExpression && rhs instanceof LiteralExpression) {
+          return {
+            type: "lessThan",
+            aggregation: lhs.name,
+            value: rhs.value
+          }
+        }
+
+        if (lhs instanceof LiteralExpression && rhs instanceof RefExpression) {
+          return {
+            type: "greaterThan",
+            aggregation: rhs.name,
+            value: lhs.value
+          }
+        }
+
+      } else if (filter instanceof NotExpression) {
+        return {
+          type: "not",
+          field: this.havingFilterToDruid(filter.operand)
+        };
+
+      } else if (filter instanceof AndExpression || filter instanceof OrExpression) {
+        return {
+          type: filter.op,
+          fields: filter.operands.map(this.havingFilterToDruid, this)
+        };
+
+      } else {
+        throw new Error("could not convert filter " + filter.toString() + " to Druid filter");
+      }
+    }
+
     public getQuery(): Druid.Query {
       var druidQuery: Druid.Query = {
         queryType: 'timeseries',
@@ -599,31 +685,48 @@ module Core {
           druidQuery.queryType = splitSpec.queryType;
           druidQuery.granularity = splitSpec.granularity;
           if (splitSpec.dimension) druidQuery.dimension = splitSpec.dimension;
+          if (splitSpec.dimensions) druidQuery.dimensions = splitSpec.dimensions;
 
-          if (druidQuery.queryType === 'timeseries') {
-            if (this.sort && (this.sort.direction !== 'ascending' || this.sort.refName() !== this.label)) {
-              throw new Error('can not sort within timeseries query');
-            }
+          // Combine
+          switch (druidQuery.queryType) {
+            case 'timeseries':
+              if (this.sort && (this.sort.direction !== 'ascending' || this.sort.refName() !== this.label)) {
+                throw new Error('can not sort within timeseries query');
+              }
+              if (this.limit) {
+                throw new Error('can not limit within timeseries query');
+              }
+              break;
 
-            if (this.limit) {
-              throw new Error('can not limit within timeseries query');
-            }
-          }
+            case 'topN':
+              var sortAction = this.sort;
+              var metric: any = (<RefExpression>sortAction.expression).name;
+              if (this.sortOrigin === 'label') {
+                metric = {type: 'lexicographic'};
+              }
+              if (sortAction.direction === 'ascending') {
+                metric = {type: "inverted", metric: metric};
+              }
+              druidQuery.metric = metric;
+              if (this.limit) {
+                druidQuery.threshold = this.limit.limit;
+              }
+              break;
 
-          var sortAction = this.sort;
-          if (sortAction && druidQuery.queryType !== 'timeseries') {
-            var metric: any = (<RefExpression>sortAction.expression).name;
-            if (this.sortOrigin === 'label') {
-              metric = { type: 'lexicographic' };
-            }
-            if (sortAction.direction === 'ascending') {
-              metric = { type: "inverted", metric: metric };
-            }
-            druidQuery.metric = metric;
-          }
-
-          if (this.limit) {
-            druidQuery.threshold = this.limit.limit;
+            case 'groupBy':
+              var sortAction = this.sort;
+              druidQuery.limitSpec = {
+                type: "default",
+                limit: 500000,
+                columns: [sortAction ? (<RefExpression>sortAction.expression).name : this.label]
+              };
+              if (this.limit) {
+                druidQuery.limitSpec.limit = this.limit.limit;
+              }
+              if (!this.havingFilter.equals(Expression.TRUE)) {
+                druidQuery.having = this.havingFilterToDruid(this.havingFilter);
+              }
+              break;
           }
 
           return druidQuery;

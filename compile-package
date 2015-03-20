@@ -1,0 +1,8 @@
+#!/bin/bash
+
+rm -rf package/*
+mkdir -p package
+
+node_modules/.bin/browserify build/facet.js \
+  -o package/facet.js \
+  --standalone facet

@@ -41,10 +41,6 @@ module Core {
     }
 
     static fromJS(parameters: AttributeInfoJS): AttributeInfo {
-      if (parameters.type === "range" && !hasOwnProperty(parameters, 'rangeSize')) {
-        parameters.rangeSize = (<any>parameters).size; // Back compatibility
-      }
-
       if (typeof parameters !== "object") {
         throw new Error("unrecognizable attributeMeta");
       }

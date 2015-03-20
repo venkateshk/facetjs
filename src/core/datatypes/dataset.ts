@@ -198,16 +198,34 @@ module Core {
       return false;
     }
 
-    public getType(): Lookup<any> {
+    public getType(): FullType {
       var attributes = this.attributes;
       if (!attributes) throw new Error("dataset has not been introspected");
-      var myType: Lookup<any> = {};
+
+      var remote = this.source === 'native' ? null : [this.toHash()];
+
+      var myDatasetType: Lookup<FullType> = {};
       for (var attrName in attributes) {
         if (!hasOwnProperty(attributes, attrName)) continue;
         var attrType = attributes[attrName];
-        myType[attrName] = attrType.type === 'DATASET' ? attrType.datasetType : attrType.type;
+        if (attrType.type === 'DATASET') {
+          myDatasetType[attrName] = {
+            type: 'DATASET',
+            datasetType: attrType.datasetType,
+            remote: remote
+          };
+        } else {
+          myDatasetType[attrName] = {
+            type: attrType.type,
+            remote: remote
+          };
+        }
       }
-      return myType;
+      return {
+        type: 'DATASET',
+        datasetType: myDatasetType,
+        remote: remote
+      };
     }
 
     public hasRemote(): boolean {

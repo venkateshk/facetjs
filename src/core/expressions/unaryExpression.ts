@@ -135,9 +135,12 @@ module Core {
       }
     }
 
-    public _fillRefSubstitutions(typeContext: any, alterations: Alteration[]): any {
-      this.operand._fillRefSubstitutions(typeContext, alterations);
-      return this.type;
+    public _fillRefSubstitutions(typeContext: FullType, alterations: Alteration[]): FullType {
+      var operandFullType = this.operand._fillRefSubstitutions(typeContext, alterations);
+      return {
+        type: this.type,
+        remote: operandFullType.remote
+      };
     }
   }
 }

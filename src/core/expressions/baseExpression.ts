@@ -14,9 +14,9 @@ module Core {
   export interface ExpressionValue {
     op: string;
     type?: string;
+    remote?: string[];
     simple?: boolean;
     value?: any;
-    remote?: boolean;
     name?: string;
     lhs?: Expression;
     rhs?: Expression;
@@ -59,6 +59,19 @@ module Core {
   export interface Separation {
     included: Expression;
     excluded: Expression;
+  }
+
+  export function mergeRemotes(remotes: string[][]): string[] {
+    var lookup: Lookup<boolean> = {};
+    for (var i = 0; i < remotes.length; i++) {
+      var remote = remotes[i];
+      if (!remote) continue;
+      for (var j = 0; j < remote.length; j++) {
+        lookup[remote[j]] = true;
+      }
+    }
+    var merged = Object.keys(lookup);
+    return merged.length ? merged.sort() : null;
   }
 
   export function dedupSort(a: string[]): string[] {
@@ -652,7 +665,7 @@ module Core {
      * @returns the resolved type of the expression
      * @private
      */
-    public _fillRefSubstitutions(typeContext: any, alterations: Alteration[]): any {
+    public _fillRefSubstitutions(typeContext: FullType, alterations: Alteration[]): FullType {
       return typeContext;
     }
 
@@ -663,11 +676,15 @@ module Core {
      * @returns {Expression}
      */
     public referenceCheck(context: Datum) {
-      var typeContext: Lookup<any> = {};
+      var datasetType: Lookup<FullType> = {};
       for (var k in context) {
         if (!hasOwnProperty(context, k)) continue;
-        typeContext[k] = getTypeFull(context[k]);
+        datasetType[k] = getFullType(context[k]);
       }
+      var typeContext: FullType = {
+        type: 'DATASET',
+        datasetType: datasetType
+      };
       
       var alterations: Alteration[] = [];
       this._fillRefSubstitutions(typeContext, alterations); // This return the final type
@@ -730,7 +747,8 @@ module Core {
 
     public hasRemote(): boolean {
       return this.some(function(ex: Expression) {
-        return ex instanceof LiteralExpression && ex.isRemote();
+        if (ex instanceof LiteralExpression || ex instanceof RefExpression) return ex.isRemote();
+        return null; // search further
       });
     }
 

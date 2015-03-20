@@ -68,13 +68,21 @@ module Core {
       return null;
     }
 
-    public _fillRefSubstitutions(typeContext: any, alterations: Alteration[]): any {
-      var setType = this.operand._fillRefSubstitutions(typeContext, alterations);
-      var newContext: any = { $parent: typeContext };
-      // setType will be something like SET/STRING we need to chop off the SET/
-      newContext[this.name] = setType.substring(4);
+    public _fillRefSubstitutions(typeContext: FullType, alterations: Alteration[]): FullType {
+      var setFullType = this.operand._fillRefSubstitutions(typeContext, alterations);
+      var newDatasetType: Lookup<FullType> = {};
 
-      return newContext;
+      newDatasetType[this.name] = {
+        type: setFullType.type.substring(4), // setFullType will be something like SET/STRING we need to chop off the SET/
+        remote: setFullType.remote
+      };
+
+      return {
+        parent: typeContext,
+        type: 'DATASET',
+        datasetType: newDatasetType,
+        remote: setFullType.remote
+      };
     }
   }
 

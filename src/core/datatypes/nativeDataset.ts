@@ -261,7 +261,7 @@ module Core {
       this.attributes = attributes;
     }
 
-    public getType(): Lookup<any> {
+    public getType(): FullType {
       this.introspect();
       return super.getType();
     }

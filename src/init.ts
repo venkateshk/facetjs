@@ -74,15 +74,6 @@ function hasOwnProperty(obj: any, key: string): boolean {
   return objectHasOwnProperty.call(obj, key);
 }
 
-function shallowCopy(obj: Lookup<any>): Lookup<any> {
-  var newObj: any = {};
-  for (var k in obj) {
-    if (!hasOwnProperty(obj, k)) continue;
-    newObj[k] = obj[k];
-  }
-  return newObj;
-}
-
 function concatMap<T, U>(arr: T[], fn: (t: T) => U[]): U[] {
   return Array.prototype.concat.apply([], arr.map(fn));
 }

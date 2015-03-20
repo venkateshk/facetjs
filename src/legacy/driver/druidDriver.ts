@@ -979,10 +979,10 @@ module Legacy {
           var rangeSize = (<RangeAttributeMeta>attributeMeta).rangeSize;
           ds.forEach((d: any) => {
             if (String(d[splitProp]) === "null") {
-              return d[splitProp] = null;
+              d[splitProp] = null;
             } else {
               var start = Number(d[splitProp]);
-              return d[splitProp] = [start, driverUtil.safeAdd(start, rangeSize)];
+              d[splitProp] = [start, driverUtil.safeAdd(start, rangeSize)];
             }
           });
         } else if (split.bucket === "continuous") {
@@ -990,10 +990,10 @@ module Legacy {
           var splitSize = (<ContinuousSplit>split).size;
           ds.forEach((d: any) => {
             if (String(d[splitProp]) === "null") {
-              return d[splitProp] = null;
+              d[splitProp] = null;
             } else {
               var start = Number(d[splitProp]);
-              return d[splitProp] = [start, driverUtil.safeAdd(start, splitSize)];
+              d[splitProp] = [start, driverUtil.safeAdd(start, splitSize)];
             }
           });
         }

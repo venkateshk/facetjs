@@ -249,14 +249,14 @@ module Core {
       });
     }
 
-    public _fillRefSubstitutions(typeContext: any, alterations: Alteration[]): any {
+    public _fillRefSubstitutions(typeContext: FullType, alterations: Alteration[]): FullType {
       typeContext = this.operand._fillRefSubstitutions(typeContext, alterations);
 
       var actions = this.actions;
       for (var i = 0; i < actions.length; i++) {
         var action = actions[i];
         if (action instanceof DefAction || action instanceof ApplyAction) {
-          typeContext[action.name] = action.expression._fillRefSubstitutions(typeContext, alterations);
+          typeContext.datasetType[action.name] = action.expression._fillRefSubstitutions(typeContext, alterations);
         } else if (action instanceof SortAction || action instanceof FilterAction) {
           action.expression._fillRefSubstitutions(typeContext, alterations);
         }

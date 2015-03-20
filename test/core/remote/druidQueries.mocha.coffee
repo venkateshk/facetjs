@@ -43,7 +43,7 @@ describe "DruidDataset actually", ->
       .def("wiki", facet('wiki').filter(facet("language").is('en')))
       .apply('Count', '$wiki.count()')
       .apply('TotalAdded', '$wiki.sum($added)')
-      .apply('Cuts',
+      .apply('Pages',
         facet("wiki").split("$page", 'Page')
           .apply('Count', '$wiki.count()')
           .sort('$Count', 'descending')
@@ -53,21 +53,22 @@ describe "DruidDataset actually", ->
               .apply('TotalAdded', '$wiki.sum($added)')
               .sort('$Timestamp', 'ascending')
               .limit(3)
-#              .apply('Carats',
-#                facet("wiki").split(facet("added").numberBucket(0.25), 'Added')
-#                  .apply('Count', facet('wiki').count())
-#                  .sort('$Count', 'descending')
-#                  .limit(3)
-#              )
           )
-    )
+      )
+#      .apply('PagesHaving',
+#        facet("wiki").split("$page", 'Page')
+#          .apply('Count', '$wiki.count()')
+#          .sort('$Count', 'descending')
+#          .filter(facet('Count').lessThan(30))
+#          .limit(100)
+#      )
 
     ex.compute(context).then((result) ->
       expect(result.toJS()).to.deep.equal([
         {
           "Count": 308675
           "TotalAdded": 41412583
-          "Cuts": [
+          "Pages": [
             {
               "Count": 124
               "Page": "Wikipedia:Administrator_intervention_against_vandalism"

@@ -31,7 +31,7 @@ module Core {
 
     public generations: string;
     public name: string;
-    public remote: boolean;
+    public remote: string[];
 
     constructor(parameters: ExpressionValue) {
       super(parameters, dummyObject);
@@ -46,13 +46,13 @@ module Core {
       if (typeof this.name !== 'string' || this.name.length === 0) {
         throw new TypeError("must have a nonempty `name`");
       }
-      this.remote = Boolean(parameters.remote);
       if (parameters.type) {
         if (!hasOwnProperty(possibleTypes, parameters.type)) {
           throw new TypeError("unsupported type '" + parameters.type + "'");
         }
         this.type = parameters.type;
       }
+      if (parameters.remote) this.remote = parameters.remote;
       this.simple = true;
     }
 
@@ -60,6 +60,7 @@ module Core {
       var value = super.valueOf();
       value.name = this.generations + this.name;
       if (this.type) value.type = this.type;
+      if (this.remote) value.remote = this.remote;
       return value;
     }
 
@@ -71,13 +72,18 @@ module Core {
     }
 
     public toString(): string {
-      return '$' + this.generations + this.name + (this.type ? ':' + this.type : '');
+      var remote = this.remote || [];
+      return '$' + this.generations + this.name + (this.type ? ':' + this.type : '') + `#[${remote.join(',')}]`;
     }
 
     public equals(other: RefExpression): boolean {
       return super.equals(other) &&
         this.name === other.name &&
         this.generations === other.generations;
+    }
+
+    public isRemote(): boolean {
+      return Boolean(this.remote && this.remote.length);
     }
 
     public getReferences(): string[] {
@@ -103,10 +109,6 @@ module Core {
       return 'd.' + this.name;
     }
 
-    public isRemote(): boolean {
-      return this.remote;
-    }
-
     public every(iter: BooleanExpressionIterator): boolean {
       return iter(this) !== false;
     }
@@ -115,41 +117,37 @@ module Core {
       iter(this);
     }
 
-    public _fillRefSubstitutions(typeContext: any, alterations: Alteration[]): any {
+    public _fillRefSubstitutions(typeContext: FullType, alterations: Alteration[]): FullType {
       var numGenerations = this.generations.length;
 
       // Step the parentContext back; once for each generation
       var myTypeContext = typeContext;
       while (numGenerations--) {
-        myTypeContext = myTypeContext.$parent;
+        myTypeContext = myTypeContext.parent;
         if (!myTypeContext) throw new Error('went too deep on ' + this.toString());
       }
 
       // Look for the reference in the parent chain
       var genBack = 0;
-      while (myTypeContext && !myTypeContext[this.name]) {
-        myTypeContext = myTypeContext.$parent;
+      while (myTypeContext && !myTypeContext.datasetType[this.name]) {
+        myTypeContext = myTypeContext.parent;
         genBack++;
       }
       if (!myTypeContext) {
         throw new Error('could not resolve ' + this.toString());
       }
 
-      var contextType = myTypeContext[this.name];
+      var myFullType = myTypeContext.datasetType[this.name];
 
-      var myType: string = contextType;
-      var myRemote: boolean = this.remote;
-      if (typeof contextType === 'object') {
-        myType = 'DATASET';
-        myRemote = Boolean(contextType.$remote);
-      }
+      var myType = myFullType.type;
+      var myRemote = myFullType.remote;
 
       if (this.type && this.type !== myType) {
         throw new TypeError("type mismatch in " + this.toString() + " (has: " + this.type + " needs: " + myType + ")");
       }
 
       // Check if it needs to be replaced
-      if (!this.type || genBack > 0 || this.remote !== myRemote) {
+      if (!this.type || genBack > 0 || String(this.remote) !== String(myRemote)) {
         var newGenerations = this.generations + repeat('^', genBack);
         alterations.push({
           from: this,
@@ -163,12 +161,15 @@ module Core {
       }
 
       if (myType === 'DATASET') {
-        // Set the new parent context correctly
-        contextType = shallowCopy(contextType);
-        contextType.$parent = typeContext;
+        return {
+          parent: typeContext,
+          type: 'DATASET',
+          datasetType: myFullType.datasetType,
+          remote: myFullType.remote
+        };
       }
 
-      return contextType;
+      return myFullType;
     }
   }
 

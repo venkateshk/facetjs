@@ -9,6 +9,11 @@ module Core {
     granularity: any;
     dimension?: any;
     dimensions?: any[];
+    postProcess: PostProcess;
+  }
+
+  interface LabelProcess {
+    (v: any): any;
   }
 
   export interface AggregationsAndPostAggregations {
@@ -24,6 +29,10 @@ module Core {
     return Array.isArray(result) && (result.length === 0 || Array.isArray(result[0].result));
   }
 
+  function correctGroupByResult(result: Druid.GroupByResults): boolean {
+    return Array.isArray(result) && (result.length === 0 || typeof result[0].event === 'object');
+  }
+
   function postProcessTotal(res: Druid.TimeseriesResults): NativeDataset {
     if (!correctTimeseriesResult(res)) {
       var err = new Error("unexpected result from Druid (all)");
@@ -31,15 +40,6 @@ module Core {
       throw err;
     }
     return new NativeDataset({ source: 'native', data: [res[0].result] });
-  }
-
-  function postProcessTopN(res: Druid.DruidResults): NativeDataset {
-    if (!correctTopNResult(res)) {
-      var err = new Error("unexpected result from Druid (topN)");
-      (<any>err).result = res; // ToDo: special error type
-      throw err;
-    }
-    return new NativeDataset({ source: 'native', data: res[0].result });
   }
 
   function makePostProcessTimeseries(duration: Duration, timezone: Timezone, label: string): PostProcess {
@@ -77,6 +77,56 @@ module Core {
         })
       });
     }
+  }
+
+  function postProcessNumberBucketFactory(rangeSize: number): LabelProcess {
+    return (v: any) => {
+      var start = Number(v);
+      return new NumberRange({
+        start: start,
+        end: Legacy.driverUtil.safeAdd(start, rangeSize)
+      });
+    }
+  }
+
+  function postProcessTopNFactory(labelProcess: LabelProcess, label: string): PostProcess {
+    return (res: Druid.DruidResults): NativeDataset => {
+      if (!correctTopNResult(res)) {
+        var err = new Error("unexpected result from Druid (topN)");
+        (<any>err).result = res; // ToDo: special error type
+        throw err;
+      }
+      var data = res.length ? res[0].result : [];
+      if (labelProcess) {
+        return new NativeDataset({
+          source: 'native',
+          data: data.map((d: Datum) => {
+            var v: any = d[label];
+            if (String(v) === "null") {
+              v = null;
+            } else {
+              v = labelProcess(v);
+            }
+            d[label] = v;
+            return d;
+          })
+        });
+      } else {
+        return new NativeDataset({source: 'native', data: data});
+      }
+    };
+  }
+
+  function postProcessGroupBy(res: Druid.GroupByResults): NativeDataset {
+    if (!correctGroupByResult(res)) {
+      var err = new Error("unexpected result from Druid (groupBy)");
+      (<any>err).result = res; // ToDo: special error type
+      throw err;
+    }
+    return new NativeDataset({
+      source: 'native',
+      data: res.map((r) => r.event)
+    });
   }
 
   export class DruidDataset extends RemoteDataset {
@@ -141,6 +191,10 @@ module Core {
         this.context === other.context;
     }
 
+    public toHash(): string {
+      return super.toHash() + ':' + this.dataSource;
+    }
+
     // -----------------
 
     public canHandleSort(sortAction: SortAction): boolean {
@@ -158,6 +212,10 @@ module Core {
 
     public canHandleLimit(limitAction: LimitAction): boolean {
       return !(this.split instanceof TimeBucketExpression);
+    }
+
+    public canHandleHavingFilter(ex: Expression): boolean {
+      return !this.limit;
     }
 
     // -----------------
@@ -346,6 +404,7 @@ return (start < 0 ?'-':'') + parts.join('.');
       var dimension: any = null;
       var dimensions: any[] = null;
       var granularity: any = 'all';
+      var postProcess: PostProcess = null;
 
       if (splitExpression instanceof RefExpression) {
         var dimensionSpec = (splitExpression.name === label) ?
@@ -354,20 +413,23 @@ return (start < 0 ?'-':'') + parts.join('.');
         if (this.havingFilter.equals(Expression.TRUE) && this.limit) {
           var attributeInfo = this.attributes[splitExpression.name];
           queryType = 'topN';
-          if (attributeInfo.special === 'range') {
+          if (attributeInfo instanceof RangeAttributeInfo) {
             dimension = {
               type: "extraction",
               dimension: splitExpression.name,
               outputName: label,
-              dimExtractionFn: this.getBucketingDimension(<RangeAttributeInfo>attributeInfo, null)
+              dimExtractionFn: this.getBucketingDimension(attributeInfo, null)
             };
+            postProcess = postProcessTopNFactory(postProcessNumberBucketFactory(attributeInfo.rangeSize), label);
           } else {
             dimension = dimensionSpec;
+            postProcess = postProcessTopNFactory(null, null);
           }
 
         } else {
           queryType = 'groupBy';
           dimensions = [dimensionSpec];
+          postProcess = postProcessGroupBy;
 
         }
 
@@ -380,7 +442,8 @@ return (start < 0 ?'-':'') + parts.join('.');
               type: "period",
               period: splitExpression.duration.toString(),
               timeZone: splitExpression.timezone.toString()
-            }
+            };
+            postProcess = makePostProcessTimeseries(splitExpression.duration, splitExpression.timezone, label);
           } else {
             // ToDo: add this maybe?
             throw new Error('can not time bucket non time dimension: ' + refExpression.toString())
@@ -404,9 +467,10 @@ return (start < 0 ?'-':'') + parts.join('.');
                 outputName: label,
                 dimExtractionFn: {
                   type: "javascript",
-                  'function': "function(d){d=Number(d); if(isNaN(d)) return 'null'; return " + floorExpression + ";}"
+                  'function': `function(d){d=Number(d); if(isNaN(d)) return 'null'; return ${floorExpression};}`
                 }
               };
+              postProcess = postProcessTopNFactory(Number, label);
               break;
 
             case 'NUMBER_RANGE':
@@ -416,6 +480,7 @@ return (start < 0 ?'-':'') + parts.join('.');
                 outputName: label,
                 dimExtractionFn: this.getBucketingDimension(<RangeAttributeInfo>attributeInfo, splitExpression)
               };
+              postProcess = postProcessTopNFactory(postProcessNumberBucketFactory(splitExpression.size), label);
               break;
 
             default:
@@ -434,7 +499,8 @@ return (start < 0 ?'-':'') + parts.join('.');
         queryType: queryType,
         granularity: granularity,
         dimension: dimension,
-        dimensions: dimensions
+        dimensions: dimensions,
+        postProcess: postProcess
       };
     }
 
@@ -719,13 +785,13 @@ return (start < 0 ?'-':'') + parts.join('.');
           druidQuery.granularity = splitSpec.granularity;
           if (splitSpec.dimension) druidQuery.dimension = splitSpec.dimension;
           if (splitSpec.dimensions) druidQuery.dimensions = splitSpec.dimensions;
+          postProcess = splitSpec.postProcess;
 
           // Combine
           var postProcess: PostProcess = null;
           switch (druidQuery.queryType) {
             case 'timeseries':
               var split = <TimeBucketExpression>this.split;
-              postProcess = makePostProcessTimeseries(split.duration, split.timezone, this.label);
               if (this.sort && (this.sort.direction !== 'ascending' || this.sort.refName() !== this.label)) {
                 throw new Error('can not sort within timeseries query');
               }
@@ -735,7 +801,6 @@ return (start < 0 ?'-':'') + parts.join('.');
               break;
 
             case 'topN':
-              postProcess = postProcessTopN;
               var sortAction = this.sort;
               var metric: any = (<RefExpression>sortAction.expression).name;
               if (this.sortOrigin === 'label') {
@@ -751,7 +816,6 @@ return (start < 0 ?'-':'') + parts.join('.');
               break;
 
             case 'groupBy':
-              // postProcess = postProcessGroupBy; // ToDo: this
               var sortAction = this.sort;
               druidQuery.limitSpec = {
                 type: "default",

@@ -124,13 +124,16 @@ module Core {
       throw new Error("implement me");
     }
 
-    public _fillRefSubstitutions(typeContext: any, alterations: Alteration[]): any {
+    public _fillRefSubstitutions(typeContext: FullType, alterations: Alteration[]): FullType {
       var datasetContext = this.operand._fillRefSubstitutions(typeContext, alterations);
       var attributeType = 'NUMBER';
       if (this.attribute) {
-        attributeType = this.attribute._fillRefSubstitutions(datasetContext, alterations);
+        attributeType = this.attribute._fillRefSubstitutions(datasetContext, alterations).type;
       }
-      return this.fn === 'group' ? ('SET/' + attributeType) : this.type;
+      return {
+        type: this.fn === 'group' ? ('SET/' + attributeType) : this.type,
+        remote: datasetContext.remote
+      };
     }
   }
 

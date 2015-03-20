@@ -101,14 +101,13 @@ module Core {
       }
     }
 
-    public _fillRefSubstitutions(typeContext: any, alterations: Alteration[]): any {
+    public _fillRefSubstitutions(typeContext: FullType, alterations: Alteration[]): FullType {
       if (this.type == 'DATASET') {
-        var newTypeContext = this.value.getType();
-        newTypeContext.$parent = typeContext;
-        newTypeContext.$remote = this.isRemote();
+        var newTypeContext = (<Dataset>this.value).getType();
+        newTypeContext.parent = typeContext;
         return newTypeContext;
       } else {
-        return this.type;
+        return { type: this.type };
       }
     }
 

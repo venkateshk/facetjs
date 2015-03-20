@@ -142,12 +142,12 @@ module Core {
       }
     }
 
-    public _fillRefSubstitutions(typeContext: any, alterations: Alteration[]): any {
-      var operands = this.operands;
-      for (var i = 0; i < operands.length; i++) {
-        operands[i]._fillRefSubstitutions(typeContext, alterations);
-      }
-      return this.type;
+    public _fillRefSubstitutions(typeContext: FullType, alterations: Alteration[]): FullType {
+      var remotes = this.operands.map((operand) => operand._fillRefSubstitutions(typeContext, alterations).remote);
+      return {
+        type: this.type,
+        remote: mergeRemotes(remotes)
+      };
     }
   }
 }

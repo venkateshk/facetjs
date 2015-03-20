@@ -153,10 +153,13 @@ module Core {
       }
     }
 
-    public _fillRefSubstitutions(typeContext: any, alterations: Alteration[]): any {
-      this.lhs._fillRefSubstitutions(typeContext, alterations);
-      this.rhs._fillRefSubstitutions(typeContext, alterations);
-      return this.type;
+    public _fillRefSubstitutions(typeContext: FullType, alterations: Alteration[]): FullType {
+      var lhsFullType = this.lhs._fillRefSubstitutions(typeContext, alterations);
+      var rhsFullType = this.rhs._fillRefSubstitutions(typeContext, alterations);
+      return {
+        type: this.type,
+        remote: mergeRemotes([lhsFullType.remote, rhsFullType.remote])
+      };
     }
   }
 }

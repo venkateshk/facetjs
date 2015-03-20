@@ -154,13 +154,17 @@ module Core {
       var simpleOperand = this.operand.simplify();
       var simpleActions = this.actions.map((action) => action.simplify()); //this._getSimpleActions();
 
+      function isRemoteNumericApply(action: Action): boolean {
+        return action instanceof ApplyAction && action.expression.hasRemote() && action.expression.type === 'NUMBER';
+      }
+
       // These are actions on a remote dataset
       var remoteDatasets = this.getRemoteDatasets();
       if (simpleOperand instanceof LiteralExpression && remoteDatasets.length) {
         var remoteDataset: RemoteDataset;
         if ((<LiteralExpression>simpleOperand).isRemote()) {
           remoteDataset = (<LiteralExpression>simpleOperand).value;
-        } else {
+        } else if (simpleActions.some(isRemoteNumericApply)) {
           if (remoteDatasets.length === 1) {
             remoteDataset = remoteDatasets[0].makeTotal();
           } else {
@@ -273,7 +277,10 @@ module Core {
           dataset = dataset.filter(action.expression.getFn());
 
         } else if (action instanceof ApplyAction) {
-          if (actionExpression instanceof ActionsExpression) {
+          if (actionExpression instanceof LiteralExpression) {
+            var v = actionExpression._computeNativeResolved(queries);
+            dataset = dataset.apply(action.name, () => v);
+          } else if (actionExpression instanceof ActionsExpression) {
             dataset = dataset.apply(action.name, (d: Datum) => {
               return actionExpression.resolve(d).simplify()._computeNativeResolved(queries)
             });

@@ -132,10 +132,4 @@ module Core {
     }
     return false;
   }
-
-  // --------------------------
-
-  export interface PostProcess {
-    (result: any): any;
-  }
 }

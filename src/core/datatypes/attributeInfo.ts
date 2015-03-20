@@ -12,11 +12,12 @@ module Core {
     return new Array(times + 1).join(str);
   }
 
-
   export interface AttributeInfoJS {
     special?: string;
     type?: string;
     datasetType?: Lookup<any>;
+    filterable?: boolean;
+    splitable?: boolean;
 
     separator?: string;
     rangeSize?: number;
@@ -60,6 +61,8 @@ module Core {
     public special: string;
     public type: string;
     public datasetType: Lookup<any>;
+    public filterable: boolean;
+    public splitable: boolean;
 
     constructor(parameters: AttributeInfoJS) {
       if (parameters.special) this.special = parameters.special;
@@ -67,6 +70,8 @@ module Core {
         throw new Error("type must be a string");
       }
       this.type = parameters.type;
+      this.filterable = hasOwnProperty(parameters, 'filterable') ? Boolean(parameters.filterable) : true;
+      this.splitable = hasOwnProperty(parameters, 'splitable') ? Boolean(parameters.splitable) : true;
     }
 
     public _ensureSpecial(special: string) {
@@ -96,7 +101,9 @@ module Core {
 
     public valueOf(): AttributeInfoJS {
       var value: AttributeInfoJS = {
-        type: this.type
+        type: this.type,
+        filterable: this.filterable,
+        splitable: this.splitable
       };
       if (this.special) value.special = this.special;
       if (this.datasetType) value.datasetType = this.datasetType;
@@ -123,6 +130,7 @@ module Core {
   }
   check = AttributeInfo;
 
+
   export class RangeAttributeInfo extends AttributeInfo {
     static fromJS(parameters: AttributeInfoJS): RangeAttributeInfo {
       return new RangeAttributeInfo(parameters);
@@ -140,6 +148,7 @@ module Core {
       this.digitsBeforeDecimal = parameters.digitsBeforeDecimal;
       this.digitsAfterDecimal = parameters.digitsAfterDecimal;
       this._ensureSpecial("range");
+      this._ensureType('NUMBER_RANGE');
       this.separator || (this.separator = ";");
       if (!(typeof this.separator === "string" && this.separator.length)) {
         throw new TypeError("`separator` must be a non-empty string");
@@ -237,6 +246,8 @@ module Core {
       return "/^(" + numberRegExp + ")" + separatorRegExp + "(" + numberRegExp + ")$/";
     }
   }
+  AttributeInfo.register(RangeAttributeInfo);
+
 
   export class UniqueAttributeInfo extends AttributeInfo {
     static fromJS(parameters: AttributeInfoJS): UniqueAttributeInfo {
@@ -246,6 +257,7 @@ module Core {
     constructor(parameters = {}) {
       super(parameters);
       this._ensureSpecial("unique");
+      this._ensureType('NUMBER');
     }
 
     public serialize(value: any): string {
@@ -261,12 +273,14 @@ module Core {
     constructor(parameters = {}) {
       super(parameters);
       this._ensureSpecial("histogram");
+      this._ensureType('NUMBER');
     }
 
     public serialize(value: any): string {
       throw new Error("can not serialize a histogram value");
     }
   }
+  AttributeInfo.register(UniqueAttributeInfo);
 
   AttributeInfo.UNIQUE = new UniqueAttributeInfo();
   AttributeInfo.HISTOGRAM = new HistogramAttributeInfo();

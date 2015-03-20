@@ -115,7 +115,7 @@ module Core {
     public _computeNativeResolved(queries: any[]): any {
       var value = this.value;
       if (value instanceof RemoteDataset) {
-        if (queries) queries.push(value.getQuery());
+        if (queries) queries.push(value.getQueryAndPostProcess().query);
         return value.simulate();
       } else {
         return this.value;

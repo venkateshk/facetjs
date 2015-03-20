@@ -33,7 +33,7 @@ module Core {
 
   export interface DatasetJS {
     source: string;
-    attributes?: Lookup<AttributeInfo>;
+    attributes?: Lookup<AttributeInfoJS>;
 
     // Native
     data?: Datum[];
@@ -80,7 +80,12 @@ module Core {
         if (typeof attributes !== 'object') {
           throw new TypeError("invalid attributes");
         } else {
-          value.attributes = attributes;
+          var newAttributes: Lookup<AttributeInfo> = Object.create(null);
+          for (var k in attributes) {
+            if (!hasOwnProperty(attributes, k)) continue;
+            newAttributes[k] = AttributeInfo.fromJS(attributes[k]);
+          }
+          value.attributes = newAttributes;
         }
       }
 
@@ -161,8 +166,13 @@ module Core {
       var js: DatasetJS = {
         source: this.source
       };
-      if (this.attributes) {
-        js.attributes = this.attributes;
+      var attributes = this.attributes;
+      if (attributes) {
+        var attributesJS: Lookup<AttributeInfoJS> = {};
+        for (var k in attributes) {
+          attributesJS[k] = attributes[k].toJS();
+        }
+        js.attributes = attributesJS;
       }
       return js;
     }

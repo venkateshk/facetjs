@@ -162,10 +162,6 @@ module Core {
 
     // -----------------
 
-    public getAttributeMeta(attr: string): Legacy.AttributeMeta {
-      return Legacy.AttributeMeta.DEFAULT
-    }
-
     public canUseNativeAggregateFilter(filterExpression: Expression): boolean {
       if (filterExpression.type !== 'BOOLEAN') throw new Error("must be a BOOLEAN filter");
 
@@ -183,7 +179,7 @@ module Core {
 
     public timelessFilterToDruid(filter: Expression): Druid.Filter {
       if (filter.type !== 'BOOLEAN') throw new Error("must be a BOOLEAN filter");
-      var attributeMeta: Legacy.AttributeMeta;
+      var attributeInfo: AttributeInfo;
 
       if (filter instanceof LiteralExpression) {
         if (filter.value === true) {
@@ -195,11 +191,11 @@ module Core {
         var lhs = filter.lhs;
         var rhs = filter.rhs;
         if (lhs instanceof RefExpression && rhs instanceof LiteralExpression) {
-          attributeMeta = this.getAttributeMeta(lhs.name);
+          attributeInfo = this.attributes[lhs.name];
           return {
             type: "selector",
             dimension: lhs.name,
-            value: attributeMeta.serialize(rhs.value)
+            value: attributeInfo.serialize(rhs.value)
           };
         } else {
           throw new Error("can not convert " + filter.toString() + " to Druid filter");
@@ -208,7 +204,7 @@ module Core {
         var lhs = filter.lhs;
         var rhs = filter.rhs;
         if (lhs instanceof RefExpression && rhs instanceof LiteralExpression) {
-          attributeMeta = this.getAttributeMeta(lhs.name);
+          attributeInfo = this.attributes[lhs.name];
           var rhsType = rhs.type;
           if (rhsType === 'SET/STRING') {
             return {
@@ -217,7 +213,7 @@ module Core {
                 return {
                   type: "selector",
                   dimension: lhs.name,
-                  value: attributeMeta.serialize(value)
+                  value: attributeInfo.serialize(value)
                 }
               })
             };
@@ -320,6 +316,28 @@ module Core {
       }
     }
 
+    public getBucketingDimension(attributeInfo: RangeAttributeInfo, numberBucket: NumberBucketExpression): Druid.ExtractionFn {
+      var regExp = attributeInfo.getMatchingRegExpString();
+      if (numberBucket && numberBucket.offset === 0 && numberBucket.size === attributeInfo.rangeSize) numberBucket = null;
+      var bucketing = '';
+      if (numberBucket) {
+        bucketing = 's=' + Legacy.driverUtil.continuousFloorExpression('s', 'Math.floor', numberBucket.size, numberBucket.offset) + ';';
+      }
+      return {
+        type: "javascript",
+        'function':
+`function(d) {
+var m = d.match(${regExp});
+if(!m) return 'null';
+var s = +m[1];
+if(!(Math.abs(+m[2] - s - ${attributeInfo.rangeSize}) < 1e-6)) return 'null'; ${bucketing}
+var parts = String(Math.abs(s)).split('.');
+parts[0] = ('000000000' + parts[0]).substr(-10);
+return (start < 0 ?'-':'') + parts.join('.');
+}`
+      };
+    }
+
     public splitToDruid(): DruidSplit {
       var splitExpression = this.split;
       var label = this.label;
@@ -334,9 +352,18 @@ module Core {
                             label : { type: "default", dimension: splitExpression.name, outputName: label };
 
         if (this.havingFilter.equals(Expression.TRUE) && this.limit) {
-          //var attributeMeta = this.getAttributeMeta(splitExpression.name);
+          var attributeInfo = this.attributes[splitExpression.name];
           queryType = 'topN';
-          dimension = dimensionSpec;
+          if (attributeInfo.special === 'range') {
+            dimension = {
+              type: "extraction",
+              dimension: splitExpression.name,
+              outputName: label,
+              dimExtractionFn: this.getBucketingDimension(<RangeAttributeInfo>attributeInfo, null)
+            };
+          } else {
+            dimension = dimensionSpec;
+          }
 
         } else {
           queryType = 'groupBy';
@@ -366,30 +393,33 @@ module Core {
       } else if (splitExpression instanceof NumberBucketExpression) {
         var refExpression = splitExpression.operand;
         if (refExpression instanceof RefExpression) {
-          var attributeMeta = this.getAttributeMeta(refExpression.name);
-          switch (attributeMeta.type) {
-            case 'default': // ToDo: fix this
+          var attributeInfo = this.attributes[refExpression.name];
+          queryType = "topN";
+          switch (attributeInfo.type) {
             case 'NUMBER':
               var floorExpression = Legacy.driverUtil.continuousFloorExpression("d", "Math.floor", splitExpression.size, splitExpression.offset);
-
-              queryType = "topN";
               dimension = {
                 type: "extraction",
                 dimension: refExpression.name,
                 outputName: label,
                 dimExtractionFn: {
                   type: "javascript",
-                  "function": "function(d){d=Number(d); if(isNaN(d)) return 'null'; return " + floorExpression + ";}"
+                  'function': "function(d){d=Number(d); if(isNaN(d)) return 'null'; return " + floorExpression + ";}"
                 }
               };
               break;
 
             case 'NUMBER_RANGE':
-              // ToDo: fill in
+              dimension = {
+                type: "extraction",
+                dimension: refExpression.name,
+                outputName: label,
+                dimExtractionFn: this.getBucketingDimension(<RangeAttributeInfo>attributeInfo, splitExpression)
+              };
               break;
 
             default:
-              throw new Error("can not number bucket an attribute of type: " + attributeMeta.type)
+              throw new Error("can not number bucket an attribute of type: " + attributeInfo.type)
           }
 
         } else {
@@ -638,7 +668,7 @@ module Core {
       }
     }
 
-    public getQuery(): Druid.Query {
+    public getQueryAndPostProcess(): QueryAndPostProcess<Druid.Query> {
       var druidQuery: Druid.Query = {
         queryType: 'timeseries',
         dataSource: this.dataSource,
@@ -663,7 +693,10 @@ module Core {
             druidQuery.postAggregations = aggregationsAndPostAggregations.postAggregations;
           }
 
-          return druidQuery;
+          return {
+            query: druidQuery,
+            postProcess: postProcessTotal
+          };
 
         case 'split':
           var filterAndIntervals = this.filterToDruid(this.filter);
@@ -688,8 +721,11 @@ module Core {
           if (splitSpec.dimensions) druidQuery.dimensions = splitSpec.dimensions;
 
           // Combine
+          var postProcess: PostProcess = null;
           switch (druidQuery.queryType) {
             case 'timeseries':
+              var split = <TimeBucketExpression>this.split;
+              postProcess = makePostProcessTimeseries(split.duration, split.timezone, this.label);
               if (this.sort && (this.sort.direction !== 'ascending' || this.sort.refName() !== this.label)) {
                 throw new Error('can not sort within timeseries query');
               }
@@ -699,6 +735,7 @@ module Core {
               break;
 
             case 'topN':
+              postProcess = postProcessTopN;
               var sortAction = this.sort;
               var metric: any = (<RefExpression>sortAction.expression).name;
               if (this.sortOrigin === 'label') {
@@ -714,6 +751,7 @@ module Core {
               break;
 
             case 'groupBy':
+              // postProcess = postProcessGroupBy; // ToDo: this
               var sortAction = this.sort;
               druidQuery.limitSpec = {
                 type: "default",
@@ -729,28 +767,13 @@ module Core {
               break;
           }
 
-          return druidQuery;
+          return {
+            query: druidQuery,
+            postProcess: postProcess
+          };
 
         default:
           throw new Error("can not get query for: " + this.mode);
-      }
-    }
-
-    public getPostProcess(): PostProcess {
-      switch (this.mode) {
-        case 'total':
-          return postProcessTotal;
-
-        case 'split':
-          var split = this.split;
-          if (split instanceof TimeBucketExpression) {
-            return makePostProcessTimeseries(split.duration, split.timezone, this.label);
-          } else {
-            return postProcessTopN;
-          }
-
-        default:
-          throw new Error("can not post process: " + this.mode);
       }
     }
   }

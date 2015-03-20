@@ -1,4 +1,13 @@
 module Core {
+  export interface PostProcess {
+    (result: any): any;
+  }
+
+  export interface QueryAndPostProcess<T> {
+    query: T;
+    postProcess: PostProcess;
+  }
+
   function getSampleValue(valueType: string, ex: Expression): any {
     switch (valueType) {
       case 'BOOLEAN':
@@ -305,12 +314,8 @@ module Core {
       });
     }
 
-    public getQuery(): any {
-      throw new Error("can not call getQuery directly");
-    }
-
-    public getPostProcess(): PostProcess {
-      throw new Error("can not call getPostProcess directly");
+    public getQueryAndPostProcess(): QueryAndPostProcess<any> {
+      throw new Error("can not call getQueryAndPostProcess directly");
     }
 
     public queryValues(): Q.Promise<NativeDataset> {
@@ -318,11 +323,11 @@ module Core {
         return <Q.Promise<NativeDataset>>Q.reject(new Error('must have a requester to actually do queries'));
       }
       try {
-        var query = this.getQuery();
+        var queryAndPostProcess = this.getQueryAndPostProcess();
       } catch (e) {
         return <Q.Promise<NativeDataset>>Q.reject(e);
       }
-      return this.requester({ query: query }).then(this.getPostProcess());
+      return this.requester({ query: queryAndPostProcess.query }).then(queryAndPostProcess.postProcess);
     }
   }
 }

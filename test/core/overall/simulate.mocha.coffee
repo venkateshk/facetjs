@@ -20,9 +20,12 @@ context = {
       time: { type: 'TIME' }
       color: { type: 'STRING' }
       cut: { type: 'STRING' }
-      carat: { type: 'STRING' }
-      price: { type: 'NUMBER' }
-      tax: { type: 'NUMBER' }
+      tags: { type: 'SET/STRING' }
+      carat: { type: 'NUMBER' }
+      height_bucket: { special: 'range', separator: ';', rangeSize: 0.05, digitsAfterDecimal: 2 }
+      price: { type: 'NUMBER', filterable: false, splitable: false }
+      tax: { type: 'NUMBER', filterable: false, splitable: false }
+      unique_views: { special: 'unique', filterable: false, splitable: false }
     }
     filter: facet("time").in(TimeRange.fromJS({
       start: new Date('2015-03-12T00:00:00')
@@ -276,5 +279,74 @@ describe "simulate", ->
           "type": "default"
         }
         "queryType": "groupBy"
+      }
+    ])
+
+  it "works with range bucket", ->
+    ex = facet()
+      .apply('HeightBuckets',
+        facet("diamonds").split("$height_bucket", 'HeightBucket')
+          .apply('Count', facet('diamonds').count())
+          .sort('$Count', 'descending')
+          .limit(10)
+      )
+      .apply('HeightUpBuckets',
+        facet("diamonds").split(facet('height_bucket').numberBucket(2, 0.5), 'HeightBucket')
+          .apply('Count', facet('diamonds').count())
+          .sort('$Count', 'descending')
+          .limit(10)
+      )
+
+    expect(ex.simulateQueryPlan(context)).to.deep.equal([
+      {
+        "aggregations": [
+          {
+            "name": "Count"
+            "type": "count"
+          }
+        ]
+        "dataSource": "diamonds"
+        "dimension": {
+          "dimExtractionFn": {
+            "function": "function(d) {\nvar m = d.match(/^((?:-?[1-9]\\d*|0)\\.\\d{2});((?:-?[1-9]\\d*|0)\\.\\d{2})$/);\nif(!m) return 'null';\nvar s = +m[1];\nif(!(Math.abs(+m[2] - s - 0.05) < 1e-6)) return 'null'; \nvar parts = String(Math.abs(s)).split('.');\nparts[0] = ('000000000' + parts[0]).substr(-10);\nreturn (start < 0 ?'-':'') + parts.join('.');\n}"
+            "type": "javascript"
+          }
+          "dimension": "height_bucket"
+          "outputName": "HeightBucket"
+          "type": "extraction"
+        }
+        "granularity": "all"
+        "intervals": [
+          "2015-03-12/2015-03-19"
+        ]
+        "metric": "Count"
+        "queryType": "topN"
+        "threshold": 10
+      }
+      # ---------------------
+      {
+        "aggregations": [
+          {
+            "name": "Count"
+            "type": "count"
+          }
+        ]
+        "dataSource": "diamonds"
+        "dimension": {
+          "dimExtractionFn": {
+            "function": "function(d) {\nvar m = d.match(/^((?:-?[1-9]\\d*|0)\\.\\d{2});((?:-?[1-9]\\d*|0)\\.\\d{2})$/);\nif(!m) return 'null';\nvar s = +m[1];\nif(!(Math.abs(+m[2] - s - 0.05) < 1e-6)) return 'null'; s=Math.floor((s - 0.5) / 2) * 2 + 0.5;\nvar parts = String(Math.abs(s)).split('.');\nparts[0] = ('000000000' + parts[0]).substr(-10);\nreturn (start < 0 ?'-':'') + parts.join('.');\n}"
+            "type": "javascript"
+          }
+          "dimension": "height_bucket"
+          "outputName": "HeightBucket"
+          "type": "extraction"
+        }
+        "granularity": "all"
+        "intervals": [
+          "2015-03-12/2015-03-19"
+        ]
+        "metric": "Count"
+        "queryType": "topN"
+        "threshold": 10
       }
     ])

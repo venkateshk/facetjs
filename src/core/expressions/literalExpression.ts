@@ -103,7 +103,7 @@ module Core {
 
     public _fillRefSubstitutions(typeContext: FullType, alterations: Alteration[]): FullType {
       if (this.type == 'DATASET') {
-        var newTypeContext = (<Dataset>this.value).getType();
+        var newTypeContext = (<Dataset>this.value).getFullType();
         newTypeContext.parent = typeContext;
         return newTypeContext;
       } else {

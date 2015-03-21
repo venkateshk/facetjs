@@ -198,10 +198,10 @@ module Core {
       return false;
     }
 
-    public getType(): FullType {
+    public getFullType(): FullType {
       var attributes = this.attributes;
       if (!attributes) throw new Error("dataset has not been introspected");
-
+      
       var remote = this.source === 'native' ? null : [this.toHash()];
 
       var myDatasetType: Lookup<FullType> = {};

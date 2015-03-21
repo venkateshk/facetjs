@@ -30,7 +30,7 @@ module Core {
 
   export function getFullType(value: any): FullType {
     var myType = getType(value);
-    return myType === 'DATASET' ? (<Dataset>value).getType() : { type: myType };
+    return myType === 'DATASET' ? (<Dataset>value).getFullType() : { type: myType };
   }
 
   export function valueFromJS(v: any, type: string = null): any {

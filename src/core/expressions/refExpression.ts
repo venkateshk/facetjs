@@ -72,7 +72,7 @@ module Core {
     }
 
     public toString(): string {
-      var remote = this.remote || [];
+      //var remote = this.remote || [];
       return '$' + this.generations + this.name + (this.type ? ':' + this.type : ''); // + `#[${remote.join(',')}]`;
     }
 

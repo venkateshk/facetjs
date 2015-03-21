@@ -42,10 +42,7 @@ module Core {
     } else if (isString(attributeValue)) {
       return new AttributeInfo({ type: 'STRING' });
     } else if (attributeValue instanceof Dataset) {
-      return new AttributeInfo({
-        type: 'DATASET',
-        datasetType: attributeValue.getType()
-      })
+      return new AttributeInfo(attributeValue.getFullType())
     } else {
       throw new Error("Could not introspect");
     }
@@ -261,9 +258,9 @@ module Core {
       this.attributes = attributes;
     }
 
-    public getType(): FullType {
+    public getFullType(): FullType {
       this.introspect();
-      return super.getType();
+      return super.getFullType();
     }
 
     public getRemoteDatasets(): RemoteDataset[] {

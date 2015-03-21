@@ -15,7 +15,7 @@ module Core {
   export interface AttributeInfoJS {
     special?: string;
     type?: string;
-    datasetType?: Lookup<any>;
+    datasetType?: Lookup<FullType>;
     filterable?: boolean;
     splitable?: boolean;
 
@@ -56,7 +56,7 @@ module Core {
 
     public special: string;
     public type: string;
-    public datasetType: Lookup<any>;
+    public datasetType: Lookup<FullType>;
     public filterable: boolean;
     public splitable: boolean;
 
@@ -66,6 +66,7 @@ module Core {
         throw new Error("type must be a string");
       }
       this.type = parameters.type;
+      this.datasetType = parameters.datasetType;
       this.filterable = hasOwnProperty(parameters, 'filterable') ? Boolean(parameters.filterable) : true;
       this.splitable = hasOwnProperty(parameters, 'splitable') ? Boolean(parameters.splitable) : true;
     }

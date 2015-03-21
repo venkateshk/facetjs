@@ -1,6 +1,4 @@
 module Core {
-  import LegacyQuery = Legacy.FacetQuery;
-
   function makeFacetFilter(expression: Expression): any {
     if (expression.type !== 'BOOLEAN') return null;
 
@@ -169,7 +167,7 @@ module Core {
     }
   }
 
-  export function legacyTranslator(expression: Expression): LegacyQuery {
+  export function legacyTranslator(expression: Expression): Legacy.FacetQuery {
     if (expression instanceof ActionsExpression) {
       if (!expression.operand.isOp('literal') || expression.operand.type !== 'DATASET') {
         return null
@@ -220,7 +218,7 @@ module Core {
       return null
     }
 
-    return LegacyQuery.fromJS(query.concat(splitPart || []));
+    return Legacy.FacetQuery.fromJS(query.concat(splitPart || []));
   }
 
   function legacyTranslatorSplit(expression: Expression, datasetName: string): any[] {
@@ -314,11 +312,7 @@ module Core {
     })
   }
 
-  export interface Driver {
-    (ex: Expression): Q.Promise<Dataset>;
-  }
-
-  export function legacyDriver(legacyDriver: Legacy.Driver.FacetDriver): Driver {
+  export function legacyConverter(legacyDriver: Legacy.Driver.FacetDriver) {
     return function(ex: Expression): Q.Promise<Dataset> {
       var legacyQuery = legacyTranslator(ex);
       return legacyDriver({
@@ -327,45 +321,6 @@ module Core {
         var splitNames = legacyQuery.getSplits().map((split) => split.name);
         return segmentTreesToDataset([segmentTree], splitNames);
       })
-    }
-  }
-
-  export class LegacyDataset extends RemoteDataset {
-    static type = 'DATASET';
-
-    static fromJS(datasetJS: any): LegacyDataset {
-      var value = RemoteDataset.jsToValue(datasetJS);
-      value.driver = datasetJS.driver;
-      return new LegacyDataset(value);
-    }
-
-    public driver: Legacy.Driver.FacetDriver;
-
-    constructor(parameters: DatasetValue) {
-      super(parameters, dummyObject);
-      this._ensureSource("legacy");
-      this.driver = parameters.driver;
-    }
-
-    public valueOf(): DatasetValue {
-      var value = super.valueOf();
-      value.driver = this.driver;
-      return value;
-    }
-
-    public toJS(): DatasetJS {
-      var js = super.toJS();
-      js.driver = this.driver;
-      return js;
-    }
-
-    public toString(): string {
-      return "LegacyDataset";
-    }
-
-    public equals(other: LegacyDataset): boolean {
-      return super.equals(other) &&
-        this.driver === other.driver;
     }
   }
 }

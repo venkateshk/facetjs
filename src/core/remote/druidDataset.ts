@@ -135,8 +135,8 @@ module Core {
     static TRUE_INTERVAL = ["1000-01-01/3000-01-01"];
     static FALSE_INTERVAL = ["1000-01-01/1000-01-02"];
 
-    static fromJS(datasetJS: any, requester: Requester.FacetRequester<any> = null): DruidDataset {
-      var value = RemoteDataset.jsToValue(datasetJS, requester);
+    static fromJS(datasetJS: any): DruidDataset {
+      var value = RemoteDataset.jsToValue(datasetJS);
       value.dataSource = datasetJS.dataSource;
       value.timeAttribute = datasetJS.timeAttribute;
       value.forceInterval = datasetJS.forceInterval;
@@ -196,6 +196,18 @@ module Core {
     }
 
     // -----------------
+
+    public canHandleFilter(ex: Expression): boolean {
+      return true;
+    }
+
+    public canHandleTotal(): boolean {
+      return true;
+    }
+
+    public canHandleSplit(ex: Expression): boolean {
+      return true;
+    }
 
     public canHandleSort(sortAction: SortAction): boolean {
       if (this.split instanceof TimeBucketExpression) {
@@ -785,10 +797,9 @@ return (start < 0 ?'-':'') + parts.join('.');
           druidQuery.granularity = splitSpec.granularity;
           if (splitSpec.dimension) druidQuery.dimension = splitSpec.dimension;
           if (splitSpec.dimensions) druidQuery.dimensions = splitSpec.dimensions;
-          postProcess = splitSpec.postProcess;
+          var postProcess = splitSpec.postProcess;
 
           // Combine
-          var postProcess: PostProcess = null;
           switch (druidQuery.queryType) {
             case 'timeseries':
               var split = <TimeBucketExpression>this.split;

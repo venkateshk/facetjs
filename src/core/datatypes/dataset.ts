@@ -39,6 +39,7 @@ module Core {
     data?: Datum[];
 
     // Remote
+    requester?: Requester.FacetRequester<any>;
     filter?: ExpressionJS;
 
     // Legacy
@@ -211,21 +212,25 @@ module Core {
         if (attrType.type === 'DATASET') {
           myDatasetType[attrName] = {
             type: 'DATASET',
-            datasetType: attrType.datasetType,
-            remote: remote
+            datasetType: attrType.datasetType
           };
         } else {
           myDatasetType[attrName] = {
-            type: attrType.type,
-            remote: remote
+            type: attrType.type
           };
         }
+        if (remote) {
+          myDatasetType[attrName].remote = remote;
+        }
       }
-      return {
+      var myFullType: FullType = {
         type: 'DATASET',
         datasetType: myDatasetType,
-        remote: remote
       };
+      if (remote) {
+        myFullType.remote = remote;
+      }
+      return myFullType;
     }
 
     public hasRemote(): boolean {

@@ -20,8 +20,7 @@ describe "parser", ->
       .apply('agg_group_label1', "$data.group($carat).label('Carat')")
       .apply('agg_group_label2', "$data.group($carat).label('Carat')")
 
-    expect(ex.toJS()).to.deep.equal(
-      facet()
+    ex2 = facet()
       #.filter(facet('color').is("Red")')
       #.filter(facet('country').is("USA")')
       .apply('parent_x', facet("^x"))
@@ -35,5 +34,5 @@ describe "parser", ->
       .apply('agg_group', facet("data").group(facet('carat')))
       .apply('agg_group_label1', facet("data").group(facet('carat')).label('Carat'))
       .apply('agg_group_label2', facet("data").group('$carat').label('Carat'))
-      .toJS()
-    )
+
+    expect(ex.toJS()).to.deep.equal(ex2.toJS())

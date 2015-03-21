@@ -38,7 +38,7 @@ module Core {
         this.name === other.name;
     }
 
-    protected _makeFn(operandFn: Function): Function {
+    protected _makeFn(operandFn: ComputeFn): ComputeFn {
       var name = this.name;
       return (d: Datum) => {
         var mySet = operandFn(d);

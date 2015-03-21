@@ -98,10 +98,10 @@ describe "Dataset", ->
         approximate: true,
         context: null
         attributes: {
-          color: { type: 'STRING' }
-          cut: { type: 'STRING' }
-          carat: { type: 'STRING' }
-          price: { type: 'NUMBER' }
+          color: { type: 'STRING', filterable: true, splitable: true }
+          cut: { type: 'STRING', filterable: true, splitable: true }
+          carat: { type: 'STRING', filterable: true, splitable: true }
+          price: { type: 'NUMBER', filterable: true, splitable: true }
         }
       }
 
@@ -136,21 +136,30 @@ describe "Dataset", ->
         context: null
       })
 
-  describe "getType (NativeDataset)", ->
+  describe "getFullType (NativeDataset)", ->
     it "works in empty case", ->
-      expect(Dataset.fromJS([]).getType()).to.deep.equal({})
+      expect(Dataset.fromJS([]).getFullType()).to.deep.equal({
+        type: "DATASET",
+        datasetType: {}
+      })
 
     it "works in singleton case", ->
-      expect(Dataset.fromJS([{}]).getType()).to.deep.equal({})
+      expect(Dataset.fromJS([{}]).getFullType()).to.deep.equal({
+        type: "DATASET",
+        datasetType: {}
+      })
 
     it "works in basic case", ->
       expect(Dataset.fromJS([
         { x: 1, y: "hello", z: new Date(1000) }
         { x: 2, y: "woops", z: new Date(1001) }
-      ]).getType()).to.deep.equal({
-        x: "NUMBER"
-        y: "STRING"
-        z: "TIME"
+      ]).getFullType()).to.deep.equal({
+        "type": "DATASET"
+        "datasetType": {
+          "x": { type: "NUMBER" }
+          "y": { type: "STRING" }
+          "z": { type: "TIME" }
+        }
       })
 
     it "works in nested case", ->
@@ -173,9 +182,18 @@ describe "Dataset", ->
             { a: 51.6, b: 'W00p' }
           ]
         }
-      ]).getType()).to.deep.equal({
-        subData: { a: 'NUMBER', b: 'STRING' }
-        x: "NUMBER"
-        y: "STRING"
-        z: "TIME"
+      ]).getFullType()).to.deep.equal({
+        type: "DATASET"
+        datasetType: {
+          "subData": {
+            type: "DATASET"
+            datasetType: {
+              "a": {type: "NUMBER"}
+              "b": {type: "STRING"}
+            }
+          }
+          "x": {type: "NUMBER"}
+          "y": {type: "STRING"}
+          "z": {type: "TIME"}
+        }
       })

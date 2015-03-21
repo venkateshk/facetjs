@@ -331,6 +331,28 @@ module Core {
     }
 
     /**
+     * Check if the expression contains references to remote datasets
+     *
+     * @returns {boolean}
+     */
+    public hasRemote(): boolean {
+      return this.some(function(ex: Expression) {
+        if (ex instanceof LiteralExpression || ex instanceof RefExpression) return ex.isRemote();
+        return null; // search further
+      });
+    }
+
+    public getRemoteDatasets(): RemoteDataset[] {
+      var remoteDatasets: RemoteDataset[][] = [];
+      this.forEach(function(ex: Expression) {
+        if (ex instanceof LiteralExpression && ex.type === 'DATASET') {
+          remoteDatasets.push((<Dataset>ex.value).getRemoteDatasets());
+        }
+      });
+      return mergeRemoteDatasets(remoteDatasets);
+    }
+
+    /**
      * Introspects self to look for all references expressions and returns the alphabetically sorted list of the references
      *
      * @returns {string[]}
@@ -436,7 +458,7 @@ module Core {
       return this;
     }
 
-    public getFn(): Function {
+    public getFn(): ComputeFn {
       throw new Error('should never be called directly');
     }
 
@@ -743,23 +765,6 @@ module Core {
       return this.every((ex: Expression) => {
         return (ex instanceof RefExpression) ? ex.generations.length === 0 : null; // Search within
       })
-    }
-
-    public hasRemote(): boolean {
-      return this.some(function(ex: Expression) {
-        if (ex instanceof LiteralExpression || ex instanceof RefExpression) return ex.isRemote();
-        return null; // search further
-      });
-    }
-
-    public getRemoteDatasets(): RemoteDataset[] {
-      var remoteDatasets: RemoteDataset[][] = [];
-      this.forEach(function(ex: Expression) {
-        if (ex instanceof LiteralExpression && ex.type === 'DATASET') {
-          remoteDatasets.push((<Dataset>ex.value).getRemoteDatasets());
-        }
-      });
-      return mergeRemoteDatasets(remoteDatasets);
     }
 
     // ---------------------------------------------------------

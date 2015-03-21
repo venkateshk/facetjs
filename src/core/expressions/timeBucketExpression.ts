@@ -48,7 +48,7 @@ module Core {
         this.timezone.equals(other.timezone);
     }
 
-    protected _makeFn(operandFn: Function): Function {
+    protected _makeFn(operandFn: ComputeFn): ComputeFn {
       var duration = this.duration;
       var timezone = this.timezone;
       return (d: Datum) => {

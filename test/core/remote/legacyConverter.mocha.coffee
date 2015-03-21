@@ -6,14 +6,12 @@ if not WallTime.rules
   WallTime.init(tzData.rules, tzData.zones)
 
 facet = require('../../../build/facet')
-{ legacyDriver, legacyTranslator, Dataset } = facet.core
+{ legacyConverter, legacyTranslator, Dataset } = facet.core
 { nativeDriver } = facet.legacy
 
 diamondsData = require('../../../data/diamonds.js')
 
-drivers = {
-  diamonds: Dataset.fromJS(legacyDriver(nativeDriver(diamondsData)))
-}
+legacyDriver = legacyConverter(nativeDriver(diamondsData))
 
 describe "legacyDriver", ->
   describe.skip "simple query", ->
@@ -22,7 +20,7 @@ describe "legacyDriver", ->
       .apply('TotalPrice', facet('diamonds').sum('$price'))
 
     it "works", (testComplete) ->
-      ex.compute(drivers)
+      legacyDriver(ex)
       .then((data) ->
         expect(data.toJS()).to.deep.equal([
           {
@@ -120,7 +118,7 @@ describe "legacyDriver", ->
       ])
 
     it "works", (testComplete) ->
-      ex.compute(drivers)
+      legacyDriver(ex)
       .then((data) ->
         expect(data.toJS()).to.deep.equal([
           {

@@ -15,7 +15,7 @@ module Core {
       return this.operand.toString() + '.reciprocate()';
     }
 
-    protected _makeFn(operandFn: Function): Function {
+    protected _makeFn(operandFn: ComputeFn): ComputeFn {
       return (d: Datum) => 1 / operandFn(d);
     }
 

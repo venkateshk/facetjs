@@ -14,7 +14,7 @@ module Core {
       return this.operand.toString() + '.negate()';
     }
 
-    protected _makeFn(operandFn: Function): Function {
+    protected _makeFn(operandFn: ComputeFn): ComputeFn {
       return (d: Datum) => -operandFn(d);
     }
 

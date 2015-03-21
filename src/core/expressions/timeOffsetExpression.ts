@@ -40,7 +40,7 @@ module Core {
         this.duration.equals(other.duration);
     }
 
-    protected _makeFn(operandFn: Function): Function {
+    protected _makeFn(operandFn: ComputeFn): ComputeFn {
       var duration = this.duration;
       return (d: Datum) => {
         var date = operandFn(d);

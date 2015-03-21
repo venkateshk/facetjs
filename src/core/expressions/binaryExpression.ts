@@ -68,7 +68,7 @@ module Core {
       if (simpleLhs.isOp('literal') && simpleRhs.isOp('literal')) {
         return new LiteralExpression({
           op: 'literal',
-          value: this._makeFn(simpleLhs.getFn(), simpleRhs.getFn())()
+          value: this._makeFn(simpleLhs.getFn(), simpleRhs.getFn())(null)
         })
       }
 
@@ -129,11 +129,11 @@ module Core {
       return new (Expression.classMap[this.op])(value);
     }
 
-    protected _makeFn(lhsFn: Function, rhsFn: Function): Function {
+    protected _makeFn(lhsFn: ComputeFn, rhsFn: ComputeFn): ComputeFn {
       throw new Error("should never be called directly");
     }
 
-    public getFn(): Function {
+    public getFn(): ComputeFn {
       return this._makeFn(this.lhs.getFn(), this.rhs.getFn());
     }
 

@@ -37,7 +37,7 @@ module Core {
         this.regexp === other.regexp;
     }
 
-    protected _makeFn(operandFn: Function): Function {
+    protected _makeFn(operandFn: ComputeFn): ComputeFn {
       var re = new RegExp(this.regexp);
       return (d: Datum) => re.test(operandFn(d));
     }

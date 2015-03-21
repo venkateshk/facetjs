@@ -33,19 +33,19 @@ describe "RemoteDataset", ->
   describe "simplifies / digests", ->
     it "a total", ->
       ex = facet()
-      .def("wiki",
-        facet('^wiki')
-        .apply('addedTwice', '$added * 2')
-        .filter(facet("language").is('en'))
-      )
-      .apply('Count', '$wiki.count()')
-      .apply('TotalAdded', '$wiki.sum($added)')
+        .def("wiki",
+          facet('^wiki')
+            .apply('addedTwice', '$added * 2')
+            .filter(facet("language").is('en'))
+        )
+        .apply('Count', '$wiki.count()')
+        .apply('TotalAdded', '$wiki.sum($added)')
 
-      ex = ex.resolve(context).simplify()
+      ex = ex.referenceCheck(context).resolve(context).simplify()
 
       expect(ex.op).to.equal('literal')
       remoteDataset = ex.value
-      expect(remoteDataset.getQuery()).to.deep.equal({
+      expect(remoteDataset.getQueryAndPostProcess().query).to.deep.equal({
         "aggregations": [
           {
             "name": "Count"
@@ -72,16 +72,16 @@ describe "RemoteDataset", ->
 
     it "a split", ->
       ex = facet('wiki').split("$page", 'Page')
-      .apply('Count', '$wiki.count()')
-      .apply('Added', '$wiki.sum($added)')
-      .sort('$Count', 'descending')
-      .limit(5)
+        .apply('Count', '$wiki.count()')
+        .apply('Added', '$wiki.sum($added)')
+        .sort('$Count', 'descending')
+        .limit(5)
 
-      ex = ex.resolve(context).simplify()
+      ex = ex.referenceCheck(context).resolve(context).simplify()
 
       expect(ex.op).to.equal('literal')
       remoteDataset = ex.value
-      expect(remoteDataset.getQuery()).to.deep.equal({
+      expect(remoteDataset.getQueryAndPostProcess().query).to.deep.equal({
         "aggregations": [
           {
             "name": "Count"

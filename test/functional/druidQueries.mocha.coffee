@@ -7,16 +7,18 @@ if not WallTime.rules
 
 { druidRequester } = require('facetjs-druid-requester')
 
-facet = require('../../../build/facet')
+facet = require('../../build/facet')
 { Expression, Dataset, TimeRange } = facet.core
 
-info = require('../../info')
+info = require('../info')
 
 druidPass = druidRequester({
   host: info.druidHost
 })
 
 describe "DruidDataset actually", ->
+  @timeout(5000);
+
   it "works in advanced case", (testComplete) ->
     context = {
       wiki: Dataset.fromJS({
@@ -36,7 +38,8 @@ describe "DruidDataset actually", ->
           start: new Date("2013-02-26T00:00:00Z")
           end: new Date("2013-02-27T00:00:00Z")
         }))
-      }, druidPass)
+        requester: druidPass
+      })
     }
 
     ex = facet()

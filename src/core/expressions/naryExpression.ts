@@ -67,7 +67,7 @@ module Core {
       var nonLiteralOperands = simpleOperands.filter((operand) => !operand.isOp('literal'));
       var literalExpression = new LiteralExpression({
         op: 'literal',
-        value: this._makeFn(literalOperands.map((operand) => operand.getFn()))()
+        value: this._makeFn(literalOperands.map((operand) => operand.getFn()))(null)
       });
 
       if (nonLiteralOperands.length) {
@@ -116,11 +116,11 @@ module Core {
       return new (Expression.classMap[this.op])(value);
     }
 
-    protected _makeFn(operandFns: Function[]): Function {
+    protected _makeFn(operandFns: ComputeFn[]): ComputeFn {
       throw new Error("should never be called directly");
     }
 
-    public getFn(): Function {
+    public getFn(): ComputeFn {
       return this._makeFn(this.operands.map((operand) => operand.getFn()));
     }
 

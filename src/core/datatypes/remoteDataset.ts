@@ -49,10 +49,10 @@ module Core {
   export class RemoteDataset extends Dataset {
     static type = 'DATASET';
 
-    static jsToValue(parameters: any, requester: Requester.FacetRequester<any> = null): DatasetValue {
+    static jsToValue(parameters: any): DatasetValue {
       var value = Dataset.jsToValue(parameters);
+      if (parameters.requester) value.requester = parameters.requester;
       value.filter = parameters.filter || Expression.TRUE;
-      if (requester) value.requester = requester;
       return value;
     }
 
@@ -100,23 +100,40 @@ module Core {
 
     public valueOf(): DatasetValue {
       var value = super.valueOf();
-      value.requester = this.requester;
+      if (this.requester) {
+        value.requester = this.requester;
+      }
       value.mode = this.mode;
       value.derivedAttributes = this.derivedAttributes;
       value.filter = this.filter;
-      value.split = this.split;
-      value.label = this.label;
-      value.defs = this.defs;
-      value.applies = this.applies;
-      value.sort = this.sort;
-      value.sortOrigin = this.sortOrigin;
-      value.limit = this.limit;
-      value.havingFilter = this.havingFilter;
+      if (this.split) {
+        value.split = this.split;
+        value.label = this.label;
+      }
+      if (this.defs) {
+        value.defs = this.defs;
+      }
+      if (this.applies) {
+        value.applies = this.applies;
+      }
+      if (this.sort) {
+        value.sort = this.sort;
+        value.sortOrigin = this.sortOrigin;
+      }
+      if (this.limit) {
+        value.limit = this.limit;
+      }
+      if (this.havingFilter) {
+        value.havingFilter = this.havingFilter;
+      }
       return value;
     }
 
     public toJS(): DatasetJS {
       var js = super.toJS();
+      if (this.requester) {
+        js.requester = this.requester;
+      }
       if (!this.filter.equals(Expression.TRUE)) {
         js.filter = this.filter.toJS();
       }
@@ -156,27 +173,27 @@ module Core {
     // -----------------
 
     public canHandleFilter(ex: Expression): boolean {
-      return true;
+      throw new Error("must implement canHandleFilter");
     }
 
     public canHandleTotal(): boolean {
-      return true;
+      throw new Error("must implement canHandleTotal");
     }
 
     public canHandleSplit(ex: Expression): boolean {
-      return true;
+      throw new Error("must implement canHandleSplit");
     }
 
     public canHandleSort(sortAction: SortAction): boolean {
-      return true;
+      throw new Error("must implement canHandleSort");
     }
 
     public canHandleLimit(limitAction: LimitAction): boolean {
-      return true;
+      throw new Error("must implement canHandleLimit");
     }
 
     public canHandleHavingFilter(ex: Expression): boolean {
-      return true;
+      throw new Error("must implement canHandleHavingFilter");
     }
 
     // -----------------
@@ -326,6 +343,9 @@ module Core {
         var queryAndPostProcess = this.getQueryAndPostProcess();
       } catch (e) {
         return <Q.Promise<NativeDataset>>Q.reject(e);
+      }
+      if (!hasOwnProperty(queryAndPostProcess, 'query') || typeof queryAndPostProcess.postProcess !== 'function') {
+        return <Q.Promise<NativeDataset>>Q.reject(new Error('no error query or postProcess'));
       }
       return this.requester({ query: queryAndPostProcess.query }).then(queryAndPostProcess.postProcess);
     }

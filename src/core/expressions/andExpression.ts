@@ -118,7 +118,7 @@ module Core {
       };
     }
 
-    protected _makeFn(operandFns: Function[]): Function {
+    protected _makeFn(operandFns: ComputeFn[]): ComputeFn {
       throw new Error("should never be called directly");
     }
 

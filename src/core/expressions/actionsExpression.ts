@@ -233,7 +233,7 @@ module Core {
       return new ActionsExpression(value);
     }
 
-    protected _makeFn(operandFn: Function): Function {
+    protected _makeFn(operandFn: ComputeFn): ComputeFn {
       throw new Error("can not call makeFn on actions");
     }
 
@@ -314,28 +314,29 @@ module Core {
       return dataset;
     }
 
-    public _computeResolved(): Q.Promise<any> {
+    public _computeResolved(): Q.Promise<NativeDataset> {
       var actions = this.actions;
-      return this.operand._computeResolved().then((dataset) => {
-        for (var i = 0; i < actions.length; i++) {
+
+      function execAction(i: number) {
+        return (dataset: NativeDataset): NativeDataset | Q.Promise<NativeDataset> => {
           var action = actions[i];
           var actionExpression = action.expression;
 
           if (action instanceof FilterAction) {
-            dataset = dataset.filter(action.expression.getFn());
+            return dataset.filter(action.expression.getFn());
 
           } else if (action instanceof ApplyAction) {
             if (actionExpression instanceof ActionsExpression) {
-              dataset = dataset.applyPromise(action.name, (d: Datum) => {
+              return dataset.applyPromise(action.name, (d: Datum) => {
                 return actionExpression.resolve(d).simplify()._computeResolved();
               });
             } else {
-              dataset = dataset.apply(action.name, actionExpression.getFn());
+              return dataset.apply(action.name, actionExpression.getFn());
             }
 
           } else if (action instanceof DefAction) {
             if (actionExpression instanceof ActionsExpression) {
-              dataset = dataset.def(action.name, (d: Datum) => {
+              return dataset.def(action.name, (d: Datum) => {
                 var simple = actionExpression.resolve(d).simplify();
                 if (simple instanceof LiteralExpression) {
                   return simple.value;
@@ -344,20 +345,24 @@ module Core {
                 }
               });
             } else {
-              dataset = dataset.def(action.name, actionExpression.getFn());
+              return dataset.def(action.name, actionExpression.getFn());
             }
 
           } else if (action instanceof SortAction) {
-            dataset = dataset.sort(actionExpression.getFn(), action.direction);
+            return dataset.sort(actionExpression.getFn(), action.direction);
 
           } else if (action instanceof LimitAction) {
-            dataset = dataset.limit(action.limit);
+            return dataset.limit(action.limit);
 
           }
         }
+      }
 
-        return dataset;
-      })
+      var promise = this.operand._computeResolved();
+      for (var i = 0; i < actions.length; i++) {
+        promise = promise.then(execAction(i));
+      }
+      return promise;
     }
   }
 

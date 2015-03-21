@@ -70,7 +70,7 @@ module Core {
       return [];
     }
 
-    public getFn(): Function {
+    public getFn(): ComputeFn {
       var value = this.value;
       return () => value;
     }

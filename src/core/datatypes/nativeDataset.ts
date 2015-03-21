@@ -185,7 +185,7 @@ module Core {
       return this.data.length;
     }
 
-    public sum(attrFn: Function): number {
+    public sum(attrFn: ComputeFn): number {
       var sum = 0;
       var data = this.data;
       var n = data.length;
@@ -195,7 +195,7 @@ module Core {
       return sum;
     }
 
-    public min(attrFn: Function): number {
+    public min(attrFn: ComputeFn): number {
       var min = Infinity;
       var data = this.data;
       var n = data.length;
@@ -206,7 +206,7 @@ module Core {
       return min;
     }
 
-    public max(attrFn: Function): number {
+    public max(attrFn: ComputeFn): number {
       var max = Infinity;
       var data = this.data;
       var n = data.length;
@@ -217,7 +217,7 @@ module Core {
       return max;
     }
 
-    public group(attrFn: Function, attribute: Expression): Set {
+    public group(attrFn: ComputeFn, attribute: Expression): Set {
       var splits: Lookup<any> = {};
       var data = this.data;
       var n = data.length;

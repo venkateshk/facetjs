@@ -90,7 +90,7 @@ module Core {
       return [this.name];
     }
 
-    public getFn(): Function {
+    public getFn(): ComputeFn {
       if (this.generations.length) throw new Error("can not call getFn on unresolved expression");
       var name = this.name;
       return (d: Datum) => {

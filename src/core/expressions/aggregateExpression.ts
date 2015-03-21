@@ -96,7 +96,7 @@ module Core {
       if (simpleOperand instanceof LiteralExpression && !simpleOperand.isRemote()) { // ToDo: also make sure that attribute does not have ^s
         return new LiteralExpression({
           op: 'literal',
-          value: this._makeFn(simpleOperand.getFn())()
+          value: this._makeFn(simpleOperand.getFn())(null)
         })
       }
 
@@ -113,7 +113,7 @@ module Core {
       return true;
     }
 
-    protected _makeFn(operandFn: Function): Function {
+    protected _makeFn(operandFn: ComputeFn): ComputeFn {
       var fn = this.fn;
       var attribute = this.attribute;
       var attributeFn = attribute ? attribute.getFn() : null;

@@ -55,7 +55,7 @@ module Core {
       if (simpleOperand.isOp('literal')) {
         return new LiteralExpression({
           op: 'literal',
-          value: this._makeFn(simpleOperand.getFn())()
+          value: this._makeFn(simpleOperand.getFn())(null)
         })
       }
 
@@ -112,11 +112,11 @@ module Core {
       return new (Expression.classMap[this.op])(value);
     }
 
-    protected _makeFn(operandFn: Function): Function {
+    protected _makeFn(operandFn: ComputeFn): ComputeFn {
       throw new Error("should never be called directly");
     }
 
-    public getFn(): Function {
+    public getFn(): ComputeFn {
       return this._makeFn(this.operand.getFn());
     }
 

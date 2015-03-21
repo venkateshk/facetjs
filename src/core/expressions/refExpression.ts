@@ -73,7 +73,7 @@ module Core {
 
     public toString(): string {
       var remote = this.remote || [];
-      return '$' + this.generations + this.name + (this.type ? ':' + this.type : '') + `#[${remote.join(',')}]`;
+      return '$' + this.generations + this.name + (this.type ? ':' + this.type : ''); // + `#[${remote.join(',')}]`;
     }
 
     public equals(other: RefExpression): boolean {

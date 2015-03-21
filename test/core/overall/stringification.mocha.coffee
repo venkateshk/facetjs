@@ -26,7 +26,7 @@ describe "stringification", ->
       )
 
     expect(ex.toString()).to.equal("""
-      facet().def('diamonds', $diamonds.filter($color = D))
+      facet().def('diamonds', $diamonds.filter($color = "D"))
         .apply('Count', $diamonds.count())
         .apply('TotalPrice', $diamonds.sum($price))
         .apply('Cuts', $diamonds.group($cut).label('Cut').def('diamonds', $diamonds.filter($cut = $^Cut))

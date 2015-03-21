@@ -133,7 +133,7 @@ describe "resolve", ->
       )
 
       
-  describe.only "resolves remotes", ->
+  describe "resolves remotes", ->
     context = {
       diamonds: Dataset.fromJS({
         source: 'druid',

@@ -106,7 +106,7 @@ RefName "RefName"
   = $("^"* [a-z0-9A-Z_]+)
 
 TypeName "TypeName"
-  = $([A-Z_]+)
+  = $([A-Z_/]+)
 
 NotSQuote "NotSQuote"
   = $([^']+)

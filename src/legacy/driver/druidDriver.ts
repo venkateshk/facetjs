@@ -184,7 +184,7 @@ module Legacy {
       var parametersContext = parameters.context;
       var context: Druid.Context = {};
       for (var k in parametersContext) {
-        if (!parametersContext.hasOwnProperty(k)) continue;
+        if (!hasOwnProperty(parametersContext, k)) continue;
         context[k] = parametersContext[k];
       }
       this.context = context;
@@ -424,7 +424,7 @@ module Legacy {
               aggregation.upperLimit = (<ContinuousSplit>split).upperLimit;
             }
             var options = split.options || {};
-            if (options.hasOwnProperty('druidResolution')) {
+            if (hasOwnProperty(options, 'druidResolution')) {
               aggregation.resolution = options['druidResolution'];
             }
             this.addAggregation(aggregation);
@@ -509,9 +509,9 @@ module Legacy {
               type: "approxHistogramFold",
               fieldName: apply.attribute
             };
-            if (options.hasOwnProperty('druidLowerLimit')) aggregation.lowerLimit = options['druidLowerLimit'];
-            if (options.hasOwnProperty('druidUpperLimit')) aggregation.upperLimit = options['druidUpperLimit'];
-            if (options.hasOwnProperty('druidResolution')) aggregation.resolution = options['druidResolution'];
+            if (hasOwnProperty(options, 'druidLowerLimit')) aggregation.lowerLimit = options['druidLowerLimit'];
+            if (hasOwnProperty(options, 'druidUpperLimit')) aggregation.upperLimit = options['druidUpperLimit'];
+            if (hasOwnProperty(options, 'druidResolution')) aggregation.resolution = options['druidResolution'];
             this.addAggregation(aggregation);
 
             this.addPostAggregation({
@@ -611,9 +611,9 @@ module Legacy {
             fieldName: apply.attribute
           };
 
-          if (options.hasOwnProperty('druidLowerLimit')) aggregation.lowerLimit = options['druidLowerLimit'];
-          if (options.hasOwnProperty('druidUpperLimit')) aggregation.upperLimit = options['druidUpperLimit'];
-          if (options.hasOwnProperty('druidResolution')) aggregation.resolution = options['druidResolution'];
+          if (hasOwnProperty(options, 'druidLowerLimit')) aggregation.lowerLimit = options['druidLowerLimit'];
+          if (hasOwnProperty(options, 'druidUpperLimit')) aggregation.upperLimit = options['druidUpperLimit'];
+          if (hasOwnProperty(options, 'druidResolution')) aggregation.resolution = options['druidResolution'];
           this.addAggregation(aggregation);
 
           this.addPostAggregation({
@@ -979,10 +979,10 @@ module Legacy {
           var rangeSize = (<RangeAttributeMeta>attributeMeta).rangeSize;
           ds.forEach((d: any) => {
             if (String(d[splitProp]) === "null") {
-              return d[splitProp] = null;
+              d[splitProp] = null;
             } else {
               var start = Number(d[splitProp]);
-              return d[splitProp] = [start, driverUtil.safeAdd(start, rangeSize)];
+              d[splitProp] = [start, driverUtil.safeAdd(start, rangeSize)];
             }
           });
         } else if (split.bucket === "continuous") {
@@ -990,10 +990,10 @@ module Legacy {
           var splitSize = (<ContinuousSplit>split).size;
           ds.forEach((d: any) => {
             if (String(d[splitProp]) === "null") {
-              return d[splitProp] = null;
+              d[splitProp] = null;
             } else {
               var start = Number(d[splitProp]);
-              return d[splitProp] = [start, driverUtil.safeAdd(start, splitSize)];
+              d[splitProp] = [start, driverUtil.safeAdd(start, splitSize)];
             }
           });
         }

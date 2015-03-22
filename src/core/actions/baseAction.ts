@@ -35,7 +35,7 @@ module Core {
     }
 
     static fromJS(actionJS: ActionJS): Action {
-      if (!actionJS.hasOwnProperty("action")) {
+      if (!hasOwnProperty(actionJS, "action")) {
         throw new Error("action must be defined");
       }
       var action = actionJS.action;
@@ -143,9 +143,17 @@ module Core {
       return new (Action.classMap[this.action])(value);
     }
 
-    public substitute(substitutionFn: SubstitutionFn, genDiff: number): Action {
+    public every(iter: BooleanExpressionIterator): boolean {
+      return this.expression ? this.expression.every(iter) : true;
+    }
+
+    public forEach(iter: VoidExpressionIterator): void {
+      if (this.expression) this.expression.forEach(iter);
+    }
+
+    public _substituteHelper(substitutionFn: SubstitutionFn, depth: number, genDiff: number): Action {
       if (!this.expression) return this;
-      var subExpression = this.expression.substitute(substitutionFn, genDiff);
+      var subExpression = this.expression._substituteHelper(substitutionFn, depth, genDiff);
       if (this.expression === subExpression) return this;
       var value = this.valueOf();
       value.expression = subExpression;

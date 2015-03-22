@@ -252,7 +252,7 @@ module Legacy {
     static andFiltersByDataset(filters1: FiltersByDataset, filters2: FiltersByDataset): FiltersByDataset {
       var resFilters: FiltersByDataset = {};
       for (var dataset in filters1) {
-        if (!filters1.hasOwnProperty(dataset)) continue;
+        if (!hasOwnProperty(filters1, dataset)) continue;
         var filter1 = filters1[dataset];
         var filter2 = filters2[dataset];
         if (!filter2) throw new Error("unmatched datasets");
@@ -309,7 +309,7 @@ module Legacy {
       if (typeof filterSpec !== "object") {
         throw new Error("unrecognizable filter");
       }
-      if (!filterSpec.hasOwnProperty("type")) {
+      if (!hasOwnProperty(filterSpec, "type")) {
         throw new Error("type must be defined");
       }
       if (typeof filterSpec.type !== "string") {

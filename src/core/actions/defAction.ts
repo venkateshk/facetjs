@@ -29,7 +29,7 @@ module Core {
     }
 
     public toString(): string {
-      return 'Def(' + this.name + ', ' + this.expression.toString() + ')';
+      return ".def('" + this.name + "', " + this.expression.toString() + ')';
     }
 
     public equals(other: DefAction): boolean {

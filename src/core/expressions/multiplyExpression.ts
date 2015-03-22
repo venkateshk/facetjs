@@ -12,10 +12,10 @@ module Core {
     }
 
     public toString(): string {
-      return 'multiply(' + this.operands.map((operand) => operand.toString()) + ')';
+      return '(' + this.operands.map((operand) => operand.toString()).join(' * ') + ')';
     }
 
-    protected _makeFn(operandFns: Function[]): Function {
+    protected _makeFn(operandFns: ComputeFn[]): ComputeFn {
       return (d: Datum) => {
         var res = 1;
         for (var i = 0; i < operandFns.length; i++) {

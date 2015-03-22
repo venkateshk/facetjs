@@ -1,5 +1,4 @@
 module Core {
-
   export class LiteralExpression extends Expression {
     static fromJS(parameters: ExpressionJS): Expression {
       var value: ExpressionValue = {
@@ -25,27 +24,8 @@ module Core {
       if (typeof this.value === 'undefined') {
         throw new TypeError("must have a `value`")
       }
-      var typeofValue = typeof value;
-      if (typeofValue === 'object') {
-        if (value === null) {
-          this.type = 'NULL';
-        } else if (value.toISOString) {
-          this.type = 'TIME';
-        } else {
-          this.type = value.constructor.type;
-          if (!this.type) {
-            throw new Error("can not have an object without a type");
-          }
-          if (this.type === 'SET') {
-            this.type += '/' + this.value.setType;
-          }
-        }
-      } else {
-        if (typeofValue !== 'boolean' && typeofValue !== 'number' && typeofValue !== 'string') {
-          throw new TypeError('unsupported type literal type ' + typeofValue);
-        }
-        this.type = typeofValue.toUpperCase();
-      }
+      this.type = getType(value);
+      this.simple = true;
     }
 
     public valueOf(): ExpressionValue {
@@ -67,7 +47,14 @@ module Core {
     }
 
     public toString(): string {
-      return String(this.value);
+      var value = this.value;
+      if (value instanceof Dataset && value.basis()) {
+        return 'facet()';
+      } else if (this.type === 'STRING') {
+        return JSON.stringify(value);
+      } else {
+        return String(value);
+      }
     }
 
     public equals(other: LiteralExpression): boolean {
@@ -83,9 +70,21 @@ module Core {
       return [];
     }
 
-    public getFn(): Function {
+    public getFn(): ComputeFn {
       var value = this.value;
       return () => value;
+    }
+
+    public every(iter: BooleanExpressionIterator): boolean {
+      return iter(this) !== false;
+    }
+
+    public forEach(iter: VoidExpressionIterator): void {
+      iter(this);
+    }
+
+    public isRemote(): boolean {
+      return this.value instanceof Dataset && this.value.source !== 'native';
     }
 
     public _getRawFnJS(): string {
@@ -102,13 +101,32 @@ module Core {
       }
     }
 
-    public _fillRefSubstitutions(typeContext: any, alterations: Alteration[]): any {
+    public _fillRefSubstitutions(typeContext: FullType, alterations: Alteration[]): FullType {
       if (this.type == 'DATASET') {
-        var newTypeContext = this.value.introspect();
-        newTypeContext.$parent = typeContext;
+        var newTypeContext = (<Dataset>this.value).getFullType();
+        newTypeContext.parent = typeContext;
         return newTypeContext;
       } else {
-        return this.type;
+        return { type: this.type };
+      }
+    }
+
+    public _computeNativeResolved(queries: any[]): any {
+      var value = this.value;
+      if (value instanceof RemoteDataset) {
+        if (queries) queries.push(value.getQueryAndPostProcess().query);
+        return value.simulate();
+      } else {
+        return this.value;
+      }
+    }
+
+    public _computeResolved(): Q.Promise<any> {
+      var value = this.value;
+      if (value instanceof RemoteDataset) {
+        return value.queryValues();
+      } else {
+        return Q(this.value);
       }
     }
   }

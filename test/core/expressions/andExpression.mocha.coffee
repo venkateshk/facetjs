@@ -2,9 +2,26 @@
 
 tests = require './sharedTests'
 facet = require('../../../build/facet')
-{ Set } = facet.core
+{ Set, TimeRange } = facet.core
 
 describe 'AndExpression', ->
+  describe 'empty expressions', ->
+    beforeEach ->
+      this.expression = { op: 'and', operands: [] }
+
+    tests.complexityIs(1)
+    tests.simplifiedExpressionIs({op: 'literal', value: true})
+
+  describe 'with true expressions', ->
+    beforeEach ->
+      this.expression = { op: 'and', operands: [
+        { op: 'literal', value: true },
+        { op: 'literal', value: true }
+      ] }
+
+    tests.complexityIs(3)
+    tests.simplifiedExpressionIs({op: 'literal', value: true})
+
   describe 'with boolean expressions', ->
     beforeEach ->
       this.expression = { op: 'and', operands: [
@@ -108,3 +125,19 @@ describe 'AndExpression', ->
         }
       ]
     })
+
+  describe 'with time merge', ->
+    beforeEach ->
+      this.expression = facet("time").in(TimeRange.fromJS({
+        start: new Date('2015-03-14T00:00:00')
+        end:   new Date('2015-03-21T00:00:00')
+      })).and(facet("time").in(TimeRange.fromJS({
+        start: new Date('2015-03-14T00:00:00')
+        end:   new Date('2015-03-15T00:00:00')
+      }))).toJS()
+
+    tests.complexityIs(7)
+    tests.simplifiedExpressionIs(facet("time").in(TimeRange.fromJS({
+      start: new Date('2015-03-14T00:00:00')
+      end:   new Date('2015-03-15T00:00:00')
+    })).toJS())

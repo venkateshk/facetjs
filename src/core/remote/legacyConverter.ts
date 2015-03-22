@@ -1,14 +1,4 @@
 module Core {
-  import LegacyDriver = Legacy.Driver;
-  import LegacyQuery = Legacy.FacetQuery;
-
-  export interface Translation {
-    query: () => Q.Promise<Dataset>;
-    path: string[];
-    name: string;
-    leftOver?: Expression;
-  }
-
   function makeFacetFilter(expression: Expression): any {
     if (expression.type !== 'BOOLEAN') return null;
 
@@ -177,7 +167,7 @@ module Core {
     }
   }
 
-  export function legacyTranslator(expression: Expression): LegacyQuery {
+  export function legacyTranslator(expression: Expression): Legacy.FacetQuery {
     if (expression instanceof ActionsExpression) {
       if (!expression.operand.isOp('literal') || expression.operand.type !== 'DATASET') {
         return null
@@ -228,7 +218,7 @@ module Core {
       return null
     }
 
-    return LegacyQuery.fromJS(query.concat(splitPart || []));
+    return Legacy.FacetQuery.fromJS(query.concat(splitPart || []));
   }
 
   function legacyTranslatorSplit(expression: Expression, datasetName: string): any[] {
@@ -322,11 +312,7 @@ module Core {
     })
   }
 
-  export interface Driver {
-    (ex: Expression): Q.Promise<Dataset>;
-  }
-
-  export function legacyDriver(legacyDriver: LegacyDriver.FacetDriver): Driver {
+  export function legacyConverter(legacyDriver: Legacy.Driver.FacetDriver) {
     return function(ex: Expression): Q.Promise<Dataset> {
       var legacyQuery = legacyTranslator(ex);
       return legacyDriver({

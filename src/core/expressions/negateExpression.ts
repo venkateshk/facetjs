@@ -11,10 +11,10 @@ module Core {
     }
 
     public toString(): string {
-      return 'negate(' + this.operand.toString() + ')';
+      return this.operand.toString() + '.negate()';
     }
 
-    protected _makeFn(operandFn: Function): Function {
+    protected _makeFn(operandFn: ComputeFn): ComputeFn {
       return (d: Datum) => -operandFn(d);
     }
 
@@ -22,7 +22,12 @@ module Core {
       return "-(" + operandFnJS + ")"
     }
 
-    // UNARY
+    protected _specialSimplify(simpleOperand: Expression): Expression {
+      if (simpleOperand instanceof NegateExpression) {
+        return simpleOperand.operand;
+      }
+      return null;
+    }
   }
 
   Expression.register(NegateExpression);

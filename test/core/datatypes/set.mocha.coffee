@@ -25,6 +25,10 @@ describe "Set", ->
         elements: ['B', 'C']
       }
       {
+        setType: 'STRING'
+        elements: ['B', 'hasOwnProperty', 'troll']
+      }
+      {
         setType: 'NUMBER'
         elements: []
       }
@@ -52,6 +56,17 @@ describe "Set", ->
       }
     ])
 
+  describe "does not die with hasOwnProperty", ->
+    it "survives", ->
+      expect(Set.fromJS({
+        setType: 'NUMBER'
+        elements: [1, 2]
+        hasOwnProperty: 'troll'
+      }).toJS()).to.deep.equal({
+        setType: 'NUMBER'
+        elements: [1, 2]
+      })
+
   describe "#add()", ->
     it 'works correctly', ->
       expect(
@@ -70,6 +85,14 @@ describe "Set", ->
         elements: ['A', 'B', 'C']
       })
 
+    it 'works correctly with troll', ->
+      expect(
+        Set.fromJS(['A', 'B']).union(Set.fromJS(['B', 'C', 'hasOwnProperty'])).toJS()
+      ).to.deep.equal({
+        setType: 'STRING'
+        elements: ['A', 'B', 'C', 'hasOwnProperty']
+      })
+
   describe "#intersect()", ->
     it 'works correctly', ->
       expect(
@@ -77,4 +100,12 @@ describe "Set", ->
       ).to.deep.equal({
         setType: 'STRING'
         elements: ['B']
+      })
+
+    it 'works correctly with troll', ->
+      expect(
+        Set.fromJS(['A', 'B', 'hasOwnProperty']).intersect(Set.fromJS(['B', 'C', 'hasOwnProperty'])).toJS()
+      ).to.deep.equal({
+        setType: 'STRING'
+        elements: ['B', 'hasOwnProperty']
       })

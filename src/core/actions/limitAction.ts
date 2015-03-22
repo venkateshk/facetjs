@@ -29,7 +29,7 @@ module Core {
     }
 
     public toString(): string {
-      return 'Limit(' + this.limit + ')';
+      return '.limit(' + this.limit + ')';
     }
 
     public equals(other: LimitAction): boolean {

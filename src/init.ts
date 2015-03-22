@@ -53,20 +53,34 @@ var async = <Async>require("async");
 var chronology = <typeof Chronology>require("chronology");
 var Chronology_delete_me_ = chronology;
 
+// --------------------------------------------------------
+
+interface Lookup<T> {
+  [key: string]: T;
+}
+
+interface Parser {
+  parse: (str: string) => any;
+}
+
+interface Dummy {}
+
+// --------------------------------------------------------
+
+var dummyObject: Dummy = {};
+
+var objectHasOwnProperty = Object.prototype.hasOwnProperty;
+function hasOwnProperty(obj: any, key: string): boolean {
+  return objectHasOwnProperty.call(obj, key);
+}
+
+function concatMap<T, U>(arr: T[], fn: (t: T) => U[]): U[] {
+  return Array.prototype.concat.apply([], arr.map(fn));
+}
+
+
 module Core {
-  export interface Parser {
-    parse: (str: string) => any;
-  }
-
   export var expressionParser = <Parser>require("../parser/expression");
-
-  export interface Lookup<T> {
-    [key: string]: T;
-  }
-
-  export interface Dummy {}
-
-  export var dummyObject: Dummy = {};
 
   export var isInstanceOf = HigherObject.isInstanceOf;
   export var isHigherObject = HigherObject.isHigherObject;
@@ -81,32 +95,11 @@ module Core {
     [attribute: string]: any;
     $def?: Lookup<any>;
   }
-
-  export function shallowCopy(obj: Lookup<any>): Lookup<any> {
-    var newObj: any = {};
-    for (var k in obj) {
-      if (!obj.hasOwnProperty(k)) continue;
-      newObj[k] = obj[k];
-    }
-    return newObj;
-  }
 }
 
 module Legacy {
-  export interface Parser {
-    parse: (str: string) => any;
-  }
-
   export var filterParser = <Parser>require("../parser/filter");
   export var applyParser = <Parser>require("../parser/apply");
-
-  export interface Lookup<T> {
-    [key: string]: T;
-  }
-
-  export interface Dummy {}
-
-  export var dummyObject: Dummy = {};
 
   export var isInstanceOf = HigherObject.isInstanceOf;
 

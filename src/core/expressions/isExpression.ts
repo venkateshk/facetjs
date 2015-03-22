@@ -129,7 +129,7 @@ module Core {
       }
     }
 
-    protected _makeFn(lhsFn: Function, rhsFn: Function): Function {
+    protected _makeFn(lhsFn: ComputeFn, rhsFn: ComputeFn): ComputeFn {
       return (d: Datum) => lhsFn(d) === rhsFn(d);
     }
 
@@ -137,7 +137,31 @@ module Core {
       return '(' + lhsFnJS + '===' + rhsFnJS + ')';
     }
 
-    // BINARY
+    protected _specialSimplify(simpleLhs: Expression, simpleRhs: Expression): Expression {
+      if (simpleLhs.equals(simpleRhs)) return Expression.TRUE;
+
+      if (simpleLhs instanceof TimeBucketExpression && simpleRhs instanceof LiteralExpression) {
+        var duration = simpleLhs.duration;
+        var value: TimeRange = simpleRhs.value;
+        var start = value.start;
+        var end = value.end;
+
+        if (duration.isSimple()) {
+          if (duration.floor(start, simpleLhs.timezone).valueOf() === start.valueOf() &&
+              duration.move(start, simpleLhs.timezone, 1).valueOf() === end.valueOf()) {
+            return new InExpression({
+              op: 'in',
+              lhs: simpleLhs.operand,
+              rhs: simpleRhs
+            })
+          } else {
+            return Expression.FALSE;
+          }
+        }
+      }
+
+      return null;
+    }
   }
 
   Expression.register(IsExpression);

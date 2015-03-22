@@ -29,7 +29,7 @@ module Core {
     }
 
     public toString(): string {
-      return 'Apply(' + this.name + ', ' + this.expression.toString() + ')';
+      return ".apply('" + this.name + "', " + this.expression.toString() + ')';
     }
 
     public equals(other: ApplyAction): boolean {

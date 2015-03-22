@@ -29,7 +29,7 @@ module Legacy {
       if (parameters.method == null) {
         parameters.method = (<any>parameters)['combine']; // Back compatibility
       }
-      if (!parameters.hasOwnProperty("method")) {
+      if (!hasOwnProperty(parameters, "method")) {
         throw new Error("method not defined");
       }
       if (typeof parameters.method !== "string") {

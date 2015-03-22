@@ -17,7 +17,7 @@ module Legacy {
 
     constructor(options: FacetOptionsJS) {
       for (var k in options) {
-        if (!options.hasOwnProperty(k)) continue;
+        if (!hasOwnProperty(options, k)) continue;
         var v = options[k];
         var typeofV = typeof(v);
         if (typeofV !== "string" && typeofV !== "number") {
@@ -30,7 +30,7 @@ module Legacy {
     public toString(): string {
       var parts: string[] = [];
       for (var k in this) {
-        if (!this.hasOwnProperty(k)) continue;
+        if (!hasOwnProperty(this, k)) continue;
         parts.push(k + ":" + this[k]);
       }
       return "[" + (parts.sort().join("; ")) + "]";
@@ -39,7 +39,7 @@ module Legacy {
     public valueOf(): FacetOptionsJS {
       var value: FacetOptionsJS = {};
       for (var k in this) {
-        if (!this.hasOwnProperty(k)) continue;
+        if (!hasOwnProperty(this, k)) continue;
         value[k] = this[k];
       }
       return value;

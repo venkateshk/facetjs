@@ -79,7 +79,7 @@ module Core {
       return exp;
     }
 
-    protected _makeFn(lhsFn: Function, rhsFn: Function): Function {
+    protected _makeFn(lhsFn: ComputeFn, rhsFn: ComputeFn): ComputeFn {
       return (d: Datum) => rhsFn(d).test(lhsFn(d));
     }
 

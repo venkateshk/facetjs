@@ -56,8 +56,33 @@ module Core {
         (!this.attribute || this.attribute.equals(other.attribute));
     }
 
+    protected _specialEvery(iter: BooleanExpressionIterator): boolean {
+      return this.attribute ? this.attribute.every(iter) : true;
+    }
+
+    protected _specialForEach(iter: VoidExpressionIterator): void {
+      if (this.attribute) this.attribute.forEach(iter);
+    }
+
+    public _substituteHelper(substitutionFn: SubstitutionFn, depth: number, genDiff: number): Expression {
+      var sub = substitutionFn(this, depth, genDiff);
+      if (sub) return sub;
+      var subOperand = this.operand._substituteHelper(substitutionFn, depth + 1, genDiff);
+      var subAttribute: Expression = null;
+      if (this.attribute) {
+        subAttribute = this.attribute._substituteHelper(substitutionFn, depth + 1, genDiff + 1);
+      }
+      if (this.operand === subOperand && this.attribute === subAttribute) return this;
+
+      var value = this.valueOf();
+      value.operand = subOperand;
+      value.attribute = subAttribute;
+      delete value.simple;
+      return new AggregateExpression(value);
+    }
+
     public toString(): string {
-      return 'agg_' + this.fn + '(' + this.operand.toString() + ')';
+      return this.operand.toString() + '.' + this.fn + '(' + (this.attribute ? this.attribute.toString() : '') + ')';
     }
 
     public getComplexity(): number {
@@ -65,15 +90,30 @@ module Core {
     }
 
     public simplify(): Expression {
-      var value = this.valueOf();
-      value.operand = this.operand.simplify();
-      if (this.attribute) {
-        value.attribute = this.attribute.simplify();
+      if (this.simple) return this;
+      var simpleOperand = this.operand.simplify();
+
+      if (simpleOperand instanceof LiteralExpression && !simpleOperand.isRemote()) { // ToDo: also make sure that attribute does not have ^s
+        return new LiteralExpression({
+          op: 'literal',
+          value: this._makeFn(simpleOperand.getFn())(null)
+        })
       }
-      return new AggregateExpression(value)
+
+      var simpleValue = this.valueOf();
+      simpleValue.operand = simpleOperand;
+      if (this.attribute) {
+        simpleValue.attribute = this.attribute.simplify();
+      }
+      simpleValue.simple = true;
+      return new AggregateExpression(simpleValue)
     }
 
-    protected _makeFn(operandFn: Function): Function {
+    public containsDataset(): boolean {
+      return true;
+    }
+
+    protected _makeFn(operandFn: ComputeFn): ComputeFn {
       var fn = this.fn;
       var attribute = this.attribute;
       var attributeFn = attribute ? attribute.getFn() : null;
@@ -84,16 +124,17 @@ module Core {
       throw new Error("implement me");
     }
 
-    public _fillRefSubstitutions(typeContext: any, alterations: Alteration[]): any {
+    public _fillRefSubstitutions(typeContext: FullType, alterations: Alteration[]): FullType {
       var datasetContext = this.operand._fillRefSubstitutions(typeContext, alterations);
       var attributeType = 'NUMBER';
       if (this.attribute) {
-        attributeType = this.attribute._fillRefSubstitutions(datasetContext, alterations);
+        attributeType = this.attribute._fillRefSubstitutions(datasetContext, alterations).type;
       }
-      return this.fn === 'group' ? ('SET/' + attributeType) : this.type;
+      return {
+        type: this.fn === 'group' ? ('SET/' + attributeType) : this.type,
+        remote: datasetContext.remote
+      };
     }
-
-    // UNARY
   }
 
   Expression.register(AggregateExpression);

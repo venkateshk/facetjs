@@ -20,7 +20,7 @@ module Core {
     }
 
     public toString(): string {
-      return 'timeOffset(' + this.operand.toString() + ')';
+      return this.operand.toString() + '.timeOffset(' + this.duration.toString() + ')';
     }
 
     public valueOf(): ExpressionValue {
@@ -40,7 +40,7 @@ module Core {
         this.duration.equals(other.duration);
     }
 
-    protected _makeFn(operandFn: Function): Function {
+    protected _makeFn(operandFn: ComputeFn): ComputeFn {
       var duration = this.duration;
       return (d: Datum) => {
         var date = operandFn(d);
@@ -52,8 +52,6 @@ module Core {
     protected _makeFnJS(operandFnJS: string): string {
       throw new Error("implement me");
     }
-
-    // UNARY
   }
 
   Expression.register(TimeOffsetExpression);

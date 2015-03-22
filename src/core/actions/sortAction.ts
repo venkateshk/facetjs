@@ -17,6 +17,9 @@ module Core {
       if (this.direction !== 'descending' && this.direction !== 'ascending') {
         throw new Error("direction must be 'descending' or 'ascending'");
       }
+      if (!this.expression.isOp('ref')) {
+        throw new Error("must be a reference expression (for now): " + this.toString());
+      }
     }
 
     public valueOf(): ActionValue {
@@ -32,12 +35,17 @@ module Core {
     }
 
     public toString(): string {
-      return 'Sort(' + this.expression.toString() + ', ' + this.direction + ')';
+      return '.sort(' + this.expression.toString() + ', ' + this.direction + ')';
     }
 
     public equals(other: SortAction): boolean {
       return super.equals(other) &&
         this.direction === other.direction;
+    }
+
+    public refName(): string {
+      var expression = this.expression;
+      return (expression instanceof RefExpression) ? expression.name : null
     }
   }
 

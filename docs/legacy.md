@@ -10,6 +10,7 @@ and because it is still used internally in facet.
 A facet query is represented as a JSON array of operations. Every top level operation needs to be tagged with its type.
 
 Here is an example of a facet query that calculates the totals and does two splits to generate a 'pivot table'
+
 ```javascript
 [
   {
@@ -48,12 +49,14 @@ Here is an example of a facet query that calculates the totals and does two spli
 ```
 
 ### Filter
+
 A filter is a function that filters out parts of the dashboards
 
 Filters need to be tagged with ```operation: 'filter'```
 
 #### true
-Facet:
+
+facetjs:
 
 ```javascript
 {
@@ -68,7 +71,8 @@ SQL WHERE:
 ```
 
 #### false
-Facet:
+
+facetjs:
 
 ```javascript
 {
@@ -84,7 +88,8 @@ SQL WHERE:
 
 
 #### is
-Facet:
+
+facetjs:
 
 ```javascript
 {
@@ -101,7 +106,8 @@ SQL WHERE:
 ```
 
 #### in
-Facet:
+
+facetjs:
 
 ```javascript
 {
@@ -118,7 +124,8 @@ SQL WHERE:
 ```
 
 #### contains
-Facet:
+
+facetjs:
 
 ```javascript
 {
@@ -135,7 +142,8 @@ country LIKE "%Democratic%"
 ```
 
 #### match
-Facet:
+
+facetjs:
 
 ```javascript
 {
@@ -153,7 +161,8 @@ SQL WHERE:
 -->
 
 #### within
-Facet:
+
+facetjs:
 
 ```javascript
 {
@@ -170,7 +179,8 @@ SQL WHERE:
 ```
 
 #### not
-Facet:
+
+facetjs:
 
 ```javascript
 {
@@ -186,7 +196,8 @@ NOT <sqlFilter>
 ```
 
 #### and
-Facet:
+
+facetjs:
 
 ```javascript
 {
@@ -202,7 +213,8 @@ SQL WHERE:
 ```
 
 #### or
-Facet:
+
+facetjs:
 
 ```javascript
 {
@@ -238,7 +250,8 @@ SQL GROUP BY
 ```
 
 #### continuous
-Facet
+
+facetjs:
 
 ```javascript
 {
@@ -256,7 +269,8 @@ FLOOR(`height` / 10) * 10
 ```
 
 #### timeDuration
-Facet
+
+facetjs:
 
 ```javascript
 {
@@ -274,7 +288,8 @@ SQL GROUP BY
 ```
 
 #### timePeriod
-Facet
+
+facetjs:
 
 ```javascript
 {
@@ -292,7 +307,8 @@ SQL GROUP BY
 ```
 
 #### tuple
-Facet
+
+facetjs:
 
 ```javascript
 {
@@ -316,7 +332,8 @@ Applies need to be tagged with ```operation: 'apply'```
 How facet applies work:
 
 #### constant
-Facet:
+
+facetjs:
 
 ```javascript
 {
@@ -334,7 +351,7 @@ SQL SELECT:
 
 #### count
 
-Facet:
+facetjs:
 ```javascript
 {
   name: 'Count'
@@ -349,7 +366,7 @@ COUNT(1) AS "Count"
 
 #### sum, average, min, max, uniqueCount
 
-Facet:
+facetjs:
 ```javascript
 {
   name: 'Revenue'
@@ -369,7 +386,7 @@ COUNT(DISTICT ...
 
 #### quantile
 
-Facet:
+facetjs:
 ```javascript
 {
   name: 'Quantile 99'
@@ -385,9 +402,10 @@ SQL SELECT:
 ```
 
 #### filtered applies
+
 Each apply above can also be filtered with a filter property
 
-Facet:
+facetjs:
 ```javascript
 {
   name: 'Revenue from Honda'
@@ -407,9 +425,11 @@ COUNT(DISTICT ...
 ```
 
 #### add, subtract, multiply, divide
+
 Note that for nested applies the keys ```operation: 'apply'``` and ```name``` need only to appear on the outer-most apply
 
-Facet:
+facetjs:
+
 ```javascript
 {
   name: 'Sum Of Things'
@@ -419,11 +439,13 @@ Facet:
 ```
 
 SQL SELECT:
+
 ```sql
 <sqlApply1> + <sqlApply2> AS "Sum Of Things"
 ```
 
-Facet example:
+facet example:
+
 ```javascript
 {
   name: 'ecpm'
@@ -442,11 +464,14 @@ Facet example:
 ```
 
 SQL SELECT example:
+
 ```sql
 (SUM(`revenue`) / SUM(`volume`)) * 1000 AS "ecpm"
 ```
 
 ### Combine
+
+facetjs:
 
 ```javascript
 {

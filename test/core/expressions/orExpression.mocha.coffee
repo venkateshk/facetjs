@@ -6,6 +6,23 @@ facet = require('../../../build/facet')
 tests = require './sharedTests'
 
 describe 'OrExpression', ->
+  describe 'empty expressions', ->
+    beforeEach ->
+      this.expression = { op: 'or', operands: [] }
+
+    tests.complexityIs(1)
+    tests.simplifiedExpressionIs({op: 'literal', value: false})
+
+  describe 'with false expressions', ->
+    beforeEach ->
+      this.expression = { op: 'or', operands: [
+        { op: 'literal', value: false },
+        { op: 'literal', value: false }
+      ] }
+
+    tests.complexityIs(3)
+    tests.simplifiedExpressionIs({op: 'literal', value: false})
+
   describe 'with boolean expressions', ->
     beforeEach ->
       this.expression = { op: 'or', operands: [

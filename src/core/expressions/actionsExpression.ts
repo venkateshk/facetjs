@@ -1,4 +1,16 @@
 module Core {
+  export interface QueryPattern {
+    pattern: string;
+    dataSourceName: string;
+    filter: Expression;
+    split?: Expression;
+    label?: string;
+    applies: ApplyAction[];
+    sortOrigin?: string;
+    sort?: SortAction;
+    limit?: LimitAction;
+  }
+
   export class ActionsExpression extends UnaryExpression {
     static fromJS(parameters: ExpressionJS): ActionsExpression {
       var value = UnaryExpression.jsToValue(parameters);
@@ -29,7 +41,7 @@ module Core {
     }
 
     public toString(): string {
-      return 'actions(' + this.operand.toString() + ')';
+      return this.operand.toString() + this.actions.map((action) => action.toString()).join('\n  ');
     }
 
     private _getSimpleActions(): Action[] {
@@ -137,10 +149,55 @@ module Core {
     }
 
     public simplify(): Expression {
-      var value = this.valueOf();
-      value.operand = this.operand.simplify();
-      value.actions = this.actions.map((action) => action.simplify()); //this._getSimpleActions();
-      return new ActionsExpression(value);
+      if (this.simple) return this;
+
+      var simpleOperand = this.operand.simplify();
+      var simpleActions = this.actions.map((action) => action.simplify()); //this._getSimpleActions();
+
+      function isRemoteNumericApply(action: Action): boolean {
+        return action instanceof ApplyAction && action.expression.hasRemote() && action.expression.type === 'NUMBER';
+      }
+
+      // These are actions on a remote dataset
+      var remoteDatasets = this.getRemoteDatasets();
+      if (simpleOperand instanceof LiteralExpression && remoteDatasets.length) {
+        var remoteDataset: RemoteDataset;
+        if ((<LiteralExpression>simpleOperand).isRemote()) {
+          remoteDataset = (<LiteralExpression>simpleOperand).value;
+        } else if (simpleActions.some(isRemoteNumericApply)) {
+          if (remoteDatasets.length === 1) {
+            remoteDataset = remoteDatasets[0].makeTotal();
+          } else {
+            throw new Error('not done yet')
+          }
+        }
+
+        if (remoteDataset) {
+          while (simpleActions.length) {
+            var action: Action = simpleActions[0];
+            var newRemoteDataset = remoteDataset.addAction(action);
+            if (!newRemoteDataset) break;
+            simpleActions.shift();
+            remoteDataset = newRemoteDataset;
+          }
+          if ((<LiteralExpression>simpleOperand).value !== remoteDataset) {
+            simpleOperand = new LiteralExpression({
+              op: 'literal',
+              value: remoteDataset
+            });
+            if (simpleActions.length) {
+              simpleActions = (<Action[]>remoteDataset.defs).concat(simpleActions);
+            }
+          }
+        }
+      }
+
+      if (simpleActions.length === 0) return simpleOperand;
+      var simpleValue = this.valueOf();
+      simpleValue.operand = simpleOperand;
+      simpleValue.actions = simpleActions;
+      simpleValue.simple = true;
+      return new ActionsExpression(simpleValue);
     }
 
     public equals(other: ActionsExpression): boolean {
@@ -154,44 +211,30 @@ module Core {
       return true;
     }
 
-    public substitute(substitutionFn: SubstitutionFn, genDiff: number): Expression {
-      var sub = substitutionFn(this, genDiff);
+    protected _specialEvery(iter: BooleanExpressionIterator): boolean {
+      return this.actions.every((action) => action.every(iter));
+    }
+
+    protected _specialForEach(iter: VoidExpressionIterator): void {
+      return this.actions.forEach((action) => action.forEach(iter));
+    }
+
+    public _substituteHelper(substitutionFn: SubstitutionFn, depth: number, genDiff: number): Expression {
+      var sub = substitutionFn(this, depth, genDiff);
       if (sub) return sub;
-      var subOperand = this.operand.substitute(substitutionFn, genDiff);
-      var subActions = this.actions.map((action) => action.substitute(substitutionFn, genDiff + 1));
+      var subOperand = this.operand._substituteHelper(substitutionFn, depth + 1, genDiff);
+      var subActions = this.actions.map((action) => action._substituteHelper(substitutionFn, depth + 1, genDiff + 1));
       if (this.operand === subOperand && this.actions.every((action, i) => action === subActions[i])) return this;
+
       var value = this.valueOf();
       value.operand = subOperand;
       value.actions = subActions;
+      delete value.simple;
       return new ActionsExpression(value);
     }
 
-    protected _makeFn(operandFn: Function): Function {
-      var actions = this.actions;
-      return (d: Datum) => {
-        var dataset = operandFn(d);
-        for (var i = 0; i < actions.length; i++) {
-          var action = actions[i];
-          switch (action.action) {
-            case 'filter':
-              dataset = dataset.filter(action.expression.getFn());
-              break;
-
-            case 'apply':
-              dataset = dataset.apply((<ApplyAction>action).name, action.expression.getFn());
-              break;
-
-            case 'sort':
-              dataset = dataset.sort(action.expression.getFn(), (<SortAction>action).direction);
-              break;
-
-            case 'limit':
-              dataset = dataset.limit((<LimitAction>action).limit);
-              break;
-          }
-        }
-        return dataset;
-      }
+    protected _makeFn(operandFn: ComputeFn): ComputeFn {
+      throw new Error("can not call makeFn on actions");
     }
 
     protected _makeFnJS(operandFnJS: string): string {
@@ -206,59 +249,14 @@ module Core {
       });
     }
 
-    private _performActionsOnNativeDataset(dataset: NativeDataset, context: Lookup<any>): NativeDataset {
-      var actions = this.actions;
-      if (context) {
-        actions = actions.map((action) => {
-          return action.substitute((ex: Expression, genDiff: number) => {
-            if (genDiff === 0 && ex.isOp('ref') && (<RefExpression>ex).generations === '^') {
-              return new LiteralExpression({ op: 'literal', value: context[(<RefExpression>ex).name] });
-            } else {
-              return null;
-            }
-          }, 0); // ToDo: Remove this 0
-        });
-      }
-
-      for (var i = 0; i < actions.length; i++) {
-        var action = actions[i];
-        var actionExpression = action.expression;
-        switch (action.action) {
-          case 'filter':
-            dataset = dataset.filter(action.expression.getFn());
-            break;
-
-          case 'apply':
-            if (actionExpression instanceof ActionsExpression || actionExpression instanceof LabelExpression) {
-              dataset = dataset.apply((<ApplyAction>action).name, (d: Datum) => {
-                return actionExpression.evaluate(d)
-              });
-            } else {
-              dataset = dataset.apply((<ApplyAction>action).name, actionExpression.getFn());
-            }
-            break;
-
-          case 'sort':
-            dataset = dataset.sort(actionExpression.getFn(), (<SortAction>action).direction);
-            break;
-
-          case 'limit':
-            dataset = dataset.limit((<LimitAction>action).limit);
-            break;
-        }
-      }
-
-      return dataset;
-    }
-
-    public _fillRefSubstitutions(typeContext: any, alterations: Alteration[]): any {
+    public _fillRefSubstitutions(typeContext: FullType, alterations: Alteration[]): FullType {
       typeContext = this.operand._fillRefSubstitutions(typeContext, alterations);
 
       var actions = this.actions;
       for (var i = 0; i < actions.length; i++) {
         var action = actions[i];
         if (action instanceof DefAction || action instanceof ApplyAction) {
-          typeContext[action.name] = action.expression._fillRefSubstitutions(typeContext, alterations);
+          typeContext.datasetType[action.name] = action.expression._fillRefSubstitutions(typeContext, alterations);
         } else if (action instanceof SortAction || action instanceof FilterAction) {
           action.expression._fillRefSubstitutions(typeContext, alterations);
         }
@@ -267,28 +265,106 @@ module Core {
       return typeContext;
     }
 
-    public evaluate(context: Datum = {}): Dataset {
-      var operand = this.operand;
+    public _computeNativeResolved(queries: any[]): NativeDataset {
+      var dataset = this.operand._computeNativeResolved(queries);
 
-      if (operand.isOp('label')) {
-        return this._performActionsOnNativeDataset(<NativeDataset>((<LabelExpression>operand).evaluate(context)), context);
-      }
+      var actions = this.actions;
+      for (var i = 0; i < actions.length; i++) {
+        var action = actions[i];
+        var actionExpression = action.expression;
 
-      if (operand.isOp('literal')) {
-        var ds = <Dataset>(<LiteralExpression>operand).value;
-        if (ds.source === 'native') {
-          return this._performActionsOnNativeDataset(<NativeDataset>ds, context);
-        } else {
-          throw new Error('can not support that yet (not native)');
+        if (action instanceof FilterAction) {
+          dataset = dataset.filter(action.expression.getFn());
+
+        } else if (action instanceof ApplyAction) {
+          if (actionExpression instanceof LiteralExpression) {
+            var v = actionExpression._computeNativeResolved(queries);
+            dataset = dataset.apply(action.name, () => v);
+          } else if (actionExpression instanceof ActionsExpression) {
+            dataset = dataset.apply(action.name, (d: Datum) => {
+              return actionExpression.resolve(d).simplify()._computeNativeResolved(queries)
+            });
+          } else {
+            dataset = dataset.apply(action.name, actionExpression.getFn());
+          }
+
+        } else if (action instanceof DefAction) {
+          if (actionExpression instanceof ActionsExpression) {
+            dataset = dataset.def(action.name, (d: Datum) => {
+              var simple = actionExpression.resolve(d).simplify();
+              if (simple instanceof LiteralExpression) {
+                return simple.value;
+              } else {
+                return simple._computeNativeResolved(queries);
+              }
+            });
+          } else {
+            dataset = dataset.def(action.name, actionExpression.getFn());
+          }
+
+        } else if (action instanceof SortAction) {
+          dataset = dataset.sort(actionExpression.getFn(), action.direction);
+
+        } else if (action instanceof LimitAction) {
+          dataset = dataset.limit(action.limit);
+
         }
-      } else {
-        throw new Error('can not support that yet (not literal)');
       }
+
+      return dataset;
     }
 
-    // UNARY
+    public _computeResolved(): Q.Promise<NativeDataset> {
+      var actions = this.actions;
+
+      function execAction(i: number) {
+        return (dataset: NativeDataset): NativeDataset | Q.Promise<NativeDataset> => {
+          var action = actions[i];
+          var actionExpression = action.expression;
+
+          if (action instanceof FilterAction) {
+            return dataset.filter(action.expression.getFn());
+
+          } else if (action instanceof ApplyAction) {
+            if (actionExpression instanceof ActionsExpression) {
+              return dataset.applyPromise(action.name, (d: Datum) => {
+                return actionExpression.resolve(d).simplify()._computeResolved();
+              });
+            } else {
+              return dataset.apply(action.name, actionExpression.getFn());
+            }
+
+          } else if (action instanceof DefAction) {
+            if (actionExpression instanceof ActionsExpression) {
+              return dataset.def(action.name, (d: Datum) => {
+                var simple = actionExpression.resolve(d).simplify();
+                if (simple instanceof LiteralExpression) {
+                  return simple.value;
+                } else {
+                  return simple._computeResolved();
+                }
+              });
+            } else {
+              return dataset.def(action.name, actionExpression.getFn());
+            }
+
+          } else if (action instanceof SortAction) {
+            return dataset.sort(actionExpression.getFn(), action.direction);
+
+          } else if (action instanceof LimitAction) {
+            return dataset.limit(action.limit);
+
+          }
+        }
+      }
+
+      var promise = this.operand._computeResolved();
+      for (var i = 0; i < actions.length; i++) {
+        promise = promise.then(execAction(i));
+      }
+      return promise;
+    }
   }
 
   Expression.register(ActionsExpression);
-
 }

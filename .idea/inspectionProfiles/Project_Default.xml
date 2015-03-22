@@ -4,5 +4,8 @@
     <option name="myLocal" value="false" />
     <inspection_tool class="JSMethodCanBeStatic" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="JSReferencingMutableVariableFromClosure" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="JSUnfilteredForInLoop" enabled="false" level="WARNING" enabled_by_default="false">
+      <option name="mySkipPrimitives" value="true" />
+    </inspection_tool>
   </profile>
 </component>

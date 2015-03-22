@@ -7,8 +7,11 @@ rm -rf build/*
 echo "Compiling PEG.js"
 ./compile-pegjs
 
-# TypeScript
+echo "Compiling TypeScript"
 ./compile-tsc
+
+echo "Compiling package"
+./compile-package
 
 #
 # # All in one

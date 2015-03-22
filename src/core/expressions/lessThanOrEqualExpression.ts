@@ -16,7 +16,7 @@ module Core {
       return this.lhs.toString() + ' <= ' + this.rhs.toString();
     }
 
-    protected _makeFn(lhsFn: Function, rhsFn: Function): Function {
+    protected _makeFn(lhsFn: ComputeFn, rhsFn: ComputeFn): ComputeFn {
       return (d: Datum) => lhsFn(d) <= rhsFn(d);
     }
 

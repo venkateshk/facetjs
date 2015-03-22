@@ -59,6 +59,7 @@ describe "Dataset", ->
             { x: 1, y: 2 }
             { x: 2, y: 3 }
           ]
+          hasOwnProperty: 'troll'
         }
       ]
 
@@ -88,25 +89,77 @@ describe "Dataset", ->
           "Count": 298
         }
       ]
+
+      {
+        source: 'druid',
+        dataSource: 'moon_child',
+        timeAttribute: 'time',
+        forceInterval: true,
+        approximate: true,
+        context: null
+        attributes: {
+          color: { type: 'STRING', filterable: true, splitable: true }
+          cut: { type: 'STRING', filterable: true, splitable: true }
+          carat: { type: 'STRING', filterable: true, splitable: true }
+          price: { type: 'NUMBER', filterable: true, splitable: true }
+        }
+      }
+
+      {
+        source: 'druid',
+        dataSource: 'wiki',
+        timeAttribute: 'time',
+        forceInterval: true,
+        approximate: true,
+        context: null
+      }
     ], {
       newThrows: true
     })
 
-  describe "introspect (NativeDataset)", ->
+  describe "does not die with hasOwnProperty", ->
+    it "survives", ->
+      expect(Dataset.fromJS({
+        source: 'druid',
+        dataSource: 'wiki',
+        timeAttribute: 'time',
+        forceInterval: true,
+        approximate: true,
+        context: null,
+        hasOwnProperty: 'troll'
+      }).toJS()).to.deep.equal({
+        source: 'druid',
+        dataSource: 'wiki',
+        timeAttribute: 'time',
+        forceInterval: true,
+        approximate: true,
+        context: null
+      })
+
+  describe "getFullType (NativeDataset)", ->
     it "works in empty case", ->
-      expect(Dataset.fromJS([]).introspect()).to.equal(null)
+      expect(Dataset.fromJS([]).getFullType()).to.deep.equal({
+        type: "DATASET",
+        datasetType: {}
+      })
 
     it "works in singleton case", ->
-      expect(Dataset.fromJS([{}]).introspect()).to.deep.equal({})
+      expect(Dataset.fromJS([{}]).getFullType()).to.deep.equal({
+        type: "DATASET",
+        datasetType: {}
+      })
 
     it "works in basic case", ->
       expect(Dataset.fromJS([
         { x: 1, y: "hello", z: new Date(1000) }
         { x: 2, y: "woops", z: new Date(1001) }
-      ]).introspect()).to.deep.equal({
-        x: "NUMBER"
-        y: "STRING"
-        z: "TIME"
+      ]).getFullType()).to.deep.equal({
+        "type": "DATASET"
+        "datasetType": {
+          "x": { type: "NUMBER" }
+          "y": { type: "STRING" }
+          "z": { type: "TIME" }
+        }
       })
 
     it "works in nested case", ->
@@ -129,9 +182,18 @@ describe "Dataset", ->
             { a: 51.6, b: 'W00p' }
           ]
         }
-      ]).introspect()).to.deep.equal({
-        subData: { a: 'NUMBER', b: 'STRING' }
-        x: "NUMBER"
-        y: "STRING"
-        z: "TIME"
+      ]).getFullType()).to.deep.equal({
+        type: "DATASET"
+        datasetType: {
+          "subData": {
+            type: "DATASET"
+            datasetType: {
+              "a": {type: "NUMBER"}
+              "b": {type: "STRING"}
+            }
+          }
+          "x": {type: "NUMBER"}
+          "y": {type: "STRING"}
+          "z": {type: "TIME"}
+        }
       })

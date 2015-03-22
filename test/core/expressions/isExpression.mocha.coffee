@@ -160,6 +160,39 @@ describe 'IsExpression', ->
           )
           .equals({ op: 'is', lhs: { op: 'ref', name: 'flight_time' }, rhs: { op: 'literal', value: new Date(6) } })
 
+      describe 'with timeBucket (simple)', ->
+        beforeEach ->
+          this.expression = {
+            op: 'is',
+            lhs: { op: 'timeBucket', operand: { op: 'ref', name: 'time' }, duration: 'P1D', timezone: 'Etc/UTC' },
+            rhs: { op: 'literal', value: new TimeRange({ start: new Date('2015-03-14T00:00:00'), end: new Date('2015-03-15T00:00:00') }) }
+          }
+
+        tests.complexityIs(4)
+        tests.simplifiedExpressionIs({
+          op: 'in'
+          lhs: { op: 'ref', name: 'time' }
+          rhs: {
+            op: 'literal'
+            value: { start: new Date('2015-03-14T00:00:00'), end: new Date('2015-03-15T00:00:00') }
+            type: 'TIME_RANGE'
+          }
+        })
+
+      describe 'with timeBucket (simple) bogus', ->
+        beforeEach ->
+          this.expression = {
+            op: 'is',
+            lhs: { op: 'timeBucket', operand: { op: 'ref', name: 'time' }, duration: 'P1D', timezone: 'Etc/UTC' },
+            rhs: { op: 'literal', value: new TimeRange({ start: new Date('2015-03-14T00:00:00'), end: new Date('2015-03-15T01:00:00') }) }
+          }
+
+        tests.complexityIs(4)
+        tests.simplifiedExpressionIs({
+          op: 'literal'
+          value: false
+        })
+
       describe '#mergeOr', ->
         tests
           .mergeOrWith(

@@ -26,6 +26,23 @@ describe "Shape", ->
       newThrows: true
     })
 
+  describe "does not die with hasOwnProperty", ->
+    it "survives", ->
+      expect(Shape.fromJS({
+        shape: 'rectangle'
+        x: 0
+        y: 0
+        width: 300
+        height: 200
+        hasOwnProperty: 'troll'
+      }).toJS()).deep.equal({
+        shape: 'rectangle'
+        x: 0
+        y: 0
+        width: 300
+        height: 200
+      })
+
   describe "RectangularShape#margin", ->
     shape = Shape.rectangle(800, 600)
 

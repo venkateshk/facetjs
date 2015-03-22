@@ -10,6 +10,7 @@ describe "parser", ->
       #.filter('$country.is("USA")')
       .apply('parent_x', "$^x")
       .apply('typed_y', "$y:STRING")
+      .apply('sub_typed_z', "$z:SET/STRING")
       .apply('addition1', "$x + 10 - $y")
       #.apply('addition2', "$x.add(1)")
       .apply('multiplication', "$x * 10 / $y")
@@ -19,12 +20,12 @@ describe "parser", ->
       .apply('agg_group_label1', "$data.group($carat).label('Carat')")
       .apply('agg_group_label2', "$data.group($carat).label('Carat')")
 
-    expect(ex.toJS()).to.deep.equal(
-      facet()
+    ex2 = facet()
       #.filter(facet('color').is("Red")')
       #.filter(facet('country').is("USA")')
       .apply('parent_x', facet("^x"))
       .apply('typed_y', { op: 'ref', name: 'y', type: 'STRING' })
+      .apply('sub_typed_z', { op: 'ref', name: 'z', type: 'SET/STRING' })
       .apply('addition1', facet("x").add(10, facet("y").negate()))
       #.apply('addition2', facet("x").add(1))
       .apply('multiplication', facet("x").multiply(10, facet("y").reciprocate()))
@@ -33,5 +34,5 @@ describe "parser", ->
       .apply('agg_group', facet("data").group(facet('carat')))
       .apply('agg_group_label1', facet("data").group(facet('carat')).label('Carat'))
       .apply('agg_group_label2', facet("data").group('$carat').label('Carat'))
-      .toJS()
-    )
+
+    expect(ex.toJS()).to.deep.equal(ex2.toJS())

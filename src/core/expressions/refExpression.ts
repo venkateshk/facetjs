@@ -3,6 +3,25 @@ module Core {
     return new Array(times + 1).join(str);
   }
 
+  export var possibleTypes: Lookup<number> = {
+    'NULL': 1,
+    'BOOLEAN': 1,
+    'NUMBER': 1,
+    'TIME': 1,
+    'STRING': 1,
+    'NUMBER_RANGE': 1,
+    'TIME_RANGE': 1,
+    'SET': 1,
+    'SET/NULL': 1,
+    'SET/BOOLEAN': 1,
+    'SET/NUMBER': 1,
+    'SET/TIME': 1,
+    'SET/STRING': 1,
+    'SET/NUMBER_RANGE': 1,
+    'SET/TIME_RANGE': 1,
+    'DATASET': 1
+  };
+
   export class RefExpression extends Expression {
     static NAME_REGEXP = /^(\^*)([a-z_]\w*)$/i;
 
@@ -12,6 +31,7 @@ module Core {
 
     public generations: string;
     public name: string;
+    public remote: string[];
 
     constructor(parameters: ExpressionValue) {
       super(parameters, dummyObject);
@@ -27,17 +47,20 @@ module Core {
         throw new TypeError("must have a nonempty `name`");
       }
       if (parameters.type) {
-        if (possibleTypes.indexOf(parameters.type) === -1) {
-          throw new TypeError('unsupported type ' + parameters.type);
+        if (!hasOwnProperty(possibleTypes, parameters.type)) {
+          throw new TypeError("unsupported type '" + parameters.type + "'");
         }
         this.type = parameters.type;
       }
+      if (parameters.remote) this.remote = parameters.remote;
+      this.simple = true;
     }
 
     public valueOf(): ExpressionValue {
       var value = super.valueOf();
       value.name = this.generations + this.name;
       if (this.type) value.type = this.type;
+      if (this.remote) value.remote = this.remote;
       return value;
     }
 
@@ -49,7 +72,8 @@ module Core {
     }
 
     public toString(): string {
-      return '$' + this.generations + this.name;
+      //var remote = this.remote || [];
+      return '$' + this.generations + this.name + (this.type ? ':' + this.type : ''); // + `#[${remote.join(',')}]`;
     }
 
     public equals(other: RefExpression): boolean {
@@ -58,17 +82,21 @@ module Core {
         this.generations === other.generations;
     }
 
-    public getReferences(): string[] {
-      return [this.toString()];
+    public isRemote(): boolean {
+      return Boolean(this.remote && this.remote.length);
     }
 
-    public getFn(): Function {
+    public getReferences(): string[] {
+      return [this.name];
+    }
+
+    public getFn(): ComputeFn {
       if (this.generations.length) throw new Error("can not call getFn on unresolved expression");
       var name = this.name;
       return (d: Datum) => {
-        if (d.hasOwnProperty(name)) {
+        if (hasOwnProperty(d, name)) {
           return d[name];
-        } else if (d.$def && d.$def.hasOwnProperty(name)) {
+        } else if (d.$def && hasOwnProperty(d.$def, name)) {
           return d.$def[name];
         } else {
           return null;
@@ -81,51 +109,67 @@ module Core {
       return 'd.' + this.name;
     }
 
-    public _fillRefSubstitutions(typeContext: any, alterations: Alteration[]): any {
+    public every(iter: BooleanExpressionIterator): boolean {
+      return iter(this) !== false;
+    }
+
+    public forEach(iter: VoidExpressionIterator): void {
+      iter(this);
+    }
+
+    public _fillRefSubstitutions(typeContext: FullType, alterations: Alteration[]): FullType {
       var numGenerations = this.generations.length;
 
       // Step the parentContext back; once for each generation
       var myTypeContext = typeContext;
       while (numGenerations--) {
-        myTypeContext = myTypeContext.$parent;
+        myTypeContext = myTypeContext.parent;
         if (!myTypeContext) throw new Error('went too deep on ' + this.toString());
       }
 
       // Look for the reference in the parent chain
       var genBack = 0;
-      while (myTypeContext && !myTypeContext[this.name]) {
-        myTypeContext = myTypeContext.$parent;
+      while (myTypeContext && !myTypeContext.datasetType[this.name]) {
+        myTypeContext = myTypeContext.parent;
         genBack++;
       }
-      if (!myTypeContext) throw new Error('could not resolve ' + this.toString());
+      if (!myTypeContext) {
+        throw new Error('could not resolve ' + this.toString());
+      }
 
-      var contextType = myTypeContext[this.name];
-      var myType: string = (typeof contextType === 'object') ? 'DATASET' : contextType;
+      var myFullType = myTypeContext.datasetType[this.name];
+
+      var myType = myFullType.type;
+      var myRemote = myFullType.remote;
 
       if (this.type && this.type !== myType) {
         throw new TypeError("type mismatch in " + this.toString() + " (has: " + this.type + " needs: " + myType + ")");
       }
 
       // Check if it needs to be replaced
-      if (!this.type || genBack > 0) {
+      if (!this.type || genBack > 0 || String(this.remote) !== String(myRemote)) {
         var newGenerations = this.generations + repeat('^', genBack);
         alterations.push({
           from: this,
           to: new RefExpression({
             op: 'ref',
             name: newGenerations + this.name,
-            type: myType
+            type: myType,
+            remote: myRemote
           })
         })
       }
 
       if (myType === 'DATASET') {
-        // Set the new parent context correctly
-        contextType = shallowCopy(contextType);
-        contextType.$parent = typeContext;
+        return {
+          parent: typeContext,
+          type: 'DATASET',
+          datasetType: myFullType.datasetType,
+          remote: myFullType.remote
+        };
       }
 
-      return contextType;
+      return myFullType;
     }
   }
 

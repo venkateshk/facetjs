@@ -30,7 +30,7 @@ module Core {
     }
 
     public toString(): string {
-      return 'label(' + this.operand.toString() + ' as ' + this.name + ')';
+      return this.operand.toString() + ".label('" + this.name + "')";
     }
 
     public equals(other: LabelExpression): boolean {
@@ -38,29 +38,52 @@ module Core {
         this.name === other.name;
     }
 
-    protected _makeFn(operandFn: Function): Function {
-      throw new Error("can not call makeFn on label");
+    protected _makeFn(operandFn: ComputeFn): ComputeFn {
+      var name = this.name;
+      return (d: Datum) => {
+        var mySet = operandFn(d);
+        if (!mySet) return null;
+        return mySet.label(name);
+      }
     }
 
     protected _makeFnJS(operandFnJS: string): string {
       throw new Error("implement me");
     }
 
-    public _fillRefSubstitutions(typeContext: any, alterations: Alteration[]): any {
-      var setType = this.operand._fillRefSubstitutions(typeContext, alterations);
-      var newContext: any = { $parent: typeContext };
-      // setType will be something like SET/STRING we need to chop off the SET/
-      newContext[this.name] = setType.substring(4);
+    protected _specialSimplify(simpleOperand: Expression): Expression {
+      if (simpleOperand instanceof AggregateExpression && simpleOperand.fn === 'group') {
+        var remoteDatasetLiteral = simpleOperand.operand;
+        if (remoteDatasetLiteral instanceof LiteralExpression && remoteDatasetLiteral.isRemote()) {
+          var remoteDataset: RemoteDataset = remoteDatasetLiteral.value;
 
-      return newContext;
+          var newRemoteDataset = remoteDataset.addSplit(simpleOperand.attribute, this.name);
+          if (!newRemoteDataset) return null;
+          return new LiteralExpression({
+            op: 'literal',
+            value: newRemoteDataset
+          })
+        }
+      }
+      return null;
     }
 
-    public evaluate(context: Lookup<any> = null): Dataset {
-      var mySet: Set = this.operand.getFn()(context);
-      return mySet.label(this.name);
-    }
+    public _fillRefSubstitutions(typeContext: FullType, alterations: Alteration[]): FullType {
+      var setFullType = this.operand._fillRefSubstitutions(typeContext, alterations);
+      var newDatasetType: Lookup<FullType> = {};
 
-    // UNARY
+      newDatasetType[this.name] = {
+        type: setFullType.type.substring(4), // setFullType will be something like SET/STRING we need to chop off the SET/
+        remote: setFullType.remote
+      };
+
+      return {
+        parent: typeContext,
+        type: 'DATASET',
+        datasetType: newDatasetType,
+        remote: setFullType.remote
+      };
+    }
   }
 
   Expression.register(LabelExpression);

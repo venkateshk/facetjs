@@ -12,10 +12,10 @@ module Core {
     }
 
     public toString(): string {
-      return 'not(' + this.operand.toString() + ')';
+      return this.operand.toString() + '.not()';
     }
 
-    protected _makeFn(operandFn: Function): Function {
+    protected _makeFn(operandFn: ComputeFn): ComputeFn {
       return (d: Datum) => !operandFn(d);
     }
 
@@ -23,7 +23,12 @@ module Core {
       return "!(" + operandFnJS + ")"
     }
 
-    // UNARY
+    protected _specialSimplify(simpleOperand: Expression): Expression {
+      if (simpleOperand instanceof NotExpression) {
+        return simpleOperand.operand;
+      }
+      return null;
+    }
   }
 
   Expression.register(NotExpression);

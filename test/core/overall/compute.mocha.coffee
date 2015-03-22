@@ -3,7 +3,7 @@
 facet = require('../../../build/facet')
 { Expression, Dataset } = facet.core
 
-describe "compute", ->
+describe "compute native", ->
   data = [
     { cut: 'Good',  price: 400 }
     { cut: 'Good',  price: 300 }
@@ -52,7 +52,7 @@ describe "compute", ->
     ds = Dataset.fromJS(data)
 
     ex = facet()
-    .apply('Data', facet(ds))
+    .def('Data', facet(ds))
     .apply('Cuts'
       facet('Data').group('$cut')
     )
@@ -61,7 +61,6 @@ describe "compute", ->
     p.then((v) ->
       expect(v.toJS()).to.deep.equal([
         {
-          "Data": data
           "Cuts": {
             "type": "SET"
             "setType": "STRING"
@@ -76,7 +75,7 @@ describe "compute", ->
     ds = Dataset.fromJS(data)
 
     ex = facet()
-      .apply('Data', facet(ds))
+      .def('Data', facet(ds))
       .apply('Cuts'
         facet('Data').group('$cut').label('Cut')
       )
@@ -85,7 +84,6 @@ describe "compute", ->
     p.then((v) ->
       expect(v.toJS()).to.deep.equal([
         {
-          "Data": data
           "Cuts": [
             { "Cut": "Good" }
             { "Cut": "Great" }
@@ -100,20 +98,17 @@ describe "compute", ->
     ds = Dataset.fromJS(data)
 
     ex = facet()
-      .apply('Data', facet(ds))
+      .def('Data', facet(ds))
       .apply('Cuts'
         facet('Data').group('$cut').label('Cut')
           .apply('Six', 6)
           .apply('Seven', facet('Six').add(1))
       )
 
-    #console.log("ex.toJS()", JSON.stringify(ex.toJS(), null, 2));
-
     p = ex.compute()
     p.then((v) ->
       expect(v.toJS()).to.deep.equal([
         {
-          "Data": data
           "Cuts": [
             {
               "Cut": "Good"
@@ -136,23 +131,53 @@ describe "compute", ->
       testComplete()
     ).done()
 
+  it "works with context", (testComplete) ->
+    ds = Dataset.fromJS(data)
+
+    ex = facet()
+      .def('Data', facet(ds))
+      .apply('Cuts'
+        facet('Data').split('$cut', 'Cut')
+          .apply('CountPlusX', '$Data.count() + $x')
+      )
+
+    p = ex.compute({ x: 13 })
+    p.then((v) ->
+      expect(v.toJS()).to.deep.equal([
+        {
+          "Cuts": [
+            {
+              "CountPlusX": 15
+              "Cut": "Good"
+            }
+            {
+              "CountPlusX": 14
+              "Cut": "Great"
+            }
+            {
+              "CountPlusX": 15
+              "Cut": "Wow"
+            }
+          ]
+        }
+      ])
+      testComplete()
+    ).done()
+
   it "works with simple group/label and subData filter", (testComplete) ->
     ds = Dataset.fromJS(data)
 
     ex = facet()
-      .apply('Data', facet(ds))
+      .def('Data', facet(ds))
       .apply('Cuts'
         facet('Data').group('$cut').label('Cut')
           .apply('Data', facet('^Data').filter(facet('cut').is('$^Cut')))
       )
-
-    #console.log("ex.toJS()", JSON.stringify(ex.toJS(), null, 2));
     
     p = ex.compute()
     p.then((v) ->
       expect(v.toJS()).to.deep.equal([
         {
-          "Data": data
           "Cuts": [
             {
               "Cut": "Good"
@@ -194,3 +219,88 @@ describe "compute", ->
       ])
       testComplete()
     ).done()
+
+  describe "it works and re-selects", ->
+    ds = Dataset.fromJS(data)
+    midData = null
+
+    it "works with simple group/label and subData filter with applies", (testComplete) ->
+      ex = facet()
+        .def('Data', facet(ds))
+        .apply('Count', '$Data.count()')
+        .apply('Price', '$Data.sum($price)')
+        .apply('Cuts'
+          facet('Data').group('$cut').label('Cut')
+            .def('Data', facet('^Data').filter(facet('cut').is('$^Cut')))
+            .apply('Count', '$Data.count()')
+            .apply('Price', '$Data.sum($price)')
+        )
+
+      p = ex.compute()
+      p.then((v) ->
+        midData = v
+        expect(midData.toJS()).to.deep.equal([
+          {
+            "Count": 5
+            "Price": 1084
+            "Cuts": [
+              {
+                "Cut": "Good"
+                "Count": 2
+                "Price": 700
+              }
+              {
+                "Cut": "Great"
+                "Count": 1
+                "Price": 124
+              }
+              {
+                "Cut": "Wow"
+                "Count": 2
+                "Price": 260
+              }
+            ]
+          }
+        ])
+        testComplete()
+      ).done()
+
+    it "re-selects", (testComplete) ->
+      ex = facet(midData)
+        .apply('CountOver2', '$Count / 2')
+        .apply('Cuts'
+          facet('Cuts')
+            .apply('AvgPrice', '$Data.sum($price) / $Data.count()')
+        )
+
+      p = ex.compute()
+      p.then((v) ->
+        expect(v.toJS()).to.deep.equal([
+          {
+            "Count": 5
+            "CountOver2": 2.5
+            "Cuts": [
+              {
+                "AvgPrice": 350
+                "Count": 2
+                "Cut": "Good"
+                "Price": 700
+              }
+              {
+                "AvgPrice": 124
+                "Count": 1
+                "Cut": "Great"
+                "Price": 124
+              }
+              {
+                "AvgPrice": 130
+                "Count": 2
+                "Cut": "Wow"
+                "Price": 260
+              }
+            ]
+            "Price": 1084
+          }
+        ])
+        testComplete()
+      ).done()

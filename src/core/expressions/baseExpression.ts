@@ -1,11 +1,21 @@
 module Core {
   export interface SubstitutionFn {
-    (ex: Expression, genDiff: number): Expression;
+    (ex: Expression, depth?: number, genDiff?: number): Expression;
+  }
+
+  export interface BooleanExpressionIterator {
+    (ex: Expression): boolean;
+  }
+
+  export interface VoidExpressionIterator {
+    (ex: Expression): void;
   }
 
   export interface ExpressionValue {
     op: string;
     type?: string;
+    remote?: string[];
+    simple?: boolean;
     value?: any;
     name?: string;
     lhs?: Expression;
@@ -46,11 +56,39 @@ module Core {
     to: Expression;
   }
 
-  export var possibleTypes = ['NULL', 'BOOLEAN', 'NUMBER', 'TIME', 'STRING', 'NUMBER_RANGE', 'TIME_RANGE', 'SET', 'DATASET'];
+  export interface Separation {
+    included: Expression;
+    excluded: Expression;
+  }
 
-  export var checkArrayEquality = function(a: Array<any>, b: Array<any>) {
-    return a.every((item, i) =>  (item === b[i]));
-  };
+  export function mergeRemotes(remotes: string[][]): string[] {
+    var lookup: Lookup<boolean> = {};
+    for (var i = 0; i < remotes.length; i++) {
+      var remote = remotes[i];
+      if (!remote) continue;
+      for (var j = 0; j < remote.length; j++) {
+        lookup[remote[j]] = true;
+      }
+    }
+    var merged = Object.keys(lookup);
+    return merged.length ? merged.sort() : null;
+  }
+
+  export function dedupSort(a: string[]): string[] {
+    a = a.sort();
+    var newA: string[] = [];
+    var last: string = null;
+    for (var i = 0; i < a.length; i++) {
+      var v = a[i];
+      if (v !== last) newA.push(v);
+      last = v;
+    }
+    return newA
+  }
+
+  export function checkArrayEquality<T>(a: Array<T>, b: Array<T>): boolean {
+    return a.length === b.length && a.every((item, i) => (item === b[i]));
+  }
 
   /**
    * The expression starter function. Performs different operations depending on the type and value of the input
@@ -82,6 +120,15 @@ module Core {
     }
   }
 
+  function parseExpression(str: string): ExpressionJS {
+    try {
+      return expressionParser.parse(str);
+    } catch (e) {
+      // Re-throw to add the stacktrace
+      throw new Error('Parse error ' + e.message + ' on `' + str + '`');
+    }
+  }
+
   var check: ImmutableClass<ExpressionValue, ExpressionJS>;
 
   /**
@@ -91,6 +138,7 @@ module Core {
   export class Expression implements ImmutableInstance<ExpressionValue, ExpressionJS> {
     static FALSE: LiteralExpression;
     static TRUE: LiteralExpression;
+
     static isExpression(candidate: any): boolean {
       return isInstanceOf(candidate, Expression);
     }
@@ -102,7 +150,7 @@ module Core {
      * @returns {Expression}
      */
     static parse(str: string): Expression {
-      return Expression.fromJS(expressionParser.parse(str));
+      return Expression.fromJS(parseExpression(str));
     }
 
     /**
@@ -129,7 +177,7 @@ module Core {
             expressionJS = <ExpressionJS>param;
           } else if (Array.isArray(param)) {
             expressionJS = { op: 'literal', value: Set.fromJS(param) };
-          } else if (param.hasOwnProperty('start') && param.hasOwnProperty('end')) {
+          } else if (hasOwnProperty(param, 'start') && hasOwnProperty(param, 'end')) {
             if (typeof param.start === 'number') {
               expressionJS = { op: 'literal', value: NumberRange.fromJS(param) };
             } else {
@@ -148,7 +196,7 @@ module Core {
           if (/^\w+$/.test(param)) {
             expressionJS = { op: 'literal', value: param };
           } else {
-            expressionJS = expressionParser.parse(param);
+            expressionJS = parseExpression(param);
           }
           break;
 
@@ -172,7 +220,7 @@ module Core {
      * @returns {any}
      */
     static fromJS(expressionJS: ExpressionJS): Expression {
-      if (!expressionJS.hasOwnProperty("op")) {
+      if (!hasOwnProperty(expressionJS, "op")) {
         throw new Error("op must be defined");
       }
       var op = expressionJS.op;
@@ -189,12 +237,14 @@ module Core {
 
     public op: string;
     public type: string;
+    public simple: boolean;
 
     constructor(parameters: ExpressionValue, dummy: Dummy = null) {
       this.op = parameters.op;
       if (dummy !== dummyObject) {
         throw new TypeError("can not call `new Expression` directly use Expression.fromJS instead");
       }
+      if (parameters.simple) this.simple = true;
     }
 
     protected _ensureOp(op: string) {
@@ -208,9 +258,9 @@ module Core {
     }
 
     public valueOf(): ExpressionValue {
-      return {
-        op: this.op
-      };
+      var value: ExpressionValue = { op: this.op };
+      if (this.simple) value.simple = true;
+      return value;
     }
 
     /**
@@ -281,12 +331,34 @@ module Core {
     }
 
     /**
+     * Check if the expression contains references to remote datasets
+     *
+     * @returns {boolean}
+     */
+    public hasRemote(): boolean {
+      return this.some(function(ex: Expression) {
+        if (ex instanceof LiteralExpression || ex instanceof RefExpression) return ex.isRemote();
+        return null; // search further
+      });
+    }
+
+    public getRemoteDatasets(): RemoteDataset[] {
+      var remoteDatasets: RemoteDataset[][] = [];
+      this.forEach(function(ex: Expression) {
+        if (ex instanceof LiteralExpression && ex.type === 'DATASET') {
+          remoteDatasets.push((<Dataset>ex.value).getRemoteDatasets());
+        }
+      });
+      return mergeRemoteDatasets(remoteDatasets);
+    }
+
+    /**
      * Introspects self to look for all references expressions and returns the alphabetically sorted list of the references
      *
      * @returns {string[]}
      */
     public getReferences(): string[] {
-      throw new Error('please implement');
+      throw new Error('can not call on base');
     }
 
     /**
@@ -296,7 +368,7 @@ module Core {
      * @returns {Expression[]}
      */
     public getOperandOfType(type: string): Expression[] {
-      throw new Error('please implement');
+      throw new Error('can not call on base');
     }
 
     /**
@@ -305,7 +377,7 @@ module Core {
      * @returns {Expression}
      */
     public mergeAnd(a: Expression): Expression {
-      throw new Error('please implement');
+      throw new Error('can not call on base');
     }
 
     /**
@@ -314,7 +386,7 @@ module Core {
      * @returns {Expression}
      */
     public mergeOr(a: Expression): Expression {
-      throw new Error('please implement');
+      throw new Error('can not call on base');
     }
 
     /**
@@ -328,18 +400,65 @@ module Core {
     }
 
     /**
+     * A check to see if the expression contains any Datasets inside of it.
+     * If it does not it can often be handled differently.
+     *
+     * @returns {boolean}
+     */
+    public containsDataset(): boolean {
+      return this.type === 'DATASET';
+    }
+
+    /**
+     * Runs iter over all the sub expression and return true if iter returns true for everything
+     *
+     * @param iter The function to run
+     * @returns {boolean}
+     */
+    public every(iter: BooleanExpressionIterator): boolean {
+      throw new Error('can not call on base');
+    }
+
+    /**
+     * Runs iter over all the sub expression and return true if iter returns true for anything
+     *
+     * @param iter The function to run
+     * @returns {boolean}
+     */
+    public some(iter: BooleanExpressionIterator): boolean {
+      return !this.every((ex: Expression) => {
+        var v = iter(ex);
+        return (v == null) ? null : !v;
+      });
+    }
+
+    /**
+     * Runs iter over all the sub expressions
+     *
+     * @param iter The function to run
+     * @returns {boolean}
+     */
+    public forEach(iter: VoidExpressionIterator): void {
+      throw new Error('can not call on base');
+    }
+
+    /**
      * Performs a substitution by recursively applying the given substitutionFn to every sub-expression
      * if substitutionFn returns an expression than it is replaced; if null is returned no action is taken.
      *
-     * @param substitutionFn
+     * @param substitutionFn The function with which to substitute
      */
-    public substitute(substitutionFn: SubstitutionFn, genDiff: number): Expression {
-      var sub = substitutionFn(this, genDiff);
+    public substitute(substitutionFn: SubstitutionFn): Expression {
+      return this._substituteHelper(substitutionFn, 0, 0);
+    }
+
+    public _substituteHelper(substitutionFn: SubstitutionFn, depth: number, genDiff: number): Expression {
+      var sub = substitutionFn(this, depth, genDiff);
       if (sub) return sub;
       return this;
     }
 
-    public getFn(): Function {
+    public getFn(): ComputeFn {
       throw new Error('should never be called directly');
     }
 
@@ -348,7 +467,7 @@ module Core {
       throw new Error('should never be called directly');
     }
 
-    public getFnJS(wrap: boolean = true) {
+    public getFnJS(wrap: boolean = true): string {
       var rawFnJS = this._getRawFnJS();
       if (wrap) {
         return 'function(d){return ' + rawFnJS + ';}';
@@ -356,6 +475,27 @@ module Core {
         return rawFnJS;
       }
     }
+
+    public separateViaAnd(refName: string): Separation {
+      if (typeof refName !== 'string') throw new Error('must have refName');
+      if (this.type !== 'BOOLEAN') return null;
+      var myRef = this.getReferences();
+      if (myRef.length > 1 && myRef.indexOf(refName) !== -1) return null;
+      if (myRef[0] === refName) {
+        return {
+          included: this,
+          excluded: Expression.TRUE
+        }
+      } else {
+        return {
+          included: Expression.TRUE,
+          excluded: this
+        }
+      }
+    }
+
+    // ------------------------------------------------------------------------
+    // API behaviour
 
     // Action constructors
     protected _performAction(action: Action): Expression {
@@ -464,7 +604,7 @@ module Core {
       });
     }
 
-    // Split // .split(attr, l, d) = .group(attr).label(l).def(d, facet(d).filter(ex = ^l))
+    // Split // .split(attr, l, d) = .group(attr).label(l).def(d, facet(^d).filter(ex = ^l))
     public split(attribute: any, name: string, dataName: string = null): Expression {
       if (!Expression.isExpression(attribute)) attribute = Expression.fromJSLoose(attribute);
       if (!dataName) {
@@ -475,7 +615,7 @@ module Core {
         }
       }
       return this.group(attribute).label(name)
-        .def(dataName, facet(dataName).filter(attribute.is(facet('^' + name))));
+        .def(dataName, facet('^' + dataName).filter(attribute.is(facet('^' + name))));
     }
 
     // Expression constructors (Binary)
@@ -517,7 +657,7 @@ module Core {
       var newExpression: Expression = exs.length === 1 ? exs[0] : new AddExpression({ op: 'add', operands: exs });
       return this._performNaryExpression(
         { op: 'add' },
-        [new NegateExpression({ op: 'negate', operand: newExpression})]
+        [new NegateExpression({ op: 'negate', operand: newExpression })]
       );
     }
 
@@ -532,7 +672,7 @@ module Core {
       var newExpression: Expression = exs.length === 1 ? exs[0] : new MultiplyExpression({ op: 'add', operands: exs });
       return this._performNaryExpression(
         { op: 'multiply' },
-        [new ReciprocateExpression({ op: 'reciprocate', operand: newExpression})]
+        [new ReciprocateExpression({ op: 'reciprocate', operand: newExpression })]
       );
     }
 
@@ -547,19 +687,30 @@ module Core {
      * @returns the resolved type of the expression
      * @private
      */
-    public _fillRefSubstitutions(typeContext: any, alterations: Alteration[]): any {
+    public _fillRefSubstitutions(typeContext: FullType, alterations: Alteration[]): FullType {
       return typeContext;
     }
 
     /**
      * Rewrites the expression with all the references typed correctly and resolved to the correct parental level
      *
-     * @param typeContext
+     * @param context The datum within which the check is happening
      * @returns {Expression}
      */
-    public referenceCheck(typeContext: any) {
+    public referenceCheck(context: Datum) {
+      var datasetType: Lookup<FullType> = {};
+      for (var k in context) {
+        if (!hasOwnProperty(context, k)) continue;
+        datasetType[k] = getFullType(context[k]);
+      }
+      var typeContext: FullType = {
+        type: 'DATASET',
+        datasetType: datasetType
+      };
+      
       var alterations: Alteration[] = [];
       this._fillRefSubstitutions(typeContext, alterations); // This return the final type
+      if (!alterations.length) return this;
       function substitutionFn(ex: Expression): Expression {
         if (!ex.isOp('ref')) return null;
         for (var i = 0; i < alterations.length; i++) {
@@ -568,462 +719,93 @@ module Core {
         }
         return null;
       }
-      return this.substitute(substitutionFn, 0);
+      return this.substitute(substitutionFn);
     }
 
     /**
      * Resolves one level of dependencies that refer outside of this expression.
      *
-     * @param context
+     * @param context The context containing the values to resolve to
+     * @param leaveIfNotFound If the reference is not in the context leave it (instead of throwing and error)
+     * @return The resolved expression
      */
-    public resolve(context: Datum): Expression {
-      return this.substitute((ex: Expression, genDiff: number) => {
+    public resolve(context: Datum, leaveIfNotFound: boolean = false): Expression {
+      return this.substitute((ex: Expression, depth: number, genDiff: number) => {
         if (ex instanceof RefExpression) {
           var refGen = ex.generations.length;
           if (genDiff === refGen) {
-            if (!context.hasOwnProperty(ex.name)) {
-              throw new Error('could not resolve ' + ex.toString() + ' because is was not in the context');
+            var foundValue: any = null;
+            var valueFound: boolean = false;
+            if (hasOwnProperty(context, ex.name)) {
+              foundValue = context[ex.name];
+              valueFound = true;
+            } else if (context.$def && hasOwnProperty(context.$def, ex.name)) {
+              foundValue = context.$def[ex.name];
+              valueFound = true;
+            } else {
+              if (leaveIfNotFound) {
+                valueFound = false;
+              } else {
+                throw new Error('could not resolve ' + ex.toString() + ' because is was not in the context');
+              }
             }
-            return new LiteralExpression({ op: 'literal', value: context[ex.name] });
+
+            if (valueFound) {
+              return new LiteralExpression({op: 'literal', value: foundValue});
+            }
           } else if (genDiff < refGen) {
             throw new Error('went too deep during resolve on: ' + ex.toString());
           }
         }
         return null;
-      }, 0);
+      });
     }
 
-    // Evaluation
-    public compute(drivers: Lookup<Driver> = null) {
-      var deferred = <Q.Deferred<Dataset>>Q.defer();
+    public resolved(): boolean {
+      return this.every((ex: Expression) => {
+        return (ex instanceof RefExpression) ? ex.generations.length === 0 : null; // Search within
+      })
+    }
 
-      var simple = this.simplify();
-      if (drivers) {
-        var driverObjects: Driver[] = [];
-        Object.keys(drivers).forEach((driverName) => {
-          var driver = drivers[driverName];
-          if (driverObjects.indexOf(driver) === -1) driverObjects.push(driver);
-        });
-        if (driverObjects.length !== 1) {
-          deferred.reject(new Error('must have exactly one driver defined (for now)'));
-          return deferred.promise;
-        }
-        return driverObjects[0](simple);
-      } else {
-        if (simple instanceof LiteralExpression) {
-          deferred.resolve(simple.value);
-        } else if (simple instanceof ActionsExpression || simple instanceof LabelExpression) {
-          deferred.resolve(simple.evaluate());
-        } else {
-          deferred.reject(new Error('can not handle that yet: ' + simple.op));
-          // ToDo: implement logic
-        }
-        return deferred.promise;
+    // ---------------------------------------------------------
+    // Evaluation
+
+    public _computeNativeResolved(queries: any[]): any {
+      throw new Error("can not call this directly");
+    }
+
+    public _computeResolved(): Q.Promise<any> {
+      throw new Error("can not call this directly");
+    }
+
+    public simulateQueryPlan(context: Datum): any[] {
+      var generatedQueries: any[] = [];
+      this.referenceCheck(context).resolve(context).simplify()._computeNativeResolved(generatedQueries);
+      return generatedQueries;
+    }
+
+    /**
+     * Computes an expression synchronously if possible
+     *
+     * @param context The context within which to compute the expression
+     * @returns {any}
+     */
+    public computeNative(context: Datum = {}): any {
+      return this.referenceCheck(context).resolve(context).simplify()._computeNativeResolved(null);
+    }
+
+    /**
+     * Computes a general asynchronous expression
+     *
+     * @param context The context within which to compute the expression
+     * @returns {Q.Promise<any>}
+     */
+    public compute(context: Datum = {}): Q.Promise<any> {
+      if (!datumHasRemote(context) && !this.hasRemote()) {
+        return Q(this.computeNative(context));
       }
+      return this.referenceCheck(context).resolve(context).simplify()._computeResolved();
     }
   }
   check = Expression;
-
-
-
-// =====================================================================================
-// =====================================================================================
-
-  export class UnaryExpression extends Expression {
-    static jsToValue(parameters: ExpressionJS): ExpressionValue {
-      var value: ExpressionValue = {
-        op: parameters.op
-      };
-      if (parameters.operand) {
-        value.operand = Expression.fromJSLoose(parameters.operand);
-      } else {
-        throw new TypeError("must have a operand");
-      }
-
-      return value;
-    }
-
-    public operand: Expression;
-
-    constructor(parameters: ExpressionValue, dummyObject: Dummy) {
-      super(parameters, dummyObject);
-      this.operand = parameters.operand;
-    }
-
-    public valueOf(): ExpressionValue {
-      var value = super.valueOf();
-      value.operand = this.operand;
-      return value;
-    }
-
-    public toJS(): ExpressionJS {
-      var js: ExpressionJS = super.toJS();
-      js.operand = this.operand.toJS();
-      return js;
-    }
-
-    public equals(other: UnaryExpression): boolean {
-      return super.equals(other) &&
-        this.operand.equals(other.operand)
-    }
-
-    public getComplexity(): number {
-      return 1 + this.operand.getComplexity()
-    }
-
-    protected _specialSimplify(simpleOperand: Expression): Expression {
-      return null;
-    }
-
-    public simplify(): Expression {
-      var simpleOperand = this.operand.simplify();
-
-      var special = this._specialSimplify(simpleOperand);
-      if (special) return special;
-
-      if (simpleOperand.isOp('literal')) {
-        return new LiteralExpression({
-          op: 'literal',
-          value: this._makeFn(simpleOperand.getFn())()
-        })
-      }
-
-      var value = this.valueOf();
-      value.operand = simpleOperand;
-      return new (Expression.classMap[this.op])(value);
-    }
-
-    public getReferences(): string[] {
-      return this.operand.getReferences();
-    }
-
-    public getOperandOfType(type: string): Expression[] {
-      if (this.operand.isOp(type)) {
-        return [this.operand];
-      } else {
-        return []
-      }
-    }
-
-    public substitute(substitutionFn: SubstitutionFn, genDiff: number): Expression {
-      var sub = substitutionFn(this, genDiff);
-      if (sub) return sub;
-      var subOperand = this.operand.substitute(substitutionFn, genDiff);
-      if (this.operand === subOperand) return this;
-      var value = this.valueOf();
-      value.operand = subOperand;
-      return new (Expression.classMap[this.op])(value);
-    }
-
-    protected _makeFn(operandFn: Function): Function {
-      throw new Error("should never be called directly");
-    }
-
-    public getFn(): Function {
-      return this._makeFn(this.operand.getFn());
-    }
-
-    protected _makeFnJS(operandFnJS: string): string {
-      throw new Error("should never be called directly");
-    }
-
-    /* protected */
-    public _getRawFnJS(): string {
-      return this._makeFnJS(this.operand._getRawFnJS())
-    }
-
-    protected _checkTypeOfOperand(wantedType: string): void {
-      if (!this.operand.canHaveType(wantedType)) {
-        throw new TypeError(this.op + ' expression must have an operand of type ' + wantedType);
-      }
-    }
-
-    public _fillRefSubstitutions(typeContext: any, alterations: Alteration[]): any {
-      this.operand._fillRefSubstitutions(typeContext, alterations);
-      return this.type;
-    }
-  }
-
-// =====================================================================================
-// =====================================================================================
-
-  export class BinaryExpression extends Expression {
-    static jsToValue(parameters: ExpressionJS): ExpressionValue {
-      var op = parameters.op;
-      var value: ExpressionValue = {
-        op: op
-      };
-      if (typeof parameters.lhs !== 'undefined' && parameters.lhs !== null) {
-        value.lhs = Expression.fromJSLoose(parameters.lhs);
-      } else {
-        throw new TypeError("must have a lhs");
-      }
-
-      if (typeof parameters.rhs !== 'undefined' && parameters.rhs !== null) {
-        value.rhs = Expression.fromJSLoose(parameters.rhs);
-      } else {
-        throw new TypeError("must have a rhs");
-      }
-
-      return value;
-    }
-
-    public lhs: Expression;
-    public rhs: Expression;
-
-    protected simple: boolean;
-
-    constructor(parameters: ExpressionValue, dummyObject: Dummy) {
-      super(parameters, dummyObject);
-      this.lhs = parameters.lhs;
-      this.rhs = parameters.rhs;
-    }
-
-    public valueOf(): ExpressionValue {
-      var value = super.valueOf();
-      value.lhs = this.lhs;
-      value.rhs = this.rhs;
-      return value;
-    }
-
-    public toJS(): ExpressionJS {
-      var js = super.toJS();
-      js.lhs = this.lhs.toJS();
-      js.rhs = this.rhs.toJS();
-      return js;
-    }
-
-    public equals(other: BinaryExpression): boolean {
-      return super.equals(other) &&
-        this.lhs.equals(other.lhs) &&
-        this.rhs.equals(other.rhs);
-    }
-
-    public getComplexity(): number {
-      return 1 + this.lhs.getComplexity() + this.rhs.getComplexity()
-    }
-
-    protected _specialSimplify(simpleLhs: Expression, simpleRhs: Expression): Expression {
-      return null;
-    }
-
-    public simplify(): Expression {
-      var simpleLhs = this.lhs.simplify();
-      var simpleRhs = this.rhs.simplify();
-
-      var special = this._specialSimplify(simpleLhs, simpleRhs);
-      if (special) return special;
-
-      if (simpleLhs.isOp('literal') && simpleRhs.isOp('literal')) {
-        return new LiteralExpression({
-          op: 'literal',
-          value: this._makeFn(simpleLhs.getFn(), simpleRhs.getFn())()
-        })
-      }
-
-      var value = this.valueOf();
-      value.lhs = simpleLhs;
-      value.rhs = simpleRhs;
-      return new (Expression.classMap[this.op])(value);
-    }
-
-    public getOperandOfType(type: string): Expression[] {
-      var ret: Expression[] = [];
-
-      if (this.lhs.isOp(type)) ret.push(this.lhs);
-      if (this.rhs.isOp(type)) ret.push(this.rhs);
-      return ret;
-    }
-
-    public checkLefthandedness(): boolean {
-      if (this.lhs instanceof RefExpression && this.rhs instanceof RefExpression) return null;
-      if (this.lhs instanceof RefExpression) return true;
-      if (this.rhs instanceof RefExpression) return false;
-
-      return null;
-    }
-
-    public getReferences(): string[] {
-      return this.lhs.getReferences().concat(this.rhs.getReferences()).sort();
-    }
-
-    public substitute(substitutionFn: SubstitutionFn, genDiff: number): Expression {
-      var sub = substitutionFn(this, genDiff);
-      if (sub) return sub;
-      var subLhs = this.lhs.substitute(substitutionFn, genDiff);
-      var subRhs = this.rhs.substitute(substitutionFn, genDiff);
-      if (this.lhs === subLhs && this.rhs === subRhs) return this;
-      var value = this.valueOf();
-      value.lhs = subLhs;
-      value.rhs = subRhs;
-      return new (Expression.classMap[this.op])(value);
-    }
-
-    protected _makeFn(lhsFn: Function, rhsFn: Function): Function {
-      throw new Error("should never be called directly");
-    }
-
-    public getFn(): Function {
-      return this._makeFn(this.lhs.getFn(), this.rhs.getFn());
-    }
-
-    protected _makeFnJS(lhsFnJS: string, rhsFnJS: string): string {
-      throw new Error("should never be called directly");
-    }
-
-    /* protected */
-    public _getRawFnJS(): string {
-      return this._makeFnJS(this.lhs._getRawFnJS(), this.rhs._getRawFnJS())
-    }
-
-    protected _checkTypeOf(lhsRhs: string, wantedType: string): void {
-      var operand: Expression = (<any>this)[lhsRhs];
-      if (!operand.canHaveType(wantedType)) {
-        throw new TypeError(this.op + ' ' + lhsRhs + ' must be of type ' + wantedType);
-      }
-    }
-
-    public _fillRefSubstitutions(typeContext: any, alterations: Alteration[]): any {
-      this.lhs._fillRefSubstitutions(typeContext, alterations);
-      this.rhs._fillRefSubstitutions(typeContext, alterations);
-      return this.type;
-    }
-  }
-
-// =====================================================================================
-// =====================================================================================
-
-  export class NaryExpression extends Expression {
-    static jsToValue(parameters: ExpressionJS): ExpressionValue {
-      var op = parameters.op;
-      var value: ExpressionValue = {
-        op: op
-      };
-      if (Array.isArray(parameters.operands)) {
-        value.operands = parameters.operands.map((operand) => Expression.fromJSLoose(operand));
-      } else {
-        throw new TypeError("must have a operands");
-      }
-
-      return value;
-    }
-
-    public operands: Expression[];
-
-    constructor(parameters: ExpressionValue, dummyObject: Dummy) {
-      super(parameters, dummyObject);
-      this.operands = parameters.operands;
-    }
-
-    public valueOf(): ExpressionValue {
-      var value = super.valueOf();
-      value.operands = this.operands;
-      return value;
-    }
-
-    public toJS(): ExpressionJS {
-      var js = super.toJS();
-      js.operands = this.operands.map((operand) => operand.toJS());
-      return js;
-    }
-
-    public equals(other: NaryExpression): boolean {
-      if (!(super.equals(other) && this.operands.length === other.operands.length)) return false;
-      var thisOperands = this.operands;
-      var otherOperands = other.operands;
-      for (var i = 0; i < thisOperands.length; i++) {
-        if (!thisOperands[i].equals(otherOperands[i])) return false;
-      }
-      return true;
-    }
-
-    public getComplexity(): number {
-      var complexity = 1;
-      var operands = this.operands;
-      for (var i = 0; i < operands.length; i++) {
-        complexity += operands[i].getComplexity();
-      }
-      return complexity;
-    }
-
-    protected _specialSimplify(simpleOperands: Expression[]): Expression {
-      return null;
-    }
-
-    public simplify(): Expression {
-      var simpleOperands: Expression[] = this.operands.map((operand) => operand.simplify());
-
-      var special = this._specialSimplify(simpleOperands);
-      if (special) return special;
-
-      var literalOperands = simpleOperands.filter((operand) => operand.isOp('literal'));
-      var nonLiteralOperands = simpleOperands.filter((operand) => !operand.isOp('literal'));
-      var literalExpression = new LiteralExpression({
-        op: 'literal',
-        value: this._makeFn(literalOperands.map((operand) => operand.getFn()))()
-      });
-
-      if (nonLiteralOperands.length) {
-        nonLiteralOperands.push(literalExpression);
-        var value = this.valueOf();
-        value.operands = nonLiteralOperands;
-        return new (Expression.classMap[this.op])(value);
-      } else {
-        return literalExpression
-      }
-    }
-
-    public getReferences(): string[] {
-      return Array.prototype.concat.apply([], this.operands.map((operand) => operand.getReferences())).sort();
-    }
-
-    public getOperandOfType(type: string): Expression[] {
-      return this.operands.filter((operand) => operand.isOp(type));
-    }
-
-    public substitute(substitutionFn: SubstitutionFn, genDiff: number): Expression {
-      var sub = substitutionFn(this, genDiff);
-      if (sub) return sub;
-      var subOperands = this.operands.map((operand) => operand.substitute(substitutionFn, genDiff));
-      if (this.operands.every((op, i) => op === subOperands[i])) return this;
-      var value = this.valueOf();
-      value.operands = subOperands;
-      return new (Expression.classMap[this.op])(value);
-    }
-
-    protected _makeFn(operandFns: Function[]): Function {
-      throw new Error("should never be called directly");
-    }
-
-    public getFn(): Function {
-      return this._makeFn(this.operands.map((operand) => operand.getFn()));
-    }
-
-    protected _makeFnJS(operandFnJSs: string[]): string {
-      throw new Error("should never be called directly");
-    }
-
-    /* protected */
-    public _getRawFnJS(): string {
-      return this._makeFnJS(this.operands.map((operand) => operand._getRawFnJS()));
-    }
-
-    protected _checkTypeOfOperands(wantedType: string): void {
-      var operands = this.operands;
-      for (var i = 0; i < operands.length; i++) {
-        if (!operands[i].canHaveType(wantedType)) {
-          throw new TypeError(this.op + ' must have an operand of type ' + wantedType + ' at position ' + i);
-        }
-      }
-    }
-
-    public _fillRefSubstitutions(typeContext: any, alterations: Alteration[]): any {
-      var operands = this.operands;
-      for (var i = 0; i < operands.length; i++) {
-        operands[i]._fillRefSubstitutions(typeContext, alterations);
-      }
-      return this.type;
-    }
-  }
-
 }

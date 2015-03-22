@@ -6,13 +6,22 @@ mkdir -p build
 node_modules/.bin/tsc --noImplicitAny --noEmitOnError --declaration --removeComments --out build/facet.js \
   src/init.ts \
   \
+  src/core/datatypes/common.ts \
+  src/core/datatypes/attributeInfo.ts \
   src/core/datatypes/dataset.ts \
+  src/core/datatypes/nativeDataset.ts \
+  src/core/datatypes/remoteDataset.ts \
   src/core/datatypes/numberRange.ts \
   src/core/datatypes/set.ts \
   src/core/datatypes/shape.ts \
   src/core/datatypes/timeRange.ts \
+  src/core/remote/druidDataset.ts \
+  src/core/remote/legacyConverter.ts \
   \
   src/core/expressions/baseExpression.ts \
+  src/core/expressions/unaryExpression.ts \
+  src/core/expressions/binaryExpression.ts \
+  src/core/expressions/naryExpression.ts \
   src/core/expressions/actionsExpression.ts \
   src/core/expressions/addExpression.ts \
   src/core/expressions/aggregateExpression.ts \
@@ -68,8 +77,6 @@ node_modules/.bin/tsc --noImplicitAny --noEmitOnError --declaration --removeComm
   src/legacy/driver/fractalCache.ts \
   src/legacy/driver/mySqlDriver.ts \
   src/legacy/driver/nativeDriver.ts \
-  \
-  src/core/driver/legacyDriver.ts \
   \
   src/exports.ts \
   && \

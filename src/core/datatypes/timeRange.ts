@@ -16,6 +16,15 @@ module Core {
     return date;
   }
 
+  function dateToIntervalPart(date: Date): string {
+    return date.toISOString()
+      .replace("Z", "")
+      .replace(".000", "")
+      .replace(/:00$/, "")
+      .replace(/:00$/, "")
+      .replace(/T00$/, "");
+  }
+
   var check: ImmutableClass<TimeRangeValue, TimeRangeJS>;
   export class TimeRange implements ImmutableInstance<TimeRangeValue, TimeRangeJS> {
     static type = 'TIME_RANGE';
@@ -76,6 +85,10 @@ module Core {
       return TimeRange.isTimeRange(other) &&
         this.start.valueOf() === other.start.valueOf() &&
         this.end.valueOf() === other.end.valueOf();
+    }
+
+    public toInterval(): string {
+      return dateToIntervalPart(this.start) + "/" + dateToIntervalPart(this.end);
     }
 
     public union(other: TimeRange): TimeRange {

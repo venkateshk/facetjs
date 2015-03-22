@@ -7,7 +7,7 @@ describe "typecheck", ->
   it "should throw silly ref type", ->
     expect(->
       Expression.fromJS({ op: 'ref', type: 'Corn', name: 'str' })
-    ).to.throw("unsupported type Corn")
+    ).to.throw("unsupported type 'Corn'")
 
   it "should throw on unbalanced IS", ->
     expect(->

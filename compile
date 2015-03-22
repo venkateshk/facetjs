@@ -12,13 +12,3 @@ echo "Compiling TypeScript"
 
 echo "Compiling package"
 ./compile-package
-
-#
-# # All in one
-# browserify build/facet.js \
-#   -o package/facet.js \
-#   --standalone facet
-#
-# # Web workers
-# browserify build/worker/simpleDriverWorker.js \
-#   -o package/simpleDriverWorker.js

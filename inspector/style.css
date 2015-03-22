@@ -38,8 +38,8 @@ pre#output {
 
 button#transform {
     position: absolute;
-    bottom: 13px;
+    bottom: 8px;
     left: 50%;
-    width: 70px;
-    margin-left: -35px;
+    width: 100px;
+    margin-left: -50px;
 }

@@ -804,7 +804,10 @@ module Core {
       if (!datumHasRemote(context) && !this.hasRemote()) {
         return Q(this.computeNative(context));
       }
-      return this.referenceCheck(context).resolve(context).simplify()._computeResolved();
+      var ex = this;
+      return introspectDatum(context).then((introspectedContext) => {
+        return ex.referenceCheck(introspectedContext).resolve(introspectedContext).simplify()._computeResolved();
+      });
     }
   }
   check = Expression;

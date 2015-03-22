@@ -129,6 +129,20 @@ module Core {
     });
   }
 
+  function postProcessIntrospectFactory(timeAttribute: string): IntrospectPostProcess {
+    return (res: Druid.DatasourceIntrospectResult): Lookup<AttributeInfo> => {
+      var attributes: Lookup<AttributeInfo> = Object.create(null);
+      attributes[timeAttribute] = new AttributeInfo({type: 'TIME'});
+      res.dimensions.forEach((dimension) => {
+        attributes[dimension] = new AttributeInfo({type: 'STRING'});
+      });
+      res.metrics.forEach((metric) => {
+        attributes[metric] = new AttributeInfo({type: 'NUMBER', filterable: false, splitable: false});
+      });
+      return attributes;
+    }
+  }
+
   export class DruidDataset extends RemoteDataset {
     static type = 'DATASET';
 
@@ -851,6 +865,32 @@ return (start < 0 ?'-':'') + parts.join('.');
           throw new Error("can not get query for: " + this.mode);
       }
     }
+
+    public getIntrospectQueryAndPostProcess(): IntrospectQueryAndPostProcess<Druid.Query> {
+      return {
+        query: {
+          queryType: 'introspect',
+          dataSource: this.dataSource
+        },
+        postProcess: postProcessIntrospectFactory(this.timeAttribute)
+      };
+    }
   }
   Dataset.register(DruidDataset);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

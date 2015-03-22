@@ -133,6 +133,20 @@ module Core {
     return false;
   }
 
+  export function introspectDatum(datum: Datum): Q.Promise<Datum> {
+    return Q.all(
+      Object.keys(datum).map((applyName) => {
+        var applyValue = datum[applyName];
+        if (applyValue instanceof RemoteDataset && applyValue.needsIntrospect()) {
+          return applyValue.introspect().then((newRemoteDataset: RemoteDataset) => {
+            datum[applyName] = newRemoteDataset;
+          })
+        }
+        return null;
+      }).filter(Boolean)
+    ).then(() => datum);
+  }
+
   export interface FullType {
     type: string;
     datasetType?: Lookup<FullType>;

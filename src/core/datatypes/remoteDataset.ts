@@ -1,11 +1,20 @@
 module Core {
   export interface PostProcess {
-    (result: any): any;
+    (result: any): NativeDataset;
   }
 
   export interface QueryAndPostProcess<T> {
     query: T;
     postProcess: PostProcess;
+  }
+
+  export interface IntrospectPostProcess {
+    (result: any): Lookup<AttributeInfo>;
+  }
+
+  export interface IntrospectQueryAndPostProcess<T> {
+    query: T;
+    postProcess: IntrospectPostProcess;
   }
 
   function getSampleValue(valueType: string, ex: Expression): any {
@@ -337,7 +346,7 @@ module Core {
 
     public queryValues(): Q.Promise<NativeDataset> {
       if (!this.requester) {
-        return <Q.Promise<NativeDataset>>Q.reject(new Error('must have a requester to actually do queries'));
+        return <Q.Promise<NativeDataset>>Q.reject(new Error('must have a requester to make queries'));
       }
       try {
         var queryAndPostProcess = this.getQueryAndPostProcess();
@@ -347,7 +356,44 @@ module Core {
       if (!hasOwnProperty(queryAndPostProcess, 'query') || typeof queryAndPostProcess.postProcess !== 'function') {
         return <Q.Promise<NativeDataset>>Q.reject(new Error('no error query or postProcess'));
       }
-      return this.requester({ query: queryAndPostProcess.query }).then(queryAndPostProcess.postProcess);
+      return this.requester({ query: queryAndPostProcess.query })
+        .then(queryAndPostProcess.postProcess);
+    }
+
+    // -------------------------
+
+    public needsIntrospect(): boolean {
+      return !this.attributes;
+    }
+
+    public getIntrospectQueryAndPostProcess(): IntrospectQueryAndPostProcess<any> {
+      throw new Error("can not call getIntrospectQueryAndPostProcess directly");
+    }
+
+    public introspect(): Q.Promise<RemoteDataset> {
+      if (this.attributes) {
+        return Q(this);
+      }
+
+      if (!this.requester) {
+        return <Q.Promise<RemoteDataset>>Q.reject(new Error('must have a requester to introspect'));
+      }
+      try {
+        var queryAndPostProcess = this.getIntrospectQueryAndPostProcess();
+      } catch (e) {
+        return <Q.Promise<RemoteDataset>>Q.reject(e);
+      }
+      if (!hasOwnProperty(queryAndPostProcess, 'query') || typeof queryAndPostProcess.postProcess !== 'function') {
+        return <Q.Promise<RemoteDataset>>Q.reject(new Error('no error query or postProcess'));
+      }
+      var value = this.valueOf();
+      var ClassFn = Dataset.classMap[this.source];
+      return this.requester({ query: queryAndPostProcess.query })
+        .then(queryAndPostProcess.postProcess)
+        .then((attributes: Lookup<AttributeInfo>) => {
+          value.attributes = attributes;
+          return <RemoteDataset>(new ClassFn(value));
+        })
     }
   }
 }

@@ -108,11 +108,16 @@ module Core {
     }
 
     public toJS(): AttributeInfoJS {
-      return this.valueOf();
+      var js: AttributeInfoJS = { type: this.type };
+      if (!this.filterable) js.filterable = false;
+      if (!this.splitable) js.splitable = false;
+      if (this.special) js.special = this.special;
+      if (this.datasetType) js.datasetType = this.datasetType;
+      return js;
     }
 
     public toJSON(): AttributeInfoJS {
-      return this.valueOf();
+      return this.toJS();
     }
 
     public equals(other: AttributeInfo): boolean {

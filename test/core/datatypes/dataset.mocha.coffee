@@ -98,10 +98,10 @@ describe "Dataset", ->
         approximate: true,
         context: null
         attributes: {
-          color: { type: 'STRING', filterable: true, splitable: true }
-          cut: { type: 'STRING', filterable: true, splitable: true }
-          carat: { type: 'STRING', filterable: true, splitable: true }
-          price: { type: 'NUMBER', filterable: true, splitable: true }
+          color: { type: 'STRING' }
+          cut: { type: 'STRING' }
+          carat: { type: 'STRING' }
+          price: { type: 'NUMBER', filterable: false, splitable: false }
         }
       }
 

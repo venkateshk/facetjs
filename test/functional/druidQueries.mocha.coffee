@@ -137,3 +137,103 @@ describe "DruidDataset actually", ->
       ])
       testComplete()
     ).done()
+
+  it "works with introspection", (testComplete) ->
+    context = {
+      wiki: Dataset.fromJS({
+        source: 'druid',
+        dataSource: 'wikipedia_editstream',
+        timeAttribute: 'time',
+        forceInterval: true,
+        approximate: true,
+        context: null
+        filter: facet('time').in(TimeRange.fromJS({
+          start: new Date("2013-02-26T00:00:00Z")
+          end: new Date("2013-02-27T00:00:00Z")
+        }))
+        requester: druidPass
+      })
+    }
+
+    ex = facet()
+      .def("wiki", facet('wiki').filter(facet("language").is('en')))
+      .apply('Count', '$wiki.count()')
+      .apply('TotalAdded', '$wiki.sum($added)')
+      .apply('Time',
+        facet("wiki").split(facet("time").timeBucket('PT1H', 'America/Los_Angeles'), 'Timestamp')
+          .apply('TotalAdded', '$wiki.sum($added)')
+          .sort('$Timestamp', 'ascending')
+          .limit(3)
+          .apply('Pages',
+            facet("wiki").split("$page", 'Page')
+              .apply('Count', '$wiki.count()')
+              .sort('$Count', 'descending')
+              .limit(2)
+          )
+      )
+
+    ex.compute(context).then((result) ->
+      expect(result.toJS()).to.deep.equal([
+        {
+          "Count": 308675
+          "Time": [
+            {
+              "Timestamp": {
+                "end": new Date("2013-02-26T01:00:00.000Z")
+                "start": new Date("2013-02-26T00:00:00.000Z")
+                "type": "TIME_RANGE"
+              }
+              "TotalAdded": 2149342
+              "Pages": [
+                {
+                  "Count": 6
+                  "Page": "Wikipedia:In_the_news/Candidates"
+                }
+                {
+                  "Count": 5
+                  "Page": "Hercules"
+                }
+              ]
+            }
+            {
+              "Timestamp": {
+                "end": new Date("2013-02-26T02:00:00.000Z")
+                "start": new Date("2013-02-26T01:00:00.000Z")
+                "type": "TIME_RANGE"
+              }
+              "TotalAdded": 1717907
+              "Pages": [
+                {
+                  "Count": 6
+                  "Page": "Wikipedia:Requests_for_page_protection"
+                }
+                {
+                  "Count": 5
+                  "Page": "Taming_of_the_Shrew_Act_3"
+                }
+              ]
+            }
+            {
+              "Timestamp": {
+                "end": new Date("2013-02-26T03:00:00.000Z")
+                "start": new Date("2013-02-26T02:00:00.000Z")
+                "type": "TIME_RANGE"
+              }
+              "TotalAdded": 1258761
+              "Pages": [
+                {
+                  "Count": 6
+                  "Page": "Wikipedia:Administrators'_noticeboard/Incidents"
+                }
+                {
+                  "Count": 5
+                  "Page": "Talk:Contemporary_Christian_music"
+                }
+              ]
+            }
+          ]
+          "TotalAdded": 41412583
+        }
+      ])
+      testComplete()
+    ).done()

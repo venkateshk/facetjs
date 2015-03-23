@@ -1,24 +1,22 @@
 var druidRequester = require('facetjs-druid-requester').druidRequester;
 var facet = require('../../build/facet');
-var legacyDriver = facet.core.legacyDriver;
-var druidDriver = facet.legacy.druidDriver;
+var Dataset = facet.core.Dataset;
 
 var druidPass = druidRequester({
   host: '10.153.211.100' // Where ever your Druid may be
 });
 
-var wikiDriver = legacyDriver(druidDriver({
-  requester: druidPass,
-  dataSource: 'wikipedia_editstream',
-  timeAttribute: 'time',
-  forceInterval: true,
-  approximate: true
-}));
-
 // ----------------------------------
 
 var context = {
-  wiki: wikiDriver
+  wiki: Dataset.fromJS({
+    source: 'druid',
+    dataSource: 'wikipedia_editstream',
+    timeAttribute: 'time',
+    forceInterval: true,
+    approximate: true,
+    requester: druidPass
+  })
 };
 
 var ex = facet()

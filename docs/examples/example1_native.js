@@ -1,14 +1,15 @@
 var facet = require('../../build/facet');
-var legacyDriver = facet.core.legacyDriver;
-var nativeDriver = facet.legacy.nativeDriver;
+var Dataset = facet.core.Dataset;
 
 var diamondsData = require('../../data/diamonds.js');
-var diamondDriver = legacyDriver(nativeDriver(diamondsData));
 
 // ----------------------------------
 
 var context = {
-  diamonds: diamondDriver
+  diamonds: Dataset.fromJS({
+    source: 'native',
+    data: diamondsData
+  })
 };
 
 var ex = facet()

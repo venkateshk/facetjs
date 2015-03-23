@@ -87,7 +87,7 @@ module Core {
       return this.value instanceof Dataset && this.value.source !== 'native';
     }
 
-    public _getRawFnJS(): string {
+    public getJSExpression(): string {
       return JSON.stringify(this.value); // ToDo: what to do with higher objects?
     }
 

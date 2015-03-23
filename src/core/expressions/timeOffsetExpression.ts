@@ -40,7 +40,7 @@ module Core {
         this.duration.equals(other.duration);
     }
 
-    protected _makeFn(operandFn: ComputeFn): ComputeFn {
+    protected _getFnHelper(operandFn: ComputeFn): ComputeFn {
       var duration = this.duration;
       return (d: Datum) => {
         var date = operandFn(d);
@@ -49,7 +49,7 @@ module Core {
       }
     }
 
-    protected _makeFnJS(operandFnJS: string): string {
+    protected _getJSExpressionHelper(operandFnJS: string): string {
       throw new Error("implement me");
     }
   }

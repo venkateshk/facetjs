@@ -37,12 +37,12 @@ module Core {
         this.regexp === other.regexp;
     }
 
-    protected _makeFn(operandFn: ComputeFn): ComputeFn {
+    protected _getFnHelper(operandFn: ComputeFn): ComputeFn {
       var re = new RegExp(this.regexp);
       return (d: Datum) => re.test(operandFn(d));
     }
 
-    protected _makeFnJS(operandFnJS: string): string {
+    protected _getJSExpressionHelper(operandFnJS: string): string {
       return "/" + this.regexp + "/.test(" + operandFnJS + ")";
     }
 

@@ -55,7 +55,7 @@ module Core {
       if (simpleOperand.isOp('literal')) {
         return new LiteralExpression({
           op: 'literal',
-          value: this._makeFn(simpleOperand.getFn())(null)
+          value: this._getFnHelper(simpleOperand.getFn())(null)
         })
       }
 
@@ -112,21 +112,29 @@ module Core {
       return new (Expression.classMap[this.op])(value);
     }
 
-    protected _makeFn(operandFn: ComputeFn): ComputeFn {
+    protected _getFnHelper(operandFn: ComputeFn): ComputeFn {
       throw new Error("should never be called directly");
     }
 
     public getFn(): ComputeFn {
-      return this._makeFn(this.operand.getFn());
+      return this._getFnHelper(this.operand.getFn());
     }
 
-    protected _makeFnJS(operandFnJS: string): string {
+    protected _getJSExpressionHelper(operandFnJS: string): string {
       throw new Error("should never be called directly");
     }
 
+    public getJSExpression(): string {
+      return this._getJSExpressionHelper(this.operand.getJSExpression())
+    }
+
     /* protected */
-    public _getRawFnJS(): string {
-      return this._makeFnJS(this.operand._getRawFnJS())
+    public _getSQLHelper(): string {
+      throw new Error('should never be called directly');
+    }
+
+    public getSQL(): string {
+      return this._getJSExpressionHelper(this.operand.getJSExpression())
     }
 
     protected _checkTypeOfOperand(wantedType: string): void {

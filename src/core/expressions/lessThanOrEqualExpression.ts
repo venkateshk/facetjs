@@ -16,11 +16,11 @@ module Core {
       return this.lhs.toString() + ' <= ' + this.rhs.toString();
     }
 
-    protected _makeFn(lhsFn: ComputeFn, rhsFn: ComputeFn): ComputeFn {
+    protected _getFnHelper(lhsFn: ComputeFn, rhsFn: ComputeFn): ComputeFn {
       return (d: Datum) => lhsFn(d) <= rhsFn(d);
     }
 
-    protected _makeFnJS(lhsFnJS: string, rhsFnJS: string): string {
+    protected _getJSExpressionHelper(lhsFnJS: string, rhsFnJS: string): string {
       return '(' + lhsFnJS + '<=' + rhsFnJS + ')';
     }
 

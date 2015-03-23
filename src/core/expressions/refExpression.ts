@@ -104,7 +104,7 @@ module Core {
       }
     }
 
-    public _getRawFnJS(): string {
+    public getJSExpression(): string {
       if (this.generations.length) throw new Error("can not call getRawFnJS on unresolved expression");
       return 'd.' + this.name;
     }

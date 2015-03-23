@@ -79,11 +79,11 @@ module Core {
       return exp;
     }
 
-    protected _makeFn(lhsFn: ComputeFn, rhsFn: ComputeFn): ComputeFn {
+    protected _getFnHelper(lhsFn: ComputeFn, rhsFn: ComputeFn): ComputeFn {
       return (d: Datum) => rhsFn(d).test(lhsFn(d));
     }
 
-    protected _makeFnJS(lhsFnJS: string, rhsFnJS: string): string {
+    protected _getJSExpressionHelper(lhsFnJS: string, rhsFnJS: string): string {
       throw new Error("implement me!");
     }
 

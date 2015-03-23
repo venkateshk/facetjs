@@ -462,18 +462,16 @@ module Core {
       throw new Error('should never be called directly');
     }
 
-    /* protected */
-    public _getRawFnJS(): string {
+    public getJSExpression(): string {
       throw new Error('should never be called directly');
     }
 
-    public getFnJS(wrap: boolean = true): string {
-      var rawFnJS = this._getRawFnJS();
-      if (wrap) {
-        return 'function(d){return ' + rawFnJS + ';}';
-      } else {
-        return rawFnJS;
-      }
+    public getJSFn(): string {
+      return `function(d){return ${this.getJSExpression()};}`;
+    }
+
+    public getSQL(): string {
+      throw new Error('should never be called directly');
     }
 
     public separateViaAnd(refName: string): Separation {

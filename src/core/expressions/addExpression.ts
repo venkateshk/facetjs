@@ -15,7 +15,7 @@ module Core {
       return '(' + this.operands.map((operand) => operand.toString()).join(' + ') + ')';
     }
 
-    protected _makeFn(operandFns: ComputeFn[]): ComputeFn {
+    protected _getFnHelper(operandFns: ComputeFn[]): ComputeFn {
       return (d: Datum) => {
         var res = 0;
         for (var i = 0; i < operandFns.length; i++) {
@@ -25,11 +25,9 @@ module Core {
       }
     }
 
-    protected _makeFnJS(operandFnJSs: string[]): string {
-      return '(' + operandFnJSs.join('+')  + ')';
+    protected _getJSExpressionHelper(operandJSExpressions: string[]): string {
+      return '(' + operandJSExpressions.join('+')  + ')';
     }
-
-    // NARY
   }
 
   Expression.register(AddExpression);

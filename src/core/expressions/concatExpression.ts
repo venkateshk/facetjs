@@ -23,7 +23,7 @@ module Core {
       if (hasLiteralOperandsOnly) {
         return new LiteralExpression({
           op: 'literal',
-          value: this._makeFn(simplifiedOperands.map((operand) => operand.getFn()))(null)
+          value: this._getFnHelper(simplifiedOperands.map((operand) => operand.getFn()))(null)
         });
       }
 
@@ -46,14 +46,14 @@ module Core {
       return new ConcatExpression(simpleValue);
     }
 
-    protected _makeFn(operandFns: ComputeFn[]): ComputeFn {
+    protected _getFnHelper(operandFns: ComputeFn[]): ComputeFn {
       return (d: Datum) => {
         return operandFns.map((operandFn) => operandFn(d)).join('');
       }
     }
 
-    protected _makeFnJS(operandFnJSs: string[]): string {
-      return '(' + operandFnJSs.join('+') + ')';
+    protected _getJSExpressionHelper(operandJSExpressions: string[]): string {
+      return '(' + operandJSExpressions.join('+') + ')';
     }
 
     // NARY

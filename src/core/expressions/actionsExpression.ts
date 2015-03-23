@@ -233,12 +233,12 @@ module Core {
       return new ActionsExpression(value);
     }
 
-    protected _makeFn(operandFn: ComputeFn): ComputeFn {
-      throw new Error("can not call makeFn on actions");
+    public getFn(): ComputeFn {
+      throw new Error("can not call getFn on actions");
     }
 
-    protected _makeFnJS(operandFnJS: string): string {
-      throw new Error("implement me");
+    public getJSExpression(): string {
+      throw new Error("can not call getJSExpression on actions");
     }
 
     protected _performAction(action: Action): Expression {

@@ -38,7 +38,7 @@ module Core {
         this.name === other.name;
     }
 
-    protected _makeFn(operandFn: ComputeFn): ComputeFn {
+    protected _getFnHelper(operandFn: ComputeFn): ComputeFn {
       var name = this.name;
       return (d: Datum) => {
         var mySet = operandFn(d);
@@ -47,7 +47,7 @@ module Core {
       }
     }
 
-    protected _makeFnJS(operandFnJS: string): string {
+    protected _getJSExpressionHelper(operandFnJS: string): string {
       throw new Error("implement me");
     }
 

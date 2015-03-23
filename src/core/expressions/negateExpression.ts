@@ -14,11 +14,11 @@ module Core {
       return this.operand.toString() + '.negate()';
     }
 
-    protected _makeFn(operandFn: ComputeFn): ComputeFn {
+    protected _getFnHelper(operandFn: ComputeFn): ComputeFn {
       return (d: Datum) => -operandFn(d);
     }
 
-    protected _makeFnJS(operandFnJS: string): string {
+    protected _getJSExpressionHelper(operandFnJS: string): string {
       return "-(" + operandFnJS + ")"
     }
 

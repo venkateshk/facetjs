@@ -68,7 +68,7 @@ module Core {
       if (simpleLhs.isOp('literal') && simpleRhs.isOp('literal')) {
         return new LiteralExpression({
           op: 'literal',
-          value: this._makeFn(simpleLhs.getFn(), simpleRhs.getFn())(null)
+          value: this._getFnHelper(simpleLhs.getFn(), simpleRhs.getFn())(null)
         })
       }
 
@@ -129,21 +129,21 @@ module Core {
       return new (Expression.classMap[this.op])(value);
     }
 
-    protected _makeFn(lhsFn: ComputeFn, rhsFn: ComputeFn): ComputeFn {
+    protected _getFnHelper(lhsFn: ComputeFn, rhsFn: ComputeFn): ComputeFn {
       throw new Error("should never be called directly");
     }
 
     public getFn(): ComputeFn {
-      return this._makeFn(this.lhs.getFn(), this.rhs.getFn());
+      return this._getFnHelper(this.lhs.getFn(), this.rhs.getFn());
     }
 
-    protected _makeFnJS(lhsFnJS: string, rhsFnJS: string): string {
+    protected _getJSExpressionHelper(lhsFnJS: string, rhsFnJS: string): string {
       throw new Error("should never be called directly");
     }
 
     /* protected */
-    public _getRawFnJS(): string {
-      return this._makeFnJS(this.lhs._getRawFnJS(), this.rhs._getRawFnJS())
+    public getJSExpression(): string {
+      return this._getJSExpressionHelper(this.lhs.getJSExpression(), this.rhs.getJSExpression())
     }
 
     protected _checkTypeOf(lhsRhs: string, wantedType: string): void {

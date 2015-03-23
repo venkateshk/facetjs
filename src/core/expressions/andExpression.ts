@@ -118,11 +118,11 @@ module Core {
       };
     }
 
-    protected _makeFn(operandFns: ComputeFn[]): ComputeFn {
+    protected _getFnHelper(operandFns: ComputeFn[]): ComputeFn {
       throw new Error("should never be called directly");
     }
 
-    protected _makeFnJS(operandFnJSs: string[]): string {
+    protected _getJSExpressionHelper(operandJSExpressions: string[]): string {
       throw new Error("should never be called directly");
     }
 

@@ -42,7 +42,7 @@ module Core {
         this.offset === other.offset;
     }
 
-    protected _makeFn(operandFn: ComputeFn): ComputeFn {
+    protected _getFnHelper(operandFn: ComputeFn): ComputeFn {
       var size = this.size;
       var offset = this.offset;
       return (d: Datum) => {
@@ -52,7 +52,7 @@ module Core {
       }
     }
 
-    protected _makeFnJS(operandFnJS: string): string {
+    protected _getJSExpressionHelper(operandFnJS: string): string {
       throw new Error("implement me");
     }
   }

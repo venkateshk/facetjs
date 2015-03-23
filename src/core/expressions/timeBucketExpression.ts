@@ -48,7 +48,7 @@ module Core {
         this.timezone.equals(other.timezone);
     }
 
-    protected _makeFn(operandFn: ComputeFn): ComputeFn {
+    protected _getFnHelper(operandFn: ComputeFn): ComputeFn {
       var duration = this.duration;
       var timezone = this.timezone;
       return (d: Datum) => {
@@ -58,7 +58,7 @@ module Core {
       }
     }
 
-    protected _makeFnJS(operandFnJS: string): string {
+    protected _getJSExpressionHelper(operandFnJS: string): string {
       throw new Error("implement me");
     }
   }

@@ -141,9 +141,16 @@ module Core {
       throw new Error("should never be called directly");
     }
 
-    /* protected */
     public getJSExpression(): string {
       return this._getJSExpressionHelper(this.lhs.getJSExpression(), this.rhs.getJSExpression())
+    }
+
+    protected _getSQLHelper(lhsSQL: string, rhsSQL: string): string {
+      throw new Error('should never be called directly');
+    }
+
+    public getSQL(): string {
+      return this._getSQLHelper(this.lhs.getSQL(), this.rhs.getSQL());
     }
 
     protected _checkTypeOf(lhsRhs: string, wantedType: string): void {

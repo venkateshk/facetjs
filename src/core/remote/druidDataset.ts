@@ -271,6 +271,7 @@ module Core {
         } else {
           throw new Error("should never get here");
         }
+
       } else if (filter instanceof IsExpression) {
         var lhs = filter.lhs;
         var rhs = filter.rhs;
@@ -284,6 +285,7 @@ module Core {
         } else {
           throw new Error("can not convert " + filter.toString() + " to Druid filter");
         }
+
       } else if (filter instanceof InExpression) {
         var lhs = filter.lhs;
         var rhs = filter.rhs;
@@ -319,22 +321,27 @@ module Core {
           throw new Error("can not convert " + filter.toString() + " to Druid filter");
         }
 
+      } else if (filter instanceof MatchExpression) {
+        var operand = filter.operand;
+        if (operand instanceof RefExpression) {
+          return {
+            type: "regex",
+            dimension: operand.name,
+            pattern: filter.regexp
+          };
+        } else {
+          throw new Error("can not convert " + filter.toString() + " to Druid filter");
+        }
+
         /*
          case "contains":
-         return {
-         type: "search",
-         dimension: filter.attribute,
-         query: {
-         type: "fragment",
-         values: [(<ContainsFilter>filter).value]
-         }
-         };
-         case "match":
-         return {
-         type: "regex",
-         dimension: filter.attribute,
-         pattern: (<MatchFilter>filter).expression
-         };
+           return {
+             type: "search",
+             dimension: filter.attribute,
+             query: {
+             type: "fragment",
+             values: [(<ContainsFilter>filter).value]
+           }
          */
 
       } else if (filter instanceof NotExpression) {
@@ -342,11 +349,13 @@ module Core {
           type: "not",
           field: this.timelessFilterToDruid(filter.operand)
         };
+
       } else if (filter instanceof AndExpression || filter instanceof OrExpression) {
         return {
           type: filter.op,
           fields: filter.operands.map(this.timelessFilterToDruid, this)
         };
+
       } else {
         throw new Error("could not convert filter " + filter.toString() + " to Druid filter");
       }

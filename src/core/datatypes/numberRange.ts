@@ -99,7 +99,7 @@ module Core {
       return new NumberRange({start: start, end: end});
     }
 
-    public test(val: Number): boolean {
+    public contains(val: Number): boolean {
       return this.start <= val && val < this.end;
     }
   }

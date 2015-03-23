@@ -128,9 +128,16 @@ module Core {
       throw new Error("should never be called directly");
     }
 
-    /* protected */
     public getJSExpression(): string {
       return this._getJSExpressionHelper(this.operands.map((operand) => operand.getJSExpression()));
+    }
+
+    protected _getSQLHelper(operandSQLs: string[]): string {
+      throw new Error('should never be called directly');
+    }
+
+    public getSQL(): string {
+      return this._getSQLHelper(this.operands.map((operand) => operand.getSQL()));
     }
 
     protected _checkTypeOfOperands(wantedType: string): void {

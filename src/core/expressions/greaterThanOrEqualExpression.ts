@@ -13,7 +13,7 @@ module Core {
     }
 
     public toString(): string {
-      return this.lhs.toString() + ' = ' + this.rhs.toString();
+      return `${this.lhs.toString()} = ${this.rhs.toString()}`;
     }
 
     public simplify(): Expression {
@@ -29,10 +29,12 @@ module Core {
     }
 
     protected _getJSExpressionHelper(lhsFnJS: string, rhsFnJS: string): string {
-      throw '(' + lhsFnJS + '>=' + rhsFnJS + ')';
+      return `(${lhsFnJS}>=${rhsFnJS})`;
     }
 
-    // BINARY
+    protected _getSQLHelper(lhsSQL: string, rhsSQL: string): string {
+      return `(${lhsSQL}>=${rhsSQL})`;
+    }
   }
 
   Expression.register(GreaterThanOrEqualExpression);

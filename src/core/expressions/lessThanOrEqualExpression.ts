@@ -13,7 +13,7 @@ module Core {
     }
 
     public toString(): string {
-      return this.lhs.toString() + ' <= ' + this.rhs.toString();
+      return `${this.lhs.toString()} <= ${this.rhs.toString()}`;
     }
 
     protected _getFnHelper(lhsFn: ComputeFn, rhsFn: ComputeFn): ComputeFn {
@@ -21,7 +21,11 @@ module Core {
     }
 
     protected _getJSExpressionHelper(lhsFnJS: string, rhsFnJS: string): string {
-      return '(' + lhsFnJS + '<=' + rhsFnJS + ')';
+      return `(${lhsFnJS}<=${rhsFnJS})`;
+    }
+
+    protected _getSQLHelper(lhsSQL: string, rhsSQL: string): string {
+      return `(${lhsSQL}<=${rhsSQL})`;
     }
 
     public mergeAnd(exp: Expression): Expression {

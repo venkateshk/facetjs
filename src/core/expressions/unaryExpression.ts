@@ -125,16 +125,15 @@ module Core {
     }
 
     public getJSExpression(): string {
-      return this._getJSExpressionHelper(this.operand.getJSExpression())
+      return this._getJSExpressionHelper(this.operand.getJSExpression());
     }
 
-    /* protected */
-    public _getSQLHelper(): string {
+    protected _getSQLHelper(operandSQL: string): string {
       throw new Error('should never be called directly');
     }
 
     public getSQL(): string {
-      return this._getJSExpressionHelper(this.operand.getJSExpression())
+      return this._getSQLHelper(this.operand.getSQL());
     }
 
     protected _checkTypeOfOperand(wantedType: string): void {

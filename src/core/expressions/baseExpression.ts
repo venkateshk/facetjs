@@ -400,16 +400,6 @@ module Core {
     }
 
     /**
-     * A check to see if the expression contains any Datasets inside of it.
-     * If it does not it can often be handled differently.
-     *
-     * @returns {boolean}
-     */
-    public containsDataset(): boolean {
-      return this.type === 'DATASET';
-    }
-
-    /**
      * Runs iter over all the sub expression and return true if iter returns true for everything
      *
      * @param iter The function to run

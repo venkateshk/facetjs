@@ -29,7 +29,9 @@ module Core {
       return '(' + operandJSExpressions.join('*')  + ')';
     }
 
-    // NARY
+    protected _getSQLHelper(operandSQLs: string[]): string {
+      return '(' + operandSQLs.join('*')  + ')';
+    }
   }
 
   Expression.register(MultiplyExpression);

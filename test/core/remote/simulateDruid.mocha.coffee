@@ -34,7 +34,7 @@ context = {
   })
 }
 
-describe "simulate", ->
+describe "simulate Druid", ->
   it "works in advanced case", ->
     ex = facet()
       .def("diamonds", facet('diamonds').filter(facet("color").is('D')))

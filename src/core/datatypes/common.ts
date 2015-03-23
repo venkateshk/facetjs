@@ -116,7 +116,14 @@ module Core {
     return v;
   }
 
-  // Remote stuff
+  export function dateToSQL(date: Date): string {
+    return date.toISOString()
+      .replace("T", " ")
+      .replace(/\.\d\d\dZ$/, "")
+      .replace(" 00:00:00", "");
+  }
+
+  // Remote functionality
 
   export function datumHasRemote(datum: Datum): boolean {
     for (var applyName in datum) {

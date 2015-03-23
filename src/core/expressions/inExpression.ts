@@ -36,33 +36,41 @@ module Core {
     }
 
     protected _getJSExpressionHelper(lhsFnJS: string, rhsFnJS: string): string {
+      var lhsType = this.lhs.type;
+      var rhsType = this.rhs.type;
+      if ((lhsType === 'NUMBER' && rhsType === 'SET/NUMBER_RANGE') ||
+        (lhsType === 'TIME' && rhsType === 'SET/TIME_RANGE')) {
+        return `${rhsFnJS}.containsWithin(${lhsFnJS})`;
+      } else {
+        // Time range and set also have contains
+        return `${rhsFnJS}.contains(${lhsFnJS})`;
+      }
+    }
+
+    protected _getSQLHelper(lhsSQL: string, rhsSQL: string): string {
       var rhs = this.rhs;
       var rhsType = rhs.type;
       switch (rhsType) {
         case 'NUMBER_RANGE':
           if (rhs instanceof LiteralExpression) {
             var numberRange: NumberRange = rhs.value;
-            return `(${numberRange.start}<=${lhsFnJS} AND ${lhsFnJS}<${numberRange.end})`;
+            return `(${numberRange.start}<=${lhsSQL} AND ${lhsSQL}<${numberRange.end})`;
           }
           throw new Error('not implemented yet');
 
         case 'TIME_RANGE':
           if (rhs instanceof LiteralExpression) {
             var timeRange: TimeRange = rhs.value;
-            return `(${timeRange.start}<=${lhsFnJS} AND ${lhsFnJS}<${timeRange.end})`;
+            return `('${dateToSQL(timeRange.start)}'<=${lhsSQL} AND ${lhsSQL}<'${dateToSQL(timeRange.end)}')`;
           }
           throw new Error('not implemented yet');
 
         case 'SET/STRING':
-          return `${lhsFnJS} in ${rhsFnJS}`;
+          return `${lhsSQL} in ${rhsSQL}`;
 
         default:
           throw new Error('not implemented yet');
       }
-    }
-
-    protected _getSQLHelper(lhsSQL: string, rhsSQL: string): string {
-      return `(${lhsSQL} in ${rhsSQL})`;
     }
 
     public mergeAnd(exp: Expression): Expression {

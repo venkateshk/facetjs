@@ -27,7 +27,25 @@ module Core {
     }
 
     public toString(): string {
-      return 'and(' + this.operands.map((operand) => operand.toString()) + ')';
+      return '(' + this.operands.map((operand) => operand.toString()).join(' and ') + ')';
+    }
+
+    protected _getFnHelper(operandFns: ComputeFn[]): ComputeFn {
+      return (d: Datum) => {
+        var res = true;
+        for (var i = 0; i < operandFns.length; i++) {
+          res = res && operandFns[i](d);
+        }
+        return res;
+      }
+    }
+
+    protected _getJSExpressionHelper(operandJSExpressions: string[]): string {
+      return '(' + operandJSExpressions.join('&&')  + ')';
+    }
+
+    protected _getSQLHelper(operandSQLs: string[]): string {
+      return '(' + operandSQLs.join(' AND ')  + ')';
     }
 
     public simplify(): Expression {
@@ -117,16 +135,6 @@ module Core {
         excluded: new AndExpression({op: 'and', operands: excludedExpressions}).simplify()
       };
     }
-
-    protected _getFnHelper(operandFns: ComputeFn[]): ComputeFn {
-      throw new Error("should never be called directly");
-    }
-
-    protected _getJSExpressionHelper(operandJSExpressions: string[]): string {
-      throw new Error("should never be called directly");
-    }
-
-    // NARY
   }
 
   Expression.register(AndExpression);

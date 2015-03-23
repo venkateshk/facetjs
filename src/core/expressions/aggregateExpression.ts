@@ -1,4 +1,13 @@
 module Core {
+  var fnToSQL: Lookup<string> = {
+    count: 'COUNT(',
+    sum: 'SUM(',
+    average: 'AVG(',
+    min: 'MIN(',
+    max: 'MAX(',
+    uniqueCount: 'COUNT(DISTINCT '
+  };
+
   export class AggregateExpression extends UnaryExpression {
     static fromJS(parameters: ExpressionJS): AggregateExpression {
       var value = UnaryExpression.jsToValue(parameters);
@@ -49,11 +58,35 @@ module Core {
       return js;
     }
 
+    public toString(): string {
+      return this.operand.toString() + '.' + this.fn + '(' + (this.attribute ? this.attribute.toString() : '') + ')';
+    }
+
     public equals(other: AggregateExpression): boolean {
       return super.equals(other) &&
         this.fn === other.fn &&
         Boolean(this.attribute) === Boolean(other.attribute) &&
         (!this.attribute || this.attribute.equals(other.attribute));
+    }
+
+    protected _getFnHelper(operandFn: ComputeFn): ComputeFn {
+      var fn = this.fn;
+      var attribute = this.attribute;
+      var attributeFn = attribute ? attribute.getFn() : null;
+      return (d: Datum) => operandFn(d)[fn](attributeFn, attribute);
+    }
+
+    protected _getJSExpressionHelper(operandFnJS: string): string {
+      throw new Error("implement me");
+    }
+
+    protected _getSQLHelper(operandSQL: string): string {
+      var operand = this.operand;
+      if (operand instanceof RefExpression) {
+        var attributeSQL = this.attribute ? this.attribute.getSQL() : '1';
+        return fnToSQL[this.fn] + attributeSQL + ')';
+      }
+      throw new Error("can not getSQL with complex operand");
     }
 
     protected _specialEvery(iter: BooleanExpressionIterator): boolean {
@@ -81,10 +114,6 @@ module Core {
       return new AggregateExpression(value);
     }
 
-    public toString(): string {
-      return this.operand.toString() + '.' + this.fn + '(' + (this.attribute ? this.attribute.toString() : '') + ')';
-    }
-
     public getComplexity(): number {
       return 1 + this.operand.getComplexity() + (this.attribute ? this.attribute.getComplexity() : 0);
     }
@@ -107,21 +136,6 @@ module Core {
       }
       simpleValue.simple = true;
       return new AggregateExpression(simpleValue)
-    }
-
-    public containsDataset(): boolean {
-      return true;
-    }
-
-    protected _getFnHelper(operandFn: ComputeFn): ComputeFn {
-      var fn = this.fn;
-      var attribute = this.attribute;
-      var attributeFn = attribute ? attribute.getFn() : null;
-      return (d: Datum) => operandFn(d)[fn](attributeFn, attribute);
-    }
-
-    protected _getJSExpressionHelper(operandFnJS: string): string {
-      throw new Error("implement me");
     }
 
     public _fillRefSubstitutions(typeContext: FullType, alterations: Alteration[]): FullType {

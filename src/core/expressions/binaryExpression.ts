@@ -79,10 +79,6 @@ module Core {
       return new (Expression.classMap[this.op])(simpleValue);
     }
 
-    public containsDataset(): boolean {
-      return this.lhs.containsDataset() || this.rhs.containsDataset();
-    }
-
     public getOperandOfType(type: string): Expression[] {
       var ret: Expression[] = [];
 

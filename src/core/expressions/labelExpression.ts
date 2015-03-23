@@ -33,11 +33,6 @@ module Core {
       return this.operand.toString() + ".label('" + this.name + "')";
     }
 
-    public equals(other: LabelExpression): boolean {
-      return super.equals(other) &&
-        this.name === other.name;
-    }
-
     protected _getFnHelper(operandFn: ComputeFn): ComputeFn {
       var name = this.name;
       return (d: Datum) => {
@@ -48,7 +43,16 @@ module Core {
     }
 
     protected _getJSExpressionHelper(operandFnJS: string): string {
-      throw new Error("implement me");
+      throw `${operandFnJS}.label(${this.name})`;
+    }
+
+    protected _getSQLHelper(operandSQL: string): string {
+      return `${operandSQL} AS "${this.name}"`;
+    }
+
+    public equals(other: LabelExpression): boolean {
+      return super.equals(other) &&
+        this.name === other.name;
     }
 
     protected _specialSimplify(simpleOperand: Expression): Expression {

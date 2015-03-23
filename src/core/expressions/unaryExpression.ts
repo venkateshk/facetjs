@@ -65,10 +65,6 @@ module Core {
       return new (Expression.classMap[this.op])(simpleValue);
     }
 
-    public containsDataset(): boolean {
-      return this.operand.containsDataset();
-    }
-
     public getReferences(): string[] {
       return this.operand.getReferences();
     }

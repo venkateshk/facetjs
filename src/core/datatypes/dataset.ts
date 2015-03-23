@@ -24,11 +24,14 @@ module Core {
     driver?: Legacy.Driver.FacetDriver;
 
     // Druid
-    dataSource?: any; // ToDo: string | string[]
+    dataSource?: string | string[];
     timeAttribute?: string;
     forceInterval?: boolean;
     approximate?: boolean;
     context?: Lookup<any>;
+
+    // SQL
+    table?: string;
   }
 
   export interface DatasetJS {
@@ -46,11 +49,14 @@ module Core {
     driver?: Legacy.Driver.FacetDriver;
 
     // Druid
-    dataSource?: any; // ToDo: string | string[]
+    dataSource?: string | string[];
     timeAttribute?: string;
     forceInterval?: boolean;
     approximate?: boolean;
     context?: Lookup<any>;
+
+    // SQL
+    table?: string;
   }
 
   export function mergeRemoteDatasets(remoteGroups: RemoteDataset[][]): RemoteDataset[] {
@@ -98,9 +104,9 @@ module Core {
     }
 
     static classMap: Lookup<typeof Dataset> = {};
-    static register(ex: typeof Dataset): void {
-      var op = (<any>ex).name.replace('Dataset', '').replace(/^\w/, (s: string) => s.toLowerCase());
-      Dataset.classMap[op] = ex;
+    static register(ex: typeof Dataset, id: string = null): void {
+      if (!id) id = (<any>ex).name.replace('Dataset', '').replace(/^\w/, (s: string) => s.toLowerCase());
+      Dataset.classMap[id] = ex;
     }
 
     static fromJS(datasetJS: any, requester: Requester.FacetRequester<any> = null): Dataset {

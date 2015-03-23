@@ -132,12 +132,12 @@ module Core {
   function postProcessIntrospectFactory(timeAttribute: string): IntrospectPostProcess {
     return (res: Druid.DatasourceIntrospectResult): Lookup<AttributeInfo> => {
       var attributes: Lookup<AttributeInfo> = Object.create(null);
-      attributes[timeAttribute] = new AttributeInfo({type: 'TIME'});
+      attributes[timeAttribute] = new AttributeInfo({ type: 'TIME' });
       res.dimensions.forEach((dimension) => {
-        attributes[dimension] = new AttributeInfo({type: 'STRING'});
+        attributes[dimension] = new AttributeInfo({ type: 'STRING' });
       });
       res.metrics.forEach((metric) => {
-        attributes[metric] = new AttributeInfo({type: 'NUMBER', filterable: false, splitable: false});
+        attributes[metric] = new AttributeInfo({ type: 'NUMBER', filterable: false, splitable: false });
       });
       return attributes;
     }
@@ -159,7 +159,7 @@ module Core {
       return new DruidDataset(value);
     }
 
-    public dataSource: any; // ToDo: string | string[]
+    public dataSource: string | string[];
     public timeAttribute: string;
     public forceInterval: boolean;
     public approximate: boolean;
@@ -245,6 +245,18 @@ module Core {
     }
 
     // -----------------
+
+    public getDruidDataSource(): string | Druid.DataSource {
+      var dataSource = this.dataSource;
+      if (Array.isArray(dataSource)) {
+        return {
+          type: "union",
+          dataSources: <string[]>dataSource
+        };
+      } else {
+        return <string>dataSource;
+      }
+    }
 
     public canUseNativeAggregateFilter(filterExpression: Expression): boolean {
       if (filterExpression.type !== 'BOOLEAN') throw new Error("must be a BOOLEAN filter");
@@ -772,7 +784,7 @@ return (start < 0 ?'-':'') + parts.join('.');
     public getQueryAndPostProcess(): QueryAndPostProcess<Druid.Query> {
       var druidQuery: Druid.Query = {
         queryType: 'timeseries',
-        dataSource: this.dataSource,
+        dataSource: this.getDruidDataSource(),
         intervals: null,
         granularity: 'all'
       };
@@ -879,7 +891,7 @@ return (start < 0 ?'-':'') + parts.join('.');
       return {
         query: {
           queryType: 'introspect',
-          dataSource: this.dataSource
+          dataSource: this.getDruidDataSource()
         },
         postProcess: postProcessIntrospectFactory(this.timeAttribute)
       };
@@ -887,19 +899,3 @@ return (start < 0 ?'-':'') + parts.join('.');
   }
   Dataset.register(DruidDataset);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

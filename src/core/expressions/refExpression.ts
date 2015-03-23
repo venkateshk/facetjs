@@ -76,20 +76,6 @@ module Core {
       return '$' + this.generations + this.name + (this.type ? ':' + this.type : ''); // + `#[${remote.join(',')}]`;
     }
 
-    public equals(other: RefExpression): boolean {
-      return super.equals(other) &&
-        this.name === other.name &&
-        this.generations === other.generations;
-    }
-
-    public isRemote(): boolean {
-      return Boolean(this.remote && this.remote.length);
-    }
-
-    public getReferences(): string[] {
-      return [this.name];
-    }
-
     public getFn(): ComputeFn {
       if (this.generations.length) throw new Error("can not call getFn on unresolved expression");
       var name = this.name;
@@ -105,8 +91,27 @@ module Core {
     }
 
     public getJSExpression(): string {
-      if (this.generations.length) throw new Error("can not call getRawFnJS on unresolved expression");
+      if (this.generations.length) throw new Error("can not call getJSExpression on unresolved expression");
       return 'd.' + this.name;
+    }
+
+    public getSQL(): string {
+      if (this.generations.length) throw new Error("can not call getSQL on unresolved expression");
+      return '`' + this.name + '`';
+    }
+
+    public equals(other: RefExpression): boolean {
+      return super.equals(other) &&
+        this.name === other.name &&
+        this.generations === other.generations;
+    }
+
+    public isRemote(): boolean {
+      return Boolean(this.remote && this.remote.length);
+    }
+
+    public getReferences(): string[] {
+      return [this.name];
     }
 
     public every(iter: BooleanExpressionIterator): boolean {

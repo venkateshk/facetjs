@@ -36,8 +36,10 @@ module Core {
       return super.equals(other) &&
         this.limit === other.limit;
     }
+
+    public getSQL(): string {
+      return `LIMIT ${this.limit}`;
+    }
   }
-
   Action.register(LimitAction);
-
 }

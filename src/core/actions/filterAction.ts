@@ -19,7 +19,10 @@ module Core {
     public toString(): string {
       return '.filter(' + this.expression.toString() + ')';
     }
-  }
 
+    public getSQL(): string {
+      return `WHERE ${this.expression.toString()}`;
+    }
+  }
   Action.register(FilterAction);
 }

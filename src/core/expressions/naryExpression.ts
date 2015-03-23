@@ -71,7 +71,8 @@ module Core {
       });
 
       if (nonLiteralOperands.length) {
-        nonLiteralOperands.push(literalExpression);
+        if (literalOperands.length) nonLiteralOperands.push(literalExpression);
+
         var simpleValue = this.valueOf();
         simpleValue.operands = nonLiteralOperands;
         simpleValue.simple = true;
@@ -79,10 +80,6 @@ module Core {
       } else {
         return literalExpression
       }
-    }
-
-    public containsDataset(): boolean {
-      return this.operands.some((operand) => operand.containsDataset());
     }
 
     public getReferences(): string[] {

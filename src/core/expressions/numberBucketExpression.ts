@@ -18,10 +18,6 @@ module Core {
       this.type = "NUMBER_RANGE";
     }
 
-    public toString(): string {
-      return this.operand.toString() + '.numberBucket(' + this.size + (this.offset ? (', ' + this.offset) : '') + ')';
-    }
-
     public valueOf(): ExpressionValue {
       var value = super.valueOf();
       value.size = this.size;
@@ -34,6 +30,10 @@ module Core {
       js.size = this.size;
       if (this.offset) js.offset = this.offset;
       return js;
+    }
+
+    public toString(): string {
+      return this.operand.toString() + '.numberBucket(' + this.size + (this.offset ? (', ' + this.offset) : '') + ')';
     }
 
     public equals(other: NumberBucketExpression): boolean {
@@ -54,6 +54,10 @@ module Core {
 
     protected _getJSExpressionHelper(operandFnJS: string): string {
       throw new Error("implement me");
+    }
+
+    protected _getSQLHelper(operandSQL: string): string {
+      return Legacy.driverUtil.continuousFloorExpression(operandSQL, "FLOOR", this.size, this.offset);
     }
   }
 

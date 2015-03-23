@@ -43,11 +43,15 @@ module Core {
         this.direction === other.direction;
     }
 
+    public getSQL(): string {
+      var dir = this.direction === 'descending' ? 'DESC' : 'ASC';
+      return `ORDER BY ${this.expression.getSQL()} ${dir}`;
+    }
+
     public refName(): string {
       var expression = this.expression;
-      return (expression instanceof RefExpression) ? expression.name : null
+      return (expression instanceof RefExpression) ? expression.name : null;
     }
   }
-
   Action.register(SortAction);
 }

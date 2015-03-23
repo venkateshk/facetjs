@@ -28,6 +28,10 @@ module Core {
     protected _getJSExpressionHelper(operandJSExpressions: string[]): string {
       return '(' + operandJSExpressions.join('+')  + ')';
     }
+
+    protected _getSQLHelper(operandSQLs: string[]): string {
+      return '(' + operandSQLs.join('+')  + ')';
+    }
   }
 
   Expression.register(AddExpression);

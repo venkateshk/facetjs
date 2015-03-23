@@ -57,6 +57,44 @@ module Core {
       }
     }
 
+    public getFn(): ComputeFn {
+      var value = this.value;
+      return () => value;
+    }
+
+    public getJSExpression(): string {
+      return JSON.stringify(this.value); // ToDo: what to do with higher objects?
+    }
+
+    public getSQL(): string {
+      var value = this.value;
+      switch (this.type) {
+        case 'STRING':
+          return JSON.stringify(value);
+
+        case 'BOOLEAN':
+          return String(value).toUpperCase();
+
+        case 'NUMBER':
+          return String(value);
+
+        case 'NUMBER_RANGE':
+          return String(value.start) + '/' + String(value.end);
+
+        case 'TIME':
+          return dateToSQL(<Date>value);
+
+        case 'TIME_RANGE':
+          return dateToSQL(value.start) + '/' + dateToSQL(value.end);
+
+        case 'SET/STRING':
+          return '(' + (<Set>value).getValues().map((v: string) => JSON.stringify(v)).join(',') + ')';
+
+        default:
+          throw new Error("currently unsupported type: " + this.type);
+      }
+    }
+
     public equals(other: LiteralExpression): boolean {
       if (!super.equals(other) || this.type !== other.type) return false;
       if (this.value && this.value.equals) {
@@ -70,11 +108,6 @@ module Core {
       return [];
     }
 
-    public getFn(): ComputeFn {
-      var value = this.value;
-      return () => value;
-    }
-
     public every(iter: BooleanExpressionIterator): boolean {
       return iter(this) !== false;
     }
@@ -85,10 +118,6 @@ module Core {
 
     public isRemote(): boolean {
       return this.value instanceof Dataset && this.value.source !== 'native';
-    }
-
-    public getJSExpression(): string {
-      return JSON.stringify(this.value); // ToDo: what to do with higher objects?
     }
 
     public mergeAnd(exp: Expression): Expression {

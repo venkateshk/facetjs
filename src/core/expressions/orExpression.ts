@@ -27,7 +27,25 @@ module Core {
     }
 
     public toString(): string {
-      return '(' + this.operands.map((operand) => operand.toString()).join('or') + ')';
+      return '(' + this.operands.map((operand) => operand.toString()).join(' or ') + ')';
+    }
+
+    protected _getFnHelper(operandFns: ComputeFn[]): ComputeFn {
+      return (d: Datum) => {
+        var res = false;
+        for (var i = 0; i < operandFns.length; i++) {
+          res = res || operandFns[i](d);
+        }
+        return res;
+      }
+    }
+
+    protected _getJSExpressionHelper(operandJSExpressions: string[]): string {
+      return '(' + operandJSExpressions.join('||')  + ')';
+    }
+
+    protected _getSQLHelper(operandSQLs: string[]): string {
+      return '(' + operandSQLs.join(' OR ')  + ')';
     }
 
     public simplify(): Expression {
@@ -95,16 +113,6 @@ module Core {
         return new OrExpression(simpleValue);
       }
     }
-
-    protected _getFnHelper(operandFns: ComputeFn[]): ComputeFn {
-      throw new Error("should never be called directly");
-    }
-
-    protected _getJSExpressionHelper(operandJSExpressions: string[]): string {
-      throw new Error("should never be called directly");
-    }
-
-    // NARY
   }
 
   Expression.register(OrExpression);

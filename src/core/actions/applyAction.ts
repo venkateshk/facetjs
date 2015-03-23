@@ -29,14 +29,17 @@ module Core {
     }
 
     public toString(): string {
-      return ".apply('" + this.name + "', " + this.expression.toString() + ')';
+      return `.apply(${this.name}, ${this.expression.toString()})`;
     }
 
     public equals(other: ApplyAction): boolean {
       return super.equals(other) &&
         this.name === other.name;
     }
-  }
 
+    public getSQL(): string {
+      return `${this.expression.getSQL()} AS '${this.name}'`;
+    }
+  }
   Action.register(ApplyAction);
 }

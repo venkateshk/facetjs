@@ -20,7 +20,11 @@ module Core {
     }
 
     protected _getJSExpressionHelper(operandFnJS: string): string {
-      return "1/(" + operandFnJS + ")"
+      return `1/(${operandFnJS})`;
+    }
+
+    protected _getSQLHelper(operandSQL: string): string {
+      return `1/(${operandSQL})`;
     }
 
     protected _specialSimplify(simpleOperand: Expression): Expression {

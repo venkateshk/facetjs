@@ -23,6 +23,10 @@ module Core {
       return "!(" + operandFnJS + ")"
     }
 
+    protected _getSQLHelper(operandSQL: string): string {
+      return 'NOT(' + operandSQL  + ')';
+    }
+
     protected _specialSimplify(simpleOperand: Expression): Expression {
       if (simpleOperand instanceof NotExpression) {
         return simpleOperand.operand;

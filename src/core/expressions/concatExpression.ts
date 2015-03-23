@@ -15,6 +15,20 @@ module Core {
       return this.operands.map((operand) => operand.toString()).join(' ++ ');
     }
 
+    protected _getFnHelper(operandFns: ComputeFn[]): ComputeFn {
+      return (d: Datum) => {
+        return operandFns.map((operandFn) => operandFn(d)).join('');
+      }
+    }
+
+    protected _getJSExpressionHelper(operandJSExpressions: string[]): string {
+      return '(' + operandJSExpressions.join('+') + ')';
+    }
+
+    protected _getSQLHelper(operandSQLs: string[]): string {
+      return 'CONCAT(' + operandSQLs.join(',')  + ')';
+    }
+
     public simplify(): Expression {
       if (this.simple) return this;
       var simplifiedOperands = this.operands.map((operand) => operand.simplify());
@@ -45,20 +59,6 @@ module Core {
       simpleValue.simple = true;
       return new ConcatExpression(simpleValue);
     }
-
-    protected _getFnHelper(operandFns: ComputeFn[]): ComputeFn {
-      return (d: Datum) => {
-        return operandFns.map((operandFn) => operandFn(d)).join('');
-      }
-    }
-
-    protected _getJSExpressionHelper(operandJSExpressions: string[]): string {
-      return '(' + operandJSExpressions.join('+') + ')';
-    }
-
-    // NARY
   }
-
   Expression.register(ConcatExpression);
-
 }

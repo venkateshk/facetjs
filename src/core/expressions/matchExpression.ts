@@ -43,10 +43,12 @@ module Core {
     }
 
     protected _getJSExpressionHelper(operandFnJS: string): string {
-      return "/" + this.regexp + "/.test(" + operandFnJS + ")";
+      return `/${this.regexp}/.test(${operandFnJS})`;
     }
 
-    // UNARY
+    protected _getSQLHelper(operandSQL: string): string {
+      return `${operandSQL} REGEXP '${this.regexp}'`;
+    }
   }
 
   Expression.register(MatchExpression);

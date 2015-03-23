@@ -1,4 +1,14 @@
 module Core {
+  var timeBucketing: Lookup<string> = {
+    "PT1S": "%Y-%m-%dT%H:%i:%SZ",
+    "PT1M": "%Y-%m-%dT%H:%i:00Z",
+    "PT1H": "%Y-%m-%dT%H:00:00Z",
+    "P1D":  "%Y-%m-%dT00:00:00Z",
+    "P1W":  "%Y-%m-%dT00:00:00Z",
+    "P1M":  "%Y-%m-00T00:00:00Z",
+    "P1Y":  "%Y-00-00T00:00:00Z"
+  };
+
   export class TimeBucketExpression extends UnaryExpression {
     static fromJS(parameters: ExpressionJS): TimeBucketExpression {
       var value = UnaryExpression.jsToValue(parameters);
@@ -24,10 +34,6 @@ module Core {
       this.type = 'TIME_RANGE';
     }
 
-    public toString(): string {
-      return this.operand.toString() + '.timeBucket(' + this.duration.toString() + ', ' + this.timezone.toString() + ')';
-    }
-
     public valueOf(): ExpressionValue {
       var value = super.valueOf();
       value.duration = this.duration;
@@ -40,6 +46,10 @@ module Core {
       js.duration = this.duration.toJS();
       js.timezone = this.timezone.toJS();
       return js;
+    }
+
+    public toString(): string {
+      return this.operand.toString() + '.timeBucket(' + this.duration.toString() + ', ' + this.timezone.toString() + ')';
     }
 
     public equals(other: TimeBucketExpression): boolean {
@@ -60,6 +70,19 @@ module Core {
 
     protected _getJSExpressionHelper(operandFnJS: string): string {
       throw new Error("implement me");
+    }
+
+    protected _getSQLHelper(operandSQL: string): string {
+      var bucketFormat = timeBucketing[this.duration.toString()];
+      if (!bucketFormat) throw new Error("unsupported duration '" + this.duration + "'");
+
+      var bucketTimezone = this.timezone.toString();
+      var expression: string = operandSQL;
+      if (bucketTimezone !== "Etc/UTC") {
+        expression = `CONVERT_TZ(${expression}, '+0:00', ${bucketTimezone})`;
+      }
+
+      return `DATE_FORMAT(${expression}, '${bucketFormat}')`;
     }
   }
 

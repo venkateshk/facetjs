@@ -33,6 +33,7 @@ describe "DruidDataset actually", ->
           language: { type: 'STRING' }
           page: { type: 'STRING' }
           added: { type: 'NUMBER' }
+          count: { type: 'NUMBER' }
         }
         filter: facet('time').in(TimeRange.fromJS({
           start: new Date("2013-02-26T00:00:00Z")
@@ -44,11 +45,11 @@ describe "DruidDataset actually", ->
 
     ex = facet()
       .def("wiki", facet('wiki').filter(facet("language").is('en')))
-      .apply('Count', '$wiki.count()')
+      .apply('Count', '$wiki.sum($count)')
       .apply('TotalAdded', '$wiki.sum($added)')
       .apply('Pages',
         facet("wiki").split("$page", 'Page')
-          .apply('Count', '$wiki.count()')
+          .apply('Count', '$wiki.sum($count)')
           .sort('$Count', 'descending')
           .limit(2)
           .apply('Time',
@@ -60,7 +61,7 @@ describe "DruidDataset actually", ->
       )
 #      .apply('PagesHaving',
 #        facet("wiki").split("$page", 'Page')
-#          .apply('Count', '$wiki.count()')
+#          .apply('Count', '$wiki.sum($count)')
 #          .sort('$Count', 'descending')
 #          .filter(facet('Count').lessThan(30))
 #          .limit(100)
@@ -69,70 +70,70 @@ describe "DruidDataset actually", ->
     ex.compute(context).then((result) ->
       expect(result.toJS()).to.deep.equal([
         {
-          "Count": 308675
-          "TotalAdded": 41412583
+          "Count": 334129
           "Pages": [
             {
-              "Count": 124
-              "Page": "Wikipedia:Administrator_intervention_against_vandalism"
+              "Count": 626
+              "Page": "User:Addbot/log/wikidata"
               "Time": [
                 {
                   "Timestamp": {
-                    "end": new Date('2013-02-26T01:00:00.000Z')
-                    "start": new Date('2013-02-26T00:00:00.000Z')
+                    "end": new Date("2013-02-26T01:00:00.000Z")
+                    "start": new Date("2013-02-26T00:00:00.000Z")
                     "type": "TIME_RANGE"
                   }
-                  "TotalAdded": 692
+                  "TotalAdded": 159582
                 }
                 {
                   "Timestamp": {
-                    "end": new Date('2013-02-26T02:00:00.000Z')
-                    "start": new Date('2013-02-26T01:00:00.000Z')
+                    "end": new Date("2013-02-26T02:00:00.000Z")
+                    "start": new Date("2013-02-26T01:00:00.000Z")
                     "type": "TIME_RANGE"
                   }
-                  "TotalAdded": 1370
+                  "TotalAdded": 134436
                 }
                 {
                   "Timestamp": {
-                    "end": new Date('2013-02-26T03:00:00.000Z')
-                    "start": new Date('2013-02-26T02:00:00.000Z')
+                    "end": new Date("2013-02-26T03:00:00.000Z")
+                    "start": new Date("2013-02-26T02:00:00.000Z")
                     "type": "TIME_RANGE"
                   }
-                  "TotalAdded": 945
+                  "TotalAdded": 276
                 }
               ]
             }
             {
-              "Count": 88
-              "Page": "Wikipedia:Reference_desk/Science"
+              "Count": 329
+              "Page": "User:Legobot/Wikidata/General"
               "Time": [
                 {
                   "Timestamp": {
-                    "end": new Date('2013-02-26T01:00:00.000Z')
-                    "start": new Date('2013-02-26T00:00:00.000Z')
+                    "end": new Date("2013-02-26T01:00:00.000Z")
+                    "start": new Date("2013-02-26T00:00:00.000Z")
                     "type": "TIME_RANGE"
                   }
-                  "TotalAdded": 1978
+                  "TotalAdded": 0
                 }
                 {
                   "Timestamp": {
-                    "end": new Date('2013-02-26T02:00:00.000Z')
-                    "start": new Date('2013-02-26T01:00:00.000Z')
+                    "end": new Date("2013-02-26T02:00:00.000Z")
+                    "start": new Date("2013-02-26T01:00:00.000Z")
                     "type": "TIME_RANGE"
                   }
-                  "TotalAdded": 4070
+                  "TotalAdded": 0
                 }
                 {
                   "Timestamp": {
-                    "end": new Date('2013-02-26T03:00:00.000Z')
-                    "start": new Date('2013-02-26T02:00:00.000Z')
+                    "end": new Date("2013-02-26T03:00:00.000Z")
+                    "start": new Date("2013-02-26T02:00:00.000Z")
                     "type": "TIME_RANGE"
                   }
-                  "TotalAdded": 1301
+                  "TotalAdded": 0
                 }
               ]
             }
           ]
+          "TotalAdded": 41412583
         }
       ])
       testComplete()
@@ -157,7 +158,7 @@ describe "DruidDataset actually", ->
 
     ex = facet()
       .def("wiki", facet('wiki').filter(facet("language").is('en')))
-      .apply('Count', '$wiki.count()')
+      .apply('Count', '$wiki.sum($count)')
       .apply('TotalAdded', '$wiki.sum($added)')
       .apply('Time',
         facet("wiki").split(facet("time").timeBucket('PT1H', 'America/Los_Angeles'), 'Timestamp')
@@ -166,7 +167,7 @@ describe "DruidDataset actually", ->
           .limit(3)
           .apply('Pages',
             facet("wiki").split("$page", 'Page')
-              .apply('Count', '$wiki.count()')
+              .apply('Count', '$wiki.sum($count)')
               .sort('$Count', 'descending')
               .limit(2)
           )
@@ -175,61 +176,61 @@ describe "DruidDataset actually", ->
     ex.compute(context).then((result) ->
       expect(result.toJS()).to.deep.equal([
         {
-          "Count": 308675
+          "Count": 334129
           "Time": [
             {
+              "Pages": [
+                {
+                  "Count": 130
+                  "Page": "User:Addbot/log/wikidata"
+                }
+                {
+                  "Count": 31
+                  "Page": "Wikipedia:Categories_for_discussion/Speedy"
+                }
+              ]
               "Timestamp": {
                 "end": new Date("2013-02-26T01:00:00.000Z")
                 "start": new Date("2013-02-26T00:00:00.000Z")
                 "type": "TIME_RANGE"
               }
               "TotalAdded": 2149342
-              "Pages": [
-                {
-                  "Count": 6
-                  "Page": "Wikipedia:In_the_news/Candidates"
-                }
-                {
-                  "Count": 5
-                  "Page": "Hercules"
-                }
-              ]
             }
             {
+              "Pages": [
+                {
+                  "Count": 121
+                  "Page": "User:Addbot/log/wikidata"
+                }
+                {
+                  "Count": 34
+                  "Page": "Ahmed_Elkady"
+                }
+              ]
               "Timestamp": {
                 "end": new Date("2013-02-26T02:00:00.000Z")
                 "start": new Date("2013-02-26T01:00:00.000Z")
                 "type": "TIME_RANGE"
               }
               "TotalAdded": 1717907
-              "Pages": [
-                {
-                  "Count": 6
-                  "Page": "Wikipedia:Requests_for_page_protection"
-                }
-                {
-                  "Count": 5
-                  "Page": "Taming_of_the_Shrew_Act_3"
-                }
-              ]
             }
             {
+              "Pages": [
+                {
+                  "Count": 22
+                  "Page": "User:Libsbml/sandbox"
+                }
+                {
+                  "Count": 20
+                  "Page": "The_Biggest_Loser:_Challenge_America"
+                }
+              ]
               "Timestamp": {
                 "end": new Date("2013-02-26T03:00:00.000Z")
                 "start": new Date("2013-02-26T02:00:00.000Z")
                 "type": "TIME_RANGE"
               }
               "TotalAdded": 1258761
-              "Pages": [
-                {
-                  "Count": 6
-                  "Page": "Wikipedia:Administrators'_noticeboard/Incidents"
-                }
-                {
-                  "Count": 5
-                  "Page": "Talk:Contemporary_Christian_music"
-                }
-              ]
             }
           ]
           "TotalAdded": 41412583

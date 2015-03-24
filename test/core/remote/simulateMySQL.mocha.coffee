@@ -76,7 +76,7 @@ describe "simulate MySQL", ->
       `cut` AS 'Cut',
       COUNT(1) AS 'Count'
       FROM `diamonds`
-      WHERE (`color`=\"D\")
+      WHERE (`color`="D")
       GROUP BY `cut`
       ORDER BY `Count` DESC
       LIMIT 2
@@ -84,11 +84,11 @@ describe "simulate MySQL", ->
 
     expect(queryPlan[2]).to.equal("""
       SELECT
-      DATE_FORMAT(CONVERT_TZ(`time`, '+0:00', America/Los_Angeles), '%Y-%m-%dT00:00:00Z') AS 'Timestamp',
+      DATE_FORMAT(CONVERT_TZ(`time`, '+0:00', 'America/Los_Angeles'), '%Y-%m-%dT00:00:00Z') AS 'Timestamp',
       SUM(`price`) AS 'TotalPrice'
       FROM `diamonds`
-      WHERE ((`color`=\"D\") AND (`cut`=\"some_cut\"))
-      GROUP BY DATE_FORMAT(CONVERT_TZ(`time`, '+0:00', America/Los_Angeles), '%Y-%m-%dT00:00:00Z')
+      WHERE ((`color`="D") AND (`cut`="some_cut"))
+      GROUP BY DATE_FORMAT(CONVERT_TZ(`time`, '+0:00', 'America/Los_Angeles'), '%Y-%m-%dT00:00:00Z')
       ORDER BY `Timestamp` ASC
       """)
 
@@ -97,7 +97,7 @@ describe "simulate MySQL", ->
       FLOOR(`carat` / 0.25) * 0.25 AS 'Carat',
       COUNT(1) AS 'Count'
       FROM `diamonds`
-      WHERE ((`color`=\"D\") AND (`cut`=\"some_cut\") AND ('2015-03-13 07:00:00'<=`time` AND `time`<'2015-03-14 07:00:00'))
+      WHERE ((`color`="D") AND (`cut`="some_cut") AND ('2015-03-13 07:00:00'<=`time` AND `time`<'2015-03-14 07:00:00'))
       GROUP BY FLOOR(`carat` / 0.25) * 0.25
       ORDER BY `Count` DESC
       LIMIT 3

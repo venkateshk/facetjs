@@ -120,10 +120,6 @@ describe "simulate Druid", ->
                 "fieldName": "_sd_0"
                 "type": "fieldAccess"
               }
-              {
-                "type": "constant"
-                "value": 1
-              }
             ]
             "fn": "*"
             "name": "PriceAndTax"

@@ -20,7 +20,7 @@ module Core {
       return '.filter(' + this.expression.toString() + ')';
     }
 
-    public getSQL(): string {
+    public getSQL(dialect: SQLDialect, minimal: boolean = false): string {
       return `WHERE ${this.expression.toString()}`;
     }
   }

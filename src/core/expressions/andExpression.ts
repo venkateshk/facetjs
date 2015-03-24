@@ -44,7 +44,7 @@ module Core {
       return '(' + operandJSExpressions.join('&&')  + ')';
     }
 
-    protected _getSQLHelper(operandSQLs: string[]): string {
+    protected _getSQLHelper(operandSQLs: string[], dialect: SQLDialect, minimal: boolean): string {
       return '(' + operandSQLs.join(' AND ')  + ')';
     }
 

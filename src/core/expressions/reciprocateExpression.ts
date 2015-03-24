@@ -23,7 +23,7 @@ module Core {
       return `1/(${operandFnJS})`;
     }
 
-    protected _getSQLHelper(operandSQL: string): string {
+    protected _getSQLHelper(operandSQL: string, dialect: SQLDialect, minimal: boolean): string {
       return `1/(${operandSQL})`;
     }
 

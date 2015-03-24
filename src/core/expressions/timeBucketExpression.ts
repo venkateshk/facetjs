@@ -72,7 +72,7 @@ module Core {
       throw new Error("implement me");
     }
 
-    protected _getSQLHelper(operandSQL: string): string {
+    protected _getSQLHelper(operandSQL: string, dialect: SQLDialect, minimal: boolean): string {
       var bucketFormat = timeBucketing[this.duration.toString()];
       if (!bucketFormat) throw new Error("unsupported duration '" + this.duration + "'");
 

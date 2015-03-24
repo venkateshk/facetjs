@@ -66,7 +66,7 @@ module Core {
       return JSON.stringify(this.value); // ToDo: what to do with higher objects?
     }
 
-    public getSQL(): string {
+    public getSQL(dialect: SQLDialect, minimal: boolean = false): string {
       var value = this.value;
       switch (this.type) {
         case 'STRING':

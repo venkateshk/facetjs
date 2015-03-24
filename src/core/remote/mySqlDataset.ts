@@ -1,4 +1,6 @@
 module Core {
+  var mySQLDialect = new MySQLDialect();
+
   interface SQLDescribeRow {
     Field: string;
     Type: string;
@@ -8,13 +10,34 @@ module Core {
     return Array.isArray(result) && (result.length === 0 || typeof result[0] === 'object');
   }
 
-  function postProcess(res: any[]): NativeDataset {
-    if (!correctResult(res)) {
-      var err = new Error("unexpected result from MySQL");
-      (<any>err).result = res; // ToDo: special error type
-      throw err;
+  function postProcessFactory(split: Expression, label: string): PostProcess {
+    if (split instanceof TimeBucketExpression) {
+      var duration = split.duration;
+      var timezone = split.timezone;
+    } else if (split instanceof NumberBucketExpression) {
+      var size = split.size;
     }
-    return new NativeDataset({ source: 'native', data: res });
+
+    return (res: any[]): NativeDataset => {
+      if (!correctResult(res)) {
+        var err = new Error("unexpected result from MySQL");
+        (<any>err).result = res; // ToDo: special error type
+        throw err;
+      }
+      if (duration || size) {
+        res.forEach((d: Datum) => {
+          var v = d[label];
+          if (duration) {
+            v = new Date(v);
+            d[label] = new TimeRange({ start: v, end: duration.move(v, timezone) })
+          } else {
+            d[label] = new TimeRange({ start: v, end: v + size })
+          }
+          return d;
+        })
+      }
+      return new NativeDataset({ source: 'native', data: res });
+    }
   }
 
   function postProcessIntrospect(columns: SQLDescribeRow[]): Lookup<AttributeInfo> {
@@ -109,38 +132,37 @@ module Core {
           query.push('`' + Object.keys(this.attributes).join('`, `') + '`');
           query.push('FROM ' + table);
           if (!(this.filter.equals(Expression.TRUE))) {
-            query.push('WHERE ' + this.filter.getSQL());
+            query.push('WHERE ' + this.filter.getSQL(mySQLDialect));
           }
           break;
 
         case 'total':
-          query.push(this.applies.map((apply) => apply.getSQL()).join(',\n'));
+          query.push(this.applies.map((apply) => apply.getSQL(mySQLDialect)).join(',\n'));
           query.push('FROM ' + table);
           if (!(this.filter.equals(Expression.TRUE))) {
-            query.push('WHERE ' + this.filter.getSQL());
+            query.push('WHERE ' + this.filter.getSQL(mySQLDialect));
           }
           query.push("GROUP BY ''");
           break;
 
         case 'split':
-          var splitSQL = this.split.getSQL();
           query.push(
-            [`${splitSQL} AS '${this.label}'`]
-              .concat(this.applies.map((apply) => apply.getSQL())).join(',\n')
+            [`${this.split.getSQL(mySQLDialect)} AS '${this.label}'`]
+              .concat(this.applies.map((apply) => apply.getSQL(mySQLDialect))).join(',\n')
           );
           query.push('FROM ' + table);
           if (!(this.filter.equals(Expression.TRUE))) {
-            query.push('WHERE ' + this.filter.getSQL());
+            query.push('WHERE ' + this.filter.getSQL(mySQLDialect));
           }
-          query.push('GROUP BY ' + splitSQL);
+          query.push('GROUP BY ' + this.split.getSQL(mySQLDialect, true));
           if (!(this.havingFilter.equals(Expression.TRUE))) {
-            query.push('HAVING ' + this.havingFilter.getSQL());
+            query.push('HAVING ' + this.havingFilter.getSQL(mySQLDialect));
           }
           if (this.sort) {
-            query.push(this.sort.getSQL());
+            query.push(this.sort.getSQL(mySQLDialect));
           }
           if (this.limit) {
-            query.push(this.limit.getSQL());
+            query.push(this.limit.getSQL(mySQLDialect));
           }
           break;
 
@@ -150,7 +172,7 @@ module Core {
 
       return {
         query: query.join('\n'),
-        postProcess: postProcess
+        postProcess: postProcessFactory(this.split, this.label)
       };
     }
 

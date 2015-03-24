@@ -37,8 +37,8 @@ module Core {
         this.name === other.name;
     }
 
-    public getSQL(): string {
-      return `${this.expression.getSQL()} AS '${this.name}'`;
+    public getSQL(dialect: SQLDialect, minimal: boolean = false): string {
+      return `${this.expression.getSQL(dialect, minimal)} AS '${this.name}'`;
     }
   }
   Action.register(ApplyAction);

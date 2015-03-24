@@ -460,7 +460,7 @@ module Core {
       return `function(d){return ${this.getJSExpression()};}`;
     }
 
-    public getSQL(): string {
+    public getSQL(dialect: SQLDialect, minimal: boolean = false): string {
       throw new Error('should never be called directly');
     }
 

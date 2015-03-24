@@ -19,8 +19,25 @@ module Core {
       this.type = 'TIME';
     }
 
+    public valueOf(): ExpressionValue {
+      var value = super.valueOf();
+      value.duration = this.duration;
+      return value;
+    }
+
+    public toJS(): ExpressionJS {
+      var js = super.toJS();
+      js.duration = this.duration.toJS();
+      return js;
+    }
+
     public toString(): string {
       return this.operand.toString() + '.timeOffset(' + this.duration.toString() + ')';
+    }
+
+    public equals(other: TimeOffsetExpression): boolean {
+      return super.equals(other) &&
+        this.duration.equals(other.duration);
     }
 
     protected _getFnHelper(operandFn: ComputeFn): ComputeFn {
@@ -36,40 +53,8 @@ module Core {
       throw new Error("implement me");
     }
 
-    protected _getSQLHelper(operandSQL: string): string {
-      // https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_date-add
-      var sqlFn = "DATE_ADD("; //warpDirection > 0 ? "DATE_ADD(" : "DATE_SUB(";
-      var spans = this.duration.valueOf();
-      var expression = operandSQL;
-      if (spans.week) {
-        return sqlFn + expression + ", INTERVAL " + String(spans.week) + ' WEEK)';
-      }
-      if (spans.year || spans.month) {
-        var expr = String(spans.year || 0) + "-" + String(spans.month || 0);
-        expression = sqlFn + expression + ", INTERVAL '" + expr + "' YEAR_MONTH)";
-      }
-      if (spans.day || spans.hour || spans.minute || spans.second) {
-        var expr = String(spans.day || 0) + " " + [spans.hour || 0, spans.minute || 0, spans.second || 0].join(':');
-        expression = sqlFn + expression + ", INTERVAL '" + expr + "' DAY_SECOND)";
-      }
-      return expression
-    }
-
-    public valueOf(): ExpressionValue {
-      var value = super.valueOf();
-      value.duration = this.duration;
-      return value;
-    }
-
-    public toJS(): ExpressionJS {
-      var js = super.toJS();
-      js.duration = this.duration.toJS();
-      return js;
-    }
-
-    public equals(other: TimeOffsetExpression): boolean {
-      return super.equals(other) &&
-        this.duration.equals(other.duration);
+    protected _getSQLHelper(operandSQL: string, dialect: SQLDialect, minimal: boolean): string {
+      return dialect.offsetTimeExpression(operandSQL, this.duration);
     }
   }
 

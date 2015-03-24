@@ -47,7 +47,7 @@ module Core {
       }
     }
 
-    protected _getSQLHelper(lhsSQL: string, rhsSQL: string): string {
+    protected _getSQLHelper(lhsSQL: string, rhsSQL: string, dialect: SQLDialect, minimal: boolean): string {
       var rhs = this.rhs;
       var rhsType = rhs.type;
       switch (rhsType) {

@@ -141,12 +141,12 @@ module Core {
       return this._getJSExpressionHelper(this.lhs.getJSExpression(), this.rhs.getJSExpression())
     }
 
-    protected _getSQLHelper(lhsSQL: string, rhsSQL: string): string {
+    protected _getSQLHelper(lhsSQL: string, rhsSQL: string, dialect: SQLDialect, minimal: boolean): string {
       throw new Error('should never be called directly');
     }
 
-    public getSQL(): string {
-      return this._getSQLHelper(this.lhs.getSQL(), this.rhs.getSQL());
+    public getSQL(dialect: SQLDialect, minimal: boolean = false): string {
+      return this._getSQLHelper(this.lhs.getSQL(dialect, minimal), this.rhs.getSQL(dialect, minimal), dialect, minimal);
     }
 
     protected _checkTypeOf(lhsRhs: string, wantedType: string): void {

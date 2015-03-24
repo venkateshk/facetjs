@@ -80,10 +80,10 @@ module Core {
       throw new Error("implement me");
     }
 
-    protected _getSQLHelper(operandSQL: string): string {
+    protected _getSQLHelper(operandSQL: string, dialect: SQLDialect, minimal: boolean): string {
       var operand = this.operand;
       if (operand instanceof RefExpression) {
-        var attributeSQL = this.attribute ? this.attribute.getSQL() : '1';
+        var attributeSQL = this.attribute ? this.attribute.getSQL(dialect, minimal) : '1';
         return fnToSQL[this.fn] + attributeSQL + ')';
       }
       throw new Error("can not getSQL with complex operand");

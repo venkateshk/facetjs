@@ -37,7 +37,7 @@ module Core {
         this.limit === other.limit;
     }
 
-    public getSQL(): string {
+    public getSQL(dialect: SQLDialect, minimal: boolean = false): string {
       return `LIMIT ${this.limit}`;
     }
   }

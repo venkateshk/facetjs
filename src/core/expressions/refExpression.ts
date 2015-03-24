@@ -95,7 +95,7 @@ module Core {
       return 'd.' + this.name;
     }
 
-    public getSQL(): string {
+    public getSQL(dialect: SQLDialect, minimal: boolean = false): string {
       if (this.generations.length) throw new Error("can not call getSQL on unresolved expression");
       return '`' + this.name + '`';
     }

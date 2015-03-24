@@ -129,12 +129,12 @@ module Core {
       return this._getJSExpressionHelper(this.operands.map((operand) => operand.getJSExpression()));
     }
 
-    protected _getSQLHelper(operandSQLs: string[]): string {
+    protected _getSQLHelper(operandSQLs: string[], dialect: SQLDialect, minimal: boolean): string {
       throw new Error('should never be called directly');
     }
 
-    public getSQL(): string {
-      return this._getSQLHelper(this.operands.map((operand) => operand.getSQL()));
+    public getSQL(dialect: SQLDialect, minimal: boolean = false): string {
+      return this._getSQLHelper(this.operands.map((operand) => operand.getSQL(dialect, minimal)), dialect, minimal);
     }
 
     protected _checkTypeOfOperands(wantedType: string): void {

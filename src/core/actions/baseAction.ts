@@ -132,7 +132,7 @@ module Core {
         this.action === other.action
     }
 
-    public getSQL(): string {
+    public getSQL(dialect: SQLDialect, minimal: boolean = false): string {
       throw new Error('can not call this directly');
     }
 

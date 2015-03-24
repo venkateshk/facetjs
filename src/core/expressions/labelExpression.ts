@@ -46,7 +46,7 @@ module Core {
       throw `${operandFnJS}.label(${this.name})`;
     }
 
-    protected _getSQLHelper(operandSQL: string): string {
+    protected _getSQLHelper(operandSQL: string, dialect: SQLDialect, minimal: boolean): string {
       return `${operandSQL} AS "${this.name}"`;
     }
 

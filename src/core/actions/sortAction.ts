@@ -43,9 +43,9 @@ module Core {
         this.direction === other.direction;
     }
 
-    public getSQL(): string {
+    public getSQL(dialect: SQLDialect, minimal: boolean = false): string {
       var dir = this.direction === 'descending' ? 'DESC' : 'ASC';
-      return `ORDER BY ${this.expression.getSQL()} ${dir}`;
+      return `ORDER BY ${this.expression.getSQL(dialect, minimal)} ${dir}`;
     }
 
     public refName(): string {

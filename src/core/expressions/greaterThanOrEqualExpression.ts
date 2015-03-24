@@ -32,7 +32,7 @@ module Core {
       return `(${lhsFnJS}>=${rhsFnJS})`;
     }
 
-    protected _getSQLHelper(lhsSQL: string, rhsSQL: string): string {
+    protected _getSQLHelper(lhsSQL: string, rhsSQL: string, dialect: SQLDialect, minimal: boolean): string {
       return `(${lhsSQL}>=${rhsSQL})`;
     }
   }

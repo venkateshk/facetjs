@@ -46,7 +46,7 @@ module Core {
       return `/${this.regexp}/.test(${operandFnJS})`;
     }
 
-    protected _getSQLHelper(operandSQL: string): string {
+    protected _getSQLHelper(operandSQL: string, dialect: SQLDialect, minimal: boolean): string {
       return `${operandSQL} REGEXP '${this.regexp}'`;
     }
   }

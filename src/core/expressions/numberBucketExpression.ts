@@ -56,7 +56,7 @@ module Core {
       throw new Error("implement me");
     }
 
-    protected _getSQLHelper(operandSQL: string): string {
+    protected _getSQLHelper(operandSQL: string, dialect: SQLDialect, minimal: boolean): string {
       return Legacy.driverUtil.continuousFloorExpression(operandSQL, "FLOOR", this.size, this.offset);
     }
   }

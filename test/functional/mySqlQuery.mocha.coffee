@@ -19,7 +19,7 @@ mySqlPass = mySqlRequester({
   password: info.mySqlPassword
 })
 
-describe "MySQLDataset actually", ->
+describe "MySQLDataset", ->
   @timeout(10000);
 
   it "works in advanced case", (testComplete) ->
@@ -50,7 +50,7 @@ describe "MySQLDataset actually", ->
           .apply('Time',
             facet("wiki").split(facet("time").timeBucket('PT1H', 'Etc/UTC'), 'Timestamp')
               .apply('TotalAdded', '$wiki.sum($added)')
-              .sort('$Timestamp', 'ascending')
+              .sort('$TotalAdded', 'descending')
               .limit(3)
           )
       )
@@ -73,27 +73,27 @@ describe "MySQLDataset actually", ->
               "Time": [
                 {
                   "Timestamp": {
+                    "end": new Date("2013-02-26T20:00:00.000Z")
+                    "start": new Date("2013-02-26T19:00:00.000Z")
+                    "type": "TIME_RANGE"
+                  }
+                  "TotalAdded": 180454
+                }
+                {
+                  "Timestamp": {
+                    "end": new Date("2013-02-26T13:00:00.000Z")
+                    "start": new Date("2013-02-26T12:00:00.000Z")
+                    "type": "TIME_RANGE"
+                  }
+                  "TotalAdded": 178939
+                }
+                {
+                  "Timestamp": {
                     "end": new Date("2013-02-26T01:00:00.000Z")
                     "start": new Date("2013-02-26T00:00:00.000Z")
                     "type": "TIME_RANGE"
                   }
                   "TotalAdded": 159582
-                }
-                {
-                  "Timestamp": {
-                    "end": new Date("2013-02-26T02:00:00.000Z")
-                    "start": new Date("2013-02-26T01:00:00.000Z")
-                    "type": "TIME_RANGE"
-                  }
-                  "TotalAdded": 134436
-                }
-                {
-                  "Timestamp": {
-                    "end": new Date("2013-02-26T03:00:00.000Z")
-                    "start": new Date("2013-02-26T02:00:00.000Z")
-                    "type": "TIME_RANGE"
-                  }
-                  "TotalAdded": 276
                 }
               ]
             }
@@ -103,27 +103,27 @@ describe "MySQLDataset actually", ->
               "Time": [
                 {
                   "Timestamp": {
-                    "end": new Date("2013-02-26T01:00:00.000Z")
-                    "start": new Date("2013-02-26T00:00:00.000Z")
+                    "end": new Date("2013-02-26T16:00:00.000Z")
+                    "start": new Date("2013-02-26T15:00:00.000Z")
                     "type": "TIME_RANGE"
                   }
-                  "TotalAdded": 0
+                  "TotalAdded": 7609
                 }
                 {
                   "Timestamp": {
-                    "end": new Date("2013-02-26T02:00:00.000Z")
-                    "start": new Date("2013-02-26T01:00:00.000Z")
+                    "end": new Date("2013-02-26T22:00:00.000Z")
+                    "start": new Date("2013-02-26T21:00:00.000Z")
                     "type": "TIME_RANGE"
                   }
-                  "TotalAdded": 0
+                  "TotalAdded": 6919
                 }
                 {
                   "Timestamp": {
-                    "end": new Date("2013-02-26T03:00:00.000Z")
-                    "start": new Date("2013-02-26T02:00:00.000Z")
+                    "end": new Date("2013-02-26T17:00:00.000Z")
+                    "start": new Date("2013-02-26T16:00:00.000Z")
                     "type": "TIME_RANGE"
                   }
-                  "TotalAdded": 0
+                  "TotalAdded": 5717
                 }
               ]
             }

@@ -36,7 +36,10 @@ module Core {
       return super.equals(other) &&
         this.name === other.name;
     }
-  }
 
+    public getSQL(dialect: SQLDialect, minimal: boolean = false): string {
+      return `${this.expression.toString()} AS "${this.name}"`;
+    }
+  }
   Action.register(DefAction);
 }

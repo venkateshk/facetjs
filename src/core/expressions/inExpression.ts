@@ -20,7 +20,57 @@ module Core {
     }
 
     public toString(): string {
-      return this.lhs.toString() + ' = ' + this.rhs.toString();
+      return `${this.lhs.toString()} in ${this.rhs.toString()}`;
+    }
+
+    protected _getFnHelper(lhsFn: ComputeFn, rhsFn: ComputeFn): ComputeFn {
+      var lhsType = this.lhs.type;
+      var rhsType = this.rhs.type;
+      if ((lhsType === 'NUMBER' && rhsType === 'SET/NUMBER_RANGE') ||
+          (lhsType === 'TIME' && rhsType === 'SET/TIME_RANGE')) {
+        return (d: Datum) => (<Set>(rhsFn(d))).containsWithin(lhsFn(d));
+      } else {
+        // Time range and set also have contains
+        return (d: Datum) => (<NumberRange>(rhsFn(d))).contains(lhsFn(d));
+      }
+    }
+
+    protected _getJSExpressionHelper(lhsFnJS: string, rhsFnJS: string): string {
+      var lhsType = this.lhs.type;
+      var rhsType = this.rhs.type;
+      if ((lhsType === 'NUMBER' && rhsType === 'SET/NUMBER_RANGE') ||
+        (lhsType === 'TIME' && rhsType === 'SET/TIME_RANGE')) {
+        return `${rhsFnJS}.containsWithin(${lhsFnJS})`;
+      } else {
+        // Time range and set also have contains
+        return `${rhsFnJS}.contains(${lhsFnJS})`;
+      }
+    }
+
+    protected _getSQLHelper(lhsSQL: string, rhsSQL: string, dialect: SQLDialect, minimal: boolean): string {
+      var rhs = this.rhs;
+      var rhsType = rhs.type;
+      switch (rhsType) {
+        case 'NUMBER_RANGE':
+          if (rhs instanceof LiteralExpression) {
+            var numberRange: NumberRange = rhs.value;
+            return `(${numberRange.start}<=${lhsSQL} AND ${lhsSQL}<${numberRange.end})`;
+          }
+          throw new Error('not implemented yet');
+
+        case 'TIME_RANGE':
+          if (rhs instanceof LiteralExpression) {
+            var timeRange: TimeRange = rhs.value;
+            return `('${dateToSQL(timeRange.start)}'<=${lhsSQL} AND ${lhsSQL}<'${dateToSQL(timeRange.end)}')`;
+          }
+          throw new Error('not implemented yet');
+
+        case 'SET/STRING':
+          return `${lhsSQL} in ${rhsSQL}`;
+
+        default:
+          throw new Error('not implemented yet');
+      }
     }
 
     public mergeAnd(exp: Expression): Expression {
@@ -79,14 +129,6 @@ module Core {
       return exp;
     }
 
-    protected _makeFn(lhsFn: ComputeFn, rhsFn: ComputeFn): ComputeFn {
-      return (d: Datum) => rhsFn(d).test(lhsFn(d));
-    }
-
-    protected _makeFnJS(lhsFnJS: string, rhsFnJS: string): string {
-      throw new Error("implement me!");
-    }
-
     protected _specialSimplify(simpleLhs: Expression, simpleRhs: Expression): Expression {
       if (
         simpleLhs instanceof RefExpression &&
@@ -96,8 +138,6 @@ module Core {
       ) return Expression.FALSE;
       return null;
     }
-
-    // BINARY
   }
 
   Expression.register(InExpression);

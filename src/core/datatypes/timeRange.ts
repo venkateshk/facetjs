@@ -113,7 +113,7 @@ module Core {
       return new TimeRange({start: new Date(start), end: new Date(end)});
     }
 
-    public test(val: Date): boolean {
+    public contains(val: Date): boolean {
       return this.start.valueOf() <= val.valueOf() && val.valueOf() < this.end.valueOf();
     }
   }

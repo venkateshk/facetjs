@@ -67,11 +67,12 @@ module Core {
       var nonLiteralOperands = simpleOperands.filter((operand) => !operand.isOp('literal'));
       var literalExpression = new LiteralExpression({
         op: 'literal',
-        value: this._makeFn(literalOperands.map((operand) => operand.getFn()))(null)
+        value: this._getFnHelper(literalOperands.map((operand) => operand.getFn()))(null)
       });
 
       if (nonLiteralOperands.length) {
-        nonLiteralOperands.push(literalExpression);
+        if (literalOperands.length) nonLiteralOperands.push(literalExpression);
+
         var simpleValue = this.valueOf();
         simpleValue.operands = nonLiteralOperands;
         simpleValue.simple = true;
@@ -79,10 +80,6 @@ module Core {
       } else {
         return literalExpression
       }
-    }
-
-    public containsDataset(): boolean {
-      return this.operands.some((operand) => operand.containsDataset());
     }
 
     public getReferences(): string[] {
@@ -116,21 +113,28 @@ module Core {
       return new (Expression.classMap[this.op])(value);
     }
 
-    protected _makeFn(operandFns: ComputeFn[]): ComputeFn {
+    protected _getFnHelper(operandFns: ComputeFn[]): ComputeFn {
       throw new Error("should never be called directly");
     }
 
     public getFn(): ComputeFn {
-      return this._makeFn(this.operands.map((operand) => operand.getFn()));
+      return this._getFnHelper(this.operands.map((operand) => operand.getFn()));
     }
 
-    protected _makeFnJS(operandFnJSs: string[]): string {
+    protected _getJSExpressionHelper(operandJSExpressions: string[]): string {
       throw new Error("should never be called directly");
     }
 
-    /* protected */
-    public _getRawFnJS(): string {
-      return this._makeFnJS(this.operands.map((operand) => operand._getRawFnJS()));
+    public getJSExpression(): string {
+      return this._getJSExpressionHelper(this.operands.map((operand) => operand.getJSExpression()));
+    }
+
+    protected _getSQLHelper(operandSQLs: string[], dialect: SQLDialect, minimal: boolean): string {
+      throw new Error('should never be called directly');
+    }
+
+    public getSQL(dialect: SQLDialect, minimal: boolean = false): string {
+      return this._getSQLHelper(this.operands.map((operand) => operand.getSQL(dialect, minimal)), dialect, minimal);
     }
 
     protected _checkTypeOfOperands(wantedType: string): void {

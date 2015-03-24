@@ -55,7 +55,7 @@ module Core {
       if (simpleOperand.isOp('literal')) {
         return new LiteralExpression({
           op: 'literal',
-          value: this._makeFn(simpleOperand.getFn())(null)
+          value: this._getFnHelper(simpleOperand.getFn())(null)
         })
       }
 
@@ -63,10 +63,6 @@ module Core {
       simpleValue.operand = simpleOperand;
       simpleValue.simple = true;
       return new (Expression.classMap[this.op])(simpleValue);
-    }
-
-    public containsDataset(): boolean {
-      return this.operand.containsDataset();
     }
 
     public getReferences(): string[] {
@@ -112,21 +108,28 @@ module Core {
       return new (Expression.classMap[this.op])(value);
     }
 
-    protected _makeFn(operandFn: ComputeFn): ComputeFn {
+    protected _getFnHelper(operandFn: ComputeFn): ComputeFn {
       throw new Error("should never be called directly");
     }
 
     public getFn(): ComputeFn {
-      return this._makeFn(this.operand.getFn());
+      return this._getFnHelper(this.operand.getFn());
     }
 
-    protected _makeFnJS(operandFnJS: string): string {
+    protected _getJSExpressionHelper(operandFnJS: string): string {
       throw new Error("should never be called directly");
     }
 
-    /* protected */
-    public _getRawFnJS(): string {
-      return this._makeFnJS(this.operand._getRawFnJS())
+    public getJSExpression(): string {
+      return this._getJSExpressionHelper(this.operand.getJSExpression());
+    }
+
+    protected _getSQLHelper(operandSQL: string, dialect: SQLDialect, minimal: boolean): string {
+      throw new Error('should never be called directly');
+    }
+
+    public getSQL(dialect: SQLDialect, minimal: boolean = false): string {
+      return this._getSQLHelper(this.operand.getSQL(dialect, minimal), dialect, minimal);
     }
 
     protected _checkTypeOfOperand(wantedType: string): void {

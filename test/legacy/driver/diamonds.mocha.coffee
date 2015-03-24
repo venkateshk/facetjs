@@ -19,17 +19,17 @@ diamondsData = require('../../../data/diamonds.js')
 driverFns.native = nativeDriver(diamondsData)
 
 # MySQL
-sqlPass = mySqlRequester({
+mySqlPass = mySqlRequester({
   host: info.mySqlHost
   database: info.mySqlDatabase
   user: info.mySqlUser
   password: info.mySqlPassword
 })
 
-sqlPass = utils.wrapVerbose(sqlPass, 'MySQL') if verbose
+mySqlPass = utils.wrapVerbose(mySqlPass, 'MySQL') if verbose
 
 driverFns.mySql = mySqlDriver({
-  requester: sqlPass
+  requester: mySqlPass
   table: 'diamonds'
   filters: null
 })

@@ -43,11 +43,15 @@ module Core {
         this.direction === other.direction;
     }
 
+    public getSQL(dialect: SQLDialect, minimal: boolean = false): string {
+      var dir = this.direction === 'descending' ? 'DESC' : 'ASC';
+      return `ORDER BY ${this.expression.getSQL(dialect, minimal)} ${dir}`;
+    }
+
     public refName(): string {
       var expression = this.expression;
-      return (expression instanceof RefExpression) ? expression.name : null
+      return (expression instanceof RefExpression) ? expression.name : null;
     }
   }
-
   Action.register(SortAction);
 }

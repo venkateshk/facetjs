@@ -68,7 +68,7 @@ module Core {
     }
 
     public setType: string;
-    public elements: Lookup<boolean>;
+    public elements: Lookup<any>;
 
     constructor(parameters: SetValue) {
       this.setType = parameters.setType;
@@ -157,8 +157,17 @@ module Core {
       });
     }
 
-    public test(value: any): boolean {
+    public contains(value: any): boolean {
       return hasOwnProperty(this.elements, String(value));
+    }
+
+    public containsWithin(value: any): boolean {
+      var elements = this.elements;
+      for (var k in elements) {
+        if (!hasOwnProperty(elements, k)) continue;
+        if ((<NumberRange>elements[k]).contains(value)) return true;
+      }
+      return false;
     }
 
     public add(value: any): Set {

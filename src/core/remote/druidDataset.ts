@@ -132,12 +132,12 @@ module Core {
   function postProcessIntrospectFactory(timeAttribute: string): IntrospectPostProcess {
     return (res: Druid.DatasourceIntrospectResult): Lookup<AttributeInfo> => {
       var attributes: Lookup<AttributeInfo> = Object.create(null);
-      attributes[timeAttribute] = new AttributeInfo({type: 'TIME'});
+      attributes[timeAttribute] = new AttributeInfo({ type: 'TIME' });
       res.dimensions.forEach((dimension) => {
-        attributes[dimension] = new AttributeInfo({type: 'STRING'});
+        attributes[dimension] = new AttributeInfo({ type: 'STRING' });
       });
       res.metrics.forEach((metric) => {
-        attributes[metric] = new AttributeInfo({type: 'NUMBER', filterable: false, splitable: false});
+        attributes[metric] = new AttributeInfo({ type: 'NUMBER', filterable: false, splitable: false });
       });
       return attributes;
     }
@@ -159,7 +159,7 @@ module Core {
       return new DruidDataset(value);
     }
 
-    public dataSource: any; // ToDo: string | string[]
+    public dataSource: string | string[];
     public timeAttribute: string;
     public forceInterval: boolean;
     public approximate: boolean;
@@ -246,6 +246,18 @@ module Core {
 
     // -----------------
 
+    public getDruidDataSource(): string | Druid.DataSource {
+      var dataSource = this.dataSource;
+      if (Array.isArray(dataSource)) {
+        return {
+          type: "union",
+          dataSources: <string[]>dataSource
+        };
+      } else {
+        return <string>dataSource;
+      }
+    }
+
     public canUseNativeAggregateFilter(filterExpression: Expression): boolean {
       if (filterExpression.type !== 'BOOLEAN') throw new Error("must be a BOOLEAN filter");
 
@@ -271,6 +283,7 @@ module Core {
         } else {
           throw new Error("should never get here");
         }
+
       } else if (filter instanceof IsExpression) {
         var lhs = filter.lhs;
         var rhs = filter.rhs;
@@ -284,6 +297,7 @@ module Core {
         } else {
           throw new Error("can not convert " + filter.toString() + " to Druid filter");
         }
+
       } else if (filter instanceof InExpression) {
         var lhs = filter.lhs;
         var rhs = filter.rhs;
@@ -319,22 +333,27 @@ module Core {
           throw new Error("can not convert " + filter.toString() + " to Druid filter");
         }
 
+      } else if (filter instanceof MatchExpression) {
+        var operand = filter.operand;
+        if (operand instanceof RefExpression) {
+          return {
+            type: "regex",
+            dimension: operand.name,
+            pattern: filter.regexp
+          };
+        } else {
+          throw new Error("can not convert " + filter.toString() + " to Druid filter");
+        }
+
         /*
          case "contains":
-         return {
-         type: "search",
-         dimension: filter.attribute,
-         query: {
-         type: "fragment",
-         values: [(<ContainsFilter>filter).value]
-         }
-         };
-         case "match":
-         return {
-         type: "regex",
-         dimension: filter.attribute,
-         pattern: (<MatchFilter>filter).expression
-         };
+           return {
+             type: "search",
+             dimension: filter.attribute,
+             query: {
+             type: "fragment",
+             values: [(<ContainsFilter>filter).value]
+           }
          */
 
       } else if (filter instanceof NotExpression) {
@@ -342,11 +361,13 @@ module Core {
           type: "not",
           field: this.timelessFilterToDruid(filter.operand)
         };
+
       } else if (filter instanceof AndExpression || filter instanceof OrExpression) {
         return {
           type: filter.op,
           fields: filter.operands.map(this.timelessFilterToDruid, this)
         };
+
       } else {
         throw new Error("could not convert filter " + filter.toString() + " to Druid filter");
       }
@@ -436,7 +457,7 @@ return (start < 0 ?'-':'') + parts.join('.');
         var dimensionSpec = (splitExpression.name === label) ?
                             label : { type: "default", dimension: splitExpression.name, outputName: label };
 
-        if (this.havingFilter.equals(Expression.TRUE) && this.limit) {
+        if (this.havingFilter.equals(Expression.TRUE) && this.limit && this.approximate) {
           var attributeInfo = this.attributes[splitExpression.name];
           queryType = 'topN';
           if (attributeInfo instanceof RangeAttributeInfo) {
@@ -763,7 +784,7 @@ return (start < 0 ?'-':'') + parts.join('.');
     public getQueryAndPostProcess(): QueryAndPostProcess<Druid.Query> {
       var druidQuery: Druid.Query = {
         queryType: 'timeseries',
-        dataSource: this.dataSource,
+        dataSource: this.getDruidDataSource(),
         intervals: null,
         granularity: 'all'
       };
@@ -870,7 +891,7 @@ return (start < 0 ?'-':'') + parts.join('.');
       return {
         query: {
           queryType: 'introspect',
-          dataSource: this.dataSource
+          dataSource: this.getDruidDataSource()
         },
         postProcess: postProcessIntrospectFactory(this.timeAttribute)
       };
@@ -878,19 +899,3 @@ return (start < 0 ?'-':'') + parts.join('.');
   }
   Dataset.register(DruidDataset);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

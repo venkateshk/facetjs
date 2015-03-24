@@ -17,7 +17,19 @@ module Core {
     }
 
     public toString(): string {
-      return this.lhs.toString() + ' = ' + this.rhs.toString();
+      return `${this.lhs.toString()} = ${this.rhs.toString()}`;
+    }
+
+    protected _getFnHelper(lhsFn: ComputeFn, rhsFn: ComputeFn): ComputeFn {
+      return (d: Datum) => lhsFn(d) === rhsFn(d);
+    }
+
+    protected _getJSExpressionHelper(lhsFnJS: string, rhsFnJS: string): string {
+      return `(${lhsFnJS}===${rhsFnJS})`;
+    }
+
+    protected _getSQLHelper(lhsSQL: string, rhsSQL: string, dialect: SQLDialect, minimal: boolean): string {
+      return `(${lhsSQL}=${rhsSQL})`;
     }
 
     public getComplexity(): number {
@@ -52,7 +64,7 @@ module Core {
         if (expRhs instanceof LiteralExpression) {
           var rValue = expRhs.value;
           if (rValue instanceof Set || rValue instanceof TimeRange || rValue instanceof NumberRange) {
-            if (rValue.test(thisValue)) {
+            if (rValue.contains(thisValue)) {
               return this;
             } else {
               return Expression.FALSE;
@@ -103,7 +115,7 @@ module Core {
         if (expRhs instanceof LiteralExpression) {
           var rValue = expRhs.value;
           if (rValue instanceof Set) {
-            if (rValue.test(thisValue)) {
+            if (rValue.contains(thisValue)) {
               return exp;
             } else {
               return new InExpression({
@@ -116,7 +128,7 @@ module Core {
               });
             }
           } else if (rValue instanceof TimeRange || rValue instanceof NumberRange) {
-            if (rValue.test(thisValue)) {
+            if (rValue.contains(thisValue)) {
               return exp;
             } else {
               return null;
@@ -127,14 +139,6 @@ module Core {
       } else {
         return null;
       }
-    }
-
-    protected _makeFn(lhsFn: ComputeFn, rhsFn: ComputeFn): ComputeFn {
-      return (d: Datum) => lhsFn(d) === rhsFn(d);
-    }
-
-    protected _makeFnJS(lhsFnJS: string, rhsFnJS: string): string {
-      return '(' + lhsFnJS + '===' + rhsFnJS + ')';
     }
 
     protected _specialSimplify(simpleLhs: Expression, simpleRhs: Expression): Expression {

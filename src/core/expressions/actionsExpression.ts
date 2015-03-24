@@ -44,6 +44,29 @@ module Core {
       return this.operand.toString() + this.actions.map((action) => action.toString()).join('\n  ');
     }
 
+    public equals(other: ActionsExpression): boolean {
+      if (!super.equals(other)) return false;
+      var thisActions = this.actions;
+      var otherActions = other.actions;
+      if (thisActions.length !== otherActions.length) return false;
+      for (var i = 0; i < thisActions.length; i++) {
+        if (!thisActions[i].equals(otherActions[i])) return false;
+      }
+      return true;
+    }
+
+    public getFn(): ComputeFn {
+      throw new Error("can not call getFn on actions");
+    }
+
+    public getJSExpression(): string {
+      throw new Error("can not call getJSExpression on actions");
+    }
+
+    public getSQL(dialect: SQLDialect, minimal: boolean = false): string {
+      throw new Error("can not call getSQL on actions");
+    }
+
     private _getSimpleActions(): Action[] {
       var filters: FilterAction[];
       var previousSortAction: SortAction;
@@ -200,17 +223,6 @@ module Core {
       return new ActionsExpression(simpleValue);
     }
 
-    public equals(other: ActionsExpression): boolean {
-      if (!super.equals(other)) return false;
-      var thisActions = this.actions;
-      var otherActions = other.actions;
-      if (thisActions.length !== otherActions.length) return false;
-      for (var i = 0; i < thisActions.length; i++) {
-        if (!thisActions[i].equals(otherActions[i])) return false;
-      }
-      return true;
-    }
-
     protected _specialEvery(iter: BooleanExpressionIterator): boolean {
       return this.actions.every((action) => action.every(iter));
     }
@@ -231,14 +243,6 @@ module Core {
       value.actions = subActions;
       delete value.simple;
       return new ActionsExpression(value);
-    }
-
-    protected _makeFn(operandFn: ComputeFn): ComputeFn {
-      throw new Error("can not call makeFn on actions");
-    }
-
-    protected _makeFnJS(operandFnJS: string): string {
-      throw new Error("implement me");
     }
 
     protected _performAction(action: Action): Expression {

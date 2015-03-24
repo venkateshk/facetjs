@@ -225,8 +225,9 @@ module Legacy {
           }
 
           var bucketTimezone = (<TimePeriodSplit>split).timezone;
+          var sqlAttribute: string;
           if (bucketTimezone.valueOf() === "Etc/UTC") {
-            var sqlAttribute = this.escapeAttribute(split.attribute);
+            sqlAttribute = this.escapeAttribute(split.attribute);
           } else {
             sqlAttribute = "CONVERT_TZ(" + (this.escapeAttribute(split.attribute)) + ", '+0:00', " + bucketTimezone + ")";
           }

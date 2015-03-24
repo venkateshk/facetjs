@@ -18,10 +18,6 @@ module Core {
       this.type = "NUMBER_RANGE";
     }
 
-    public toString(): string {
-      return this.operand.toString() + '.numberBucket(' + this.size + (this.offset ? (', ' + this.offset) : '') + ')';
-    }
-
     public valueOf(): ExpressionValue {
       var value = super.valueOf();
       value.size = this.size;
@@ -36,13 +32,17 @@ module Core {
       return js;
     }
 
+    public toString(): string {
+      return this.operand.toString() + '.numberBucket(' + this.size + (this.offset ? (', ' + this.offset) : '') + ')';
+    }
+
     public equals(other: NumberBucketExpression): boolean {
       return super.equals(other) &&
         this.size === other.size &&
         this.offset === other.offset;
     }
 
-    protected _makeFn(operandFn: ComputeFn): ComputeFn {
+    protected _getFnHelper(operandFn: ComputeFn): ComputeFn {
       var size = this.size;
       var offset = this.offset;
       return (d: Datum) => {
@@ -52,8 +52,12 @@ module Core {
       }
     }
 
-    protected _makeFnJS(operandFnJS: string): string {
+    protected _getJSExpressionHelper(operandFnJS: string): string {
       throw new Error("implement me");
+    }
+
+    protected _getSQLHelper(operandSQL: string, dialect: SQLDialect, minimal: boolean): string {
+      return Legacy.driverUtil.continuousFloorExpression(operandSQL, "FLOOR", this.size, this.offset);
     }
   }
 

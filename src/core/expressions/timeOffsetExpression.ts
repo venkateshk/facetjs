@@ -19,10 +19,6 @@ module Core {
       this.type = 'TIME';
     }
 
-    public toString(): string {
-      return this.operand.toString() + '.timeOffset(' + this.duration.toString() + ')';
-    }
-
     public valueOf(): ExpressionValue {
       var value = super.valueOf();
       value.duration = this.duration;
@@ -35,12 +31,16 @@ module Core {
       return js;
     }
 
+    public toString(): string {
+      return this.operand.toString() + '.timeOffset(' + this.duration.toString() + ')';
+    }
+
     public equals(other: TimeOffsetExpression): boolean {
       return super.equals(other) &&
         this.duration.equals(other.duration);
     }
 
-    protected _makeFn(operandFn: ComputeFn): ComputeFn {
+    protected _getFnHelper(operandFn: ComputeFn): ComputeFn {
       var duration = this.duration;
       return (d: Datum) => {
         var date = operandFn(d);
@@ -49,8 +49,12 @@ module Core {
       }
     }
 
-    protected _makeFnJS(operandFnJS: string): string {
+    protected _getJSExpressionHelper(operandFnJS: string): string {
       throw new Error("implement me");
+    }
+
+    protected _getSQLHelper(operandSQL: string, dialect: SQLDialect, minimal: boolean): string {
+      return dialect.offsetTimeExpression(operandSQL, this.duration);
     }
   }
 

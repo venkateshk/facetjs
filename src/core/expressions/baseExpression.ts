@@ -400,16 +400,6 @@ module Core {
     }
 
     /**
-     * A check to see if the expression contains any Datasets inside of it.
-     * If it does not it can often be handled differently.
-     *
-     * @returns {boolean}
-     */
-    public containsDataset(): boolean {
-      return this.type === 'DATASET';
-    }
-
-    /**
      * Runs iter over all the sub expression and return true if iter returns true for everything
      *
      * @param iter The function to run
@@ -462,18 +452,16 @@ module Core {
       throw new Error('should never be called directly');
     }
 
-    /* protected */
-    public _getRawFnJS(): string {
+    public getJSExpression(): string {
       throw new Error('should never be called directly');
     }
 
-    public getFnJS(wrap: boolean = true): string {
-      var rawFnJS = this._getRawFnJS();
-      if (wrap) {
-        return 'function(d){return ' + rawFnJS + ';}';
-      } else {
-        return rawFnJS;
-      }
+    public getJSFn(): string {
+      return `function(d){return ${this.getJSExpression()};}`;
+    }
+
+    public getSQL(dialect: SQLDialect, minimal: boolean = false): string {
+      throw new Error('should never be called directly');
     }
 
     public separateViaAnd(refName: string): Separation {

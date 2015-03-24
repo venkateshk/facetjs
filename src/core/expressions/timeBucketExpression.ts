@@ -79,7 +79,7 @@ module Core {
       var bucketTimezone = this.timezone.toString();
       var expression: string = operandSQL;
       if (bucketTimezone !== "Etc/UTC") {
-        expression = `CONVERT_TZ(${expression}, '+0:00', ${bucketTimezone})`;
+        expression = `CONVERT_TZ(${expression}, '+0:00', '${bucketTimezone}')`;
       }
 
       return `DATE_FORMAT(${expression}, '${bucketFormat}')`;

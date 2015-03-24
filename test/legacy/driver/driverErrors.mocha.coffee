@@ -18,7 +18,7 @@ diamondsData = require('../../../data/diamonds.js')
 driverFns.native = nativeDriver(diamondsData)
 
 # MySQL
-sqlPass = mySqlRequester({
+mySqlPass = mySqlRequester({
   host: info.mySqlHost
   database: info.mySqlDatabase
   user: info.mySqlUser
@@ -26,7 +26,7 @@ sqlPass = mySqlRequester({
 })
 
 driverFns.mySql = mySqlDriver({
-  requester: sqlPass
+  requester: mySqlPass
   table: 'wiki_day_agg'
   filters: null
 })

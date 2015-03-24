@@ -103,50 +103,38 @@ module Core {
 
     public getQueryAndPostProcess(): QueryAndPostProcess<string> {
       var table = "`" + this.table + "`";
+      var query = ['SELECT'];
       switch (this.mode) {
         case 'raw':
-          var query = [
-            'SELECT',
-            '`' + Object.keys(this.attributes).join('`, `') + '`'
-          ];
-          query.push('FROM', table);
+          query.push('`' + Object.keys(this.attributes).join('`, `') + '`');
+          query.push('FROM ' + table);
           if (!(this.filter.equals(Expression.TRUE))) {
-            query.push('WHERE', this.filter.getSQL());
+            query.push('WHERE ' + this.filter.getSQL());
           }
-          return {
-            query: query.join(' '),
-            postProcess: postProcess
-          };
+          break;
 
         case 'total':
-          var query = [
-            'SELECT',
-            this.applies.map((apply) => apply.getSQL()).join(', ')
-          ];
-          query.push('FROM', table);
+          query.push(this.applies.map((apply) => apply.getSQL()).join(',\n'));
+          query.push('FROM ' + table);
           if (!(this.filter.equals(Expression.TRUE))) {
-            query.push('WHERE', this.filter.getSQL());
+            query.push('WHERE ' + this.filter.getSQL());
           }
-          query.push('GROUP BY 1');
-          return {
-            query: query.join(' '),
-            postProcess: postProcess
-          };
+          query.push("GROUP BY ''");
+          break;
 
         case 'split':
           var splitSQL = this.split.getSQL();
-          var query = [
-            'SELECT',
-            `${splitSQL} AS '${this.label}',`,
-            this.applies.map((apply) => apply.getSQL()).join(', ')
-          ];
-          query.push('FROM', table);
+          query.push(
+            [`${splitSQL} AS '${this.label}'`]
+              .concat(this.applies.map((apply) => apply.getSQL())).join(',\n')
+          );
+          query.push('FROM ' + table);
           if (!(this.filter.equals(Expression.TRUE))) {
-            query.push('WHERE', this.filter.getSQL());
+            query.push('WHERE ' + this.filter.getSQL());
           }
-          query.push('GROUP BY', splitSQL);
+          query.push('GROUP BY ' + splitSQL);
           if (!(this.havingFilter.equals(Expression.TRUE))) {
-            query.push('HAVING', this.havingFilter.getSQL());
+            query.push('HAVING ' + this.havingFilter.getSQL());
           }
           if (this.sort) {
             query.push(this.sort.getSQL());
@@ -154,14 +142,16 @@ module Core {
           if (this.limit) {
             query.push(this.limit.getSQL());
           }
-          return {
-            query: query.join(' '),
-            postProcess: postProcess
-          };
+          break;
 
         default:
           throw new Error("can not get query for: " + this.mode);
       }
+
+      return {
+        query: query.join('\n'),
+        postProcess: postProcess
+      };
     }
 
     public getIntrospectQueryAndPostProcess(): IntrospectQueryAndPostProcess<string> {

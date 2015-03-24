@@ -457,7 +457,7 @@ return (start < 0 ?'-':'') + parts.join('.');
         var dimensionSpec = (splitExpression.name === label) ?
                             label : { type: "default", dimension: splitExpression.name, outputName: label };
 
-        if (this.havingFilter.equals(Expression.TRUE) && this.limit) {
+        if (this.havingFilter.equals(Expression.TRUE) && this.limit && this.approximate) {
           var attributeInfo = this.attributes[splitExpression.name];
           queryType = 'topN';
           if (attributeInfo instanceof RangeAttributeInfo) {

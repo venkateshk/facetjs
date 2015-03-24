@@ -596,11 +596,8 @@ module Core {
     public split(attribute: any, name: string, dataName: string = null): Expression {
       if (!Expression.isExpression(attribute)) attribute = Expression.fromJSLoose(attribute);
       if (!dataName) {
-        if (this.isOp('ref')) {
-          dataName = (<RefExpression>this).name;
-        } else {
-          throw new Error("could not guess data name in `split`, please provide one explicitly")
-        }
+        if (!this.isOp('ref')) throw new Error("could not guess data name in `split`, please provide one explicitly");
+        dataName = (<RefExpression>this).name;
       }
       return this.group(attribute).label(name)
         .def(dataName, facet('^' + dataName).filter(attribute.is(facet('^' + name))));

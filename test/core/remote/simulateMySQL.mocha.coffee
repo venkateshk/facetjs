@@ -36,6 +36,8 @@ describe "simulate MySQL", ->
       .apply('Count', '$diamonds.count()')
       .apply('TotalPrice', '$diamonds.sum($price)')
       .apply('PriceTimes2', '$diamonds.sum($price) * 2')
+      .apply('PriceMinusTax', '$diamonds.sum($price) - $diamonds.sum($tax)')
+      .apply('Crazy', '$diamonds.sum($price) - $diamonds.sum($tax) + 10 - $diamonds.sum($carat)')
       .apply('PriceAndTax', '$diamonds.sum($price) + $diamonds.sum($tax)')
       #.apply('PriceGoodCut', facet('diamonds').filter(facet('cut').is('good')).sum('$price'))
       .apply('Cuts',
@@ -65,6 +67,8 @@ describe "simulate MySQL", ->
       COUNT(1) AS 'Count',
       SUM(`price`) AS 'TotalPrice',
       (SUM(`price`)*2) AS 'PriceTimes2',
+      (SUM(`price`)-SUM(`tax`)) AS 'PriceMinusTax',
+      (SUM(`price`)-SUM(`tax`)-SUM(`carat`)+10) AS 'Crazy',
       (SUM(`price`)+SUM(`tax`)) AS 'PriceAndTax'
       FROM `diamonds`
       WHERE (`color`="D")

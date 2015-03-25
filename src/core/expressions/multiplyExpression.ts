@@ -29,8 +29,17 @@ module Core {
       return '(' + operandJSExpressions.join('*')  + ')';
     }
 
-    protected _getSQLHelper(operandSQLs: string[], dialect: SQLDialect, minimal: boolean): string {
-      return '(' + operandSQLs.join('*')  + ')';
+    public getSQL(dialect: SQLDialect, minimal: boolean): string {
+      var operands = this.operands;
+      var withSign = operands.map((operand, i) => {
+        if (i === 0) return operand.getSQL(dialect, minimal);
+        if (operand instanceof ReciprocateExpression) {
+          return '/' + operand.operand.getSQL(dialect, minimal);
+        } else {
+          return '*' + operand.getSQL(dialect, minimal);
+        }
+      });
+      return '(' + withSign.join('') + ')';
     }
   }
 

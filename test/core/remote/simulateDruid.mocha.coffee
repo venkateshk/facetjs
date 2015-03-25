@@ -41,6 +41,8 @@ describe "simulate Druid", ->
       .apply('Count', '$diamonds.count()')
       .apply('TotalPrice', '$diamonds.sum($price)')
       .apply('PriceTimes2', '$diamonds.sum($price) * 2')
+      .apply('PriceMinusTax', '$diamonds.sum($price) - $diamonds.sum($tax)')
+      .apply('Crazy', '$diamonds.sum($price) - $diamonds.sum($tax) + 10 - $diamonds.sum($carat)')
       .apply('PriceAndTax', '$diamonds.sum($price) * $diamonds.sum($tax)')
       .apply('PriceGoodCut', facet('diamonds').filter(facet('cut').is('good')).sum('$price'))
       .apply('Cuts',
@@ -80,6 +82,11 @@ describe "simulate Druid", ->
             "type": "doubleSum"
           }
           {
+            "fieldName": "carat"
+            "name": "_sd_1"
+            "type": "doubleSum"
+          }
+          {
             "aggregator": {
               "fieldName": "price"
               "name": "PriceGoodCut"
@@ -93,7 +100,17 @@ describe "simulate Druid", ->
             "name": "PriceGoodCut"
             "type": "filtered"
           }
-        ],
+        ]
+        "dataSource": "diamonds"
+        "filter": {
+          "dimension": "color"
+          "type": "selector"
+          "value": "D"
+        }
+        "granularity": "all"
+        "intervals": [
+          "2015-03-12/2015-03-19"
+        ]
         "postAggregations": [
           {
             "fields": [
@@ -121,22 +138,63 @@ describe "simulate Druid", ->
                 "type": "fieldAccess"
               }
             ]
+            "fn": "-"
+            "name": "PriceMinusTax"
+            "type": "arithmetic"
+          }
+          {
+            "fields": [
+              {
+                "fields": [
+                  {
+                    "fieldName": "TotalPrice"
+                    "type": "fieldAccess"
+                  }
+                  {
+                    "type": "constant"
+                    "value": 10
+                  }
+                ]
+                "fn": "+"
+                "type": "arithmetic"
+              }
+              {
+                "fields": [
+                  {
+                    "fieldName": "_sd_0"
+                    "type": "fieldAccess"
+                  }
+                  {
+                    "fieldName": "_sd_1"
+                    "type": "fieldAccess"
+                  }
+                ]
+                "fn": "+"
+                "type": "arithmetic"
+              }
+            ]
+            "fn": "-"
+            "name": "Crazy"
+            "type": "arithmetic"
+          }
+          {
+            "fields": [
+              {
+                "fieldName": "TotalPrice"
+                "type": "fieldAccess"
+              }
+              {
+                "fieldName": "_sd_0"
+                "type": "fieldAccess"
+              }
+            ]
             "fn": "*"
             "name": "PriceAndTax"
             "type": "arithmetic"
           }
-        ],
-        "dataSource": "diamonds"
-        "filter": {
-          "dimension": "color"
-          "type": "selector"
-          "value": "D"
-        }
-        "granularity": "all"
-        "intervals": ["2015-03-12/2015-03-19"]
+        ]
         "queryType": "timeseries"
       }
-      # -----------------
       {
         "aggregations": [
           {
@@ -156,12 +214,13 @@ describe "simulate Druid", ->
           "value": "D"
         }
         "granularity": "all"
-        "intervals": ["2015-03-12/2015-03-19"]
+        "intervals": [
+          "2015-03-12/2015-03-19"
+        ]
         "metric": "Count"
         "queryType": "topN"
         "threshold": 2
       }
-      # -----------------
       {
         "aggregations": [
           {
@@ -191,10 +250,11 @@ describe "simulate Druid", ->
           "timeZone": "America/Los_Angeles"
           "type": "period"
         }
-        "intervals": ["2015-03-12/2015-03-19"]
+        "intervals": [
+          "2015-03-12/2015-03-19"
+        ]
         "queryType": "timeseries"
       }
-      # -----------------
       {
         "aggregations": [
           {
@@ -228,7 +288,9 @@ describe "simulate Druid", ->
           "type": "and"
         }
         "granularity": "all"
-        "intervals": ["2015-03-13T07/2015-03-14T07"]
+        "intervals": [
+          "2015-03-13T07/2015-03-14T07"
+        ]
         "metric": "Count"
         "queryType": "topN"
         "threshold": 3

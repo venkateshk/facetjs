@@ -551,6 +551,18 @@ return (start < 0 ?'-':'') + parts.join('.');
       };
     }
 
+    public operandsToArithmetic(operands: Expression[], fn: string): Druid.PostAggregation {
+      if (operands.length === 1) {
+        return this.expressionToPostAggregation(operands[0]);
+      } else {
+        return {
+          type: 'arithmetic',
+          fn: fn,
+          fields: operands.map(this.expressionToPostAggregation, this)
+        };
+      }
+    }
+
     public expressionToPostAggregation(ex: Expression): Druid.PostAggregation {
       if (ex instanceof RefExpression) {
         return {
@@ -563,18 +575,39 @@ return (start < 0 ?'-':'') + parts.join('.');
           type: 'constant',
           value: ex.value
         };
-      } else if (ex instanceof AddExpression) {
-        return {
-          type: 'arithmetic',
-          fn: '+',
-          fields: ex.operands.map(this.expressionToPostAggregation, this)
-        };
-      } else if (ex instanceof MultiplyExpression) {
-        return {
-          type: 'arithmetic',
-          fn: '*',
-          fields: ex.operands.map(this.expressionToPostAggregation, this)
-        };
+      } else if (ex instanceof AddExpression || ex instanceof MultiplyExpression) {
+        var fn: string;
+        var antiFn: string;
+        var opposite: string;
+        var zero: number;
+        if (ex instanceof AddExpression) {
+          fn = '+';
+          antiFn = '-';
+          opposite = 'negate';
+          zero = 0;
+        } else {
+          fn = '*';
+          antiFn = '/';
+          opposite = 'reciprocate';
+          zero = 1;
+        }
+        var additive = ex.operands.filter((o) => o.op !== opposite);
+        var subtractive = ex.operands.filter((o) => o.op === opposite);
+        if (!additive.length) additive.push(new LiteralExpression({ op: 'literal', value: zero }));
+
+        if (subtractive.length) {
+          return {
+            type: 'arithmetic',
+            fn: antiFn,
+            fields: [
+              this.operandsToArithmetic(additive, fn),
+              this.operandsToArithmetic(subtractive.map((op) => (<UnaryExpression>op).operand), fn)
+            ]
+          };
+        } else {
+          return this.operandsToArithmetic(additive, fn);
+        }
+
       } else {
         throw new Error("can not convert expression to post agg: " + ex.toString());
       }

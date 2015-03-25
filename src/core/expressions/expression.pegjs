@@ -27,6 +27,11 @@ CallChainExpression
         throw new Error("invalid parameter");
       }
 
+      function getNumber(thing) {
+        if (thing.op === 'literal') return Number(thing.value);
+        return new Error("invalid parameter (must be a number)");
+      }
+
       for (var i = 0, n = tail.length; i < n; i++) {
         var part = tail[i];
         var op = part[3];
@@ -64,6 +69,45 @@ CallChainExpression
             };
             break;
 
+          case 'not':
+          case 'negate':
+          case 'reciprocate':
+            if (params.length) throw new Error(op + ' does not need parameters');
+            operand = {
+              op: op,
+              operand: operand
+            };
+            break;
+
+          case 'match':
+            if (params.length !== 1) throw new Error(op + ' must have 1 parameter');
+            operand = {
+              op: op,
+              operand: operand,
+              regexp: getName(params[0])
+            };
+            break;
+
+          case 'numberBucket':
+            if (params.length !== 1 && params.length !== 2) throw new Error(op + ' must have 1 or 2 parameter');
+            operand = {
+              op: op,
+              operand: operand,
+              size: getNumber(params[0])
+            };
+            if (params.length === 2) operand.offset = getNumber(params[1]);
+            break;
+
+          case 'timeBucket':
+            if (params.length !== 1 && params.length !== 2) throw new Error(op + ' must have 1 or 2 parameter');
+            operand = {
+              op: op,
+              operand: operand,
+              duration: getName(params[0])
+            };
+            if (params.length === 2) operand.timezone = getName(params[1]);
+            break
+
           case 'filter':
             if (params.length !== 1) throw new Error(op + ' must have 1 parameter');
             addAction({ action: op, expression: params[0] });
@@ -82,12 +126,11 @@ CallChainExpression
 
           case 'limit':
             if (params.length !== 1) throw new Error(op + ' must have 1 parameter');
-            if (params[0].op !== 'literal')
-            addAction({ action: op, limit: params[0].value });
+            addAction({ action: op, limit: getNumber(params[0]) });
             break;
 
           case 'count':
-            if (params.length) throw new Error(op + ' can not have parameters');
+            if (params.length) throw new Error(op + ' does not need parameters');
             operand = {
               op: 'aggregate',
               fn: op,
@@ -115,6 +158,43 @@ CallChainExpression
             operand = { op: op, operand: operand, name: getName(params[0]) };
             break;
 
+          case 'split':
+            if (params.length !== 2 && params.length !== 3) throw new Error(op + ' must have 2 or 3 parameter');
+            var attribute = params[0];
+            var name = getName(params[1]);
+            var dataName = params[2];
+            if (!dataName) {
+              if (operand.op !== 'ref') throw new Error("could not guess data name in `split`, please provide one explicitly");
+              dataName = operand.name;
+            }
+            operand = {
+              op: 'actions',
+              operand: {
+                op: 'label',
+                name: name,
+                operand: { op: 'aggregate', fn: 'group', attribute: attribute, operand: operand }
+              },
+              actions: [
+                { 
+                  action: 'def',
+                  name: dataName,
+                  expression: {
+                    op: 'actions',
+                    operand: { op: 'ref', name: '^' + dataName },
+                    actions: [{
+                      action: 'filter',
+                      expression: { 
+                        op: 'is', 
+                        lhs: attribute, 
+                        rhs: { op: 'ref', name: '^' + name } 
+                      }
+                    }]
+                  }
+                }
+              ]
+            };
+            break;
+
           default:
             throw new Error("Unrecognized call of '" + op + "'");
         }
@@ -130,7 +210,7 @@ Params
     }
 
 Param
-  = Expression / Name
+  = Expression / Name / String
 
 BinaryExpression
   = lhs:AdditiveExpression _ op:BinaryOp _ rhs:Expression

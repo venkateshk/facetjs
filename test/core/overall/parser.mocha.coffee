@@ -1,5 +1,10 @@
 { expect } = require("chai")
 
+{ WallTime } = require('chronology')
+if not WallTime.rules
+  tzData = require("chronology/lib/walltime/walltime-data.js")
+  WallTime.init(tzData.rules, tzData.zones)
+
 facet = require('../../../build/facet')
 { Expression } = facet.core
 
@@ -42,8 +47,7 @@ describe "parser", ->
     expect(ex.toJS()).to.deep.equal(ex2.toJS())
 
   it "it should parse a whole expression", ->
-    ex = Expression.parse(
-      """
+    ex = Expression.parse("""
       facet()
         .def(num, 5)
         .apply(subData,
@@ -59,6 +63,45 @@ describe "parser", ->
         facet()
           .apply('x', '$num + 1')
           .apply('y', '$foo * 2')
+      )
+
+    expect(ex.toJS()).to.deep.equal(ex2.toJS())
+
+  it "it should parse a whole complex expression", ->
+    ex = Expression.parse("""
+      facet()
+        .def(wiki, $wiki.filter($language = 'en'))
+        .apply(Count, $wiki.sum($count))
+        .apply(TotalAdded, $wiki.sum($added))
+        .apply(Pages,
+          $wiki.split($page, Page)
+            .apply(Count, $wiki.sum($count))
+            .sort($Count, descending)
+            .limit(2)
+            .apply(Time,
+              $wiki.split($time.timeBucket(PT1H, 'Etc/UTC'), Timestamp)
+                .apply(TotalAdded, $wiki.sum($added))
+                .sort($TotalAdded, descending)
+                .limit(3)
+            )
+        )
+      """)
+
+    ex2 = facet()
+      .def("wiki", facet('wiki').filter(facet("language").is('en')))
+      .apply('Count', '$wiki.sum($count)')
+      .apply('TotalAdded', '$wiki.sum($added)')
+      .apply('Pages',
+        facet("wiki").split("$page", 'Page')
+          .apply('Count', '$wiki.sum($count)')
+          .sort('$Count', 'descending')
+          .limit(2)
+          .apply('Time',
+            facet("wiki").split(facet("time").timeBucket('PT1H', 'Etc/UTC'), 'Timestamp')
+              .apply('TotalAdded', '$wiki.sum($added)')
+              .sort('$TotalAdded', 'descending')
+              .limit(3)
+          )
       )
 
     expect(ex.toJS()).to.deep.equal(ex2.toJS())

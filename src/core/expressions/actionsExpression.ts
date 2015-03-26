@@ -56,7 +56,40 @@ module Core {
     }
 
     public getFn(): ComputeFn {
-      throw new Error("can not call getFn on actions");
+      var ex = this;
+      var operand = this.operand;
+      var actions = this.actions;
+      return (d: Datum, def: boolean) => {
+        if (d) {
+          return ex.resolve(d).simplify().getFn()(null, def);
+        }
+
+        var dataset = operand.getFn()(null, def);
+
+        for (var i = 0; i < actions.length; i++) {
+          var action = actions[i];
+          var actionExpression = action.expression;
+
+          if (action instanceof FilterAction) {
+            dataset = dataset.filter(action.expression.getFn());
+
+          } else if (action instanceof ApplyAction) {
+            dataset = dataset.apply(action.name, actionExpression.getFn());
+
+          } else if (action instanceof DefAction) {
+            dataset = dataset.def(action.name, actionExpression.getFn());
+
+          } else if (action instanceof SortAction) {
+            dataset = dataset.sort(actionExpression.getFn(), action.direction);
+
+          } else if (action instanceof LimitAction) {
+            dataset = dataset.limit(action.limit);
+
+          }
+        }
+
+        return dataset;
+      };
     }
 
     public getJSExpression(): string {
@@ -267,55 +300,6 @@ module Core {
       }
 
       return typeContext;
-    }
-
-    public _computeNativeResolved(queries: any[]): NativeDataset {
-      var dataset = this.operand._computeNativeResolved(queries);
-
-      var actions = this.actions;
-      for (var i = 0; i < actions.length; i++) {
-        var action = actions[i];
-        var actionExpression = action.expression;
-
-        if (action instanceof FilterAction) {
-          dataset = dataset.filter(action.expression.getFn());
-
-        } else if (action instanceof ApplyAction) {
-          if (actionExpression instanceof LiteralExpression) {
-            var v = actionExpression._computeNativeResolved(queries);
-            dataset = dataset.apply(action.name, () => v);
-          } else if (actionExpression instanceof ActionsExpression) {
-            dataset = dataset.apply(action.name, (d: Datum) => {
-              return actionExpression.resolve(d).simplify()._computeNativeResolved(queries)
-            });
-          } else {
-            dataset = dataset.apply(action.name, actionExpression.getFn());
-          }
-
-        } else if (action instanceof DefAction) {
-          if (actionExpression instanceof ActionsExpression) {
-            dataset = dataset.def(action.name, (d: Datum) => {
-              var simple = actionExpression.resolve(d).simplify();
-              if (simple instanceof LiteralExpression) {
-                return simple.value;
-              } else {
-                return simple._computeNativeResolved(queries);
-              }
-            });
-          } else {
-            dataset = dataset.def(action.name, actionExpression.getFn());
-          }
-
-        } else if (action instanceof SortAction) {
-          dataset = dataset.sort(actionExpression.getFn(), action.direction);
-
-        } else if (action instanceof LimitAction) {
-          dataset = dataset.limit(action.limit);
-
-        }
-      }
-
-      return dataset;
     }
 
     public _computeResolved(): Q.Promise<NativeDataset> {

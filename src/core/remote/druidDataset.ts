@@ -227,7 +227,7 @@ module Core {
       if (this.split instanceof TimeBucketExpression) {
         var sortExpression = sortAction.expression;
         if (sortExpression instanceof RefExpression) {
-          return sortExpression.name === this.label;
+          return sortExpression.name === this.key;
         } else {
           return false;
         }
@@ -445,7 +445,7 @@ return (start < 0 ?'-':'') + parts.join('.');
 
     public splitToDruid(): DruidSplit {
       var splitExpression = this.split;
-      var label = this.label;
+      var label = this.key;
 
       var queryType: string;
       var dimension: any = null;
@@ -871,7 +871,7 @@ return (start < 0 ?'-':'') + parts.join('.');
           switch (druidQuery.queryType) {
             case 'timeseries':
               var split = <TimeBucketExpression>this.split;
-              if (this.sort && (this.sort.direction !== 'ascending' || this.sort.refName() !== this.label)) {
+              if (this.sort && (this.sort.direction !== 'ascending' || this.sort.refName() !== this.key)) {
                 throw new Error('can not sort within timeseries query');
               }
               if (this.limit) {
@@ -899,7 +899,7 @@ return (start < 0 ?'-':'') + parts.join('.');
               druidQuery.limitSpec = {
                 type: "default",
                 limit: 500000,
-                columns: [sortAction ? (<RefExpression>sortAction.expression).name : this.label]
+                columns: [sortAction ? (<RefExpression>sortAction.expression).name : this.key]
               };
               if (this.limit) {
                 druidQuery.limitSpec.limit = this.limit.limit;

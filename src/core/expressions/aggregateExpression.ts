@@ -73,7 +73,11 @@ module Core {
       var fn = this.fn;
       var attribute = this.attribute;
       var attributeFn = attribute ? attribute.getFn() : null;
-      return (d: Datum) => operandFn(d)[fn](attributeFn, attribute);
+      return (d: Datum) => {
+        var dataset = operandFn(d);
+        if (!dataset) return null;
+        return dataset[fn](attributeFn, attribute);
+      }
     }
 
     protected _getJSExpressionHelper(operandFnJS: string): string {

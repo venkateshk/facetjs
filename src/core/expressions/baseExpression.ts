@@ -61,6 +61,8 @@ module Core {
     excluded: Expression;
   }
 
+  export var simulatedQueries: any[] = null;
+
   export function mergeRemotes(remotes: string[][]): string[] {
     var lookup: Lookup<boolean> = {};
     for (var i = 0; i < remotes.length; i++) {
@@ -633,6 +635,7 @@ module Core {
     }
 
     public union(ex: any) { return this._performBinaryExpression({ op: 'union' }, ex); }
+    public join(ex: any) { return this._performBinaryExpression({ op: 'join' }, ex); }
 
     // Expression constructors (Nary)
     protected _performNaryExpression(newValue: ExpressionValue, otherExs: any[]): Expression {
@@ -770,18 +773,14 @@ module Core {
     // ---------------------------------------------------------
     // Evaluation
 
-    public _computeNativeResolved(queries: any[]): any {
-      throw new Error("can not call this directly");
-    }
-
     public _computeResolved(): Q.Promise<any> {
       throw new Error("can not call this directly");
     }
 
-    public simulateQueryPlan(context: Datum): any[] {
-      var generatedQueries: any[] = [];
-      this.referenceCheck(context).resolve(context).simplify()._computeNativeResolved(generatedQueries);
-      return generatedQueries;
+    public simulateQueryPlan(context: Datum = {}): any[] {
+      simulatedQueries = [];
+      this.referenceCheck(context).getFn()(context);
+      return simulatedQueries;
     }
 
     /**
@@ -791,7 +790,7 @@ module Core {
      * @returns {any}
      */
     public computeNative(context: Datum = {}): any {
-      return this.referenceCheck(context).resolve(context).simplify()._computeNativeResolved(null);
+      return this.referenceCheck(context).getFn()(context);
     }
 
     /**

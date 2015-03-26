@@ -59,7 +59,22 @@ module Core {
 
     public getFn(): ComputeFn {
       var value = this.value;
-      return () => value;
+
+      if (value instanceof RemoteDataset) {
+        var hasSimulated = false;
+        var simulatedValue: any;
+        return (d: Datum, def: boolean) => {
+          if (def) return value;
+          if (!hasSimulated) {
+            simulatedQueries.push(value.getQueryAndPostProcess().query);
+            simulatedValue = value.simulate();
+            hasSimulated = true;
+          }
+          return simulatedValue;
+        };
+      } else {
+        return () => value;
+      }
     }
 
     public getJSExpression(): string {
@@ -143,16 +158,6 @@ module Core {
         return newTypeContext;
       } else {
         return { type: this.type };
-      }
-    }
-
-    public _computeNativeResolved(queries: any[]): any {
-      var value = this.value;
-      if (value instanceof RemoteDataset) {
-        if (queries) queries.push(value.getQueryAndPostProcess().query);
-        return value.simulate();
-      } else {
-        return this.value;
       }
     }
 

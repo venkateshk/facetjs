@@ -13,7 +13,6 @@ module Core {
     derivedAttributes?: ApplyAction[];
     filter?: Expression;
     split?: Expression;
-    label?: string;
     defs?: DefAction[];
     applies?: ApplyAction[];
     sort?: SortAction;

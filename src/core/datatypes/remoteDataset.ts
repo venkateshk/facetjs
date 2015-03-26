@@ -70,7 +70,6 @@ module Core {
     public derivedAttributes: ApplyAction[];
     public filter: Expression;
     public split: Expression;
-    public label: string;
     public defs: DefAction[];
     public applies: ApplyAction[];
     public sort: SortAction;
@@ -87,7 +86,6 @@ module Core {
       this.derivedAttributes = parameters.derivedAttributes || [];
       this.filter = parameters.filter || Expression.TRUE;
       this.split = parameters.split;
-      this.label = parameters.label;
       this.defs = parameters.defs;
       this.applies = parameters.applies;
       this.sort = parameters.sort;
@@ -101,7 +99,7 @@ module Core {
 
         if (this.mode === 'split') {
           if (!this.split) throw new Error('must have split in split mode');
-          if (!this.label) throw new Error('must have label in split mode');
+          if (!this.key) throw new Error('must have key in split mode');
           this.havingFilter = this.havingFilter || Expression.TRUE;
         }
       }
@@ -117,7 +115,6 @@ module Core {
       value.filter = this.filter;
       if (this.split) {
         value.split = this.split;
-        value.label = this.label;
       }
       if (this.defs) {
         value.defs = this.defs;
@@ -224,7 +221,7 @@ module Core {
       var value = this.valueOf();
       value.mode = 'split';
       value.split = splitExpression;
-      value.label = label;
+      value.key = label;
 
       return <RemoteDataset>(new (Dataset.classMap[this.source])(value));
     }
@@ -273,7 +270,7 @@ module Core {
               defExpression.actions.length === 1 &&
               defExpression.actions[0].action === 'filter' &&
               defExpression.actions[0].expression.equals(
-                this.split.is(new RefExpression({ op: 'ref', name: '^' + this.label, type: this.split.type })))
+                this.split.is(new RefExpression({ op: 'ref', name: '^' + this.key, type: this.split.type })))
             ) {
               value.defs = value.defs.concat(action);
 
@@ -292,7 +289,7 @@ module Core {
         if (this.mode === 'raw') {
           value.derivedAttributes = value.derivedAttributes.concat(action);
         } else {
-          if (action.name === this.label) return null;
+          if (action.name === this.key) return null;
           value.applies = value.applies.concat(action);
         }
 
@@ -319,12 +316,12 @@ module Core {
       if (this.mode === 'raw') {
         var attributes = this.attributes;
         for (var attributeName in attributes) {
-          if (!attributes.hasOwnProperty(attributeName)) continue;
+          if (!hasOwnProperty(attributes, attributeName)) continue;
           datum[attributeName] = getSampleValue(attributes[attributeName].type, null);
         }
       } else {
         if (this.mode === 'split') {
-          datum[this.label] = getSampleValue(this.split.type, this.split);
+          datum[this.key] = getSampleValue(this.split.type, this.split);
         }
 
         var applies = this.applies;

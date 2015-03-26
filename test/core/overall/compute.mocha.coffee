@@ -263,13 +263,87 @@ describe "compute native", ->
       ).done()
 
 
-  #      data = [
-  #        { cut: 'Good',  price: 400 }
-  #        { cut: 'Good',  price: 300 }
-  #        { cut: 'Great', price: 124 }
-  #        { cut: 'Wow',   price: 160 }
-  #        { cut: 'Wow',   price: 100 }
-  #      ]
+  describe "joins", ->
+    it "does a join on group / label", (testComplete) ->
+      ds = Dataset.fromJS(data)
+
+      ex = facet()
+        .def('Data1', facet(ds).filter(facet('price').in(105, 305)))
+        .def('Data2', facet(ds).filter(facet('price').in(105, 305).not()))
+        .apply('Count1', '$Data1.count()')
+        .apply('Count2', '$Data2.count()')
+        .apply('Cuts'
+          facet('Data1').group('$cut').label('Cut').join(facet('Data2').group('$cut').label('Cut'))
+            .def('Data1', facet('^Data1').filter(facet('cut').is('$^Cut')))
+            .def('Data2', facet('^Data2').filter(facet('cut').is('$^Cut')))
+            .apply('Counts', '10 * $Data1.count() + $Data2.count()')
+        )
+
+      p = ex.compute()
+      p.then((v) ->
+        midData = v
+        expect(midData.toJS()).to.deep.equal([
+          {
+            "Count1": 3
+            "Count2": 2
+            "Cuts": [
+              {
+                "Counts": 11
+                "Cut": "Good"
+              }
+              {
+                "Counts": 10
+                "Cut": "Great"
+              }
+              {
+                "Counts": 11
+                "Cut": "Wow"
+              }
+            ]
+          }
+        ])
+        testComplete()
+      ).done()
+
+    it "does a join on split", (testComplete) ->
+      ds = Dataset.fromJS(data)
+
+      ex = facet()
+        .def('Data1', facet(ds).filter(facet('price').in(105, 305)))
+        .def('Data2', facet(ds).filter(facet('price').in(105, 305).not()))
+        .apply('Count1', '$Data1.count()')
+        .apply('Count2', '$Data2.count()')
+        .apply('Cuts'
+          facet('Data1').split('$cut', 'Cut').join(facet('Data2').split('$cut', 'Cut'))
+            .apply('Counts', '10 * $Data1.count() + $Data2.count()')
+        )
+
+      p = ex.compute()
+      p.then((v) ->
+        midData = v
+        expect(midData.toJS()).to.deep.equal([
+          {
+            "Count1": 3
+            "Count2": 2
+            "Cuts": [
+              {
+                "Counts": 11
+                "Cut": "Good"
+              }
+              {
+                "Counts": 10
+                "Cut": "Great"
+              }
+              {
+                "Counts": 11
+                "Cut": "Wow"
+              }
+            ]
+          }
+        ])
+        testComplete()
+      ).done()
+
 
   describe "it works and re-selects", ->
     ds = Dataset.fromJS(data)

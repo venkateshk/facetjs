@@ -93,7 +93,7 @@ module Core {
 
   export interface Datum {
     [attribute: string]: any;
-    $def?: Lookup<any>;
+    $def?: Datum;
   }
 }
 

@@ -1,6 +1,6 @@
 module Core {
   export interface ComputeFn {
-    (d: Datum): any;
+    (d: Datum, def?: boolean): any;
   }
 
   export interface ComputePromiseFn {
@@ -76,6 +76,9 @@ module Core {
     }
     for (var k in datumB) {
       newDatum[k] = datumB[k];
+    }
+    if (datumA.$def && datumB.$def) {
+      newDatum.$def = joinDatums(datumA.$def, datumB.$def);
     }
     return newDatum;
   }
@@ -163,7 +166,7 @@ module Core {
       for (var i = 0; i < n; i++) {
         var datum = data[i];
         datum.$def = datum.$def || Object.create(null);
-        datum.$def[name] = exFn(datum);
+        datum.$def[name] = exFn(datum, true);
       }
       this.attributes = null; // Since we did the change in place, blow out the attributes
       return this;

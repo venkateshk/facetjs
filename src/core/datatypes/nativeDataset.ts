@@ -69,6 +69,17 @@ module Core {
     return js;
   }
 
+  function joinDatums(datumA: Datum, datumB: Datum): Datum {
+    var newDatum: Datum = Object.create(null);
+    for (var k in datumA) {
+      newDatum[k] = datumA[k];
+    }
+    for (var k in datumB) {
+      newDatum[k] = datumB[k];
+    }
+    return newDatum;
+  }
+
   export class NativeDataset extends Dataset {
     static type = 'DATASET';
 
@@ -283,6 +294,40 @@ module Core {
         }
       });
       return mergeRemoteDatasets(remoteDatasets);
+    }
+
+    public join(other: NativeDataset): NativeDataset {
+      var thisKey = this.key;
+      var otherKey = other.key;
+
+      var thisData = this.data;
+      var otherData = other.data;
+      var datum: Datum;
+      var k: string;
+
+      var mapping: Lookup<Datum[]> = Object.create(null);
+      for (var i = 0; i < thisData.length; i++) {
+        datum = thisData[i];
+        k = String(thisKey ? datum[thisKey] : i);
+        mapping[k] = [datum];
+      }
+      for (var i = 0; i < otherData.length; i++) {
+        datum = otherData[i];
+        k = String(otherKey ? datum[otherKey] : i);
+        if (!mapping[k]) mapping[k] = [];
+        mapping[k].push(datum);
+      }
+
+      var newData: Datum[] = [];
+      for (var j in mapping) {
+        var datums = mapping[j];
+        if (datums.length === 1) {
+          newData.push(datums[0]);
+        } else {
+          newData.push(joinDatums(datums[0], datums[1]));
+        }
+      }
+      return new NativeDataset({ source: 'native', data: newData });
     }
   }
 

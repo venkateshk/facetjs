@@ -97,8 +97,14 @@ module Core {
 
     public equals(other: LiteralExpression): boolean {
       if (!super.equals(other) || this.type !== other.type) return false;
-      if (this.value && this.value.equals) {
-        return this.value.equals(other.value);
+      if (this.value) {
+        if (this.value.equals) {
+          return this.value.equals(other.value);
+        } else if (this.value.toISOString && other.value.toISOString) {
+          return this.value.valueOf() === other.value.valueOf();
+        } else {
+          return this.value === other.value;
+        }
       } else {
         return this.value === other.value;
       }

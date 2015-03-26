@@ -613,11 +613,26 @@ module Core {
     }
 
     public is(ex: any) { return this._performBinaryExpression({ op: 'is' }, ex); }
-    public in(ex: any) { return this._performBinaryExpression({ op: 'in' }, ex); }
     public lessThan(ex: any) { return this._performBinaryExpression({ op: 'lessThan' }, ex); }
     public lessThanOrEqual(ex: any) { return this._performBinaryExpression({ op: 'lessThanOrEqual' }, ex); }
     public greaterThan(ex: any) { return this._performBinaryExpression({ op: 'greaterThan' }, ex); }
     public greaterThanOrEqual(ex: any) { return this._performBinaryExpression({ op: 'greaterThanOrEqual' }, ex); }
+
+    public in(start: Date, end: Date): Expression;
+    public in(start: number, end: number): Expression;
+    public in(ex: any): Expression;
+    public in(ex: any, snd: any = null): Expression {
+      if (arguments.length === 2) {
+        if (typeof ex === 'number' && typeof snd === 'number') {
+          ex = new NumberRange({ start: ex, end: snd });
+        } else {
+          throw new Error('uninterpretable IN parameters');
+        }
+      }
+      return this._performBinaryExpression({ op: 'in' }, ex);
+    }
+
+    public union(ex: any) { return this._performBinaryExpression({ op: 'union' }, ex); }
 
     // Expression constructors (Nary)
     protected _performNaryExpression(newValue: ExpressionValue, otherExs: any[]): Expression {

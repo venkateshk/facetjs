@@ -75,7 +75,7 @@ module Core {
     public _fillRefSubstitutions(typeContext: FullType, alterations: Alteration[]): FullType {
       var setFullType = this.operand._fillRefSubstitutions(typeContext, alterations);
       var newDatasetType: Lookup<FullType> = {};
-
+      
       newDatasetType[this.name] = {
         type: setFullType.type.substring(4), // setFullType will be something like SET/STRING we need to chop off the SET/
         remote: setFullType.remote

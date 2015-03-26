@@ -2,6 +2,7 @@ module Core {
   export interface DatasetValue {
     source: string;
     attributes?: Lookup<AttributeInfo>;
+    key?: string;
 
     // Native
     data?: Datum[];
@@ -37,6 +38,7 @@ module Core {
   export interface DatasetJS {
     source: string;
     attributes?: Lookup<AttributeInfoJS>;
+    key?: string;
 
     // Native
     data?: Datum[];
@@ -138,6 +140,7 @@ module Core {
 
     public source: string;
     public attributes: Lookup<AttributeInfo> = null;
+    public key: string = null;
 
     constructor(parameters: DatasetValue, dummy: Dummy = null) {
       this.source = parameters.source;
@@ -146,6 +149,9 @@ module Core {
       }
       if (parameters.attributes) {
         this.attributes = parameters.attributes;
+      }
+      if (parameters.key) {
+        this.key = parameters.key;
       }
     }
 
@@ -163,9 +169,8 @@ module Core {
       var value: DatasetValue = {
         source: this.source
       };
-      if (this.attributes) {
-        value.attributes = this.attributes;
-      }
+      if (this.attributes) value.attributes = this.attributes;
+      if (this.key) value.key = this.key;
       return value;
     }
 
@@ -181,6 +186,7 @@ module Core {
         }
         js.attributes = attributesJS;
       }
+      if (this.key) js.key = this.key;
       return js;
     }
 

@@ -32,10 +32,6 @@ module Core {
       return `(${lhsSQL}=${rhsSQL})`;
     }
 
-    public getComplexity(): number {
-      return 1 + this.lhs.getComplexity() + this.rhs.getComplexity();
-    }
-
     public mergeAnd(exp: Expression): Expression {
       var references = this.getReferences();
 

@@ -241,8 +241,11 @@ module Core {
               op: 'literal',
               value: remoteDataset
             });
-            if (simpleActions.length) {
-              simpleActions = (<Action[]>remoteDataset.defs).concat(simpleActions);
+            if (remoteDataset.defs) {
+              var defsToAddBack: Action[] = remoteDataset.defs.filter((def) => {
+                return Action.actionsDependOn(simpleActions, def.name);
+              });
+              simpleActions = defsToAddBack.concat(simpleActions);
             }
           }
         }

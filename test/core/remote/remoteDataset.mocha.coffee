@@ -90,7 +90,7 @@ describe "RemoteDataset", ->
       ex = ex.referenceCheck(context).resolve(context).simplify()
       
       expect(ex.op).to.equal('actions')
-      expect(ex.actions).to.have.length(3)
+      expect(ex.actions).to.have.length(2)
       remoteDataset = ex.operand.value
       expect(remoteDataset.defs).to.have.length(1)
       expect(remoteDataset.applies).to.have.length(2)

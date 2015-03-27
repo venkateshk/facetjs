@@ -23,6 +23,16 @@ module Core {
 
   var checkAction: ImmutableClass<ActionValue, ActionJS>;
   export class Action implements ImmutableInstance<ActionValue, ActionJS> {
+    static actionsDependOn(actions: Action[], name: string): boolean {
+      for (var i = 0; i < actions.length; i++) {
+        var action = actions[i];
+        var freeReferences = action.getFreeReferences();
+        if (freeReferences.indexOf(name) !== -1) return true;
+        if ((<ApplyAction>action).name === name) return false;
+      }
+      return false;
+    }
+
     static isAction(candidate: any): boolean {
       return isInstanceOf(candidate, Action);
     }

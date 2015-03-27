@@ -63,7 +63,7 @@ module Core {
       var special = this._specialSimplify(simpleOperands);
       if (special) return special;
 
-      var literalOperands = simpleOperands.filter((operand) => operand.isOp('literal'));
+      var literalOperands = simpleOperands.filter((operand) => operand.isOp('literal')); // ToDo: add hasRemote and better call
       var nonLiteralOperands = simpleOperands.filter((operand) => !operand.isOp('literal'));
       var literalExpression = new LiteralExpression({
         op: 'literal',

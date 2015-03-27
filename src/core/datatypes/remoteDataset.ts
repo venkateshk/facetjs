@@ -214,6 +214,28 @@ module Core {
       return <RemoteDataset>(new (Dataset.classMap[this.source])(value));
     }
 
+    public addFilter(expression: Expression): RemoteDataset {
+      if (!expression.resolved()) return null;
+
+      var value = this.valueOf();
+      switch (this.mode) {
+        case 'raw':
+          if (!this.canHandleFilter(expression)) return null;
+          value.filter = value.filter.and(expression).simplify();
+          break;
+
+        case 'split':
+          if (!this.canHandleHavingFilter(expression)) return null;
+          value.havingFilter = value.havingFilter.and(expression).simplify();
+          break;
+
+        default:
+          return null; // can not add filter in total mode
+      }
+
+      return <RemoteDataset>(new (Dataset.classMap[this.source])(value));
+    }
+
     public addSplit(splitExpression: Expression, label: string): RemoteDataset {
       if (this.mode !== 'raw') return null; // Can only split on 'raw' datasets
       if (!this.canHandleSplit(splitExpression)) return null;
@@ -227,28 +249,13 @@ module Core {
     }
 
     public addAction(action: Action): RemoteDataset {
-      var value = this.valueOf();
       var expression = action.expression;
-
       if (action instanceof FilterAction) {
-        if (!expression.resolved()) return null;
+        return this.addFilter(expression);
+      }
 
-        switch (this.mode) {
-          case 'raw':
-            if (!this.canHandleFilter(expression)) return null;
-            value.filter = value.filter.and(expression).simplify();
-            break;
-
-          case 'split':
-            if (!this.canHandleHavingFilter(expression)) return null;
-            value.havingFilter = value.havingFilter.and(expression).simplify();
-            break;
-
-          default:
-            return null; // can not add filter in total mode
-        }
-
-      } else if (action instanceof DefAction) {
+      var value = this.valueOf();
+      if (action instanceof DefAction) {
         if (expression.type !== 'DATASET') return null;
 
         switch (this.mode) {

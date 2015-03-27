@@ -8,25 +8,30 @@ if not WallTime.rules
 facet = require('../../../build/facet')
 { Expression, Dataset, TimeRange } = facet.core
 
+wikiDataset = Dataset.fromJS({
+  source: 'druid',
+  dataSource: 'wikipedia_editstream',
+  timeAttribute: 'time',
+  forceInterval: true,
+  approximate: true,
+  context: null
+  attributes: {
+    time: { type: 'TIME' }
+    language: { type: 'STRING' }
+    page: { type: 'STRING' }
+    added: { type: 'NUMBER' }
+  }
+})
+
 context = {
-  wiki: Dataset.fromJS({
-    source: 'druid',
-    dataSource: 'wikipedia_editstream',
-    timeAttribute: 'time',
-    forceInterval: true,
-    approximate: true,
-    context: null
-    attributes: {
-      time: { type: 'TIME' }
-      language: { type: 'STRING' }
-      page: { type: 'STRING' }
-      added: { type: 'NUMBER' }
-    }
-    filter: facet('time').in(TimeRange.fromJS({
-      start: new Date("2013-02-26T00:00:00Z")
-      end: new Date("2013-02-27T00:00:00Z")
-    }))
-  })
+  wiki: wikiDataset.addFilter(facet('time').in(TimeRange.fromJS({
+    start: new Date("2013-02-26T00:00:00Z")
+    end: new Date("2013-02-27T00:00:00Z")
+  })))
+  wikiCmp: wikiDataset.addFilter(facet('time').in(TimeRange.fromJS({
+    start: new Date("2013-02-25T00:00:00Z")
+    end: new Date("2013-02-26T00:00:00Z")
+  })))
 }
 
 describe "RemoteDataset", ->
@@ -127,3 +132,27 @@ describe "RemoteDataset", ->
       remoteDataset = ex.operand.value
       expect(remoteDataset.defs).to.have.length(1)
       expect(remoteDataset.applies).to.have.length(2)
+
+    it "a union", ->
+      ex = facet('wiki').group('$page').union(facet('wikiCmp').group('$page')).label('Page')
+        .def('wiki', '$wiki.filter($page = $^Page)')
+        .def('wikiCmp', '$wikiCmp.filter($page = $^Page)')
+        .apply('CountDiff', '$wiki.count() - $wikiCmp.count()')
+        .sort('$CountDiff', 'descending')
+        .limit(5)
+
+      ex = ex.referenceCheck(context).resolve(context).simplify()
+
+      console.log("ex.toString()", ex.toString());
+      
+#      expect(ex.op).to.equal('literal')
+#      remoteDataset = ex.value
+#      expect(remoteDataset.defs).to.have.length(1)
+#      expect(remoteDataset.applies).to.have.length(2)
+#
+#      expect(remoteDataset.simulate().toJS()).to.deep.equal([
+#        "Added": 4
+#        "Count": 4
+#        "Page": "some_page"
+#      ])
+      

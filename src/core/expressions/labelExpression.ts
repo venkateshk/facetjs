@@ -69,6 +69,33 @@ module Core {
           })
         }
       }
+
+      // Try to do this simplification
+      // facet('Data1').group('$cut').union(facet('Data2').group('$cut')).label('Cut')
+      //    ==>
+      // facet('Data1').group('$cut').label('Cut').join(facet('Data2').group('$cut').label('Cut'))
+      if (simpleOperand instanceof UnionExpression) {
+        var unionLhs = simpleOperand.lhs;
+        var unionRhs = simpleOperand.rhs;
+        if (unionLhs instanceof AggregateExpression &&
+            unionRhs instanceof AggregateExpression &&
+            (unionLhs.hasRemote() || unionRhs.hasRemote())) {
+          return new JoinExpression({
+            op: 'join',
+            lhs: new LabelExpression({
+              op: 'label',
+              name: this.name,
+              operand: unionLhs
+            }),
+            rhs: new LabelExpression({
+              op: 'label',
+              name: this.name,
+              operand: unionRhs
+            })
+          }).simplify();
+        }
+      }
+
       return null;
     }
 

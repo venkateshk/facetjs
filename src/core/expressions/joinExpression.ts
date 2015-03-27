@@ -17,7 +17,7 @@ module Core {
     }
 
     public toString(): string {
-      return `${this.lhs.toString()} JOIN ${this.rhs.toString()}`;
+      return `${this.lhs.toString()}.join(${this.rhs.toString()})`;
     }
 
     protected _getFnHelper(lhsFn: ComputeFn, rhsFn: ComputeFn): ComputeFn {

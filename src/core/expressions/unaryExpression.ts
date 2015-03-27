@@ -52,7 +52,7 @@ module Core {
       var special = this._specialSimplify(simpleOperand);
       if (special) return special;
 
-      if (simpleOperand.isOp('literal')) {
+      if (simpleOperand.isOp('literal') && !simpleOperand.hasRemote()) {
         return new LiteralExpression({
           op: 'literal',
           value: this._getFnHelper(simpleOperand.getFn())(null)

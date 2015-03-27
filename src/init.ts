@@ -78,6 +78,9 @@ function concatMap<T, U>(arr: T[], fn: (t: T) => U[]): U[] {
   return Array.prototype.concat.apply([], arr.map(fn));
 }
 
+function repeat(str: string, times: number): string {
+  return new Array(times + 1).join(str);
+}
 
 module Core {
   export var expressionParser = <Parser>require("../parser/expression");

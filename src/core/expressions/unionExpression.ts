@@ -24,7 +24,7 @@ module Core {
       var lhsType = lhs.type;
       var rhsType = rhs.type;
       if (String(lhsType).indexOf('/') > 0 && String(rhsType).indexOf('/') > 0 && lhsType !== rhsType) {
-        throw new TypeError('UNION expression must have matching srt types, (are: ' + lhsType + ', ' + rhsType + ')');
+        throw new TypeError(`UNION expression must have matching set types, (are: ${lhsType}, ${rhsType})`);
       }
       this.type = String(lhsType).indexOf('/') > 0 ? lhsType : rhsType;
     }

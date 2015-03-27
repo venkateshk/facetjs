@@ -1,8 +1,4 @@
 module Core {
-  function repeat(str: string, times: number): string {
-    return new Array(times + 1).join(str);
-  }
-
   export var possibleTypes: Lookup<number> = {
     'NULL': 1,
     'BOOLEAN': 1,
@@ -108,18 +104,6 @@ module Core {
 
     public isRemote(): boolean {
       return Boolean(this.remote && this.remote.length);
-    }
-
-    public getReferences(): string[] {
-      return [this.name];
-    }
-
-    public every(iter: BooleanExpressionIterator): boolean {
-      return iter(this) !== false;
-    }
-
-    public forEach(iter: VoidExpressionIterator): void {
-      iter(this);
     }
 
     public _fillRefSubstitutions(typeContext: FullType, alterations: Alteration[]): FullType {

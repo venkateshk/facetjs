@@ -82,23 +82,14 @@ module Core {
       }
     }
 
-    public getReferences(): string[] {
-      return dedupSort(Array.prototype.concat.apply([], this.operands.map((operand) => operand.getReferences())));
-    }
-
     public getOperandOfType(type: string): Expression[] {
       return this.operands.filter((operand) => operand.isOp(type));
     }
 
-    public every(iter: BooleanExpressionIterator): boolean {
-      var pass = iter(this);
+    public _everyHelper(iter: BooleanExpressionIterator, depth: number, genDiff: number): boolean {
+      var pass = iter(this, depth, genDiff);
       if (pass != null) return false;
-      return this.operands.every((operand) => operand.every(iter));
-    }
-
-    public forEach(iter: VoidExpressionIterator): void {
-      iter(this);
-      this.operands.forEach((operand) => operand.forEach(iter));
+      return this.operands.every((operand) => operand._everyHelper(iter, depth + 1, genDiff));
     }
 
     public _substituteHelper(substitutionFn: SubstitutionFn, depth: number, genDiff: number): Expression {

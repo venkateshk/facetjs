@@ -125,18 +125,6 @@ module Core {
       }
     }
 
-    public getReferences(): string[] {
-      return [];
-    }
-
-    public every(iter: BooleanExpressionIterator): boolean {
-      return iter(this) !== false;
-    }
-
-    public forEach(iter: VoidExpressionIterator): void {
-      iter(this);
-    }
-
     public isRemote(): boolean {
       return this.value instanceof Dataset && this.value.source !== 'native';
     }

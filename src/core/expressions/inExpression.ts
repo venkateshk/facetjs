@@ -75,7 +75,7 @@ module Core {
 
     public mergeAnd(exp: Expression): Expression {
       if (!this.checkLefthandedness()) return null; //TODO Do something about A is B and C in A
-      if (!checkArrayEquality(this.getReferences(), exp.getReferences())) return null;
+      if (!checkArrayEquality(this.getFreeReferences(), exp.getFreeReferences())) return null;
 
       if (exp instanceof IsExpression) {
         return exp.mergeAnd(this);
@@ -103,7 +103,7 @@ module Core {
 
     public mergeOr(exp: Expression): Expression {
       if (!this.checkLefthandedness()) return null; //TODO Do something about A is B and C in A
-      if (!checkArrayEquality(this.getReferences(), exp.getReferences())) return null;
+      if (!checkArrayEquality(this.getFreeReferences(), exp.getFreeReferences())) return null;
 
       if (exp instanceof IsExpression) {
         return exp.mergeOr(this);

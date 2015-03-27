@@ -4,11 +4,11 @@ module Core {
   }
 
   export interface BooleanExpressionIterator {
-    (ex: Expression): boolean;
+    (ex: Expression, depth?: number, genDiff?: number): boolean;
   }
 
   export interface VoidExpressionIterator {
-    (ex: Expression): void;
+    (ex: Expression, depth?: number, genDiff?: number): void;
   }
 
   export interface ExpressionValue {
@@ -355,12 +355,19 @@ module Core {
     }
 
     /**
-     * Introspects self to look for all references expressions and returns the alphabetically sorted list of the references
+     * Introspects self to look for all free references
+     * returns the alphabetically sorted list of the references
      *
      * @returns {string[]}
      */
-    public getReferences(): string[] {
-      throw new Error('can not call on base');
+    public getFreeReferences(): string[] {
+      var freeReferences: string[] = [];
+      this.forEach((ex: Expression, depth: number, genDiff: number) => {
+        if (ex instanceof RefExpression && genDiff <= ex.generations.length) {
+          freeReferences.push(repeat('^', ex.generations.length - genDiff) + ex.name);
+        }
+      });
+      return dedupSort(freeReferences);
     }
 
     /**
@@ -408,7 +415,11 @@ module Core {
      * @returns {boolean}
      */
     public every(iter: BooleanExpressionIterator): boolean {
-      throw new Error('can not call on base');
+      return this._everyHelper(iter, 0, 0);
+    }
+
+    public _everyHelper(iter: BooleanExpressionIterator, depth: number, genDiff: number): boolean {
+      return iter(this, depth, genDiff) !== false;
     }
 
     /**
@@ -418,8 +429,8 @@ module Core {
      * @returns {boolean}
      */
     public some(iter: BooleanExpressionIterator): boolean {
-      return !this.every((ex: Expression) => {
-        var v = iter(ex);
+      return !this.every((ex: Expression, depth: number, genDiff: number) => {
+        var v = iter(ex, depth, genDiff);
         return (v == null) ? null : !v;
       });
     }
@@ -431,7 +442,10 @@ module Core {
      * @returns {boolean}
      */
     public forEach(iter: VoidExpressionIterator): void {
-      throw new Error('can not call on base');
+      this.every((ex: Expression, depth: number, genDiff: number) => {
+        iter(ex, depth, genDiff);
+        return null;
+      });
     }
 
     /**
@@ -449,6 +463,7 @@ module Core {
       if (sub) return sub;
       return this;
     }
+
 
     public getFn(): ComputeFn {
       throw new Error('should never be called directly');
@@ -469,7 +484,7 @@ module Core {
     public separateViaAnd(refName: string): Separation {
       if (typeof refName !== 'string') throw new Error('must have refName');
       if (this.type !== 'BOOLEAN') return null;
-      var myRef = this.getReferences();
+      var myRef = this.getFreeReferences();
       if (myRef.length > 1 && myRef.indexOf(refName) !== -1) return null;
       if (myRef[0] === refName) {
         return {

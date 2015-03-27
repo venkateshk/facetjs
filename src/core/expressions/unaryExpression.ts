@@ -65,10 +65,6 @@ module Core {
       return new (Expression.classMap[this.op])(simpleValue);
     }
 
-    public getReferences(): string[] {
-      return this.operand.getReferences();
-    }
-
     public getOperandOfType(type: string): Expression[] {
       if (this.operand.isOp(type)) {
         return [this.operand];
@@ -77,23 +73,14 @@ module Core {
       }
     }
 
-    protected _specialEvery(iter: BooleanExpressionIterator): boolean {
-      return true;
-    }
-
-    public every(iter: BooleanExpressionIterator): boolean {
-      var pass = iter(this);
+    public _everyHelper(iter: BooleanExpressionIterator, depth: number, genDiff: number): boolean {
+      var pass = iter(this, depth, genDiff);
       if (pass != null) return pass;
-      return this.operand.every(iter) && this._specialEvery(iter);
+      return this.operand._everyHelper(iter, depth + 1, genDiff) && this._specialEvery(iter, depth, genDiff);
     }
 
-    protected _specialForEach(iter: VoidExpressionIterator): void {
-    }
-
-    public forEach(iter: VoidExpressionIterator): void {
-      iter(this);
-      this.operand.forEach(iter);
-      this._specialForEach(iter);
+    protected _specialEvery(iter: BooleanExpressionIterator, depth: number, genDiff: number): boolean {
+      return true;
     }
 
     public _substituteHelper(substitutionFn: SubstitutionFn, depth: number, genDiff: number): Expression {

@@ -133,7 +133,7 @@ describe "RemoteDataset", ->
       expect(remoteDataset.defs).to.have.length(1)
       expect(remoteDataset.applies).to.have.length(2)
 
-    it "a union", ->
+    it "a union of ", ->
       ex = facet('wiki').group('$page').union(facet('wikiCmp').group('$page')).label('Page')
         .def('wiki', '$wiki.filter($page = $^Page)')
         .def('wikiCmp', '$wikiCmp.filter($page = $^Page)')

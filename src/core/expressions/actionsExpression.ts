@@ -141,7 +141,7 @@ module Core {
       var alphabeticallySortedActions = simplifiedActions.filter((action) => !(action instanceof LimitAction))
       for (var i = 0; i < alphabeticallySortedActions.length; i++) {
         thisAction = alphabeticallySortedActions[i];
-        references = thisAction.expression.getReferences();
+        references = thisAction.expression.getFreeReferences();
 
         if (thisAction instanceof DefAction || thisAction instanceof ApplyAction) {
           seen["$" + thisAction.name] = true;
@@ -163,10 +163,10 @@ module Core {
 
       // initial steps
       rootNodes = alphabeticallySortedActions.filter(function (thisAction) {
-        return (thisAction.expression.getReferences().every((ref) => referenceMap[ref] === 0));
+        return (thisAction.expression.getFreeReferences().every((ref) => referenceMap[ref] === 0));
       });
       alphabeticallySortedActions = alphabeticallySortedActions.filter(function (thisAction) {
-        return !(thisAction.expression.getReferences().every((ref) => !referenceMap[ref]));
+        return !(thisAction.expression.getFreeReferences().every((ref) => !referenceMap[ref]));
       });
 
       // Start sorting
@@ -180,7 +180,7 @@ module Core {
         var i = 0;
         while (i < alphabeticallySortedActions.length) {
           var thisAction = alphabeticallySortedActions[i];
-          references = thisAction.expression.getReferences();
+          references = thisAction.expression.getFreeReferences();
           if (references.every((ref) => referenceMap[ref] === 0)) {
             rootNodes.push(alphabeticallySortedActions.splice(i, 1)[0]);
           } else {
@@ -256,12 +256,8 @@ module Core {
       return new ActionsExpression(simpleValue);
     }
 
-    protected _specialEvery(iter: BooleanExpressionIterator): boolean {
-      return this.actions.every((action) => action.every(iter));
-    }
-
-    protected _specialForEach(iter: VoidExpressionIterator): void {
-      return this.actions.forEach((action) => action.forEach(iter));
+    protected _specialEvery(iter: BooleanExpressionIterator, depth: number, genDiff: number): boolean {
+      return this.actions.every((action) => action._everyHelper(iter, depth + 1, genDiff + 1));
     }
 
     public _substituteHelper(substitutionFn: SubstitutionFn, depth: number, genDiff: number): Expression {

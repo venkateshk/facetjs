@@ -93,12 +93,8 @@ module Core {
       throw new Error("can not getSQL with complex operand");
     }
 
-    protected _specialEvery(iter: BooleanExpressionIterator): boolean {
-      return this.attribute ? this.attribute.every(iter) : true;
-    }
-
-    protected _specialForEach(iter: VoidExpressionIterator): void {
-      if (this.attribute) this.attribute.forEach(iter);
+    protected _specialEvery(iter: BooleanExpressionIterator, depth: number, genDiff: number): boolean {
+      return this.attribute ? this.attribute._everyHelper(iter, depth + 1, genDiff + 1) : true;
     }
 
     public _substituteHelper(substitutionFn: SubstitutionFn, depth: number, genDiff: number): Expression {

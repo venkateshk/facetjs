@@ -299,6 +299,29 @@ module Core {
       return mergeRemoteDatasets(remoteDatasets);
     }
 
+    public getRemoteDatasetIds(): string[] {
+      if (this.data.length === 0) return [];
+      var datum = this.data[0];
+      var push = Array.prototype.push;
+      var remoteDatasetIds: string[] = [];
+      Object.keys(datum).forEach((applyName) => {
+        var applyValue = datum[applyName];
+        if (applyName !== '$def') {
+          if (applyValue instanceof Dataset) {
+            push.apply(remoteDatasetIds, applyValue.getRemoteDatasets());
+          }
+        } else {
+          Object.keys(applyValue).forEach((defName) => {
+            var defValue = applyValue[defName];
+            if (defValue instanceof Dataset) {
+              push.apply(remoteDatasetIds, defValue.getRemoteDatasets());
+            }
+          })
+        }
+      });
+      return deduplicateSort(remoteDatasetIds);
+    }
+
     public join(other: NativeDataset): NativeDataset {
       var thisKey = this.key;
       var otherKey = other.key;

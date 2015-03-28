@@ -205,8 +205,8 @@ module Core {
         this.context === other.context;
     }
 
-    public toHash(): string {
-      return super.toHash() + ':' + this.dataSource;
+    public getId(): string {
+      return super.getId() + ':' + this.dataSource;
     }
 
     // -----------------

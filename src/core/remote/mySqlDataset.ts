@@ -92,8 +92,8 @@ module Core {
         this.table === other.table;
     }
 
-    public toHash(): string {
-      return super.toHash() + ':' + this.table;
+    public getId(): string {
+      return super.getId() + ':' + this.table;
     }
 
     // -----------------

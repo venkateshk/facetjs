@@ -176,6 +176,10 @@ module Core {
       return [this];
     }
 
+    public getRemoteDatasetIds(): string[] {
+      return [this.getId()]
+    }
+
     // -----------------
 
     public canHandleFilter(ex: Expression): boolean {
@@ -188,6 +192,10 @@ module Core {
 
     public canHandleSplit(ex: Expression): boolean {
       throw new Error("must implement canHandleSplit");
+    }
+
+    public canHandleApply(ex: Expression): boolean {
+      throw new Error("must implement canHandleApply");
     }
 
     public canHandleSort(sortAction: SortAction): boolean {

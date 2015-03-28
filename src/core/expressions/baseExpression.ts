@@ -11,6 +11,11 @@ module Core {
     (ex: Expression, depth?: number, genDiff?: number): void;
   }
 
+  export interface DatasetBreakdown {
+    byDataset: Lookup<ApplyAction[]>;
+    combine: Expression;
+  }
+
   export interface ExpressionValue {
     op: string;
     type?: string;
@@ -74,22 +79,6 @@ module Core {
     }
     var merged = Object.keys(lookup);
     return merged.length ? merged.sort() : null;
-  }
-
-  export function dedupSort(a: string[]): string[] {
-    a = a.sort();
-    var newA: string[] = [];
-    var last: string = null;
-    for (var i = 0; i < a.length; i++) {
-      var v = a[i];
-      if (v !== last) newA.push(v);
-      last = v;
-    }
-    return newA
-  }
-
-  export function checkArrayEquality<T>(a: Array<T>, b: Array<T>): boolean {
-    return a.length === b.length && a.every((item, i) => (item === b[i]));
   }
 
   /**
@@ -344,6 +333,19 @@ module Core {
       });
     }
 
+    public getRemoteDatasetIds(): string[] {
+      var remoteDatasetIds: string[] = [];
+      var push = Array.prototype.push;
+      this.forEach(function(ex: Expression) {
+        if (ex instanceof LiteralExpression && ex.type === 'DATASET') {
+          push.apply(remoteDatasetIds, (<Dataset>ex.value).getRemoteDatasetIds());
+        } else if (ex instanceof RefExpression) {
+          push.apply(remoteDatasetIds, ex.remote);
+        }
+      });
+      return deduplicateSort(remoteDatasetIds);
+    }
+
     public getRemoteDatasets(): RemoteDataset[] {
       var remoteDatasets: RemoteDataset[][] = [];
       this.forEach(function(ex: Expression) {
@@ -367,7 +369,7 @@ module Core {
           freeReferences.push(repeat('^', ex.generations.length - genDiff) + ex.name);
         }
       });
-      return dedupSort(freeReferences);
+      return deduplicateSort(freeReferences);
     }
 
     /**
@@ -496,6 +498,41 @@ module Core {
           included: Expression.TRUE,
           excluded: this
         }
+      }
+    }
+
+    public breakdownByDataset(tempNamePrefix: string): DatasetBreakdown {
+      var nameIndex = 0;
+      var byDataset: Lookup<ApplyAction[]> = {};
+      var combine = this.substitute((ex) => {
+        var remoteDatasets = ex.getRemoteDatasetIds();
+        if (remoteDatasets.length !== 1) return null;
+        
+        var remoteDataset = remoteDatasets[0];
+        if (!hasOwnProperty(byDataset, remoteDataset)) byDataset[remoteDataset] = [];
+        var datasetApplies = byDataset[remoteDataset];
+        var existingApply = Legacy.driverUtil.find(datasetApplies, (apply) => apply.expression.equals(ex));
+
+        var tempName: string;
+        if (existingApply) {
+          tempName = existingApply.name;
+        } else {
+          tempName = tempNamePrefix + (nameIndex++);
+          datasetApplies.push(new ApplyAction({
+            action: 'apply',
+            name: tempName,
+            expression: ex
+          }));
+        }
+
+        return new RefExpression({
+          op: 'ref',
+          name: tempName
+        })
+      });
+      return {
+        combine: combine,
+        byDataset: byDataset
       }
     }
 

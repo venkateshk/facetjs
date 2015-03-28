@@ -64,9 +64,9 @@ module Core {
     var seen: Lookup<RemoteDataset> = {};
     remoteGroups.forEach((remoteGroup) => {
       remoteGroup.forEach((remote) => {
-        var hash = remote.toHash();
-        if (seen[hash]) return;
-        seen[hash] = remote;
+        var id = remote.getId();
+        if (seen[id]) return;
+        seen[id] = remote;
       })
     });
     return Object.keys(seen).sort().map((k) => seen[k]);
@@ -202,7 +202,7 @@ module Core {
         this.source === other.source;
     }
 
-    public toHash(): string {
+    public getId(): string {
       return this.source;
     }
 
@@ -214,7 +214,7 @@ module Core {
       var attributes = this.attributes;
       if (!attributes) throw new Error("dataset has not been introspected");
       
-      var remote = this.source === 'native' ? null : [this.toHash()];
+      var remote = this.source === 'native' ? null : [this.getId()];
 
       var myDatasetType: Lookup<FullType> = {};
       for (var attrName in attributes) {
@@ -249,7 +249,11 @@ module Core {
     }
 
     public getRemoteDatasets(): RemoteDataset[] {
-      throw new Error("can not call this directly")
+      throw new Error("can not call this directly");
+    }
+
+    public getRemoteDatasetIds(): string[] {
+      throw new Error("can not call this directly");
     }
   }
   check = Dataset;

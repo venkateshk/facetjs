@@ -82,6 +82,22 @@ function repeat(str: string, times: number): string {
   return new Array(times + 1).join(str);
 }
 
+function deduplicateSort(a: string[]): string[] {
+  a = a.sort();
+  var newA: string[] = [];
+  var last: string = null;
+  for (var i = 0; i < a.length; i++) {
+    var v = a[i];
+    if (v !== last) newA.push(v);
+    last = v;
+  }
+  return newA
+}
+
+function checkArrayEquality<T>(a: Array<T>, b: Array<T>): boolean {
+  return a.length === b.length && a.every((item, i) => (item === b[i]));
+}
+
 module Core {
   export var expressionParser = <Parser>require("../parser/expression");
 

@@ -21,6 +21,10 @@ module Core {
     postAggregations: Druid.PostAggregation[];
   }
 
+  function correctTimeBoundaryResult(result: Druid.TimeBoundaryResults): boolean {
+    return Array.isArray(result) && result.length === 0;
+  }
+
   function correctTimeseriesResult(result: Druid.TimeseriesResults): boolean {
     return Array.isArray(result) && (result.length === 0 || typeof result[0].result === 'object');
   }
@@ -31,6 +35,35 @@ module Core {
 
   function correctGroupByResult(result: Druid.GroupByResults): boolean {
     return Array.isArray(result) && (result.length === 0 || typeof result[0].event === 'object');
+  }
+
+  function makePostProcessTimeBoundary(applies: ApplyAction[]): PostProcess {
+    return (res: Druid.TimeBoundaryResults): NativeDataset => {
+      if (!correctTimeBoundaryResult(res)) {
+        var err = new Error("unexpected result from Druid (timeBoundary)");
+        (<any>err).result = res; // ToDo: special error type
+        throw err;
+      }
+
+      var result = res[0].result;
+      var datum: Datum = {};
+      for (var i = 0; i < applies.length; i++) {
+        var apply = applies[i];
+        var name = apply.name;
+        var aggregate = (<AggregateExpression>apply.expression).fn;
+        if (typeof result === 'string') {
+          datum[name] = new Date(result);
+        } else {
+          if (aggregate === 'max') {
+            datum[name] = new Date(<string>(result['maxIngestedEventTime'] || result['maxTime']));
+          } else {
+            datum[name] = new Date(<string>(result['minTime']));
+          }
+        }
+      }
+
+      return new NativeDataset({source: 'native', data: [datum]});
+    };
   }
 
   function postProcessTotal(res: Druid.TimeseriesResults): NativeDataset {
@@ -443,6 +476,10 @@ return (start < 0 ?'-':'') + parts.join('.');
       };
     }
 
+    public isTimeRef(ex: Expression) {
+      return ex instanceof RefExpression && ex.name === this.timeAttribute;
+    }
+
     public splitToDruid(): DruidSplit {
       var splitExpression = this.split;
       var label = this.key;
@@ -481,23 +518,17 @@ return (start < 0 ?'-':'') + parts.join('.');
         }
 
       } else if (splitExpression instanceof TimeBucketExpression) {
-        var refExpression = splitExpression.operand;
-        if (refExpression instanceof RefExpression) {
-          if (refExpression.name === this.timeAttribute) {
-            queryType = 'timeseries';
-            granularity = {
-              type: "period",
-              period: splitExpression.duration.toString(),
-              timeZone: splitExpression.timezone.toString()
-            };
-            postProcess = makePostProcessTimeseries(splitExpression.duration, splitExpression.timezone, label);
-          } else {
-            // ToDo: add this maybe?
-            throw new Error('can not time bucket non time dimension: ' + refExpression.toString())
-          }
+        if (this.isTimeRef(splitExpression.operand)) {
+          queryType = 'timeseries';
+          granularity = {
+            type: "period",
+            period: splitExpression.duration.toString(),
+            timeZone: splitExpression.timezone.toString()
+          };
+          postProcess = makePostProcessTimeseries(splitExpression.duration, splitExpression.timezone, label);
 
         } else {
-          throw new Error('can not convert complex time bucket: ' + refExpression.toString())
+          throw new Error(`can not convert complex time bucket: ${splitExpression.operand.toString()}`)
         }
 
       } else if (splitExpression instanceof NumberBucketExpression) {
@@ -745,7 +776,7 @@ return (start < 0 ?'-':'') + parts.join('.');
           };
 
         } else {
-          throw new Error("can not convert " + filter.toString() + " to Druid filter");
+          throw new Error(`can not convert ${filter.toString()} to Druid filter`);
         }
 
       } else if (filter instanceof InExpression) {
@@ -775,7 +806,7 @@ return (start < 0 ?'-':'') + parts.join('.');
             throw new Error("not supported " + rhsType);
           }
         } else {
-          throw new Error("can not convert " + filter.toString() + " to Druid having filter");
+          throw new Error(`can not convert ${filter.toString()} to Druid having filter`);
         }
 
       } else if (filter instanceof LessThanExpression) {
@@ -810,11 +841,50 @@ return (start < 0 ?'-':'') + parts.join('.');
         };
 
       } else {
-        throw new Error("could not convert filter " + filter.toString() + " to Druid filter");
+        throw new Error(`could not convert filter ${filter.toString()} to Druid filter`);
       }
     }
 
+    public isMinMaxTimeApply(apply: ApplyAction): boolean {
+      var applyExpression = apply.expression;
+      if (applyExpression instanceof AggregateExpression) {
+        return this.isTimeRef(applyExpression.attribute) &&
+          (applyExpression.fn === "min" || applyExpression.fn === "max");
+      } else {
+        return false;
+      }
+    }
+
+    public getTimeBoundaryQueryAndPostProcess(): QueryAndPostProcess<Druid.Query> {
+      var druidQuery: Druid.Query = {
+        queryType: "timeBoundary",
+        dataSource: this.getDruidDataSource()
+      };
+
+      //if (queryBuilder.hasContext()) {
+      //  druidQuery.context = queryBuilder.context;
+      //}
+
+      var applies = this.applies;
+      if (applies.length === 1) {
+        // Max time only
+        druidQuery.bound = (<AggregateExpression>applies[0].expression).fn + "Time";
+        //if (this.useDataSourceMetadata) {
+        //  druidQuery.queryType = "dataSourceMetadata";
+        //}
+      }
+
+      return {
+        query: druidQuery,
+        postProcess: makePostProcessTimeBoundary(this.applies)
+      };
+    }
+
     public getQueryAndPostProcess(): QueryAndPostProcess<Druid.Query> {
+      if (this.applies.every(this.isMinMaxTimeApply, this)) {
+        return this.getTimeBoundaryQueryAndPostProcess();
+      }
+
       var druidQuery: Druid.Query = {
         queryType: 'timeseries',
         dataSource: this.getDruidDataSource(),
@@ -822,15 +892,24 @@ return (start < 0 ?'-':'') + parts.join('.');
         granularity: 'all'
       };
 
+      var filterAndIntervals = this.filterToDruid(this.filter);
+      druidQuery.intervals = filterAndIntervals.intervals;
+      if (filterAndIntervals.filter) {
+        druidQuery.filter = filterAndIntervals.filter;
+      }
+
       switch (this.mode) {
+        case 'raw':
+          druidQuery.queryType = 'select';
+          druidQuery.dimensions = [];
+          druidQuery.metrics = [];
+          druidQuery.pagingSpec = {
+            "pagingIdentifiers": {},
+            "threshold": 10000
+          };
+          break;
+
         case 'total':
-          var filterAndIntervals = this.filterToDruid(this.filter);
-
-          druidQuery.intervals = filterAndIntervals.intervals;
-          if (filterAndIntervals.filter) {
-            druidQuery.filter = filterAndIntervals.filter;
-          }
-
           var aggregationsAndPostAggregations = this.applyToDruid(this.applies);
           if (aggregationsAndPostAggregations.aggregations.length) {
             druidQuery.aggregations = aggregationsAndPostAggregations.aggregations;
@@ -845,13 +924,6 @@ return (start < 0 ?'-':'') + parts.join('.');
           };
 
         case 'split':
-          var filterAndIntervals = this.filterToDruid(this.filter);
-
-          druidQuery.intervals = filterAndIntervals.intervals;
-          if (filterAndIntervals.filter) {
-            druidQuery.filter = filterAndIntervals.filter;
-          }
-
           var aggregationsAndPostAggregations = this.applyToDruid(this.applies);
           if (aggregationsAndPostAggregations.aggregations.length) {
             druidQuery.aggregations = aggregationsAndPostAggregations.aggregations;

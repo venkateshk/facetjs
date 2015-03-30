@@ -507,7 +507,7 @@ module Core {
       var combine = this.substitute((ex) => {
         var remoteDatasets = ex.getRemoteDatasetIds();
         if (remoteDatasets.length !== 1) return null;
-        
+
         var remoteDataset = remoteDatasets[0];
         if (!hasOwnProperty(byDataset, remoteDataset)) byDataset[remoteDataset] = [];
         var datasetApplies = byDataset[remoteDataset];

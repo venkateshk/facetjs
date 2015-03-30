@@ -1,3 +1,7 @@
+{
+  var base = { op: 'literal', value: [{}] };
+}
+
 start
   = _ ex:Expression _ { return ex; }
 
@@ -264,7 +268,7 @@ Leaf
   = "(" _ ex:Expression _ ")" { return ex; }
   / Literal
   / Ref
-  / "facet()" { return { op: 'literal', value: [{}] }; }
+  / "facet()" { return base; }
 
 Ref
   = "$" name:RefName ":" type:TypeName
@@ -320,10 +324,10 @@ TypeName "TypeName"
   = $([A-Z_/]+)
 
 NotSQuote "NotSQuote"
-  = $([^']+)
+  = $([^']*)
 
 NotDQuote "NotDQuote"
-  = $([^"]+)
+  = $([^"]*)
 
 _ "Whitespace"
   = $([ \t\r\n]*)

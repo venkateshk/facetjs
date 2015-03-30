@@ -298,6 +298,14 @@ declare module Druid {
         metrics: string[];
     }
 
+    // http://druid.io/docs/0.7.0/TimeBoundaryQuery.html
+    interface TimeBoundaryDatum {
+        timestamp: string;
+        result: string | Result; // string in case of useDataSourceMetadata
+    }
+
+    type TimeBoundaryResults = Array<TimeBoundaryDatum>;
+
     // http://druid.io/docs/0.7.0/TopNQuery.html
     // http://druid.io/docs/0.7.0/SearchQuery.html
     interface Result {

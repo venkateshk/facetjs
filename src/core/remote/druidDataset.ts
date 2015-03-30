@@ -881,7 +881,7 @@ return (start < 0 ?'-':'') + parts.join('.');
     }
 
     public getQueryAndPostProcess(): QueryAndPostProcess<Druid.Query> {
-      if (this.applies.every(this.isMinMaxTimeApply, this)) {
+      if (this.applies && this.applies.every(this.isMinMaxTimeApply, this)) {
         return this.getTimeBoundaryQueryAndPostProcess();
       }
 
@@ -907,7 +907,11 @@ return (start < 0 ?'-':'') + parts.join('.');
             "pagingIdentifiers": {},
             "threshold": 10000
           };
-          break;
+          
+          return {
+            query: druidQuery,
+            postProcess: postProcessTotal
+          };
 
         case 'total':
           var aggregationsAndPostAggregations = this.applyToDruid(this.applies);

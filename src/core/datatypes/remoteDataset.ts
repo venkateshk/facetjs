@@ -299,7 +299,7 @@ module Core {
         }
 
       } else if (action instanceof ApplyAction) {
-        if (expression.type !== 'NUMBER') return null;
+        if (expression.type !== 'NUMBER' && expression.type !== 'TIME') return null;
 
         if (this.mode === 'raw') {
           value.derivedAttributes = value.derivedAttributes.concat(action);

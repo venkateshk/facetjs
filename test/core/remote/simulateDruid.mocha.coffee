@@ -444,4 +444,3 @@ describe "simulate Druid", ->
         "bound": "minTime"
       }
     ])
-    

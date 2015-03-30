@@ -24,17 +24,23 @@ module Core {
     constructor(parameters: ExpressionValue) {
       super(parameters, dummyObject);
       this.fn = parameters.fn;
-      this.attribute = parameters.attribute;
       this._ensureOp("aggregate");
       this._checkTypeOfOperand('DATASET');
-      if (this.fn !== 'count' && !this.attribute) {
-        throw new Error(this.fn + " aggregate must have an 'attribute'");
-      }
-      if (this.fn === 'group') {
-        var attrType = this.attribute.type;
-        this.type = attrType ? ('SET/' + attrType) : null;
-      } else {
+
+      if (this.fn === 'count') {
+        if (parameters.attribute) throw new Error(`count aggregate can not have an 'attribute'`);
         this.type = 'NUMBER';
+      } else {
+        if (!parameters.attribute) throw new Error(`${this.fn} aggregate must have an 'attribute'`);
+        this.attribute = parameters.attribute;
+        var attrType = this.attribute.type;
+        if (this.fn === 'group') {
+          this.type = attrType ? ('SET/' + attrType) : null;
+        } else if (this.fn === 'min' || this.fn === 'max') {
+          this.type = attrType;
+        } else {
+          this.type = 'NUMBER';
+        }
       }
     }
 
@@ -140,7 +146,7 @@ module Core {
 
     public _fillRefSubstitutions(typeContext: FullType, alterations: Alteration[]): FullType {
       var datasetContext = this.operand._fillRefSubstitutions(typeContext, alterations);
-      var attributeType = 'NUMBER';
+      var attributeType = 'NUMBER'; // In case of count
       if (this.attribute) {
         attributeType = this.attribute._fillRefSubstitutions(datasetContext, alterations).type;
       }

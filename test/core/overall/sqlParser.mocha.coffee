@@ -14,7 +14,7 @@ describe "SQL parser", ->
       SELECT
       SUM(`added`) AS 'TotalAdded'
       FROM `wiki`
-      WHERE `language`="en"
+      WHERE `language`="en"    -- This is just some comment
       GROUP BY ''
       """)
 
@@ -35,6 +35,7 @@ describe "SQL parser", ->
         COUNT() AS 'Count',
         SUM(`added`) AS 'TotalAdded'
         GROUP BY `page`
+        HAVING `TotalAdded` > 100
         ORDER BY `Count` DESC
         LIMIT 10
       ) AS 'Pages'
@@ -50,6 +51,7 @@ describe "SQL parser", ->
         facet('data').split('$page', 'Page')
           .apply('Count', '$data.count()')
           .apply('TotalAdded', '$data.sum($added)')
+          .filter('$TotalAdded > 100')
           .sort('$Count', 'descending')
           .limit(10)
       )

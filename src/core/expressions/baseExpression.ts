@@ -161,7 +161,7 @@ module Core {
      */
     static parseSQL(str: string): Expression {
       var ps = parseSQL(str);
-      console.log("ps", JSON.stringify(ps, null, 2));
+      //console.log("ps", JSON.stringify(ps, null, 2));
       return Expression.fromJS(ps);
     }
 

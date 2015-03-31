@@ -1,6 +1,7 @@
 {
   var base = { op: 'literal', value: [{}] };
   var dataRef = { op: 'ref', name: 'data' };
+  var parentDataRef = { op: 'ref', name: '^data' };
 
   function equals(a, b) {
     aKeys = Object.keys(a).sort();
@@ -45,7 +46,7 @@ start
   = _ query:SQLQuery _ { return query; }
 
 SQLQuery
-  = "SELECT" __ columns:Columns from:From where:Where? groupBy:GroupBy? orderBy:OrderBy? limit:Limit?
+  = "SELECT" __ columns:Columns from:From where:Where? groupBy:GroupBy? having:Having? orderBy:OrderBy? limit:Limit?
     {
       var operand = null;
       var groupByDef = null;
@@ -70,10 +71,13 @@ SQLQuery
           groupByDef = {
             action: 'def',
             name: 'data',
-            expression: {
-              op: 'is',
-              lhs: groupBy,
-              rhs: { op: 'ref', name: '^' + extract.label }
+            expression: { 
+              op: 'actions',
+              operand: parentDataRef,
+              actions: [{
+                action: 'filter',
+                expression: { op: 'is', lhs: groupBy, rhs: { op: 'ref', name: '^' + extract.label }}
+              }]
             }
           }
         }
@@ -102,6 +106,9 @@ SQLQuery
         });
       }
       actions = actions.concat(columns);
+      if (having) {
+        actions.push(having);
+      }
       if (orderBy) {
         actions.push(orderBy);
       }
@@ -117,7 +124,7 @@ SQLQuery
     }
 
 SQLSubQuery
-  = "SELECT" __ columns:Columns groupBy:GroupBy? orderBy:OrderBy? limit:Limit?
+  = "SELECT" __ columns:Columns groupBy:GroupBy? having:Having? orderBy:OrderBy? limit:Limit?
     {
       var operand = null;
       var groupByDef = null;
@@ -134,7 +141,7 @@ SQLSubQuery
             name: extract.label,
             operand: {
               op: 'aggregate',
-              operand: base,
+              operand: dataRef,
               fn: 'group',
               attribute: groupBy
             }
@@ -142,10 +149,13 @@ SQLSubQuery
           groupByDef = {
             action: 'def',
             name: 'data',
-            expression: {
-              op: 'is',
-              lhs: groupBy,
-              rhs: { op: 'ref', name: '^' + extract.label }
+            expression: { 
+              op: 'actions',
+              operand: parentDataRef,
+              actions: [{
+                action: 'filter',
+                expression: { op: 'is', lhs: groupBy, rhs: { op: 'ref', name: '^' + extract.label }}
+              }]
             }
           }
         }
@@ -162,6 +172,9 @@ SQLSubQuery
         });
       }
       actions = actions.concat(columns);
+      if (having) {
+        actions.push(having);
+      }
       if (orderBy) {
         actions.push(orderBy);
       }
@@ -208,15 +221,13 @@ GroupBy
   = __ "GROUP" __ "BY" __ groupBy:Expression
     { return groupBy; }
 
+Having
+  = __ "HAVING" __ having:Expression
+    { return { action: 'filter', expression: having }; }
+
 OrderBy
   = __ "ORDER" __ "BY" __ orderBy:Expression direction:Direction?
-    {
-      return {
-        action: 'sort',
-        expression: orderBy,
-        direction: direction || 'ascending'
-      };
-    }
+    { return { action: 'sort', expression: orderBy, direction: direction || 'ascending' }; }
 
 Direction
   = __ "ASC"  { return 'ascending'; }
@@ -224,12 +235,7 @@ Direction
 
 Limit
   = __ "LIMIT" __ limit:Number
-    {
-      return {
-        action: 'limit',
-        limit: limit
-      };
-    }
+    { return { action: 'limit', limit: limit }; }
 
 Expression
   = BinaryExpression
@@ -348,7 +354,13 @@ NotDQuote "NotDQuote"
   = $([^"]*)
 
 _ "Whitespace"
-  = $([ \t\r\n]*)
+  = $ ([ \t\r\n] / SingleLineComment)*
 
 __ "Mandatory Whitespace"
-  = $([ \t\r\n]+)
+  = $ ([ \t\r\n] / SingleLineComment)+
+
+SingleLineComment
+  = "--" (!LineTerminator .)*
+
+LineTerminator
+  = [\n\r\u2028\u2029]

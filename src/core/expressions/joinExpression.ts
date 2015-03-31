@@ -66,6 +66,30 @@ module Core {
         remote: mergeRemotes([lhsFullType.remote, rhsFullType.remote])
       };
     }
+
+    public digest(action: Action): Digest {
+      var lhs = this.lhs;
+      var rhs = this.rhs;
+      if (lhs instanceof LiteralExpression && rhs instanceof LiteralExpression) {
+        var lhsValue = lhs.value;
+        var rhsValue = rhs.value;
+        if (lhsValue instanceof RemoteDataset && rhsValue instanceof RemoteDataset) {
+          //var newRemoteDataset = remoteDataset.addAction(action);
+          //if (!newRemoteDataset) return null;
+          //return {
+          //  undigested: null,
+          //  expression: new LiteralExpression({
+          //    op: 'literal',
+          //    value: newRemoteDataset
+          //  })
+          //};
+        } else {
+          return null;
+        }
+      } else {
+        return null;
+      }
+    }
   }
 
   Expression.register(JoinExpression);

@@ -157,10 +157,27 @@ module Core {
         return Q(this.value);
       }
     }
+
+    public digest(action: Action): Digest {
+      var remoteDataset = this.value;
+      if (remoteDataset instanceof RemoteDataset) {
+        var newRemoteDataset = remoteDataset.addAction(action);
+        if (!newRemoteDataset) return null;
+        return {
+          undigested: null,
+          expression: new LiteralExpression({
+            op: 'literal',
+            value: newRemoteDataset
+          })
+        };
+      } else {
+        return null;
+      }
+    }
   }
 
-  Expression.FALSE = <LiteralExpression>(new LiteralExpression({op: 'literal', value: false}));
-  Expression.TRUE = <LiteralExpression>(new LiteralExpression({op: 'literal', value: true}));
+  Expression.FALSE = new LiteralExpression({op: 'literal', value: false});
+  Expression.TRUE = new LiteralExpression({op: 'literal', value: true});
 
   Expression.register(LiteralExpression);
 }

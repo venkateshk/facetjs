@@ -43,6 +43,7 @@ describe "simulate MySQL", ->
       .apply('Cuts',
         facet("diamonds").split("$cut", 'Cut')
           .apply('Count', facet('diamonds').count())
+          .apply('PercentOfTotal', '$^Count / $Count')
           .sort('$Count', 'descending')
           .limit(2)
           .apply('Time',
@@ -78,7 +79,8 @@ describe "simulate MySQL", ->
     expect(queryPlan[1]).to.equal("""
       SELECT
       `cut` AS 'Cut',
-      COUNT(1) AS 'Count'
+      COUNT(1) AS 'Count',
+      ((1/`Count`)*4) AS 'PercentOfTotal'
       FROM `diamonds`
       WHERE (`color`="D")
       GROUP BY `cut`

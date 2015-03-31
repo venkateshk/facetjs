@@ -12,8 +12,13 @@ module Core {
   }
 
   export interface DatasetBreakdown {
-    byDataset: Lookup<ApplyAction[]>;
-    combine: Expression;
+    singleDatasetActions: ApplyAction[];
+    combineExpression: Expression;
+  }
+
+  export interface Digest {
+    expression: Expression;
+    undigested: ApplyAction;
   }
 
   export interface ExpressionValue {
@@ -160,9 +165,7 @@ module Core {
      * @returns {Expression}
      */
     static parseSQL(str: string): Expression {
-      var ps = parseSQL(str);
-      //console.log("ps", JSON.stringify(ps, null, 2));
-      return Expression.fromJS(ps);
+      return Expression.fromJS(parseSQL(str));
     }
 
     /**
@@ -524,22 +527,25 @@ module Core {
 
     public breakdownByDataset(tempNamePrefix: string): DatasetBreakdown {
       var nameIndex = 0;
-      var byDataset: Lookup<ApplyAction[]> = {};
+      var singleDatasetActions: ApplyAction[] = [];
+
+      var remoteDatasets = this.getRemoteDatasetIds();
+      if (remoteDatasets.length < 2) {
+        throw new Error('not a multiple dataset expression');
+      }
+
       var combine = this.substitute((ex) => {
         var remoteDatasets = ex.getRemoteDatasetIds();
         if (remoteDatasets.length !== 1) return null;
 
-        var remoteDataset = remoteDatasets[0];
-        if (!hasOwnProperty(byDataset, remoteDataset)) byDataset[remoteDataset] = [];
-        var datasetApplies = byDataset[remoteDataset];
-        var existingApply = Legacy.driverUtil.find(datasetApplies, (apply) => apply.expression.equals(ex));
+        var existingApply = Legacy.driverUtil.find(singleDatasetActions, (apply) => apply.expression.equals(ex));
 
         var tempName: string;
         if (existingApply) {
           tempName = existingApply.name;
         } else {
           tempName = tempNamePrefix + (nameIndex++);
-          datasetApplies.push(new ApplyAction({
+          singleDatasetActions.push(new ApplyAction({
             action: 'apply',
             name: tempName,
             expression: ex
@@ -552,9 +558,13 @@ module Core {
         })
       });
       return {
-        combine: combine,
-        byDataset: byDataset
+        combineExpression: combine,
+        singleDatasetActions: singleDatasetActions
       }
+    }
+
+    public digest(action: Action): Digest {
+      throw new Error(`not possible for ${this.op}`);
     }
 
     // ------------------------------------------------------------------------

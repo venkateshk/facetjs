@@ -216,38 +216,36 @@ module Core {
 
       // These are actions on a remote dataset
       var remoteDatasets = this.getRemoteDatasets();
-      if (simpleOperand instanceof LiteralExpression && remoteDatasets.length) {
-        var remoteDataset: RemoteDataset;
-        if ((<LiteralExpression>simpleOperand).isRemote()) {
-          remoteDataset = (<LiteralExpression>simpleOperand).value;
-        } else if (simpleActions.some(isRemoteSimpleApply)) {
+      var digestedOperand = simpleOperand;
+      if (digestedOperand instanceof LiteralExpression && remoteDatasets.length) {
+        if (!(<LiteralExpression>simpleOperand).isRemote() && simpleActions.some(isRemoteSimpleApply)) {
           if (remoteDatasets.length === 1) {
-            remoteDataset = remoteDatasets[0].makeTotal();
+            digestedOperand = new LiteralExpression({
+              op: 'literal',
+              value: remoteDatasets[0].makeTotal()
+            });
           } else {
             throw new Error('not done yet')
           }
         }
 
-        if (remoteDataset) {
-          var absorbedDefs: DefAction[] = [];
-          while (simpleActions.length) {
-            var action: Action = simpleActions[0];
-            var newRemoteDataset = remoteDataset.addAction(action);
-            if (!newRemoteDataset) break;
-            simpleActions.shift();
-            remoteDataset = newRemoteDataset;
-            if (action instanceof DefAction) absorbedDefs.push(action);
-          }
-          if ((<LiteralExpression>simpleOperand).value !== remoteDataset) {
-            simpleOperand = new LiteralExpression({
-              op: 'literal',
-              value: remoteDataset
-            });
-            var defsToAddBack: Action[] = absorbedDefs.filter((def) => {
-              return Action.actionsDependOn(simpleActions, def.name);
-            });
-            simpleActions = defsToAddBack.concat(simpleActions);
-          }
+        var absorbedDefs: DefAction[] = [];
+        var undigestedActions: ApplyAction[] = [];
+        while (simpleActions.length) {
+          var action: Action = simpleActions[0];
+          var digest = digestedOperand.digest(action);
+          if (!digest) break;
+          simpleActions.shift();
+          digestedOperand = digest.expression;
+          if (digest.undigested) undigestedActions.push(digest.undigested);
+          if (action instanceof DefAction) absorbedDefs.push(action);
+        }
+        if (simpleOperand !== digestedOperand) {
+          simpleOperand = digestedOperand;
+          var defsToAddBack: Action[] = absorbedDefs.filter((def) => {
+            return Action.actionsDependOn(simpleActions, def.name);
+          });
+          simpleActions = defsToAddBack.concat(undigestedActions, simpleActions);
         }
       }
 

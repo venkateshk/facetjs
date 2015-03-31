@@ -1,31 +1,167 @@
 {
   var base = { op: 'literal', value: [{}] };
   var dataRef = { op: 'ref', name: 'data' };
+
+  function equals(a, b) {
+    aKeys = Object.keys(a).sort();
+    bKeys = Object.keys(b).sort();
+    if (String(aKeys) !== String(bKeys)) return false;
+    for (var i = 0; i < aKeys.length; i++) {
+      var key = aKeys[i];
+      var va = a[key];
+      var vb = b[key];
+      var tva = typeof va;
+      if (tva !== typeof vb) return false;
+      if (tva === 'object') {
+        if (!equals(va, vb)) return false;
+      } else {
+        if (va !== vb) return false;
+      }
+    }
+    return true;
+  }
+
+  function extractGroupByColumn(columns, groupBy) {
+    var label = null;
+    var applyColumns = [];
+    for (var i = 0; i < columns.length; i++) {
+      var column = columns[i];
+      if (equals(groupBy, column.expression)) {
+        if (label) throw new Error('already have a label');
+        label = column.name;
+      } else {
+        applyColumns.push(column);
+      }
+    }
+    if (!label) label = 'split';
+    return {
+      label: label,
+      applyColumns: applyColumns
+    };
+  }
 }
 
 start
-  = _ q:SQLQuery _ { return q; }
+  = _ query:SQLQuery _ { return query; }
 
 SQLQuery
-  = "SELECT" __ columns:Columns from:From groupBy:GroupBy? orderBy:OrderBy? limit:Limit?
+  = "SELECT" __ columns:Columns from:From where:Where? groupBy:GroupBy? orderBy:OrderBy? limit:Limit?
     {
       var operand = null;
-      if (groupBy) {
+      var groupByDef = null;
+      if (!groupBy) {
+        operand = dataRef;
+      } else {
         if (groupBy.op === 'literal') {
           operand = base;
         } else {
+          var extract = extractGroupByColumn(columns, groupBy);
+          columns = extract.applyColumns;
           operand = {
-            op: 'aggregate',
-            operand: base,
-            fn: 'group',
-            attribute: groupBy
+            op: 'label',
+            name: extract.label,
+            operand: {
+              op: 'aggregate',
+              operand: dataRef,
+              fn: 'group',
+              attribute: groupBy
+            }
           };
+          groupByDef = {
+            action: 'def',
+            name: 'data',
+            expression: {
+              op: 'is',
+              lhs: groupBy,
+              rhs: { op: 'ref', name: '^' + extract.label }
+            }
+          }
         }
-      } else {
-        operand = dataRef;
       }
 
-      var actions = columns.slice();
+      var dataFrom = from;
+      if (where) {
+        dataFrom = {
+          op: 'actions',
+          operand: dataFrom,
+          actions: [{
+            action: 'filter',
+            expression: where
+          }]
+        };
+      }
+
+      var actions = [];
+      if (groupByDef) {
+        actions.push(groupByDef);
+      } else {
+        actions.push({
+          action: 'def',
+          name: 'data',
+          expression: dataFrom
+        });
+      }
+      actions = actions.concat(columns);
+      if (orderBy) {
+        actions.push(orderBy);
+      }
+      if (limit) {
+        actions.push(limit);
+      }
+
+      return {
+        op: 'actions',
+        operand: operand,
+        actions: actions
+      };
+    }
+
+SQLSubQuery
+  = "SELECT" __ columns:Columns groupBy:GroupBy? orderBy:OrderBy? limit:Limit?
+    {
+      var operand = null;
+      var groupByDef = null;
+      if (!groupBy) {
+        operand = dataRef;
+      } else {
+        if (groupBy.op === 'literal') {
+          operand = base;
+        } else {
+          var extract = extractGroupByColumn(columns, groupBy);
+          columns = extract.applyColumns;
+          operand = {
+            op: 'label',
+            name: extract.label,
+            operand: {
+              op: 'aggregate',
+              operand: base,
+              fn: 'group',
+              attribute: groupBy
+            }
+          };
+          groupByDef = {
+            action: 'def',
+            name: 'data',
+            expression: {
+              op: 'is',
+              lhs: groupBy,
+              rhs: { op: 'ref', name: '^' + extract.label }
+            }
+          }
+        }
+      }
+
+      var actions = [];
+      if (groupByDef) {
+        actions.push(groupByDef);
+      } else {
+        actions.push({
+          action: 'def',
+          name: 'data',
+          expression: dataRef
+        });
+      }
+      actions = actions.concat(columns);
       if (orderBy) {
         actions.push(orderBy);
       }
@@ -61,8 +197,8 @@ As
   = __ "AS" __ name:String { return name; }
 
 From
-  = __ "FROM" __ table:Ref where:Where?
-    { return where; }
+  = __ "FROM" __ table:Ref
+    { return table; }
 
 Where
   = __ "WHERE" __ filter:Expression
@@ -74,11 +210,11 @@ GroupBy
 
 OrderBy
   = __ "ORDER" __ "BY" __ orderBy:Expression direction:Direction?
-    { 
+    {
       return {
         action: 'sort',
         expression: orderBy,
-        direction: direction
+        direction: direction || 'ascending'
       };
     }
 
@@ -88,7 +224,7 @@ Direction
 
 Limit
   = __ "LIMIT" __ limit:Number
-    { 
+    {
       return {
         action: 'limit',
         limit: limit
@@ -143,19 +279,16 @@ MultiplicativeExpression
 
 Factor
   = "(" _ ex:Expression _ ")" { return ex; }
+  / "(" _ subQuery:SQLSubQuery _ ")" { return subQuery; }
   / Literal
   / Ref
   / Aggregate
 
 Aggregate
-  = "SUM(" ex:Expression ")"
-    { 
-      return {
-        op: 'aggregate',
-        operand: dataRef,
-        aggregate: ex
-      };
-    }
+  = "COUNT()"
+    { return { op: 'aggregate', fn: 'count', operand: dataRef }; }
+  / "SUM(" _ ex:Expression _ ")"
+    { return { op: 'aggregate', fn: 'sum', operand: dataRef, attribute: ex }; }
 
 Ref
   = "`" name:RefName "`"

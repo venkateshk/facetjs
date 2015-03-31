@@ -100,6 +100,7 @@ function checkArrayEquality<T>(a: Array<T>, b: Array<T>): boolean {
 
 module Core {
   export var expressionParser = <Parser>require("../parser/expression");
+  export var sqlParser = <Parser>require("../parser/sql");
 
   export var isInstanceOf = HigherObject.isInstanceOf;
   export var isHigherObject = HigherObject.isHigherObject;

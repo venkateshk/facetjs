@@ -8,7 +8,7 @@ if not WallTime.rules
 facet = require('../../../build/facet')
 { Expression } = facet.core
 
-describe "parser", ->
+describe "expression parser", ->
   it "it should parse the mega definition", ->
     ex = facet()
       .filter('$color = "Red"')

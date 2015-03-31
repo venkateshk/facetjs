@@ -116,7 +116,16 @@ module Core {
       return expressionParser.parse(str);
     } catch (e) {
       // Re-throw to add the stacktrace
-      throw new Error('Parse error ' + e.message + ' on `' + str + '`');
+      throw new Error('Expression parse error ' + e.message + ' on `' + str + '`');
+    }
+  }
+
+  function parseSQL(str: string): ExpressionJS {
+    try {
+      return sqlParser.parse(str);
+    } catch (e) {
+      // Re-throw to add the stacktrace
+      throw new Error('SQL parse error ' + e.message + ' on `' + str + '`');
     }
   }
 
@@ -142,6 +151,18 @@ module Core {
      */
     static parse(str: string): Expression {
       return Expression.fromJS(parseExpression(str));
+    }
+
+    /**
+     * Parses SQL statements into facet expressions
+     *
+     * @param str The SQL to parse
+     * @returns {Expression}
+     */
+    static parseSQL(str: string): Expression {
+      var ps = parseSQL(str);
+      console.log("ps", JSON.stringify(ps, null, 2));
+      return Expression.fromJS(ps);
     }
 
     /**

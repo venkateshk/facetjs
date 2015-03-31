@@ -22,7 +22,6 @@ describe "SQL parser", ->
       .def('data', '$wiki.filter($language = "en")')
       .apply('TotalAdded', '$data.sum($added)')
 
-
     expect(ex.toJS()).to.deep.equal(ex2.toJS())
 
   it "it should parse a total + split expression", ->
@@ -33,7 +32,9 @@ describe "SQL parser", ->
         SELECT
         `page` AS 'Page',
         COUNT() AS 'Count',
-        SUM(`added`) AS 'TotalAdded'
+        SUM(`added`) AS 'TotalAdded',
+        min(`added`) AS 'MinAdded',
+        mAx(`added`) AS 'MaxAdded'
         GROUP BY `page`
         HAVING `TotalAdded` > 100
         ORDER BY `Count` DESC
@@ -51,6 +52,8 @@ describe "SQL parser", ->
         facet('data').split('$page', 'Page')
           .apply('Count', '$data.count()')
           .apply('TotalAdded', '$data.sum($added)')
+          .apply('MinAdded', '$data.min($added)')
+          .apply('MaxAdded', '$data.max($added)')
           .filter('$TotalAdded > 100')
           .sort('$Count', 'descending')
           .limit(10)

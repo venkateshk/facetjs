@@ -564,10 +564,6 @@ module Core {
       }
     }
 
-    public digest(action: Action): Digest {
-      throw new Error(`not possible for ${this.op}`);
-    }
-
     // ------------------------------------------------------------------------
     // API behaviour
 

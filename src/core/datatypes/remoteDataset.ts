@@ -407,5 +407,110 @@ module Core {
           return <RemoteDataset>(new ClassFn(value));
         })
     }
+
+    // ------------------------
+
+    private _joinDigestHelper(joinExpression: JoinExpression, action: Action): JoinExpression {
+      var ids = action.expression.getRemoteDatasetIds();
+      if (ids.length !== 1) throw new Error('must be single dataset');
+      if (ids[0] === (<RemoteDataset>(<LiteralExpression>joinExpression.lhs).value).getId()) {
+        var lhsDigest = this.digest(joinExpression.lhs, action);
+        if (!lhsDigest) return null;
+        return new JoinExpression({
+          op: 'join',
+          lhs: lhsDigest.expression,
+          rhs: joinExpression.rhs
+        });
+      } else {
+        var rhsDigest = this.digest(joinExpression.rhs, action);
+        if (!rhsDigest) return null;
+        return new JoinExpression({
+          op: 'join',
+          lhs: joinExpression.lhs,
+          rhs: rhsDigest.expression
+        });
+      }
+    }
+
+    public digest(expression: Expression, action: Action): Digest {
+      if (expression instanceof LiteralExpression) {
+        var remoteDataset = expression.value;
+        if (remoteDataset instanceof RemoteDataset) {
+          var newRemoteDataset = remoteDataset.addAction(action);
+          if (!newRemoteDataset) return null;
+          return {
+            undigested: null,
+            expression: new LiteralExpression({
+              op: 'literal',
+              value: newRemoteDataset
+            })
+          };
+        } else {
+          return null;
+        }
+
+      } else if (expression instanceof JoinExpression) {
+        var lhs = expression.lhs;
+        var rhs = expression.rhs;
+        if (lhs instanceof LiteralExpression && rhs instanceof LiteralExpression) {
+          var lhsValue = lhs.value;
+          var rhsValue = rhs.value;
+          if (lhsValue instanceof RemoteDataset && rhsValue instanceof RemoteDataset) {
+            var actionExpression = action.expression;
+
+            if (action instanceof DefAction) {
+              var actionDatasets = actionExpression.getRemoteDatasetIds();
+              if (actionDatasets.length !== 1) return null;
+              newJoin = this._joinDigestHelper(expression, action);
+              if (!newJoin) return null;
+              return {
+                expression: newJoin,
+                undigested: null
+              };
+
+            } else if (action instanceof ApplyAction) {
+              var actionDatasets = actionExpression.getRemoteDatasetIds();
+              if (!actionDatasets.length) return null;
+              var newJoin: JoinExpression = null;
+              if (actionDatasets.length === 1) {
+                newJoin = this._joinDigestHelper(expression, action);
+                if (!newJoin) return null;
+                return {
+                  expression: newJoin,
+                  undigested: null
+                };
+              } else {
+                var breakdown = actionExpression.breakdownByDataset('_br_');
+                var singleDatasetActions = breakdown.singleDatasetActions;
+                newJoin = expression;
+                for (var i = 0; i < singleDatasetActions.length && newJoin; i++) {
+                  newJoin = this._joinDigestHelper(newJoin, singleDatasetActions[i]);
+                }
+                if (!newJoin) return null;
+                return {
+                  expression: newJoin,
+                  undigested: new ApplyAction({
+                    action: 'apply',
+                    name: (<ApplyAction>action).name,
+                    expression: breakdown.combineExpression
+                  })
+                };
+              }
+
+            } else {
+              return null;
+            }
+          } else {
+            return null;
+          }
+        } else {
+          return null;
+        }
+
+      } else {
+        throw new Error(`can not digest ${expression.op}`);
+      }
+    }
+
   }
 }

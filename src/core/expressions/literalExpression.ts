@@ -158,22 +158,6 @@ module Core {
       }
     }
 
-    public digest(action: Action): Digest {
-      var remoteDataset = this.value;
-      if (remoteDataset instanceof RemoteDataset) {
-        var newRemoteDataset = remoteDataset.addAction(action);
-        if (!newRemoteDataset) return null;
-        return {
-          undigested: null,
-          expression: new LiteralExpression({
-            op: 'literal',
-            value: newRemoteDataset
-          })
-        };
-      } else {
-        return null;
-      }
-    }
   }
 
   Expression.FALSE = new LiteralExpression({op: 'literal', value: false});

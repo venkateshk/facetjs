@@ -216,13 +216,15 @@ module Core {
 
       // These are actions on a remote dataset
       var remoteDatasets = this.getRemoteDatasets();
+      var remoteDataset: RemoteDataset;
       var digestedOperand = simpleOperand;
       if (remoteDatasets.length && (digestedOperand instanceof LiteralExpression || digestedOperand instanceof JoinExpression)) {
+        remoteDataset = remoteDatasets[0];
         if (digestedOperand instanceof LiteralExpression && !digestedOperand.isRemote() && simpleActions.some(isRemoteSimpleApply)) {
           if (remoteDatasets.length === 1) {
             digestedOperand = new LiteralExpression({
               op: 'literal',
-              value: remoteDatasets[0].makeTotal()
+              value: remoteDataset.makeTotal()
             });
           } else {
             throw new Error('not done yet')
@@ -233,7 +235,7 @@ module Core {
         var undigestedActions: ApplyAction[] = [];
         while (simpleActions.length) {
           var action: Action = simpleActions[0];
-          var digest = digestedOperand.digest(action);
+          var digest = remoteDataset.digest(digestedOperand, action);
           if (!digest) break;
           simpleActions.shift();
           digestedOperand = digest.expression;

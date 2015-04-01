@@ -699,6 +699,7 @@ module Core {
     public lessThanOrEqual(ex: any) { return this._performBinaryExpression({ op: 'lessThanOrEqual' }, ex); }
     public greaterThan(ex: any) { return this._performBinaryExpression({ op: 'greaterThan' }, ex); }
     public greaterThanOrEqual(ex: any) { return this._performBinaryExpression({ op: 'greaterThanOrEqual' }, ex); }
+    public contains(ex: any) { return this._performBinaryExpression({ op: 'contains' }, ex); }
 
     public in(start: Date, end: Date): Expression;
     public in(start: number, end: number): Expression;

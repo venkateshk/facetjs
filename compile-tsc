@@ -32,6 +32,7 @@ node_modules/.bin/tsc --noImplicitAny --noEmitOnError --declaration --removeComm
   src/core/expressions/greaterThanExpression.ts \
   src/core/expressions/greaterThanOrEqualExpression.ts \
   src/core/expressions/inExpression.ts \
+  src/core/expressions/containsExpression.ts \
   src/core/expressions/isExpression.ts \
   src/core/expressions/labelExpression.ts \
   src/core/expressions/lessThanExpression.ts \

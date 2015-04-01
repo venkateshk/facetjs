@@ -37,6 +37,10 @@ module Core {
     return Array.isArray(result) && (result.length === 0 || typeof result[0].event === 'object');
   }
 
+  function correctSelectResult(result: Druid.SelectResults): boolean {
+    return Array.isArray(result) && (result.length === 0 || typeof result[0].result === 'object');
+  }
+
   function makePostProcessTimeBoundary(applies: ApplyAction[]): PostProcess {
     return (res: Druid.TimeBoundaryResults): NativeDataset => {
       if (!correctTimeBoundaryResult(res)) {
@@ -159,6 +163,18 @@ module Core {
     return new NativeDataset({
       source: 'native',
       data: res.map((r) => r.event)
+    });
+  }
+
+  function postProcessSelect(res: Druid.SelectResults): NativeDataset {
+    if (!correctSelectResult(res)) {
+      var err = new Error("unexpected result from Druid (select)");
+      (<any>err).result = res; // ToDo: special error type
+      throw err;
+    }
+    return new NativeDataset({
+      source: 'native',
+      data: res[0].result.events.map((event) => event.event)
     });
   }
 
@@ -926,7 +942,7 @@ return (start < 0 ?'-':'') + parts.join('.');
           
           return {
             query: druidQuery,
-            postProcess: postProcessTotal
+            postProcess: postProcessSelect
           };
 
         case 'total':

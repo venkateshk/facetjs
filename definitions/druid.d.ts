@@ -351,4 +351,23 @@ declare module Druid {
     }
 
     type SegmentMetadataResults = Array<SegmentMetadataDatum>;
+
+    // http://druid.io/docs/0.7.0/SelectQuery.html
+    interface Event {
+        segmentId: string;
+        offset: number;
+        event: Result;
+    }
+
+    interface SelectResult {
+        pagingIdentifiers: Lookup<number>;
+        events: Event[];
+    }
+
+    interface SelectDatum {
+        timestamp: string;
+        result: SelectResult;
+    }
+
+    type SelectResults = Array<SelectDatum>;
 }

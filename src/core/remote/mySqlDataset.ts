@@ -92,8 +92,8 @@ module Core {
         this.table === other.table;
     }
 
-    public toHash(): string {
-      return super.toHash() + ':' + this.table;
+    public getId(): string {
+      return super.getId() + ':' + this.table;
     }
 
     // -----------------
@@ -147,7 +147,7 @@ module Core {
 
         case 'split':
           query.push(
-            [`${this.split.getSQL(mySQLDialect)} AS '${this.label}'`]
+            [`${this.split.getSQL(mySQLDialect)} AS '${this.key}'`]
               .concat(this.applies.map((apply) => apply.getSQL(mySQLDialect))).join(',\n')
           );
           query.push('FROM ' + table);
@@ -172,7 +172,7 @@ module Core {
 
       return {
         query: query.join('\n'),
-        postProcess: postProcessFactory(this.split, this.label)
+        postProcess: postProcessFactory(this.split, this.key)
       };
     }
 

@@ -75,7 +75,7 @@ module Core {
 
       for (var j = 0; j < mergedSimplifiedOperands.length; j++) {
         thisOperand = mergedSimplifiedOperands[j];
-        referenceGroup = thisOperand.getReferences().toString();
+        referenceGroup = thisOperand.getFreeReferences().toString();
 
         if (groupedOperands[referenceGroup]) {
           groupedOperands[referenceGroup].push(thisOperand);

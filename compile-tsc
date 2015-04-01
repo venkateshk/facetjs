@@ -47,6 +47,8 @@ node_modules/.bin/tsc --noImplicitAny --noEmitOnError --declaration --removeComm
   src/core/expressions/refExpression.ts \
   src/core/expressions/timeBucketExpression.ts \
   src/core/expressions/timeOffsetExpression.ts \
+  src/core/expressions/unionExpression.ts \
+  src/core/expressions/joinExpression.ts \
   \
   src/core/actions/baseAction.ts \
   src/core/actions/applyAction.ts \

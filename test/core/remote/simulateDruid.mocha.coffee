@@ -408,3 +408,39 @@ describe "simulate Druid", ->
         "threshold": 10
       }
     ])
+
+  it "makes a timeBoundary query", ->
+    ex = facet()
+      .apply('maximumTime', '$diamonds.max($time)')
+      .apply('minimumTime', '$diamonds.min($time)')
+
+    expect(ex.simulateQueryPlan(context)).to.deep.equal([
+      {
+        "dataSource": "diamonds"
+        "queryType": "timeBoundary"
+      }
+    ])
+
+  it "makes a timeBoundary query (maxTime only)", ->
+    ex = facet()
+      .apply('maximumTime', '$diamonds.max($time)')
+
+    expect(ex.simulateQueryPlan(context)).to.deep.equal([
+      {
+        "dataSource": "diamonds"
+        "queryType": "timeBoundary"
+        "bound": "maxTime"
+      }
+    ])
+
+  it "makes a timeBoundary query (minTime only)", ->
+    ex = facet()
+      .apply('minimumTime', '$diamonds.min($time)')
+
+    expect(ex.simulateQueryPlan(context)).to.deep.equal([
+      {
+        "dataSource": "diamonds"
+        "queryType": "timeBoundary"
+        "bound": "minTime"
+      }
+    ])

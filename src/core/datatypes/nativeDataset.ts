@@ -1,6 +1,6 @@
 module Core {
   export interface ComputeFn {
-    (d: Datum): any;
+    (d: Datum, def?: boolean): any;
   }
 
   export interface ComputePromiseFn {
@@ -67,6 +67,20 @@ module Core {
       js[k] = valueToJSInlineType(datum[k]);
     }
     return js;
+  }
+
+  function joinDatums(datumA: Datum, datumB: Datum): Datum {
+    var newDatum: Datum = Object.create(null);
+    for (var k in datumA) {
+      newDatum[k] = datumA[k];
+    }
+    for (var k in datumB) {
+      newDatum[k] = datumB[k];
+    }
+    if (datumA.$def && datumB.$def) {
+      newDatum.$def = joinDatums(datumA.$def, datumB.$def);
+    }
+    return newDatum;
   }
 
   export class NativeDataset extends Dataset {
@@ -152,7 +166,7 @@ module Core {
       for (var i = 0; i < n; i++) {
         var datum = data[i];
         datum.$def = datum.$def || Object.create(null);
-        datum.$def[name] = exFn(datum);
+        datum.$def[name] = exFn(datum, true);
       }
       this.attributes = null; // Since we did the change in place, blow out the attributes
       return this;
@@ -283,6 +297,63 @@ module Core {
         }
       });
       return mergeRemoteDatasets(remoteDatasets);
+    }
+
+    public getRemoteDatasetIds(): string[] {
+      if (this.data.length === 0) return [];
+      var datum = this.data[0];
+      var push = Array.prototype.push;
+      var remoteDatasetIds: string[] = [];
+      Object.keys(datum).forEach((applyName) => {
+        var applyValue = datum[applyName];
+        if (applyName !== '$def') {
+          if (applyValue instanceof Dataset) {
+            push.apply(remoteDatasetIds, applyValue.getRemoteDatasets());
+          }
+        } else {
+          Object.keys(applyValue).forEach((defName) => {
+            var defValue = applyValue[defName];
+            if (defValue instanceof Dataset) {
+              push.apply(remoteDatasetIds, defValue.getRemoteDatasets());
+            }
+          })
+        }
+      });
+      return deduplicateSort(remoteDatasetIds);
+    }
+
+    public join(other: NativeDataset): NativeDataset {
+      var thisKey = this.key;
+      var otherKey = other.key;
+
+      var thisData = this.data;
+      var otherData = other.data;
+      var datum: Datum;
+      var k: string;
+
+      var mapping: Lookup<Datum[]> = Object.create(null);
+      for (var i = 0; i < thisData.length; i++) {
+        datum = thisData[i];
+        k = String(thisKey ? datum[thisKey] : i);
+        mapping[k] = [datum];
+      }
+      for (var i = 0; i < otherData.length; i++) {
+        datum = otherData[i];
+        k = String(otherKey ? datum[otherKey] : i);
+        if (!mapping[k]) mapping[k] = [];
+        mapping[k].push(datum);
+      }
+
+      var newData: Datum[] = [];
+      for (var j in mapping) {
+        var datums = mapping[j];
+        if (datums.length === 1) {
+          newData.push(datums[0]);
+        } else {
+          newData.push(joinDatums(datums[0], datums[1]));
+        }
+      }
+      return new NativeDataset({ source: 'native', data: newData });
     }
   }
 

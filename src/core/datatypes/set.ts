@@ -98,7 +98,7 @@ module Core {
     }
 
     public toString(): string {
-      return 'Set_' + this.setType + '(' + Object.keys(this.elements).length + ')';
+      return 'SET_' + this.setType + '(' + Object.keys(this.elements).length + ')';
     }
 
     public equals(other: Set): boolean {
@@ -189,6 +189,7 @@ module Core {
     public label(name: string): Dataset {
       return new NativeDataset({
         source: 'native',
+        key: name,
         data: this.getValues().map((v) => {
           var datum: Datum = {};
           datum[name] = v;

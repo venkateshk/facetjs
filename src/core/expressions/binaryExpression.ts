@@ -65,7 +65,7 @@ module Core {
       var special = this._specialSimplify(simpleLhs, simpleRhs);
       if (special) return special;
 
-      if (simpleLhs.isOp('literal') && simpleRhs.isOp('literal')) {
+      if (simpleLhs.isOp('literal') && simpleRhs.isOp('literal') && !simpleLhs.hasRemote() && !simpleRhs.hasRemote()) {
         return new LiteralExpression({
           op: 'literal',
           value: this._getFnHelper(simpleLhs.getFn(), simpleRhs.getFn())(null)
@@ -95,20 +95,10 @@ module Core {
       return null;
     }
 
-    public getReferences(): string[] {
-      return dedupSort(this.lhs.getReferences().concat(this.rhs.getReferences()));
-    }
-
-    public every(iter: BooleanExpressionIterator): boolean {
-      var pass = iter(this);
+    public _everyHelper(iter: BooleanExpressionIterator, depth: number, genDiff: number): boolean {
+      var pass = iter(this, depth, genDiff);
       if (pass != null) return pass;
-      return this.lhs.every(iter) && this.rhs.every(iter);
-    }
-
-    public forEach(iter: VoidExpressionIterator): void {
-      iter(this);
-      this.lhs.forEach(iter);
-      this.rhs.forEach(iter);
+      return this.lhs._everyHelper(iter, depth + 1, genDiff) && this.rhs._everyHelper(iter, depth + 1, genDiff);
     }
 
     public _substituteHelper(substitutionFn: SubstitutionFn, depth: number, genDiff: number): Expression {

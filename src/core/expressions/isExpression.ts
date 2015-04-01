@@ -32,14 +32,10 @@ module Core {
       return `(${lhsSQL}=${rhsSQL})`;
     }
 
-    public getComplexity(): number {
-      return 1 + this.lhs.getComplexity() + this.rhs.getComplexity();
-    }
-
     public mergeAnd(exp: Expression): Expression {
-      var references = this.getReferences();
+      var references = this.getFreeReferences();
 
-      if (!checkArrayEquality(references, exp.getReferences())) return null;
+      if (!checkArrayEquality(references, exp.getFreeReferences())) return null;
       if (this.type !== exp.type) return null;
 
       if (exp instanceof IsExpression) {
@@ -78,9 +74,9 @@ module Core {
     }
 
     public mergeOr(exp: Expression): Expression {
-      var references = this.getReferences();
+      var references = this.getFreeReferences();
 
-      if (!checkArrayEquality(references, exp.getReferences())) return null;
+      if (!checkArrayEquality(references, exp.getFreeReferences())) return null;
       if (this.type !== exp.type) return null;
 
       if (exp instanceof IsExpression) {

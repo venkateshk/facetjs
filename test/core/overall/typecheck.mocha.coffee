@@ -43,4 +43,4 @@ describe "typecheck", ->
         lhs: 5
         rhs: 'hello'
       })
-    ).to.throw('in expression has a bad type combo')
+    ).to.throw('in expression has a bad type combination NUMBER in STRING')

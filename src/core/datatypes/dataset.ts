@@ -2,6 +2,7 @@ module Core {
   export interface DatasetValue {
     source: string;
     attributes?: Lookup<AttributeInfo>;
+    key?: string;
 
     // Native
     data?: Datum[];
@@ -12,7 +13,6 @@ module Core {
     derivedAttributes?: ApplyAction[];
     filter?: Expression;
     split?: Expression;
-    label?: string;
     defs?: DefAction[];
     applies?: ApplyAction[];
     sort?: SortAction;
@@ -37,6 +37,7 @@ module Core {
   export interface DatasetJS {
     source: string;
     attributes?: Lookup<AttributeInfoJS>;
+    key?: string;
 
     // Native
     data?: Datum[];
@@ -63,9 +64,9 @@ module Core {
     var seen: Lookup<RemoteDataset> = {};
     remoteGroups.forEach((remoteGroup) => {
       remoteGroup.forEach((remote) => {
-        var hash = remote.toHash();
-        if (seen[hash]) return;
-        seen[hash] = remote;
+        var id = remote.getId();
+        if (seen[id]) return;
+        seen[id] = remote;
       })
     });
     return Object.keys(seen).sort().map((k) => seen[k]);
@@ -138,6 +139,7 @@ module Core {
 
     public source: string;
     public attributes: Lookup<AttributeInfo> = null;
+    public key: string = null;
 
     constructor(parameters: DatasetValue, dummy: Dummy = null) {
       this.source = parameters.source;
@@ -146,6 +148,9 @@ module Core {
       }
       if (parameters.attributes) {
         this.attributes = parameters.attributes;
+      }
+      if (parameters.key) {
+        this.key = parameters.key;
       }
     }
 
@@ -163,9 +168,8 @@ module Core {
       var value: DatasetValue = {
         source: this.source
       };
-      if (this.attributes) {
-        value.attributes = this.attributes;
-      }
+      if (this.attributes) value.attributes = this.attributes;
+      if (this.key) value.key = this.key;
       return value;
     }
 
@@ -181,6 +185,7 @@ module Core {
         }
         js.attributes = attributesJS;
       }
+      if (this.key) js.key = this.key;
       return js;
     }
 
@@ -197,7 +202,7 @@ module Core {
         this.source === other.source;
     }
 
-    public toHash(): string {
+    public getId(): string {
       return this.source;
     }
 
@@ -209,7 +214,7 @@ module Core {
       var attributes = this.attributes;
       if (!attributes) throw new Error("dataset has not been introspected");
       
-      var remote = this.source === 'native' ? null : [this.toHash()];
+      var remote = this.source === 'native' ? null : [this.getId()];
 
       var myDatasetType: Lookup<FullType> = {};
       for (var attrName in attributes) {
@@ -244,7 +249,11 @@ module Core {
     }
 
     public getRemoteDatasets(): RemoteDataset[] {
-      throw new Error("can not call this directly")
+      throw new Error("can not call this directly");
+    }
+
+    public getRemoteDatasetIds(): string[] {
+      throw new Error("can not call this directly");
     }
   }
   check = Dataset;

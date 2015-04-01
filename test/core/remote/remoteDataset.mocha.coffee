@@ -8,10 +8,29 @@ if not WallTime.rules
 facet = require('../../../build/facet')
 { Expression, Dataset, TimeRange } = facet.core
 
+wikiDataset = Dataset.fromJS({
+  source: 'druid',
+  dataSource: 'wikipedia_editstream',
+  timeAttribute: 'time',
+  forceInterval: true,
+  approximate: true,
+  context: null
+  attributes: {
+    time: { type: 'TIME' }
+    language: { type: 'STRING' }
+    page: { type: 'STRING' }
+    added: { type: 'NUMBER' }
+  }
+})
+
 context = {
-  wiki: Dataset.fromJS({
+  wiki: wikiDataset.addFilter(facet('time').in(TimeRange.fromJS({
+    start: new Date("2013-02-26T00:00:00Z")
+    end: new Date("2013-02-27T00:00:00Z")
+  })))
+  wikiCmp: Dataset.fromJS({
     source: 'druid',
-    dataSource: 'wikipedia_editstream',
+    dataSource: 'wikipedia_editstream_cmp',
     timeAttribute: 'time',
     forceInterval: true,
     approximate: true,
@@ -23,10 +42,15 @@ context = {
       added: { type: 'NUMBER' }
     }
     filter: facet('time').in(TimeRange.fromJS({
-      start: new Date("2013-02-26T00:00:00Z")
-      end: new Date("2013-02-27T00:00:00Z")
+      start: new Date("2013-02-25T00:00:00Z")
+      end: new Date("2013-02-26T00:00:00Z")
     }))
   })
+
+#  wikiDataset.addFilter(facet('time').in(TimeRange.fromJS({
+#    start: new Date("2013-02-25T00:00:00Z")
+#    end: new Date("2013-02-26T00:00:00Z")
+#  })))
 }
 
 describe "RemoteDataset", ->
@@ -85,7 +109,7 @@ describe "RemoteDataset", ->
       ex = ex.referenceCheck(context).resolve(context).simplify()
       
       expect(ex.op).to.equal('actions')
-      expect(ex.actions).to.have.length(3)
+      expect(ex.actions).to.have.length(2)
       remoteDataset = ex.operand.value
       expect(remoteDataset.defs).to.have.length(1)
       expect(remoteDataset.applies).to.have.length(2)
@@ -127,3 +151,29 @@ describe "RemoteDataset", ->
       remoteDataset = ex.operand.value
       expect(remoteDataset.defs).to.have.length(1)
       expect(remoteDataset.applies).to.have.length(2)
+
+    it "a union of two groups", ->
+      ex = facet('wiki').group('$page').union(facet('wikiCmp').group('$page')).label('Page')
+        .def('wiki', '$wiki.filter($page = $^Page)')
+        .def('wikiCmp', '$wikiCmp.filter($page = $^Page)')
+        .apply('Count', '$wiki.count()')
+        .apply('CountDiff', '$wiki.count() - $wikiCmp.count()')
+        .sort('$CountDiff', 'descending')
+        .limit(5)
+
+      ex = ex.referenceCheck(context).resolve(context).simplify()
+
+      # console.log("ex.toString()", ex.toString());
+      
+      expect(ex.op).to.equal('actions')
+      expect(ex.operand.op).to.equal('join')
+
+      remoteDatasetMain = ex.operand.lhs.value
+      expect(remoteDatasetMain.defs).to.have.length(1)
+      expect(remoteDatasetMain.applies).to.have.length(2)
+
+      remoteDatasetCmp = ex.operand.rhs.value
+      expect(remoteDatasetCmp.defs).to.have.length(1)
+      expect(remoteDatasetCmp.applies).to.have.length(1)
+
+      expect(ex.actions[0].toString()).to.equal('.apply(CountDiff, ($_br_0 + $_br_1))')

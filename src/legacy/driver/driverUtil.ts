@@ -129,7 +129,7 @@ module Legacy.driverUtil {
     applyNames.forEach((name) => {
       zeroRow[name] = <any>0;
     });
-    var mapping: { [key: string]: any } = {};
+    var mapping: Lookup<any[]> = {};
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
       if (!result) continue;
@@ -148,7 +148,7 @@ module Legacy.driverUtil {
       joinResult.push(joinRows(rows));
     }
     return joinResult;
-  };
+  }
 
   export function createTabular(root: SegmentTree, order?: string, rangeFn?: Function): Prop[] {
     if (!root) throw new TypeError("must have a tree");

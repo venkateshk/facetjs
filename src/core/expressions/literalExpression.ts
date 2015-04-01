@@ -59,7 +59,22 @@ module Core {
 
     public getFn(): ComputeFn {
       var value = this.value;
-      return () => value;
+
+      if (value instanceof RemoteDataset) {
+        var hasSimulated = false;
+        var simulatedValue: any;
+        return (d: Datum, def: boolean) => {
+          if (def) return value;
+          if (!hasSimulated) {
+            simulatedQueries.push(value.getQueryAndPostProcess().query);
+            simulatedValue = value.simulate();
+            hasSimulated = true;
+          }
+          return simulatedValue;
+        };
+      } else {
+        return () => value;
+      }
     }
 
     public getJSExpression(): string {
@@ -97,23 +112,17 @@ module Core {
 
     public equals(other: LiteralExpression): boolean {
       if (!super.equals(other) || this.type !== other.type) return false;
-      if (this.value && this.value.equals) {
-        return this.value.equals(other.value);
+      if (this.value) {
+        if (this.value.equals) {
+          return this.value.equals(other.value);
+        } else if (this.value.toISOString && other.value.toISOString) {
+          return this.value.valueOf() === other.value.valueOf();
+        } else {
+          return this.value === other.value;
+        }
       } else {
         return this.value === other.value;
       }
-    }
-
-    public getReferences(): string[] {
-      return [];
-    }
-
-    public every(iter: BooleanExpressionIterator): boolean {
-      return iter(this) !== false;
-    }
-
-    public forEach(iter: VoidExpressionIterator): void {
-      iter(this);
     }
 
     public isRemote(): boolean {
@@ -140,16 +149,6 @@ module Core {
       }
     }
 
-    public _computeNativeResolved(queries: any[]): any {
-      var value = this.value;
-      if (value instanceof RemoteDataset) {
-        if (queries) queries.push(value.getQueryAndPostProcess().query);
-        return value.simulate();
-      } else {
-        return this.value;
-      }
-    }
-
     public _computeResolved(): Q.Promise<any> {
       var value = this.value;
       if (value instanceof RemoteDataset) {
@@ -158,10 +157,11 @@ module Core {
         return Q(this.value);
       }
     }
+
   }
 
-  Expression.FALSE = <LiteralExpression>(new LiteralExpression({op: 'literal', value: false}));
-  Expression.TRUE = <LiteralExpression>(new LiteralExpression({op: 'literal', value: true}));
+  Expression.FALSE = new LiteralExpression({op: 'literal', value: false});
+  Expression.TRUE = new LiteralExpression({op: 'literal', value: true});
 
   Expression.register(LiteralExpression);
 }

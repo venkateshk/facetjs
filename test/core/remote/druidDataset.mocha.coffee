@@ -50,6 +50,19 @@ contextNoApprox = {
 
 describe "RemoteDataset", ->
   describe "simplifies / digests", ->
+    it "a (timeBoundary) total", ->
+      ex = facet()
+        .apply('maximumTime', '$wiki.max($time)')
+        .apply('minimumTime', '$wiki.min($time)')
+
+      ex = ex.referenceCheck(context).resolve(context).simplify()
+      expect(ex.op).to.equal('literal')
+      remoteDataset = ex.value
+      expect(remoteDataset.getQueryAndPostProcess().query).to.deep.equal({
+        "dataSource": "wikipedia_editstream"
+        "queryType": "timeBoundary"
+      })
+
     it "a total", ->
       ex = facet()
         .def("wiki",

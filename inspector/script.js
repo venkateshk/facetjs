@@ -17,7 +17,7 @@ var defaultQuery = [
   "  .apply('Count', '$diamonds.count()')",
   "  .apply('TotalPrice', '$diamonds.sum($price)')",
   "  .apply('PriceAndTax', '$diamonds.sum($price) + $diamonds.sum($tax)')",
-  "  .apply('PriceGoodCut', facet('diamonds').filter(facet('cut').is('good')).sum('$price'))",
+  "  .apply('PriceGoodCut', '$diamonds.filter($cut = \"good\").sum($price)')",
   "  .apply('Cuts',",
   "    facet('diamonds').split('$cut', 'Cut')",
   "      .apply('Count', facet('diamonds').count())",

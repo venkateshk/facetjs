@@ -4,11 +4,21 @@ module Core {
   }
 
   export interface BooleanExpressionIterator {
-    (ex: Expression): boolean;
+    (ex: Expression, depth?: number, genDiff?: number): boolean;
   }
 
   export interface VoidExpressionIterator {
-    (ex: Expression): void;
+    (ex: Expression, depth?: number, genDiff?: number): void;
+  }
+
+  export interface DatasetBreakdown {
+    singleDatasetActions: ApplyAction[];
+    combineExpression: Expression;
+  }
+
+  export interface Digest {
+    expression: Expression;
+    undigested: ApplyAction;
   }
 
   export interface ExpressionValue {
@@ -61,6 +71,8 @@ module Core {
     excluded: Expression;
   }
 
+  export var simulatedQueries: any[] = null;
+
   export function mergeRemotes(remotes: string[][]): string[] {
     var lookup: Lookup<boolean> = {};
     for (var i = 0; i < remotes.length; i++) {
@@ -72,22 +84,6 @@ module Core {
     }
     var merged = Object.keys(lookup);
     return merged.length ? merged.sort() : null;
-  }
-
-  export function dedupSort(a: string[]): string[] {
-    a = a.sort();
-    var newA: string[] = [];
-    var last: string = null;
-    for (var i = 0; i < a.length; i++) {
-      var v = a[i];
-      if (v !== last) newA.push(v);
-      last = v;
-    }
-    return newA
-  }
-
-  export function checkArrayEquality<T>(a: Array<T>, b: Array<T>): boolean {
-    return a.length === b.length && a.every((item, i) => (item === b[i]));
   }
 
   /**
@@ -125,7 +121,16 @@ module Core {
       return expressionParser.parse(str);
     } catch (e) {
       // Re-throw to add the stacktrace
-      throw new Error('Parse error ' + e.message + ' on `' + str + '`');
+      throw new Error('Expression parse error ' + e.message + ' on `' + str + '`');
+    }
+  }
+
+  function parseSQL(str: string): ExpressionJS {
+    try {
+      return sqlParser.parse(str);
+    } catch (e) {
+      // Re-throw to add the stacktrace
+      throw new Error('SQL parse error ' + e.message + ' on `' + str + '`');
     }
   }
 
@@ -151,6 +156,16 @@ module Core {
      */
     static parse(str: string): Expression {
       return Expression.fromJS(parseExpression(str));
+    }
+
+    /**
+     * Parses SQL statements into facet expressions
+     *
+     * @param str The SQL to parse
+     * @returns {Expression}
+     */
+    static parseSQL(str: string): Expression {
+      return Expression.fromJS(parseSQL(str));
     }
 
     /**
@@ -342,6 +357,20 @@ module Core {
       });
     }
 
+    public getRemoteDatasetIds(): string[] {
+      var remoteDatasetIds: string[] = [];
+      var push = Array.prototype.push;
+      this.forEach(function(ex: Expression) {
+        if (ex.type !== 'DATASET') return;
+        if (ex instanceof LiteralExpression) {
+          push.apply(remoteDatasetIds, (<Dataset>ex.value).getRemoteDatasetIds());
+        } else if (ex instanceof RefExpression) {
+          push.apply(remoteDatasetIds, ex.remote);
+        }
+      });
+      return deduplicateSort(remoteDatasetIds);
+    }
+
     public getRemoteDatasets(): RemoteDataset[] {
       var remoteDatasets: RemoteDataset[][] = [];
       this.forEach(function(ex: Expression) {
@@ -353,12 +382,19 @@ module Core {
     }
 
     /**
-     * Introspects self to look for all references expressions and returns the alphabetically sorted list of the references
+     * Introspects self to look for all free references
+     * returns the alphabetically sorted list of the references
      *
      * @returns {string[]}
      */
-    public getReferences(): string[] {
-      throw new Error('can not call on base');
+    public getFreeReferences(): string[] {
+      var freeReferences: string[] = [];
+      this.forEach((ex: Expression, depth: number, genDiff: number) => {
+        if (ex instanceof RefExpression && genDiff <= ex.generations.length) {
+          freeReferences.push(repeat('^', ex.generations.length - genDiff) + ex.name);
+        }
+      });
+      return deduplicateSort(freeReferences);
     }
 
     /**
@@ -406,7 +442,11 @@ module Core {
      * @returns {boolean}
      */
     public every(iter: BooleanExpressionIterator): boolean {
-      throw new Error('can not call on base');
+      return this._everyHelper(iter, 0, 0);
+    }
+
+    public _everyHelper(iter: BooleanExpressionIterator, depth: number, genDiff: number): boolean {
+      return iter(this, depth, genDiff) !== false;
     }
 
     /**
@@ -416,8 +456,8 @@ module Core {
      * @returns {boolean}
      */
     public some(iter: BooleanExpressionIterator): boolean {
-      return !this.every((ex: Expression) => {
-        var v = iter(ex);
+      return !this.every((ex: Expression, depth: number, genDiff: number) => {
+        var v = iter(ex, depth, genDiff);
         return (v == null) ? null : !v;
       });
     }
@@ -429,7 +469,10 @@ module Core {
      * @returns {boolean}
      */
     public forEach(iter: VoidExpressionIterator): void {
-      throw new Error('can not call on base');
+      this.every((ex: Expression, depth: number, genDiff: number) => {
+        iter(ex, depth, genDiff);
+        return null;
+      });
     }
 
     /**
@@ -447,6 +490,7 @@ module Core {
       if (sub) return sub;
       return this;
     }
+
 
     public getFn(): ComputeFn {
       throw new Error('should never be called directly');
@@ -467,7 +511,7 @@ module Core {
     public separateViaAnd(refName: string): Separation {
       if (typeof refName !== 'string') throw new Error('must have refName');
       if (this.type !== 'BOOLEAN') return null;
-      var myRef = this.getReferences();
+      var myRef = this.getFreeReferences();
       if (myRef.length > 1 && myRef.indexOf(refName) !== -1) return null;
       if (myRef[0] === refName) {
         return {
@@ -479,6 +523,44 @@ module Core {
           included: Expression.TRUE,
           excluded: this
         }
+      }
+    }
+
+    public breakdownByDataset(tempNamePrefix: string): DatasetBreakdown {
+      var nameIndex = 0;
+      var singleDatasetActions: ApplyAction[] = [];
+
+      var remoteDatasets = this.getRemoteDatasetIds();
+      if (remoteDatasets.length < 2) {
+        throw new Error('not a multiple dataset expression');
+      }
+
+      var combine = this.substitute((ex) => {
+        var remoteDatasets = ex.getRemoteDatasetIds();
+        if (remoteDatasets.length !== 1) return null;
+
+        var existingApply = Legacy.driverUtil.find(singleDatasetActions, (apply) => apply.expression.equals(ex));
+
+        var tempName: string;
+        if (existingApply) {
+          tempName = existingApply.name;
+        } else {
+          tempName = tempNamePrefix + (nameIndex++);
+          singleDatasetActions.push(new ApplyAction({
+            action: 'apply',
+            name: tempName,
+            expression: ex
+          }));
+        }
+
+        return new RefExpression({
+          op: 'ref',
+          name: tempName
+        })
+      });
+      return {
+        combineExpression: combine,
+        singleDatasetActions: singleDatasetActions
       }
     }
 
@@ -613,11 +695,27 @@ module Core {
     }
 
     public is(ex: any) { return this._performBinaryExpression({ op: 'is' }, ex); }
-    public in(ex: any) { return this._performBinaryExpression({ op: 'in' }, ex); }
     public lessThan(ex: any) { return this._performBinaryExpression({ op: 'lessThan' }, ex); }
     public lessThanOrEqual(ex: any) { return this._performBinaryExpression({ op: 'lessThanOrEqual' }, ex); }
     public greaterThan(ex: any) { return this._performBinaryExpression({ op: 'greaterThan' }, ex); }
     public greaterThanOrEqual(ex: any) { return this._performBinaryExpression({ op: 'greaterThanOrEqual' }, ex); }
+
+    public in(start: Date, end: Date): Expression;
+    public in(start: number, end: number): Expression;
+    public in(ex: any): Expression;
+    public in(ex: any, snd: any = null): Expression {
+      if (arguments.length === 2) {
+        if (typeof ex === 'number' && typeof snd === 'number') {
+          ex = new NumberRange({ start: ex, end: snd });
+        } else {
+          throw new Error('uninterpretable IN parameters');
+        }
+      }
+      return this._performBinaryExpression({ op: 'in' }, ex);
+    }
+
+    public union(ex: any) { return this._performBinaryExpression({ op: 'union' }, ex); }
+    public join(ex: any) { return this._performBinaryExpression({ op: 'join' }, ex); }
 
     // Expression constructors (Nary)
     protected _performNaryExpression(newValue: ExpressionValue, otherExs: any[]): Expression {
@@ -755,18 +853,14 @@ module Core {
     // ---------------------------------------------------------
     // Evaluation
 
-    public _computeNativeResolved(queries: any[]): any {
-      throw new Error("can not call this directly");
-    }
-
     public _computeResolved(): Q.Promise<any> {
       throw new Error("can not call this directly");
     }
 
-    public simulateQueryPlan(context: Datum): any[] {
-      var generatedQueries: any[] = [];
-      this.referenceCheck(context).resolve(context).simplify()._computeNativeResolved(generatedQueries);
-      return generatedQueries;
+    public simulateQueryPlan(context: Datum = {}): any[] {
+      simulatedQueries = [];
+      this.referenceCheck(context).getFn()(context);
+      return simulatedQueries;
     }
 
     /**
@@ -776,7 +870,7 @@ module Core {
      * @returns {any}
      */
     public computeNative(context: Datum = {}): any {
-      return this.referenceCheck(context).resolve(context).simplify()._computeNativeResolved(null);
+      return this.referenceCheck(context).getFn()(context);
     }
 
     /**

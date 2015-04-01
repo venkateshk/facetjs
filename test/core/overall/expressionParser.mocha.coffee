@@ -8,7 +8,7 @@ if not WallTime.rules
 facet = require('../../../build/facet')
 { Expression } = facet.core
 
-describe "parser", ->
+describe "expression parser", ->
   it "it should parse the mega definition", ->
     ex = facet()
       .filter('$color = "Red"')
@@ -26,6 +26,7 @@ describe "parser", ->
       .apply('agg_group', "$data.group($carat)")
       .apply('agg_group_label1', "$data.group($carat).label('Carat')")
       .apply('agg_group_label2', "$data.group($carat).label('Carat')")
+      .apply('agg_filter_count', "$data.filter($country = 'USA').count()")
 
     ex2 = facet()
       .filter(facet('color').is("Red"))
@@ -43,6 +44,7 @@ describe "parser", ->
       .apply('agg_group', facet("data").group(facet('carat')))
       .apply('agg_group_label1', facet("data").group(facet('carat')).label('Carat'))
       .apply('agg_group_label2', facet("data").group('$carat').label('Carat'))
+      .apply('agg_filter_count', facet("data").filter(facet('country').is("USA")).count())
 
     expect(ex.toJS()).to.deep.equal(ex2.toJS())
 

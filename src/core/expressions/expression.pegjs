@@ -1,3 +1,7 @@
+{
+  var base = { op: 'literal', value: [{}] };
+}
+
 start
   = _ ex:Expression _ { return ex; }
 
@@ -7,7 +11,7 @@ Expression
   / CallChainExpression
 
 CallChainExpression
-  = lhs:Leaf tail:(_ "." _ CallFn "(" _ Params _ ")")+
+  = lhs:Leaf tail:(_ "." _ CallFn "(" _ Params? _ ")")+
     {
       var operand = lhs;
       var action;
@@ -24,7 +28,7 @@ CallChainExpression
         if (typeof thing === 'string') return thing;
         if (thing.op === 'ref') return thing.name;
         if (thing.op === 'literal') return String(thing.value);
-        throw new Error("invalid parameter");
+        error("invalid parameter");
       }
 
       function getNumber(thing) {
@@ -35,7 +39,7 @@ CallChainExpression
       for (var i = 0, n = tail.length; i < n; i++) {
         var part = tail[i];
         var op = part[3];
-        var params = part[6];
+        var params = part[6] || [];
         switch (op) {
           case 'is':
           case 'in':
@@ -43,18 +47,18 @@ CallChainExpression
           case 'greaterThanOrEqual':
           case 'lessThan':
           case 'greaterThan':
-            if (params.length !== 1) throw new Error(op + ' must have 1 parameter');
+            if (params.length !== 1) error(op + ' must have 1 parameter');
             operand = { op: op, lhs: operand, rhs: params[0] };
             break;
 
           case 'add':
           case 'multiply':
-            if (params.length < 1) throw new Error(op + ' must have at least 1 parameter');
+            if (params.length < 1) error(op + ' must have at least 1 parameter');
             operand = { op: op, operands: [operand].concat(params) };
             break;
 
           case 'subtract':
-            if (params.length < 1) throw new Error(op + ' must have at least 1 parameter');
+            if (params.length < 1) error(op + ' must have at least 1 parameter');
             operand = {
               op: 'add',
               operands: [operand].concat(params.map(function(param) { return { op: 'negate', operand: param }}))
@@ -62,7 +66,7 @@ CallChainExpression
             break;
 
           case 'divide':
-            if (params.length < 1) throw new Error(op + ' must have at least 1 parameter');
+            if (params.length < 1) error(op + ' must have at least 1 parameter');
             operand = {
               op: 'multiply',
               operands: [operand].concat(params.map(function(param) { return { op: 'reciprocate', operand: param }}))
@@ -72,7 +76,7 @@ CallChainExpression
           case 'not':
           case 'negate':
           case 'reciprocate':
-            if (params.length) throw new Error(op + ' does not need parameters');
+            if (params.length) error(op + ' does not need parameters');
             operand = {
               op: op,
               operand: operand
@@ -80,7 +84,7 @@ CallChainExpression
             break;
 
           case 'match':
-            if (params.length !== 1) throw new Error(op + ' must have 1 parameter');
+            if (params.length !== 1) error(op + ' must have 1 parameter');
             operand = {
               op: op,
               operand: operand,
@@ -89,7 +93,7 @@ CallChainExpression
             break;
 
           case 'numberBucket':
-            if (params.length !== 1 && params.length !== 2) throw new Error(op + ' must have 1 or 2 parameter');
+            if (params.length !== 1 && params.length !== 2) error(op + ' must have 1 or 2 parameter');
             operand = {
               op: op,
               operand: operand,
@@ -99,7 +103,7 @@ CallChainExpression
             break;
 
           case 'timeBucket':
-            if (params.length !== 1 && params.length !== 2) throw new Error(op + ' must have 1 or 2 parameter');
+            if (params.length !== 1 && params.length !== 2) error(op + ' must have 1 or 2 parameter');
             operand = {
               op: op,
               operand: operand,
@@ -109,28 +113,28 @@ CallChainExpression
             break
 
           case 'filter':
-            if (params.length !== 1) throw new Error(op + ' must have 1 parameter');
+            if (params.length !== 1) error(op + ' must have 1 parameter');
             addAction({ action: op, expression: params[0] });
             break;
 
           case 'def':
           case 'apply':
-            if (params.length !== 2) throw new Error(op + ' must have 2 parameters');
+            if (params.length !== 2) error(op + ' must have 2 parameters');
             addAction({ action: op, name: getName(params[0]), expression: params[1] });
             break;
 
           case 'sort':
-            if (params.length !== 2) throw new Error(op + ' must have 2 parameters');
+            if (params.length !== 2) error(op + ' must have 2 parameters');
             addAction({ action: op, expression: params[0], direction: getName(params[1]) });
             break;
 
           case 'limit':
-            if (params.length !== 1) throw new Error(op + ' must have 1 parameter');
+            if (params.length !== 1) error(op + ' must have 1 parameter');
             addAction({ action: op, limit: getNumber(params[0]) });
             break;
 
           case 'count':
-            if (params.length) throw new Error(op + ' does not need parameters');
+            if (params.length) error(op + ' does not need parameters');
             operand = {
               op: 'aggregate',
               fn: op,
@@ -144,7 +148,7 @@ CallChainExpression
           case 'average':
           case 'uniqueCount':
           case 'group':
-            if (params.length !== 1) throw new Error(op + ' must have 1 parameter');
+            if (params.length !== 1) error(op + ' must have 1 parameter');
             operand = {
               op: 'aggregate',
               fn: op,
@@ -154,17 +158,17 @@ CallChainExpression
             break;
 
           case 'label':
-            if (params.length !== 1) throw new Error(op + ' must have 1 parameter');
+            if (params.length !== 1) error(op + ' must have 1 parameter');
             operand = { op: op, operand: operand, name: getName(params[0]) };
             break;
 
           case 'split':
-            if (params.length !== 2 && params.length !== 3) throw new Error(op + ' must have 2 or 3 parameter');
+            if (params.length !== 2 && params.length !== 3) error(op + ' must have 2 or 3 parameter');
             var attribute = params[0];
             var name = getName(params[1]);
             var dataName = params[2];
             if (!dataName) {
-              if (operand.op !== 'ref') throw new Error("could not guess data name in `split`, please provide one explicitly");
+              if (operand.op !== 'ref') error("could not guess data name in `split`, please provide one explicitly");
               dataName = operand.name;
             }
             operand = {
@@ -175,7 +179,7 @@ CallChainExpression
                 operand: { op: 'aggregate', fn: 'group', attribute: attribute, operand: operand }
               },
               actions: [
-                { 
+                {
                   action: 'def',
                   name: dataName,
                   expression: {
@@ -183,10 +187,10 @@ CallChainExpression
                     operand: { op: 'ref', name: '^' + dataName },
                     actions: [{
                       action: 'filter',
-                      expression: { 
-                        op: 'is', 
-                        lhs: attribute, 
-                        rhs: { op: 'ref', name: '^' + name } 
+                      expression: {
+                        op: 'is',
+                        lhs: attribute,
+                        rhs: { op: 'ref', name: '^' + name }
                       }
                     }]
                   }
@@ -196,18 +200,15 @@ CallChainExpression
             break;
 
           default:
-            throw new Error("Unrecognized call of '" + op + "'");
+            error("Unrecognized call of '" + op + "'");
         }
       }
       return operand;
     }
 
 Params
-  = head:Param? tail:(_ "," _ Param)*
-    {
-      if (!head) return [];
-      return [head].concat(tail.map(function(t) { return t[3] }));
-    }
+  = head:Param tail:(_ "," _ Param)*
+    { return [head].concat(tail.map(function(t) { return t[3] })); }
 
 Param
   = Expression / Name / String
@@ -264,7 +265,7 @@ Leaf
   = "(" _ ex:Expression _ ")" { return ex; }
   / Literal
   / Ref
-  / "facet()" { return { op: 'literal', value: [{}] }; }
+  / "facet()" { return base; }
 
 Ref
   = "$" name:RefName ":" type:TypeName
@@ -278,9 +279,9 @@ Literal
 
 String "String"
   = "'" chars:NotSQuote "'" { return chars; }
-  / "'" chars:NotSQuote { throw new Error("Unmatched single quote"); }
+  / "'" chars:NotSQuote { error("Unmatched single quote"); }
   / '"' chars:NotDQuote '"' { return chars; }
-  / '"' chars:NotDQuote { throw new Error("Unmatched double quote"); }
+  / '"' chars:NotDQuote { error("Unmatched double quote"); }
 
 
 /* Numbers */
@@ -296,7 +297,7 @@ Fraction
   = $("." Digits)
 
 Exp
-  = $([eE] [+-]? Digits)
+  = $("e"i [+-]? Digits)
 
 Digits
   = $ Digit+
@@ -320,10 +321,10 @@ TypeName "TypeName"
   = $([A-Z_/]+)
 
 NotSQuote "NotSQuote"
-  = $([^']+)
+  = $([^']*)
 
 NotDQuote "NotDQuote"
-  = $([^"]+)
+  = $([^"]*)
 
 _ "Whitespace"
   = $([ \t\r\n]*)

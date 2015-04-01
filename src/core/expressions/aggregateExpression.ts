@@ -24,17 +24,23 @@ module Core {
     constructor(parameters: ExpressionValue) {
       super(parameters, dummyObject);
       this.fn = parameters.fn;
-      this.attribute = parameters.attribute;
       this._ensureOp("aggregate");
       this._checkTypeOfOperand('DATASET');
-      if (this.fn !== 'count' && !this.attribute) {
-        throw new Error(this.fn + " aggregate must have an 'attribute'");
-      }
-      if (this.fn === 'group') {
-        var attrType = this.attribute.type;
-        this.type = attrType ? ('SET/' + attrType) : null;
-      } else {
+
+      if (this.fn === 'count') {
+        if (parameters.attribute) throw new Error(`count aggregate can not have an 'attribute'`);
         this.type = 'NUMBER';
+      } else {
+        if (!parameters.attribute) throw new Error(`${this.fn} aggregate must have an 'attribute'`);
+        this.attribute = parameters.attribute;
+        var attrType = this.attribute.type;
+        if (this.fn === 'group') {
+          this.type = attrType ? ('SET/' + attrType) : null;
+        } else if (this.fn === 'min' || this.fn === 'max') {
+          this.type = attrType;
+        } else {
+          this.type = 'NUMBER';
+        }
       }
     }
 
@@ -73,7 +79,11 @@ module Core {
       var fn = this.fn;
       var attribute = this.attribute;
       var attributeFn = attribute ? attribute.getFn() : null;
-      return (d: Datum) => operandFn(d)[fn](attributeFn, attribute);
+      return (d: Datum) => {
+        var dataset = operandFn(d);
+        if (!dataset) return null;
+        return dataset[fn](attributeFn, attribute);
+      }
     }
 
     protected _getJSExpressionHelper(operandFnJS: string): string {
@@ -89,12 +99,8 @@ module Core {
       throw new Error("can not getSQL with complex operand");
     }
 
-    protected _specialEvery(iter: BooleanExpressionIterator): boolean {
-      return this.attribute ? this.attribute.every(iter) : true;
-    }
-
-    protected _specialForEach(iter: VoidExpressionIterator): void {
-      if (this.attribute) this.attribute.forEach(iter);
+    protected _specialEvery(iter: BooleanExpressionIterator, depth: number, genDiff: number): boolean {
+      return this.attribute ? this.attribute._everyHelper(iter, depth + 1, genDiff + 1) : true;
     }
 
     public _substituteHelper(substitutionFn: SubstitutionFn, depth: number, genDiff: number): Expression {
@@ -140,7 +146,7 @@ module Core {
 
     public _fillRefSubstitutions(typeContext: FullType, alterations: Alteration[]): FullType {
       var datasetContext = this.operand._fillRefSubstitutions(typeContext, alterations);
-      var attributeType = 'NUMBER';
+      var attributeType = 'NUMBER'; // In case of count
       if (this.attribute) {
         attributeType = this.attribute._fillRefSubstitutions(datasetContext, alterations).type;
       }

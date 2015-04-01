@@ -1,7 +1,6 @@
 facet(someDriverReference)
   .filter("$color = 'D'")
   .apply("priceOver2", "$price/2")
-  .compute(true)
 
 
 facet() // [{}]
@@ -84,6 +83,5 @@ facet() // [{}]
       .sort('$Time', 'ascending')
       .apply('somethingElse', '$diamonds.sum($x)')
   )
-    .compute()
 
 

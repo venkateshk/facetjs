@@ -23,6 +23,16 @@ module Core {
 
   var checkAction: ImmutableClass<ActionValue, ActionJS>;
   export class Action implements ImmutableInstance<ActionValue, ActionJS> {
+    static actionsDependOn(actions: Action[], name: string): boolean {
+      for (var i = 0; i < actions.length; i++) {
+        var action = actions[i];
+        var freeReferences = action.getFreeReferences();
+        if (freeReferences.indexOf(name) !== -1) return true;
+        if ((<ApplyAction>action).name === name) return false;
+      }
+      return false;
+    }
+
     static isAction(candidate: any): boolean {
       return isInstanceOf(candidate, Action);
     }
@@ -66,8 +76,8 @@ module Core {
         return -1;
       }
 
-      var aReferences = a.expression.getReferences();
-      var bReferences = b.expression.getReferences();
+      var aReferences = a.expression.getFreeReferences();
+      var bReferences = b.expression.getFreeReferences();
 
       if (aReferences.length < bReferences.length) {
         return -1;
@@ -147,12 +157,12 @@ module Core {
       return new (Action.classMap[this.action])(value);
     }
 
-    public every(iter: BooleanExpressionIterator): boolean {
-      return this.expression ? this.expression.every(iter) : true;
+    public getFreeReferences(): string[] {
+      return this.expression ? this.expression.getFreeReferences() : [];
     }
 
-    public forEach(iter: VoidExpressionIterator): void {
-      if (this.expression) this.expression.forEach(iter);
+    public _everyHelper(iter: BooleanExpressionIterator, depth: number, genDiff: number): boolean {
+      return this.expression ? this.expression._everyHelper(iter, depth, genDiff) : true;
     }
 
     public _substituteHelper(substitutionFn: SubstitutionFn, depth: number, genDiff: number): Action {

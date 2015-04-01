@@ -56,7 +56,40 @@ module Core {
     }
 
     public getFn(): ComputeFn {
-      throw new Error("can not call getFn on actions");
+      var ex = this;
+      var operand = this.operand;
+      var actions = this.actions;
+      return (d: Datum, def: boolean) => {
+        if (d) {
+          return ex.resolve(d).simplify().getFn()(null, def);
+        }
+
+        var dataset = operand.getFn()(null, def);
+
+        for (var i = 0; i < actions.length; i++) {
+          var action = actions[i];
+          var actionExpression = action.expression;
+
+          if (action instanceof FilterAction) {
+            dataset = dataset.filter(action.expression.getFn());
+
+          } else if (action instanceof ApplyAction) {
+            dataset = dataset.apply(action.name, actionExpression.getFn());
+
+          } else if (action instanceof DefAction) {
+            dataset = dataset.def(action.name, actionExpression.getFn());
+
+          } else if (action instanceof SortAction) {
+            dataset = dataset.sort(actionExpression.getFn(), action.direction);
+
+          } else if (action instanceof LimitAction) {
+            dataset = dataset.limit(action.limit);
+
+          }
+        }
+
+        return dataset;
+      };
     }
 
     public getJSExpression(): string {
@@ -108,7 +141,7 @@ module Core {
       var alphabeticallySortedActions = simplifiedActions.filter((action) => !(action instanceof LimitAction))
       for (var i = 0; i < alphabeticallySortedActions.length; i++) {
         thisAction = alphabeticallySortedActions[i];
-        references = thisAction.expression.getReferences();
+        references = thisAction.expression.getFreeReferences();
 
         if (thisAction instanceof DefAction || thisAction instanceof ApplyAction) {
           seen["$" + thisAction.name] = true;
@@ -130,10 +163,10 @@ module Core {
 
       // initial steps
       rootNodes = alphabeticallySortedActions.filter(function (thisAction) {
-        return (thisAction.expression.getReferences().every((ref) => referenceMap[ref] === 0));
+        return (thisAction.expression.getFreeReferences().every((ref) => referenceMap[ref] === 0));
       });
       alphabeticallySortedActions = alphabeticallySortedActions.filter(function (thisAction) {
-        return !(thisAction.expression.getReferences().every((ref) => !referenceMap[ref]));
+        return !(thisAction.expression.getFreeReferences().every((ref) => !referenceMap[ref]));
       });
 
       // Start sorting
@@ -147,7 +180,7 @@ module Core {
         var i = 0;
         while (i < alphabeticallySortedActions.length) {
           var thisAction = alphabeticallySortedActions[i];
-          references = thisAction.expression.getReferences();
+          references = thisAction.expression.getFreeReferences();
           if (references.every((ref) => referenceMap[ref] === 0)) {
             rootNodes.push(alphabeticallySortedActions.splice(i, 1)[0]);
           } else {
@@ -177,41 +210,44 @@ module Core {
       var simpleOperand = this.operand.simplify();
       var simpleActions = this.actions.map((action) => action.simplify()); //this._getSimpleActions();
 
-      function isRemoteNumericApply(action: Action): boolean {
-        return action instanceof ApplyAction && action.expression.hasRemote() && action.expression.type === 'NUMBER';
+      function isRemoteSimpleApply(action: Action): boolean {
+        return action instanceof ApplyAction && action.expression.hasRemote() && action.expression.type !== 'DATASET';
       }
 
       // These are actions on a remote dataset
       var remoteDatasets = this.getRemoteDatasets();
-      if (simpleOperand instanceof LiteralExpression && remoteDatasets.length) {
-        var remoteDataset: RemoteDataset;
-        if ((<LiteralExpression>simpleOperand).isRemote()) {
-          remoteDataset = (<LiteralExpression>simpleOperand).value;
-        } else if (simpleActions.some(isRemoteNumericApply)) {
+      var remoteDataset: RemoteDataset;
+      var digestedOperand = simpleOperand;
+      if (remoteDatasets.length && (digestedOperand instanceof LiteralExpression || digestedOperand instanceof JoinExpression)) {
+        remoteDataset = remoteDatasets[0];
+        if (digestedOperand instanceof LiteralExpression && !digestedOperand.isRemote() && simpleActions.some(isRemoteSimpleApply)) {
           if (remoteDatasets.length === 1) {
-            remoteDataset = remoteDatasets[0].makeTotal();
+            digestedOperand = new LiteralExpression({
+              op: 'literal',
+              value: remoteDataset.makeTotal()
+            });
           } else {
             throw new Error('not done yet')
           }
         }
 
-        if (remoteDataset) {
-          while (simpleActions.length) {
-            var action: Action = simpleActions[0];
-            var newRemoteDataset = remoteDataset.addAction(action);
-            if (!newRemoteDataset) break;
-            simpleActions.shift();
-            remoteDataset = newRemoteDataset;
-          }
-          if ((<LiteralExpression>simpleOperand).value !== remoteDataset) {
-            simpleOperand = new LiteralExpression({
-              op: 'literal',
-              value: remoteDataset
-            });
-            if (simpleActions.length) {
-              simpleActions = (<Action[]>remoteDataset.defs).concat(simpleActions);
-            }
-          }
+        var absorbedDefs: DefAction[] = [];
+        var undigestedActions: ApplyAction[] = [];
+        while (simpleActions.length) {
+          var action: Action = simpleActions[0];
+          var digest = remoteDataset.digest(digestedOperand, action);
+          if (!digest) break;
+          simpleActions.shift();
+          digestedOperand = digest.expression;
+          if (digest.undigested) undigestedActions.push(digest.undigested);
+          if (action instanceof DefAction) absorbedDefs.push(action);
+        }
+        if (simpleOperand !== digestedOperand) {
+          simpleOperand = digestedOperand;
+          var defsToAddBack: Action[] = absorbedDefs.filter((def) => {
+            return Action.actionsDependOn(simpleActions, def.name);
+          });
+          simpleActions = defsToAddBack.concat(undigestedActions, simpleActions);
         }
       }
 
@@ -223,12 +259,8 @@ module Core {
       return new ActionsExpression(simpleValue);
     }
 
-    protected _specialEvery(iter: BooleanExpressionIterator): boolean {
-      return this.actions.every((action) => action.every(iter));
-    }
-
-    protected _specialForEach(iter: VoidExpressionIterator): void {
-      return this.actions.forEach((action) => action.forEach(iter));
+    protected _specialEvery(iter: BooleanExpressionIterator, depth: number, genDiff: number): boolean {
+      return this.actions.every((action) => action._everyHelper(iter, depth + 1, genDiff + 1));
     }
 
     public _substituteHelper(substitutionFn: SubstitutionFn, depth: number, genDiff: number): Expression {
@@ -267,55 +299,6 @@ module Core {
       }
 
       return typeContext;
-    }
-
-    public _computeNativeResolved(queries: any[]): NativeDataset {
-      var dataset = this.operand._computeNativeResolved(queries);
-
-      var actions = this.actions;
-      for (var i = 0; i < actions.length; i++) {
-        var action = actions[i];
-        var actionExpression = action.expression;
-
-        if (action instanceof FilterAction) {
-          dataset = dataset.filter(action.expression.getFn());
-
-        } else if (action instanceof ApplyAction) {
-          if (actionExpression instanceof LiteralExpression) {
-            var v = actionExpression._computeNativeResolved(queries);
-            dataset = dataset.apply(action.name, () => v);
-          } else if (actionExpression instanceof ActionsExpression) {
-            dataset = dataset.apply(action.name, (d: Datum) => {
-              return actionExpression.resolve(d).simplify()._computeNativeResolved(queries)
-            });
-          } else {
-            dataset = dataset.apply(action.name, actionExpression.getFn());
-          }
-
-        } else if (action instanceof DefAction) {
-          if (actionExpression instanceof ActionsExpression) {
-            dataset = dataset.def(action.name, (d: Datum) => {
-              var simple = actionExpression.resolve(d).simplify();
-              if (simple instanceof LiteralExpression) {
-                return simple.value;
-              } else {
-                return simple._computeNativeResolved(queries);
-              }
-            });
-          } else {
-            dataset = dataset.def(action.name, actionExpression.getFn());
-          }
-
-        } else if (action instanceof SortAction) {
-          dataset = dataset.sort(actionExpression.getFn(), action.direction);
-
-        } else if (action instanceof LimitAction) {
-          dataset = dataset.limit(action.limit);
-
-        }
-      }
-
-      return dataset;
     }
 
     public _computeResolved(): Q.Promise<NativeDataset> {

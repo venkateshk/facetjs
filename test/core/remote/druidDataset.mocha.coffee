@@ -20,6 +20,7 @@ context = {
       language: { type: 'STRING' }
       page: { type: 'STRING' }
       added: { type: 'NUMBER' }
+      deleted: { type: 'NUMBER' }
     }
     filter: facet('time').in(TimeRange.fromJS({
       start: new Date("2013-02-26T00:00:00Z")
@@ -49,6 +50,74 @@ contextNoApprox = {
 }
 
 describe "RemoteDataset", ->
+  describe "breakupApplies", ->
+    wikiDataset = context.wiki
+
+    it "breaks up correctly in simple case", ->
+      ex = facet()
+        .apply('Count', '$wiki.count()')
+        .apply('Added', '$wiki.sum($added)')
+        .apply('Volatile', '$wiki.max($added) - $wiki.min($deleted)')
+
+      expect(wikiDataset.breakUpApplies(ex.actions).join('\n')).to.equal("""
+        .apply(Count, $wiki.count())
+        .apply(Added, $wiki.sum($added))
+        .def('_sd_0', $wiki.max($added))
+        .def('_sd_1', $wiki.min($deleted))
+        .apply(Volatile, ($_sd_0:NUMBER + $_sd_1:NUMBER.negate()))
+        """)
+
+    it "breaks up correctly in case of duplicate name", ->
+      ex = facet()
+        .apply('Count', '$wiki.count()')
+        .apply('Added', '$wiki.sum($added)')
+        .apply('Volatile', '$wiki.sum($added) - $wiki.sum($deleted)')
+
+      expect(wikiDataset.breakUpApplies(ex.actions).join('\n')).to.equal("""
+        .apply(Count, $wiki.count())
+        .apply(Added, $wiki.sum($added))
+        .def('_sd_0', $wiki.sum($deleted))
+        .apply(Volatile, ($Added:NUMBER + $_sd_0:NUMBER.negate()))
+        """)
+
+    it "breaks up correctly in case of variable reference", ->
+      ex = facet()
+        .apply('Count', '$wiki.count()')
+        .apply('Added', '$wiki.sum($added)')
+        .apply('Volatile', '$Added - $wiki.sum($deleted)')
+
+      expect(wikiDataset.breakUpApplies(ex.actions).join('\n')).to.equal("""
+        .apply(Count, $wiki.count())
+        .apply(Added, $wiki.sum($added))
+        .def('_sd_0', $wiki.sum($deleted))
+        .apply(Volatile, ($Added + $_sd_0:NUMBER.negate()))
+        """)
+
+    it "breaks up correctly in case of duplicate apply", ->
+      ex = facet()
+        .apply('Added', '$wiki.sum($added)')
+        .apply('Added2', '$wiki.sum($added)')
+        .apply('Volatile', '$Added - $wiki.sum($deleted)')
+
+      expect(wikiDataset.breakUpApplies(ex.actions).join('\n')).to.equal("""
+        .apply(Added, $wiki.sum($added))
+        .apply(Added2, $Added)
+        .def('_sd_0', $wiki.sum($deleted))
+        .apply(Volatile, ($Added + $_sd_0:NUMBER.negate()))
+        """)
+
+    it "breaks up correctly in case of duplicate apply (same name)", ->
+      ex = facet()
+        .apply('Added', '$wiki.sum($added)')
+        .apply('Added', '$wiki.sum($added)')
+        .apply('Volatile', '$Added - $wiki.sum($deleted)')
+
+      expect(wikiDataset.breakUpApplies(ex.actions).join('\n')).to.equal("""
+        .apply(Added, $wiki.sum($added))
+        .def('_sd_0', $wiki.sum($deleted))
+        .apply(Volatile, ($Added + $_sd_0:NUMBER.negate()))
+        """)
+
   describe "simplifies / digests", ->
     it "a (timeBoundary) total", ->
       ex = facet()

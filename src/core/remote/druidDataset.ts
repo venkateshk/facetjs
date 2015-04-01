@@ -706,45 +706,56 @@ return (start < 0 ?'-':'') + parts.join('.');
       var nameIndex = 0;
 
       applies.forEach((apply) => {
-        actions.push(new ApplyAction({
-          action: 'apply',
-          name: apply.name,
-          expression: apply.expression.substitute((ex: Expression, depth: number) => {
-            if (ex instanceof AggregateExpression) {
-              var key = ex.toString();
-              if (depth === 0) {
+        var newExpression = apply.expression.substitute((ex: Expression, depth: number) => {
+          if (ex instanceof AggregateExpression) {
+            var key = ex.toString();
+            if (depth === 0) {
+              if (hasOwnProperty(knownExpressions, key)) {
+                return new RefExpression({
+                  op: 'ref',
+                  name: knownExpressions[key]
+                });
+              } else {
                 knownExpressions[key] = apply.name;
                 return null;
               }
-
-              var name: string;
-              if (hasOwnProperty(knownExpressions, key)) {
-                name = knownExpressions[key];
-              } else {
-                name = '_sd_' + nameIndex;
-                nameIndex++;
-                actions.push(new DefAction({
-                  action: 'def',
-                  name: name,
-                  expression: ex
-                }));
-                knownExpressions[key] = name;
-              }
-
-              return new RefExpression({
-                op: 'ref',
-                name: name,
-                type: 'NUMBER'
-              });
             }
-          })
-        }));
+
+            var name: string;
+            if (hasOwnProperty(knownExpressions, key)) {
+              name = knownExpressions[key];
+            } else {
+              name = '_sd_' + nameIndex;
+              nameIndex++;
+              actions.push(new DefAction({
+                action: 'def',
+                name: name,
+                expression: ex
+              }));
+              knownExpressions[key] = name;
+            }
+
+            return new RefExpression({
+              op: 'ref',
+              name: name,
+              type: 'NUMBER'
+            });
+          }
+        });
+
+        if (!(newExpression instanceof RefExpression && newExpression.name === apply.name)) {
+          actions.push(new ApplyAction({
+            action: 'apply',
+            name: apply.name,
+            expression: newExpression
+          }));
+        }
       });
 
       return actions;
     }
 
-    public applyToDruid(applies: ApplyAction[]): AggregationsAndPostAggregations {
+    public appliesToDruid(applies: ApplyAction[]): AggregationsAndPostAggregations {
       var aggregations: Druid.Aggregation[] = [];
       var postAggregations: Druid.PostAggregation[] = [];
 
@@ -919,7 +930,7 @@ return (start < 0 ?'-':'') + parts.join('.');
           };
 
         case 'total':
-          var aggregationsAndPostAggregations = this.applyToDruid(this.applies);
+          var aggregationsAndPostAggregations = this.appliesToDruid(this.applies);
           if (aggregationsAndPostAggregations.aggregations.length) {
             druidQuery.aggregations = aggregationsAndPostAggregations.aggregations;
           }
@@ -933,7 +944,7 @@ return (start < 0 ?'-':'') + parts.join('.');
           };
 
         case 'split':
-          var aggregationsAndPostAggregations = this.applyToDruid(this.applies);
+          var aggregationsAndPostAggregations = this.appliesToDruid(this.applies);
           if (aggregationsAndPostAggregations.aggregations.length) {
             druidQuery.aggregations = aggregationsAndPostAggregations.aggregations;
           }

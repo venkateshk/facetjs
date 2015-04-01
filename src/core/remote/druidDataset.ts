@@ -378,16 +378,21 @@ module Core {
           throw new Error("can not convert " + filter.toString() + " to Druid filter");
         }
 
-        /*
-         case "contains":
-           return {
-             type: "search",
-             dimension: filter.attribute,
-             query: {
-             type: "fragment",
-             values: [(<ContainsFilter>filter).value]
-           }
-         */
+      } else if (filter instanceof ContainsExpression) {
+        var lhs = filter.lhs;
+        var rhs = filter.rhs;
+        if (lhs instanceof RefExpression && rhs instanceof LiteralExpression) {
+          return {
+            type: "search",
+            dimension: lhs.name,
+            query: {
+              type: "fragment",
+              values: [rhs.value]
+            }
+          };
+        } else {
+          throw new Error(`can not express ${rhs.toString()} in SQL`);
+        }
 
       } else if (filter instanceof NotExpression) {
         return {

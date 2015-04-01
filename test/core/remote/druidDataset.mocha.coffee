@@ -184,3 +184,40 @@ describe "RemoteDataset", ->
         }
         "queryType": "groupBy"
       })
+
+    it "filters", ->
+      ex = facet()
+        .def("wiki",
+          facet('^wiki')
+            .filter(facet("language").contains('en'))
+        )
+        .apply('Count', '$wiki.count()')
+
+      ex = ex.referenceCheck(context).resolve(context).simplify()
+
+      expect(ex.op).to.equal('literal')
+      remoteDataset = ex.value
+      expect(remoteDataset.getQueryAndPostProcess().query).to.deep.equal({
+        "aggregations": [
+          {
+            "name": "Count"
+            "type": "count"
+          }
+        ]
+        "dataSource": "wikipedia_editstream"
+        "filter": {
+          "dimension": "language"
+          "query": {
+            "type": "fragment"
+            "values": [
+              "en"
+            ]
+          }
+          "type": "search"
+        }
+        "granularity": "all"
+        "intervals": [
+          "2013-02-26/2013-02-27"
+        ]
+        "queryType": "timeseries"
+      })

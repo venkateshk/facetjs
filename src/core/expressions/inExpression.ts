@@ -10,7 +10,7 @@ module Core {
       var lhs = this.lhs;
       var rhs = this.rhs;
 
-      if(!(rhs.canHaveType('SET')
+      if (!(rhs.canHaveType('SET')
         || (lhs.canHaveType('NUMBER') && rhs.canHaveType('NUMBER_RANGE'))
         || (lhs.canHaveType('TIME') && rhs.canHaveType('TIME_RANGE')))) {
         throw new TypeError(`in expression has a bad type combination ${lhs.type || '?'} in ${rhs.type || '?'}`);

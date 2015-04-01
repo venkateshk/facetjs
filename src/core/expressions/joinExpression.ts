@@ -67,6 +67,28 @@ module Core {
       };
     }
 
+    private _digestHelper(action: Action): JoinExpression {
+      var ids = action.expression.getRemoteDatasetIds();
+      if (ids.length !== 1) throw new Error('must be single dataset');
+      if (ids[0] === (<RemoteDataset>(<LiteralExpression>this.lhs).value).getId()) {
+        var lhsDigest = this.lhs.digest(action);
+        if (!lhsDigest) return null;
+        return new JoinExpression({
+          op: 'join',
+          lhs: lhsDigest.expression,
+          rhs: this.rhs
+        });
+      } else {
+        var rhsDigest = this.rhs.digest(action);
+        if (!rhsDigest) return null;
+        return new JoinExpression({
+          op: 'join',
+          lhs: this.lhs,
+          rhs: rhsDigest.expression
+        });
+      }
+    }
+
     public digest(action: Action): Digest {
       var lhs = this.lhs;
       var rhs = this.rhs;
@@ -74,15 +96,50 @@ module Core {
         var lhsValue = lhs.value;
         var rhsValue = rhs.value;
         if (lhsValue instanceof RemoteDataset && rhsValue instanceof RemoteDataset) {
-          //var newRemoteDataset = remoteDataset.addAction(action);
-          //if (!newRemoteDataset) return null;
-          //return {
-          //  undigested: null,
-          //  expression: new LiteralExpression({
-          //    op: 'literal',
-          //    value: newRemoteDataset
-          //  })
-          //};
+          var actionExpression = action.expression;
+
+          if (action instanceof DefAction) {
+            var actionDatasets = actionExpression.getRemoteDatasetIds();
+            if (actionDatasets.length !== 1) return null;
+            newJoin = this._digestHelper(action);
+            if (!newJoin) return null;
+            return {
+              expression: newJoin,
+              undigested: null
+            };
+
+          } else if (action instanceof ApplyAction) {
+            var actionDatasets = actionExpression.getRemoteDatasetIds();
+            if (!actionDatasets.length) return null;
+            var newJoin: JoinExpression = null;
+            if (actionDatasets.length === 1) {
+              newJoin = this._digestHelper(action);
+              if (!newJoin) return null;
+              return {
+                expression: newJoin,
+                undigested: null
+              };
+            } else {
+              var breakdown = actionExpression.breakdownByDataset('_br_');
+              var singleDatasetActions = breakdown.singleDatasetActions;
+              newJoin = this;
+              for (var i = 0; i < singleDatasetActions.length && newJoin; i++) {
+                newJoin = newJoin._digestHelper(singleDatasetActions[i]);
+              }
+              if (!newJoin) return null;
+              return {
+                expression: newJoin,
+                undigested: new ApplyAction({
+                  action: 'apply',
+                  name: (<ApplyAction>action).name,
+                  expression: breakdown.combineExpression
+                })
+              };
+            }
+
+          } else {
+            return null;
+          }
         } else {
           return null;
         }

@@ -361,7 +361,8 @@ module Core {
       var remoteDatasetIds: string[] = [];
       var push = Array.prototype.push;
       this.forEach(function(ex: Expression) {
-        if (ex instanceof LiteralExpression && ex.type === 'DATASET') {
+        if (ex.type !== 'DATASET') return;
+        if (ex instanceof LiteralExpression) {
           push.apply(remoteDatasetIds, (<Dataset>ex.value).getRemoteDatasetIds());
         } else if (ex instanceof RefExpression) {
           push.apply(remoteDatasetIds, ex.remote);

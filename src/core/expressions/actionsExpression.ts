@@ -217,8 +217,8 @@ module Core {
       // These are actions on a remote dataset
       var remoteDatasets = this.getRemoteDatasets();
       var digestedOperand = simpleOperand;
-      if (digestedOperand instanceof LiteralExpression && remoteDatasets.length) {
-        if (!(<LiteralExpression>simpleOperand).isRemote() && simpleActions.some(isRemoteSimpleApply)) {
+      if (remoteDatasets.length && (digestedOperand instanceof LiteralExpression || digestedOperand instanceof JoinExpression)) {
+        if (digestedOperand instanceof LiteralExpression && !digestedOperand.isRemote() && simpleActions.some(isRemoteSimpleApply)) {
           if (remoteDatasets.length === 1) {
             digestedOperand = new LiteralExpression({
               op: 'literal',

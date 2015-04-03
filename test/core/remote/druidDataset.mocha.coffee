@@ -49,7 +49,7 @@ contextNoApprox = {
   })
 }
 
-describe "RemoteDataset", ->
+describe "DruidDataset", ->
   describe "breakupApplies", ->
     wikiDataset = context.wiki
 
@@ -246,7 +246,10 @@ describe "RemoteDataset", ->
         ]
         "limitSpec": {
           "columns": [
-            "Count"
+            {
+              "dimension": "Count"
+              "direction": "descending"
+            }
           ]
           "limit": 5
           "type": "default"

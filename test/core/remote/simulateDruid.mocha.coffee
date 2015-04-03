@@ -331,7 +331,10 @@ describe "simulate Druid", ->
         ]
         "limitSpec": {
           "columns": [
-            "Count"
+            {
+              "dimension": "Count"
+              "direction": "descending"
+            }
           ]
           "limit": 10
           "type": "default"

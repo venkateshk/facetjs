@@ -1007,7 +1007,11 @@ return (start < 0 ?'-':'') + parts.join('.');
               druidQuery.limitSpec = {
                 type: "default",
                 limit: 500000,
-                columns: [sortAction ? (<RefExpression>sortAction.expression).name : this.key]
+                columns: [
+                  sortAction ?
+                  { dimension: (<RefExpression>sortAction.expression).name, direction: sortAction.direction }
+                  : this.key
+                ]
               };
               if (this.limit) {
                 druidQuery.limitSpec.limit = this.limit.limit;

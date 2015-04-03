@@ -17,7 +17,7 @@ druidPass = druidRequester({
 })
 
 describe "DruidDataset", ->
-  @timeout(5000);
+  @timeout(10000);
 
   it "works in advanced case", (testComplete) ->
     context = {
@@ -59,13 +59,13 @@ describe "DruidDataset", ->
               .limit(3)
           )
       )
-#      .apply('PagesHaving',
-#        facet("wiki").split("$page", 'Page')
-#          .apply('Count', '$wiki.sum($count)')
-#          .sort('$Count', 'descending')
-#          .filter(facet('Count').lessThan(30))
-#          .limit(100)
-#      )
+      .apply('PagesHaving',
+        facet("wiki").split("$page", 'Page')
+          .apply('Count', '$wiki.sum($count)')
+          .sort('$Count', 'descending')
+          .filter(facet('Count').lessThan(300))
+          .limit(5)
+      )
 
     ex.compute(context).then((result) ->
       expect(result.toJS()).to.deep.equal([
@@ -131,6 +131,20 @@ describe "DruidDataset", ->
                   "TotalAdded": 5717
                 }
               ]
+            }
+          ],
+          "PagesHaving": [
+            {
+              "Count": 252
+              "Page": "User:Cyde/List_of_candidates_for_speedy_deletion/Subpage"
+            }
+            {
+              "Count": 242
+              "Page": "Wikipedia:Administrator_intervention_against_vandalism"
+            }
+            {
+              "Count": 133
+              "Page": "Wikipedia:Reference_desk/Science"
             }
           ]
           "TotalAdded": 41412583

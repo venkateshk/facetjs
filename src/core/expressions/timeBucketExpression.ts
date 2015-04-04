@@ -49,7 +49,7 @@ module Core {
     }
 
     public toString(): string {
-      return this.operand.toString() + '.timeBucket(' + this.duration.toString() + ', ' + this.timezone.toString() + ')';
+      return `${this.operand.toString()}.timeBucket(${this.duration.toString()}, ${this.timezone.toString()})`;
     }
 
     public equals(other: TimeBucketExpression): boolean {
@@ -61,11 +61,7 @@ module Core {
     protected _getFnHelper(operandFn: ComputeFn): ComputeFn {
       var duration = this.duration;
       var timezone = this.timezone;
-      return (d: Datum) => {
-        var date = operandFn(d);
-        if (date === null) return null;
-        return TimeRange.fromDate(date, duration, timezone);
-      }
+      return (d: Datum) => TimeRange.fromDate(operandFn(d), duration, timezone);
     }
 
     protected _getJSExpressionHelper(operandFnJS: string): string {

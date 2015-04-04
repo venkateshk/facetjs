@@ -1,58 +1,58 @@
 module Core {
-  export class TimeOffsetExpression extends UnaryExpression {
-    static fromJS(parameters: ExpressionJS): TimeOffsetExpression {
+  //var possiblePartings = 'SECOND_OF_DAY';
+
+  export class TimePartExpression extends UnaryExpression {
+    static fromJS(parameters: ExpressionJS): TimePartExpression {
       var value = UnaryExpression.jsToValue(parameters);
-      value.duration = Duration.fromJS(parameters.duration);
+      value.part = parameters.part;
       value.timezone = Timezone.fromJS(parameters.timezone);
-      return new TimeOffsetExpression(value);
+      return new TimePartExpression(value);
     }
 
-    public duration: Duration;
+    public part: string;
     public timezone: Timezone;
 
     constructor(parameters: ExpressionValue) {
       super(parameters, dummyObject);
-      this.duration = parameters.duration;
+      this.part = parameters.part;
       this.timezone = parameters.timezone;
-      this._ensureOp("timeOffset");
+      this._ensureOp("timePart");
       this._checkTypeOfOperand('TIME');
-      if (!Duration.isDuration(this.duration)) {
-        throw new Error("`duration` must be a Duration");
+      if (typeof this.part !== 'string') {
+        throw new Error("`part` must be a string");
       }
-      this.type = 'TIME';
+      this.type = 'NUMBER';
     }
 
     public valueOf(): ExpressionValue {
       var value = super.valueOf();
-      value.duration = this.duration;
+      value.part = this.part;
       value.timezone = this.timezone;
       return value;
     }
 
     public toJS(): ExpressionJS {
       var js = super.toJS();
-      js.duration = this.duration.toJS();
+      js.part = this.part;
       js.timezone = this.timezone.toJS();
       return js;
     }
 
     public toString(): string {
-      return `${this.operand.toString()}.timeOffset(${this.duration.toString()}, ${this.timezone.toString()})`;
+      return `${this.operand.toString()}.timePart(${this.part.toString()}, ${this.timezone.toString()})`;
     }
 
-    public equals(other: TimeBucketExpression): boolean {
+    public equals(other: TimePartExpression): boolean {
       return super.equals(other) &&
-        this.duration.equals(other.duration) &&
+        this.part === other.part &&
         this.timezone.equals(other.timezone);
     }
 
     protected _getFnHelper(operandFn: ComputeFn): ComputeFn {
-      var duration = this.duration;
+      var part = this.part;
       var timezone = this.timezone;
       return (d: Datum) => {
-        var date = operandFn(d);
-        if (date === null) return null;
-        return duration.move(date, timezone, 1); // ToDo: generalize direction
+        // ToDo: make this work
       }
     }
 
@@ -61,9 +61,10 @@ module Core {
     }
 
     protected _getSQLHelper(operandSQL: string, dialect: SQLDialect, minimal: boolean): string {
-      return dialect.offsetTimeExpression(operandSQL, this.duration);
+      // ToDo: make this work
+      throw new Error("Vad, srsly make this work")
     }
   }
 
-  Expression.register(TimeOffsetExpression);
+  Expression.register(TimePartExpression);
 }

@@ -33,7 +33,7 @@ CallChainExpression
 
       function getNumber(thing) {
         if (thing.op === 'literal') return Number(thing.value);
-        return new Error("invalid parameter (must be a number)");
+        error("invalid parameter (must be a number)");
       }
 
       for (var i = 0, n = tail.length; i < n; i++) {
@@ -108,6 +108,16 @@ CallChainExpression
               op: op,
               operand: operand,
               duration: getName(params[0])
+            };
+            if (params.length === 2) operand.timezone = getName(params[1]);
+            break
+
+          case 'timePart':
+            if (params.length !== 1 && params.length !== 2) error(op + ' must have 1 or 2 parameter');
+            operand = {
+              op: op,
+              operand: operand,
+              part: getName(params[0])
             };
             if (params.length === 2) operand.timezone = getName(params[1]);
             break

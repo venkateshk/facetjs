@@ -10,6 +10,7 @@ describe 'TimeOffsetExpression', ->
           value: new Date('2015-02-20T15:41:12')
         }
         duration: 'P1D'
+        timezone: 'Etc/UTC'
       }
 
     tests.complexityIs(2)

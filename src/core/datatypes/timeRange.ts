@@ -34,6 +34,7 @@ module Core {
     }
 
     static fromDate(date: Date, duration: Duration, timezone: Timezone): TimeRange {
+      if (!date) return null;
       var start = duration.floor(date, timezone);
       return new TimeRange({
         start: start,

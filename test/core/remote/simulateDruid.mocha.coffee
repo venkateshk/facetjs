@@ -264,7 +264,7 @@ describe "simulate Druid", ->
         ]
         "dataSource": "diamonds"
         "dimension": {
-          "dimExtractionFn": {
+          "extractionFn": {
             "function": "function(d){d=Number(d); if(isNaN(d)) return 'null'; return Math.floor(d / 0.25) * 0.25;}"
             "type": "javascript"
           }
@@ -368,7 +368,7 @@ describe "simulate Druid", ->
         ]
         "dataSource": "diamonds"
         "dimension": {
-          "dimExtractionFn": {
+          "extractionFn": {
             "function": "function(d) {\nvar m = d.match(/^((?:-?[1-9]\\d*|0)\\.\\d{2});((?:-?[1-9]\\d*|0)\\.\\d{2})$/);\nif(!m) return 'null';\nvar s = +m[1];\nif(!(Math.abs(+m[2] - s - 0.05) < 1e-6)) return 'null'; \nvar parts = String(Math.abs(s)).split('.');\nparts[0] = ('000000000' + parts[0]).substr(-10);\nreturn (start < 0 ?'-':'') + parts.join('.');\n}"
             "type": "javascript"
           }
@@ -394,7 +394,7 @@ describe "simulate Druid", ->
         ]
         "dataSource": "diamonds"
         "dimension": {
-          "dimExtractionFn": {
+          "extractionFn": {
             "function": "function(d) {\nvar m = d.match(/^((?:-?[1-9]\\d*|0)\\.\\d{2});((?:-?[1-9]\\d*|0)\\.\\d{2})$/);\nif(!m) return 'null';\nvar s = +m[1];\nif(!(Math.abs(+m[2] - s - 0.05) < 1e-6)) return 'null'; s=Math.floor((s - 0.5) / 2) * 2 + 0.5;\nvar parts = String(Math.abs(s)).split('.');\nparts[0] = ('000000000' + parts[0]).substr(-10);\nreturn (start < 0 ?'-':'') + parts.join('.');\n}"
             "type": "javascript"
           }
@@ -445,5 +445,41 @@ describe "simulate Druid", ->
         "dataSource": "diamonds"
         "queryType": "timeBoundary"
         "bound": "minTime"
+      }
+    ])
+
+  it "makes a topN with a timePart dim extraction fn", ->
+    ex = facet("diamonds").split(facet("time").timePart('SECOND_OF_DAY', 'Etc/UTC'), 'Time')
+      .apply('Count', facet('diamonds').count())
+      .sort('$Count', 'descending')
+      .limit(10)
+
+    expect(ex.simulateQueryPlan(context)).to.deep.equal([
+      {
+        "aggregations": [
+          {
+            "name": "Count"
+            "type": "count"
+          }
+        ]
+        "dataSource": "diamonds"
+        "dimension": {
+          "dimension": "__time"
+          "extractionFn": {
+            "format": "H'*60+'m'*60+'s"
+            "locale": "en-US"
+            "timeZone": "Etc/UTC"
+            "type": "timeFormat"
+          }
+          "outputName": "Time"
+          "type": "extraction"
+        }
+        "granularity": "all"
+        "intervals": [
+          "2015-03-12/2015-03-19"
+        ]
+        "metric": "Count"
+        "queryType": "topN"
+        "threshold": 10
       }
     ])

@@ -1,4 +1,43 @@
 module Core {
+  var timePartToFormat: Lookup<string> = {
+    SECOND_OF_MINUTE: "s",
+    SECOND_OF_HOUR: "m'*60+'s",
+    SECOND_OF_DAY: "H'*60+'m'*60+'s",
+    SECOND_OF_WEEK: "e'*24+H'*60+'m'*60+'s",
+    SECOND_OF_MONTH: "d'*24+H'*60+'m'*60+'s", // Off by one on d
+    SECOND_OF_YEAR: "D'*24+H'*60+'m'*60+'s",
+
+    MINUTE_OF_HOUR: "m",
+    MINUTE_OF_DAY: "H'*60+'m",
+    MINUTE_OF_WEEK: "e'*24+H'*60+'m",
+    MINUTE_OF_MONTH: "d'*24+H'*60+'m", // Off by one on d
+    MINUTE_OF_YEAR: "D'*24+H'*60+'m",
+
+    HOUR_OF_DAY: "H",
+    HOUR_OF_WEEK: "e'*24+H",
+    HOUR_OF_MONTH: "d'*24+H", // Off by one on d
+    HOUR_OF_YEAR: "D'*24+H",
+
+    DAY_OF_WEEK: "e",
+    DAY_OF_MONTH: "d", // Off by one on d
+    DAY_OF_YEAR: "D",
+
+    WEEK_OF_MONTH: null,
+    WEEK_OF_YEAR: "w"
+  };
+
+  function simpleMath(exprStr: string): number {
+    if (String(exprStr) === 'null') return null;
+    var parts = exprStr.split(/(?=[*+])/);
+    var acc = parseInt(parts.shift(), 10);
+    for (var i = 0; i < parts.length; i++) {
+      var p = parts[i];
+      var v = parseInt(p.substring(1), 10);
+      acc = p[0] === '*' ? acc * v : acc + v;
+    }
+    return acc;
+  }
+
   export interface DruidFilterAndIntervals {
     filter: Druid.Filter;
     intervals: string[];
@@ -7,7 +46,7 @@ module Core {
   export interface DruidSplit {
     queryType: string;
     granularity: any;
-    dimension?: any;
+    dimension?: string | Druid.DimensionSpec;
     dimensions?: any[];
     postProcess: PostProcess;
   }
@@ -506,7 +545,7 @@ return (start < 0 ?'-':'') + parts.join('.');
       var label = this.key;
 
       var queryType: string;
-      var dimension: any = null;
+      var dimension: string | Druid.DimensionSpec = null;
       var dimensions: any[] = null;
       var granularity: any = 'all';
       var postProcess: PostProcess = null;
@@ -523,7 +562,7 @@ return (start < 0 ?'-':'') + parts.join('.');
               type: "extraction",
               dimension: splitExpression.name,
               outputName: label,
-              dimExtractionFn: this.getBucketingDimension(attributeInfo, null)
+              extractionFn: this.getBucketingDimension(attributeInfo, null)
             };
             postProcess = postProcessTopNFactory(postProcessNumberBucketFactory(attributeInfo.rangeSize), label);
           } else {
@@ -536,6 +575,28 @@ return (start < 0 ?'-':'') + parts.join('.');
           dimensions = [dimensionSpec];
           postProcess = postProcessGroupBy;
 
+        }
+
+      } else if (splitExpression instanceof TimePartExpression) {
+        var refExpression = splitExpression.operand;
+        if (refExpression instanceof RefExpression) {
+          queryType = 'topN';
+          var format = timePartToFormat[splitExpression.part];
+          if (!format) throw new Error(`unsupported part in timePart expression ${splitExpression.part}`);
+          dimension = {
+            type: "extraction",
+            dimension: refExpression.name === this.timeAttribute ? '__time' : refExpression.name,
+            outputName: label,
+            extractionFn: {
+              type: "timeFormat",
+              format: format,
+              timeZone: splitExpression.timezone.toString(),
+              locale: "en-US"
+            }
+          };
+          postProcess = postProcessTopNFactory(simpleMath, label);
+        } else {
+          throw new Error(`can not convert complex time part: ${refExpression.toString()}`);
         }
 
       } else if (splitExpression instanceof TimeBucketExpression) {
@@ -564,7 +625,7 @@ return (start < 0 ?'-':'') + parts.join('.');
                 type: "extraction",
                 dimension: refExpression.name,
                 outputName: label,
-                dimExtractionFn: {
+                extractionFn: {
                   type: "javascript",
                   'function': `function(d){d=Number(d); if(isNaN(d)) return 'null'; return ${floorExpression};}`
                 }
@@ -577,7 +638,7 @@ return (start < 0 ?'-':'') + parts.join('.');
                 type: "extraction",
                 dimension: refExpression.name,
                 outputName: label,
-                dimExtractionFn: this.getBucketingDimension(<RangeAttributeInfo>attributeInfo, splitExpression)
+                extractionFn: this.getBucketingDimension(<RangeAttributeInfo>attributeInfo, splitExpression)
               };
               postProcess = postProcessTopNFactory(postProcessNumberBucketFactory(splitExpression.size), label);
               break;

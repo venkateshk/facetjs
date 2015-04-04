@@ -52,39 +52,39 @@ describe "Druid driver", ->
         attribute: 'price_range'
       }))
 
-      dimExtractionFn = null
+      extractionFn = null
 
-      it "has a dimExtractionFn", ->
+      it "has a extractionFn", ->
         druidQuery = queryBuilder.getQuery()
         expect(druidQuery.queryType).to.equal('groupBy')
-        dimExtractionFnSrc = druidQuery.dimensions[0].dimExtractionFn.function
-        expect(dimExtractionFnSrc).to.exist
+        extractionFnSrc = druidQuery.dimensions[0].extractionFn.function
+        expect(extractionFnSrc).to.exist
         expect(->
-          dimExtractionFn = eval("(#{dimExtractionFnSrc})")
+          extractionFn = eval("(#{extractionFnSrc})")
         ).to.not.throw()
-        expect(dimExtractionFn).to.be.a('function')
+        expect(extractionFn).to.be.a('function')
 
-      it "has a working dimExtractionFn", ->
-        expect(dimExtractionFn("0.05|0.1")).to.equal("0000000000.05")
-        expect(dimExtractionFn("10.05|10.1")).to.equal("0000000010.05")
-        expect(dimExtractionFn("-10.1|-10.05")).to.equal("-0000000010.1")
-        expect(dimExtractionFn("blah_unknown")).to.equal("null")
+      it "has a working extractionFn", ->
+        expect(extractionFn("0.05|0.1")).to.equal("0000000000.05")
+        expect(extractionFn("10.05|10.1")).to.equal("0000000010.05")
+        expect(extractionFn("-10.1|-10.05")).to.equal("-0000000010.1")
+        expect(extractionFn("blah_unknown")).to.equal("null")
 
       it "is checks end", ->
-        expect(dimExtractionFn("50.05|whatever")).to.equal("null")
+        expect(extractionFn("50.05|whatever")).to.equal("null")
 
       it "is checks range size", ->
-        expect(dimExtractionFn("50.05|50.09")).to.equal("null")
+        expect(extractionFn("50.05|50.09")).to.equal("null")
 
       it "is checks trailing zeroes", ->
-        expect(dimExtractionFn("50.05|50.10")).to.equal("null")
+        expect(extractionFn("50.05|50.10")).to.equal("null")
 
       it "is checks number of splits", ->
-        expect(dimExtractionFn("50.05|50.1|50.2")).to.equal("null")
+        expect(extractionFn("50.05|50.1|50.2")).to.equal("null")
 
       it "is checks separator", ->
-        expect(dimExtractionFn("50.05| 50.1")).to.equal("null")
-        expect(dimExtractionFn("50.05 |50.1")).to.equal("null")
+        expect(extractionFn("50.05| 50.1")).to.equal("null")
+        expect(extractionFn("50.05 |50.1")).to.equal("null")
 
 
     describe "good bucketing function (no before / 2 after)", ->
@@ -110,35 +110,35 @@ describe "Druid driver", ->
         attribute: 'price_range'
       }))
 
-      dimExtractionFn = null
+      extractionFn = null
 
-      it "has a dimExtractionFn", ->
+      it "has a extractionFn", ->
         druidQuery = queryBuilder.getQuery()
         expect(druidQuery.queryType).to.equal('groupBy')
-        dimExtractionFnSrc = druidQuery.dimensions[0].dimExtractionFn.function
-        expect(dimExtractionFnSrc).to.exist
+        extractionFnSrc = druidQuery.dimensions[0].extractionFn.function
+        expect(extractionFnSrc).to.exist
         expect(->
-          dimExtractionFn = eval("(#{dimExtractionFnSrc})")
+          extractionFn = eval("(#{extractionFnSrc})")
         ).to.not.throw()
-        expect(dimExtractionFn).to.be.a('function')
+        expect(extractionFn).to.be.a('function')
 
-      it "has a working dimExtractionFn", ->
-        expect(dimExtractionFn("0.05|0.10")).to.equal("0000000000.05")
-        expect(dimExtractionFn("10.05|10.10")).to.equal("0000000010.05")
-        expect(dimExtractionFn("-10.10|-10.05")).to.equal("-0000000010.1")
-        expect(dimExtractionFn("blah_unknown")).to.equal("null")
+      it "has a working extractionFn", ->
+        expect(extractionFn("0.05|0.10")).to.equal("0000000000.05")
+        expect(extractionFn("10.05|10.10")).to.equal("0000000010.05")
+        expect(extractionFn("-10.10|-10.05")).to.equal("-0000000010.1")
+        expect(extractionFn("blah_unknown")).to.equal("null")
 
       it "is checks end", ->
-        expect(dimExtractionFn("50.05|whatever")).to.equal("null")
+        expect(extractionFn("50.05|whatever")).to.equal("null")
 
       it "is checks range size", ->
-        expect(dimExtractionFn("50.05|50.09")).to.equal("null")
+        expect(extractionFn("50.05|50.09")).to.equal("null")
 
       it "is checks trailing zeroes (none)", ->
-        expect(dimExtractionFn("50.05|50.1")).to.equal("null")
+        expect(extractionFn("50.05|50.1")).to.equal("null")
 
       it "is checks trailing zeroes (too many)", ->
-        expect(dimExtractionFn("50.050|50.100")).to.equal("null")
+        expect(extractionFn("50.050|50.100")).to.equal("null")
 
     describe "good bucketing function (4 before / no after)", ->
       queryBuilder = new DruidQueryBuilder({
@@ -163,35 +163,35 @@ describe "Druid driver", ->
         attribute: 'price_range'
       }))
 
-      dimExtractionFn = null
+      extractionFn = null
 
-      it "has a dimExtractionFn", ->
+      it "has a extractionFn", ->
         druidQuery = queryBuilder.getQuery()
         expect(druidQuery.queryType).to.equal('groupBy')
-        dimExtractionFnSrc = druidQuery.dimensions[0].dimExtractionFn.function
-        expect(dimExtractionFnSrc).to.exist
+        extractionFnSrc = druidQuery.dimensions[0].extractionFn.function
+        expect(extractionFnSrc).to.exist
         expect(->
-          dimExtractionFn = eval("(#{dimExtractionFnSrc})")
+          extractionFn = eval("(#{extractionFnSrc})")
         ).to.not.throw()
-        expect(dimExtractionFn).to.be.a('function')
+        expect(extractionFn).to.be.a('function')
 
-      it "has a working dimExtractionFn", ->
-        expect(dimExtractionFn("0000.05|0000.1")).to.equal("0000000000.05")
-        expect(dimExtractionFn("0010.05|0010.1")).to.equal("0000000010.05")
-        expect(dimExtractionFn("-0010.1|-0010.05")).to.equal("-0000000010.1")
-        expect(dimExtractionFn("blah_unknown")).to.equal("null")
+      it "has a working extractionFn", ->
+        expect(extractionFn("0000.05|0000.1")).to.equal("0000000000.05")
+        expect(extractionFn("0010.05|0010.1")).to.equal("0000000010.05")
+        expect(extractionFn("-0010.1|-0010.05")).to.equal("-0000000010.1")
+        expect(extractionFn("blah_unknown")).to.equal("null")
 
       it "is checks end", ->
-        expect(dimExtractionFn("0050.05|whatever")).to.equal("null")
+        expect(extractionFn("0050.05|whatever")).to.equal("null")
 
       it "is checks range size", ->
-        expect(dimExtractionFn("0050.05|0050.09")).to.equal("null")
+        expect(extractionFn("0050.05|0050.09")).to.equal("null")
 
       it "is checks number of digits (too few)", ->
-        expect(dimExtractionFn("050.05|050.1")).to.equal("null")
+        expect(extractionFn("050.05|050.1")).to.equal("null")
 
       it "is checks number of digits (too many)", ->
-        expect(dimExtractionFn("00050.05|00050.1")).to.equal("null")
+        expect(extractionFn("00050.05|00050.1")).to.equal("null")
 
     describe "good native filtered aggregator", ->
       queryBuilder = null

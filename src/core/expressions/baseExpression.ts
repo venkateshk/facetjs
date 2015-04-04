@@ -40,6 +40,7 @@ module Core {
     size?: number;
     duration?: Duration;
     timezone?: Timezone;
+    part?: string;
   }
 
   export interface ExpressionJS {
@@ -59,6 +60,7 @@ module Core {
     size?: number;
     duration?: string;
     timezone?: string;
+    part?: string;
   }
 
   export interface Alteration {
@@ -648,6 +650,11 @@ module Core {
       if (!Duration.isDuration(duration)) duration = Duration.fromJS(duration);
       if (!Timezone.isTimezone(timezone)) timezone = Timezone.fromJS(timezone);
       return this._performUnaryExpression({ op: 'timeBucket', duration: duration, timezone: timezone });
+    }
+
+    public timePart(part: any, timezone: any) {
+      if (!Timezone.isTimezone(timezone)) timezone = Timezone.fromJS(timezone);
+      return this._performUnaryExpression({ op: 'timePart', part: part, timezone: timezone });
     }
 
     // Aggregators

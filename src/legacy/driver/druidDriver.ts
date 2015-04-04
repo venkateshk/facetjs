@@ -374,7 +374,7 @@ module Legacy {
               type: "extraction",
               dimension: split.attribute,
               outputName: split.name,
-              dimExtractionFn: {
+              extractionFn: {
                 type: "javascript",
                 "function": "function(d) {" +
                 "var match = d.match(" + regExp + ");" +
@@ -446,7 +446,7 @@ module Legacy {
               type: "extraction",
               dimension: split.attribute,
               outputName: split.name,
-              dimExtractionFn: {
+              extractionFn: {
                 type: "javascript",
                 "function": "function(d) {\nd = Number(d);\nif(isNaN(d)) return 'null';\nreturn " + floorExpression + ";\n}"
               }

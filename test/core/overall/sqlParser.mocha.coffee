@@ -24,19 +24,33 @@ describe "SQL parser", ->
 
     expect(ex.toJS()).to.deep.equal(ex2.toJS())
 
+  it "it should work without a FROM", ->
+    ex = Expression.parseSQL("""
+      SELECT
+      SUM(added) AS 'TotalAdded'
+      WHERE `language`="en"
+      GROUP BY ''
+      """)
+
+    ex2 = facet()
+      .def('data', '$data.filter($language = "en")')
+      .apply('TotalAdded', '$data.sum($added)')
+
+    expect(ex.toJS()).to.deep.equal(ex2.toJS())
+
   it "it should parse a complex filter", ->
     ex = Expression.parseSQL("""
       SELECT
       SUM(added) AS 'TotalAdded'
       FROM `wiki`    -- Filters can have ANDs and all sorts of stuff!
-      WHERE language="en" AND page="Hello World" AND added < 5
+      WHERE language="en" AND page<>"Hello World" AND added < 5
       GROUP BY ''
       """)
 
     ex2 = facet()
       .def('data',
         facet('wiki').filter(
-          facet('language').is("en").and(facet('page').is("Hello World"), facet('added').lessThan(5))
+          facet('language').is("en").and(facet('page').isnt("Hello World"), facet('added').lessThan(5))
         )
       )
       .apply('TotalAdded', '$data.sum($added)')

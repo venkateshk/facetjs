@@ -175,7 +175,7 @@ start
   = _ query:SQLQuery _ { return query; }
 
 SQLQuery
-  = SelectToken columns:Columns? from:FromClause where:WhereClause? groupBy:GroupByClause? having:HavingClause? orderBy:OrderByClause? limit:LimitClause?
+  = SelectToken columns:Columns? from:FromClause? where:WhereClause? groupBy:GroupByClause? having:HavingClause? orderBy:OrderByClause? limit:LimitClause?
     { return handleQuery(columns, from, where, groupBy, having, orderBy, limit); }
 
 SQLSubQuery

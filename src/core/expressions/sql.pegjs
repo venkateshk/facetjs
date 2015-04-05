@@ -2,6 +2,35 @@
   var base = { op: 'literal', value: [{}] };
   var dataRef = { op: 'ref', name: 'data' };
 
+  // See here: https://www.drupal.org/node/141051
+  var reservedWords = {
+    ALL: 1, AND: 1,  AS: 1, ASC: 1, AVG: 1,
+    BETWEEN: 1, BY: 1,
+    CONTAINS: 1, CREATE: 1,
+    DELETE: 1, DESC: 1, DISTINCT: 1, DROP: 1,
+    EXISTS: 1, EXPLAIN: 1,
+    FALSE: 1, FROM: 1,
+    GROUP: 1,
+    HAVING: 1,
+    IN: 1, INNER: 1,  INSERT: 1, INTO: 1, IS: 1,
+    JOIN: 1,
+    LEFT: 1, LIKE: 1, LIMIT: 1,
+    MAX: 1, MIN: 1,
+    NOT: 1, NULL: 1, NUMBER_BUCKET: 1,
+    ON: 1, OR: 1, ORDER: 1,
+    REPLACE: 1,
+    SELECT: 1, SET: 1, SHOW: 1, SUM: 1,
+    TABLE: 1, TIME_BUCKET: 1, TRUE: 1,
+    UNION: 1, UPDATE: 1,
+    VALUES: 1,
+    WHERE: 1
+  }
+
+  var objectHasOwnProperty = Object.prototype.hasOwnProperty;
+  function reserved(str) {
+    return objectHasOwnProperty.call(reservedWords, str.toUpperCase());
+  }
+
   function parentify(ref) {
     return { op: 'ref', name: '^' + ref.name };
   }
@@ -45,6 +74,7 @@
   }
 
   function handleQuery(columns, from, where, groupBy, having, orderBy, limit) {
+    columns = columns || [];
     from = from || dataRef;
 
     var operand = null;
@@ -121,67 +151,113 @@
       actions: actions
     };
   }
+
+  function naryExpressionFactory(op, head, tail) {
+    if (!tail.length) return head;
+    return {
+      op: op,
+      operands: [head].concat(tail.map(function(t) { return t[3]; }))
+    };
+  }
+
+  function naryExpressionWithAltFactory(op, head, tail, altToken, altOp) {
+    if (!tail.length) return head;
+    return {
+      op: op,
+      operands: [head].concat(tail.map(function(t) {
+        return t[1] === altToken ? { op: 'negate', operand: t[3] } : t[3];
+      }))
+    };
+  }
 }
 
 start
   = _ query:SQLQuery _ { return query; }
 
 SQLQuery
-  = SelectToken __ columns:Columns from:From where:Where? groupBy:GroupBy? having:Having? orderBy:OrderBy? limit:Limit?
+  = SelectToken columns:Columns? from:FromClause where:WhereClause? groupBy:GroupByClause? having:HavingClause? orderBy:OrderByClause? limit:LimitClause?
     { return handleQuery(columns, from, where, groupBy, having, orderBy, limit); }
 
 SQLSubQuery
-  = SelectToken __ columns:Columns groupBy:GroupBy? having:Having? orderBy:OrderBy? limit:Limit?
+  = SelectToken columns:Columns? groupBy:GroupByClause? having:HavingClause? orderBy:OrderByClause? limit:LimitClause?
     { return handleQuery(columns, null, null, groupBy, having, orderBy, limit); }
 
 Columns
-  = head:Column? tail:(_ "," _ Column)*
-    {
-      if (!head) return [];
-      return [head].concat(tail.map(function(t) { return t[3] }));
-    }
+  = __ head:Column tail:(_ "," _ Column)*
+    { return [head].concat(tail.map(function(t) { return t[3] })); }
 
 Column
   = ex:Expression as:As?
-    { return { action: 'apply', name: as || 'noName', expression: ex }; }
+    {
+      return {
+        action: 'apply',
+        name: as || text().toLowerCase().replace(/^\W+|\W+$/g, '').replace(/\W+/g, '_'),
+        expression: ex
+      };
+    }
 
 As
   = __ AsToken __ name:String { return name; }
 
-From
+FromClause
   = __ FromToken __ table:Ref
     { return table; }
 
-Where
+WhereClause
   = __ WhereToken __ filter:Expression
     { return filter; }
 
-GroupBy
+GroupByClause
   = __ GroupToken __ ByToken __ groupBy:Expression
     { return groupBy; }
 
-Having
+HavingClause
   = __ HavingToken __ having:Expression
     { return { action: 'filter', expression: having }; }
 
-OrderBy
+OrderByClause
   = __ OrderToken __ ByToken __ orderBy:Expression direction:Direction?
     { return { action: 'sort', expression: orderBy, direction: direction || 'ascending' }; }
 
 Direction
   = __ dir:(AscToken / DescToken) { return dir; }
 
-Limit
-  = __ "LIMIT"i __ limit:Number
+LimitClause
+  = __ LimitToken __ limit:Number
     { return { action: 'limit', limit: limit }; }
 
-Expression
-  = BinaryExpression
-  / AdditiveExpression
+/*
+Expressions are filed in below in acceding priority order
 
-BinaryExpression
-  = lhs:AdditiveExpression _ op:BinaryOp _ rhs:Expression
+  Or (OR)
+  And (AND)
+  Not (NOT)
+  Comparison (=, <, >, <=, >=, <>, !=, IS, LIKE, BETWEEN, IN, CONTAINS)
+  Additive (+, -)
+  Multiplicative (*), Division (/)
+  identity (+), negation (-)
+*/
+
+Expression = OrExpression
+
+OrExpression
+  = head:AndExpression tail:(_ OrToken _ AndExpression)*
+    { return naryExpressionFactory('or', head, tail); }
+
+AndExpression
+  = head:NotExpression tail:(_ AndToken _ NotExpression)*
+    { return naryExpressionFactory('and', head, tail); }
+
+NotExpression
+  = NotToken __ ex:ComparisonExpression { return { op: 'not', operand: ex }; }
+  / ComparisonExpression
+
+ComparisonExpression
+  = lhs:AdditiveExpression rest:(_ ComparisonOp _ AdditiveExpression)?
     {
+      if (!rest) return lhs;
+      var op = rest[1];
+      var rhs = rest[3];
       if (op === 'isnt') {
         return { op: 'not', operand: { op: 'is', lhs: lhs, rhs: rhs }};
       } else {
@@ -189,9 +265,10 @@ BinaryExpression
       }
     }
 
-BinaryOp
+ComparisonOp
   = "="  { return 'is'; }
   / "<>" { return 'isnt'; }
+  / "!=" { return 'isnt'; }
   / "in" { return 'in'; }
   / "<=" { return 'lessThanOrEqual'; }
   / ">=" { return 'greaterThanOrEqual'; }
@@ -199,43 +276,26 @@ BinaryOp
   / ">"  { return 'greaterThan'; }
 
 AdditiveExpression
-  = head:MultiplicativeExpression tail:(_ [+-] _ MultiplicativeExpression)*
-    {
-      if (!tail.length) return head;
-      var operands = [head];
-      for (var i = 0; i < tail.length; i++) {
-        if (tail[i][1] === '+') {
-          operands.push(tail[i][3]);
-        } else {
-          operands.push({ op: 'negate', operand: tail[i][3] });
-        }
-      }
-      return { op: 'add', operands: operands };
-    }
+  = head:MultiplicativeExpression tail:(_ AdditiveOp _ MultiplicativeExpression)*
+    { return naryExpressionFactory('add', head, tail, '-', 'negate'); }
+
+AdditiveOp = [+-]
 
 MultiplicativeExpression
-  = head:Factor tail:(_ [*/] _ Factor)*
-    {
-      if (!tail.length) return head;
-      var operands = [head];
-      for (var i = 0; i < tail.length; i++) {
-        if (tail[i][1] === '*') {
-          operands.push(tail[i][3]);
-        } else {
-          operands.push({ op: 'reciprocate', operand: tail[i][3] });
-        }
-      }
-      return { op: 'multiply', operands: operands };
-    }
+  = head:BasicExpression tail:(_ MultiplicativeOp _ BasicExpression)*
+    { return naryExpressionFactory('multiply', head, tail, '/', 'reciprocate'); }
 
-Factor
-  = "(" _ ex:Expression _ ")" { return ex; }
+MultiplicativeOp = [*/]
+
+BasicExpression
+  = LiteralExpression
+  / AggregateExpression
+  / FunctionCallExpression
+  / "(" _ ex:Expression _ ")" { return ex; }
   / "(" _ subQuery:SQLSubQuery _ ")" { return subQuery; }
-  / Literal
   / Ref
-  / Aggregate
 
-Aggregate
+AggregateExpression
   = CountToken "()"
     { return { op: 'aggregate', fn: 'count', operand: dataRef }; }
   / fn:AggregateFn "(" _ ex:Expression _ ")"
@@ -244,11 +304,19 @@ Aggregate
 AggregateFn
   = SumToken / AvgToken / MinToken / MaxToken
 
+FunctionCallExpression
+  = TimeBucketToken "(" _ operand:Expression _ "," _ duration:Name _ "," _ timezone:String ")"
+    { return { op: 'timeBucket', operand: operand, duration: duration, timezone: timezone }; }
+  / NumberBucketToken "(" _ operand:Expression _ "," _ size:Number _ "," _ offset:Number ")"
+    { return { op: 'numberBucket', operand: operand, size: size, offset: offset }; }
+
 Ref
-  = "`" name:RefName "`"
+  = name:RefName !{ return reserved(name); }
+    { return { op: "ref", name: name }; }
+  / "`" name:RefName "`"
     { return { op: "ref", name: name }; }
 
-Literal
+LiteralExpression
   = number:Number { return { op: "literal", value: number }; }
   / string:String { return { op: "literal", value: string }; }
   / v:(NullToken / TrueToken / FalseToken) { return { op: "literal", value: v }; }
@@ -261,66 +329,46 @@ String "String"
 
 /* Tokens */
 
-NullToken     = "NULL"i     !IdentifierPart { return null; }
-TrueToken     = "TRUE"i     !IdentifierPart { return true; }
-FalseToken    = "FALSE"i    !IdentifierPart { return false; }
+NullToken         = "NULL"i          !IdentifierPart { return null; }
+TrueToken         = "TRUE"i          !IdentifierPart { return true; }
+FalseToken        = "FALSE"i         !IdentifierPart { return false; }
 
-SelectToken   = "SELECT"i   !IdentifierPart
-ShowToken     = "SHOW"i     !IdentifierPart
-DropToken     = "DROP"i     !IdentifierPart
-UpdateToken   = "UPDATE"i   !IdentifierPart
-CreateToken   = "CREATE"i   !IdentifierPart
-DeleteToken   = "DELETE"i   !IdentifierPart
-InsertToken   = "INSERT"i   !IdentifierPart
-ReplaceToken  = "REPLACE"i  !IdentifierPart
-ExplainToken  = "EXPLAIN"i  !IdentifierPart
+SelectToken       = "SELECT"i        !IdentifierPart
+FromToken         = "FROM"i          !IdentifierPart
+AsToken           = "AS"i            !IdentifierPart
+OnToken           = "ON"i            !IdentifierPart
+LeftToken         = "LEFT"i          !IdentifierPart
+InnerToken        = "INNER"i         !IdentifierPart
+JoinToken         = "JOIN"i          !IdentifierPart
+UnionToken        = "UNION"i         !IdentifierPart
+WhereToken        = "WHERE"i         !IdentifierPart
+GroupToken        = "GROUP"i         !IdentifierPart
+ByToken           = "BY"i            !IdentifierPart
+OrderToken        = "ORDER"i         !IdentifierPart
+HavingToken       = "HAVING"i        !IdentifierPart
+LimitToken        = "LIMIT"i         !IdentifierPart
 
-FromToken     = "FROM"i     !IdentifierPart
-IntoToken     = "INTO"i     !IdentifierPart
-SetToken      = "SET"i      !IdentifierPart
+AscToken          = "ASC"i           !IdentifierPart { return 'ascending';  }
+DescToken         = "DESC"i          !IdentifierPart { return 'descending'; }
 
-AsToken       = "AS"i       !IdentifierPart
-TableToken    = "TABLE"i    !IdentifierPart
+BetweenToken      = "BETWEEN"i       !IdentifierPart
+InToken           = "IN"i            !IdentifierPart
+IsToken           = "IS"i            !IdentifierPart
+LikeToken         = "LIKE"i          !IdentifierPart
+ContainsToken     = "CONTAINS"i      !IdentifierPart
 
-OnToken       = "ON"i       !IdentifierPart
-LeftToken     = "LEFT"i     !IdentifierPart
-InnerToken    = "INNER"i    !IdentifierPart
-JoinToken     = "JOIN"i     !IdentifierPart
-UnionToken    = "UNION"i    !IdentifierPart
-ValuesToken   = "VALUES"i   !IdentifierPart
+NotToken          = "NOT"i           !IdentifierPart
+AndToken          = "AND"i           !IdentifierPart
+OrToken           = "OR"i            !IdentifierPart
 
-ExistsToken   = "EXISTS"i   !IdentifierPart
+CountToken        = "COUNT"i         !IdentifierPart { return 'count'; }
+SumToken          = "SUM"i           !IdentifierPart { return 'sum'; }
+AvgToken          = "AVG"i           !IdentifierPart { return 'average'; }
+MinToken          = "MIN"i           !IdentifierPart { return 'min'; }
+MaxToken          = "MAX"i           !IdentifierPart { return 'max'; }
 
-WhereToken    = "WHERE"i    !IdentifierPart
-
-GroupToken    = "GROUP"i    !IdentifierPart
-ByToken       = "BY"i       !IdentifierPart
-OrderToken    = "ORDER"i    !IdentifierPart
-HavingToken   = "HAVING"i   !IdentifierPart
-
-LimitToken    = "LIMIT"i    !IdentifierPart
-
-AscToken      = "ASC"i      !IdentifierPart { return 'ascending';  }
-DescToken     = "DESC"i     !IdentifierPart { return 'descending'; }
-
-AllToken      = "ALL"i      !IdentifierPart
-DistinctToken = "DISTINCT"i !IdentifierPart
-
-BetweenToken  = "BETWEEN"i  !IdentifierPart
-InToken       = "IN"i       !IdentifierPart
-IsToken       = "IS"i       !IdentifierPart
-LikeToken     = "LIKE"i     !IdentifierPart
-ContainsToken = "CONTAINS"i !IdentifierPart
-
-NotToken      = "NOT"i      !IdentifierPart
-AndToken      = "AND"i      !IdentifierPart
-OrToken       = "OR"i       !IdentifierPart
-
-CountToken    = "COUNT"i    !IdentifierPart { return 'count'; }
-SumToken      = "SUM"i      !IdentifierPart { return 'sum';   }
-AvgToken      = "AVG"i      !IdentifierPart { return 'average'; }
-MinToken      = "MIN"i      !IdentifierPart { return 'min';   }
-MaxToken      = "MAX"i      !IdentifierPart { return 'max';   }
+TimeBucketToken   = "TIME_BUCKET"i   !IdentifierPart
+NumberBucketToken = "NUMBER_BUCKET"i !IdentifierPart
 
 IdentifierPart = [A-Za-z_]
 
@@ -349,10 +397,10 @@ Digit
 /* Extra */
 
 Name "Name"
-  = $([a-z0-9A-Z_]+)
+  = $([a-zA-Z_] [a-z0-9A-Z_]*)
 
 RefName "RefName"
-  = $("^"* [a-z0-9A-Z_]+)
+  = $("^"* Name)
 
 NotSQuote "NotSQuote"
   = $([^']*)

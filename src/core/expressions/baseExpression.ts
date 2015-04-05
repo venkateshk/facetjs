@@ -210,7 +210,7 @@ module Core {
           break;
 
         case 'string':
-          if (/^\w+$/.test(param)) {
+          if (/^[\w ]+$/.test(param)) {
             expressionJS = { op: 'literal', value: param };
           } else {
             expressionJS = parseExpression(param);

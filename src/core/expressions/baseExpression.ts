@@ -210,7 +210,7 @@ module Core {
           break;
 
         case 'string':
-          if (/^\w+$/.test(param)) {
+          if (/^[\w ]+$/.test(param)) {
             expressionJS = { op: 'literal', value: param };
           } else {
             expressionJS = parseExpression(param);
@@ -702,6 +702,7 @@ module Core {
     }
 
     public is(ex: any) { return this._performBinaryExpression({ op: 'is' }, ex); }
+    public isnt(ex: any) { return this.is(ex).not(); }
     public lessThan(ex: any) { return this._performBinaryExpression({ op: 'lessThan' }, ex); }
     public lessThanOrEqual(ex: any) { return this._performBinaryExpression({ op: 'lessThanOrEqual' }, ex); }
     public greaterThan(ex: any) { return this._performBinaryExpression({ op: 'greaterThan' }, ex); }

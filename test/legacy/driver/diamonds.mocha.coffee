@@ -2,8 +2,8 @@
 
 utils = require('../../utils')
 
-{ druidRequester } = require('facetjs-druid-requester')
-{ mySqlRequester } = require('facetjs-mysql-requester')
+{ druidRequesterFactory } = require('facetjs-druid-requester')
+{ mySqlRequesterFactory } = require('facetjs-mysql-requester')
 
 facet = require("../../../build/facet")
 { nativeDriver, mySqlDriver, druidDriver } = facet.legacy
@@ -19,29 +19,29 @@ diamondsData = require('../../../data/diamonds.js')
 driverFns.native = nativeDriver(diamondsData)
 
 # MySQL
-mySqlPass = mySqlRequester({
+mySqlRequester = mySqlRequesterFactory({
   host: info.mySqlHost
   database: info.mySqlDatabase
   user: info.mySqlUser
   password: info.mySqlPassword
 })
 
-mySqlPass = utils.wrapVerbose(mySqlPass, 'MySQL') if verbose
+mySqlRequester = utils.wrapVerbose(mySqlRequester, 'MySQL') if verbose
 
 driverFns.mySql = mySqlDriver({
-  requester: mySqlPass
+  requester: mySqlRequester
   table: 'diamonds'
   filters: null
 })
 
 # # Druid
-# druidPass = druidRequester({
+# druidRequester = druidRequesterFactory({
 #   host: info.druidHost
 #   port: 8080
 # })
 
 # driverFns.druid = druidDriver({
-#   requester: druidPass
+#   requester: druidRequester
 #   dataSource: context.dataSource
 #   filter: null
 # })

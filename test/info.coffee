@@ -1,4 +1,4 @@
-exports.druidHost = '10.153.211.100'
+exports.druidHost = '10.41.175.194'
 
 exports.mySqlHost = 'localhost'
 exports.mySqlDatabase = 'facet'

@@ -2,7 +2,7 @@
 utils = require('../../utils')
 
 Q = require('q')
-{ druidRequester } = require('facetjs-druid-requester')
+{ druidRequesterFactory } = require('facetjs-druid-requester')
 
 facet = require('../../../build/facet')
 
@@ -495,12 +495,12 @@ describe "Druid driver", ->
         ])
 
   describe "introspects", ->
-    druidPass = druidRequester({
+    druidRequester = druidRequesterFactory({
       host: info.druidHost
     })
 
     wikiDriver = druidDriver({
-      requester: druidPass
+      requester: druidRequester
       dataSource: 'wikipedia_editstream'
       timeAttribute: 'time'
       approximate: true
@@ -692,12 +692,12 @@ describe "Druid driver", ->
       ).done()
 
   describe "should work with driver level filter", ->
-    druidPass = druidRequester({
+    druidRequester = druidRequesterFactory({
       host: info.druidHost
     })
 
     noFilter = druidDriver({
-      requester: druidPass
+      requester: druidRequester
       dataSource: 'wikipedia_editstream'
       timeAttribute: 'time'
       approximate: true
@@ -725,7 +725,7 @@ describe "Druid driver", ->
     }
 
     withFilter = druidDriver({
-      requester: druidPass
+      requester: druidRequester
       dataSource: 'wikipedia_editstream'
       timeAttribute: 'time'
       approximate: true
@@ -753,12 +753,12 @@ describe "Druid driver", ->
       ).done()
 
   describe "should work with nothingness", ->
-    druidPass = druidRequester({
+    druidRequester = druidRequesterFactory({
       host: info.druidHost
     })
 
     wikiDriver = druidDriver({
-      requester: druidPass
+      requester: druidRequester
       dataSource: 'wikipedia_editstream'
       timeAttribute: 'time'
       approximate: true
@@ -810,12 +810,12 @@ describe "Druid driver", ->
       ).done()
 
   describe "should work with inferred nothingness", ->
-    druidPass = druidRequester({
+    druidRequester = druidRequesterFactory({
       host: info.druidHost
     })
 
     wikiDriver = druidDriver({
-      requester: druidPass
+      requester: druidRequester
       dataSource: 'wikipedia_editstream'
       timeAttribute: 'time'
       approximate: true
@@ -853,14 +853,14 @@ describe "Druid driver", ->
       ).done()
 
   describe "specific queries", ->
-    druidPass = druidRequester({
+    druidRequester = druidRequesterFactory({
       host: info.druidHost
     })
     driver = null
 
     beforeEach ->
       driver = druidDriver({
-        requester: druidPass
+        requester: druidRequester
         dataSource: 'wikipedia_editstream'
         timeAttribute: 'time'
         approximate: true
@@ -915,7 +915,7 @@ describe "Druid driver", ->
     describe 'with dataSourceMetaData', ->
       beforeEach ->
         driver = druidDriver({
-          requester: druidPass
+          requester: druidRequester
           dataSource: 'wikipedia_editstream'
           timeAttribute: 'time'
           approximate: true

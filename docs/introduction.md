@@ -121,7 +121,7 @@ This example will use Druid as the data store.
 
 ```javascript
 // Get the druid requester (which is a node specific module)
-var druidRequester = require('facetjs-druid-requester').druidRequester;
+var druidRequesterFactory = require('facetjs-druid-requester').druidRequesterFactory;
 
 var facet = require('facet');
 var Dataset = facet.core.Dataset;
@@ -130,7 +130,7 @@ var Dataset = facet.core.Dataset;
 Next, the druid connection needs to be configured:
 
 ```javascript
-var druidPass = druidRequester({
+var druidRequester = druidRequesterFactory({
   host: '10.153.211.100' // Where ever your Druid may be
 });
 
@@ -140,7 +140,7 @@ var wikiDataset = Dataset.fromJS({
   timeAttribute: 'time',  // Druid's anonymous time attribute will be called 'time'
   forceInterval: true,  // Do not issue queries on unbounded time (no interval set)
   approximate: true,  // Allow approximate results, Druid is not as awesome of you stick to the exact stuff
-  requester: druidPass
+  requester: druidRequester
 });
 ```
 

@@ -5,14 +5,14 @@ if not WallTime.rules
   tzData = require("chronology/lib/walltime/walltime-data.js")
   WallTime.init(tzData.rules, tzData.zones)
 
-{ druidRequester } = require('facetjs-druid-requester')
+{ druidRequesterFactory } = require('facetjs-druid-requester')
 
 facet = require('../../build/facet')
 { Expression, Dataset, TimeRange } = facet.core
 
 info = require('../info')
 
-druidPass = druidRequester({
+druidRequester = druidRequesterFactory({
   host: info.druidHost
 })
 
@@ -39,7 +39,7 @@ describe "DruidDataset", ->
           start: new Date("2013-02-26T00:00:00Z")
           end: new Date("2013-02-27T00:00:00Z")
         }))
-        requester: druidPass
+        requester: druidRequester
       })
     }
 
@@ -202,7 +202,7 @@ describe "DruidDataset", ->
           start: new Date("2013-02-26T00:00:00Z")
           end: new Date("2013-02-27T00:00:00Z")
         }))
-        requester: druidPass
+        requester: druidRequester
       })
     }
 

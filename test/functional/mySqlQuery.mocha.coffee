@@ -5,14 +5,14 @@ if not WallTime.rules
   tzData = require("chronology/lib/walltime/walltime-data.js")
   WallTime.init(tzData.rules, tzData.zones)
 
-{ mySqlRequester } = require('facetjs-mysql-requester')
+{ mySqlRequesterFactory } = require('facetjs-mysql-requester')
 
 facet = require('../../build/facet')
 { Expression, Dataset, TimeRange } = facet.core
 
 info = require('../info')
 
-mySqlPass = mySqlRequester({
+mySqlRequester = mySqlRequesterFactory({
   host: info.mySqlHost
   database: info.mySqlDatabase
   user: info.mySqlUser
@@ -34,7 +34,7 @@ describe "MySQLDataset", ->
           added: { type: 'NUMBER' }
           count: { type: 'NUMBER' }
         }
-        requester: mySqlPass
+        requester: mySqlRequester
       })
     }
 
@@ -139,7 +139,7 @@ describe "MySQLDataset", ->
       wiki: Dataset.fromJS({
         source: 'mysql'
         table: 'wiki_day_agg'
-        requester: mySqlPass
+        requester: mySqlRequester
       })
     }
 

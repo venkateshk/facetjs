@@ -3,7 +3,7 @@ utils = require('../../utils')
 
 Q = require('q')
 
-{ mySqlRequester } = require('facetjs-mysql-requester')
+{ mySqlRequesterFactory } = require('facetjs-mysql-requester')
 
 facet = require("../../../build/facet")
 { FacetQuery, FacetFilter, mySqlDriver } = facet.legacy
@@ -12,7 +12,7 @@ info = require('../../info')
 
 verbose = false
 
-mySqlPass = mySqlRequester({
+mySqlRequester = mySqlRequesterFactory({
   host: info.mySqlHost
   database: info.mySqlDatabase
   user: info.mySqlUser
@@ -24,7 +24,7 @@ describe "SQL driver", ->
 
   describe "introspects", ->
     diamondsDriver = mySqlDriver({
-      requester: mySqlPass
+      requester: mySqlRequester
       table: 'wiki_day_agg'
     })
 
@@ -139,13 +139,13 @@ describe "SQL driver", ->
 
   describe "should work with driver level filter", ->
     noFilter = mySqlDriver({
-      requester: mySqlPass
+      requester: mySqlRequester
       table: 'diamonds'
       filter: null
     })
 
     withFilter = mySqlDriver({
-      requester: mySqlPass
+      requester: mySqlRequester
       table: 'diamonds'
       filter: FacetFilter.fromJS({
         type: 'is'
@@ -175,7 +175,7 @@ describe "SQL driver", ->
 
   describe "should work with nothingness", ->
     diamondsDriver = mySqlDriver({
-      requester: mySqlPass
+      requester: mySqlRequester
       table: 'diamonds'
       filter: null
     })

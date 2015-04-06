@@ -2,8 +2,8 @@
 
 utils = require('../../utils')
 
-{ druidRequester } = require('facetjs-druid-requester')
-{ mySqlRequester } = require('facetjs-mysql-requester')
+{ druidRequesterFactory } = require('facetjs-druid-requester')
+{ mySqlRequesterFactory } = require('facetjs-mysql-requester')
 
 facet = require("../../../build/facet")
 { FacetFilter, nativeDriver, mySqlDriver, druidDriver } = facet.legacy
@@ -18,7 +18,7 @@ diamondsData = require('../../../data/diamonds.js')
 driverFns.native = nativeDriver(diamondsData)
 
 # MySQL
-mySqlPass = mySqlRequester({
+mySqlRequester = mySqlRequesterFactory({
   host: info.mySqlHost
   database: info.mySqlDatabase
   user: info.mySqlUser
@@ -26,18 +26,18 @@ mySqlPass = mySqlRequester({
 })
 
 driverFns.mySql = mySqlDriver({
-  requester: mySqlPass
+  requester: mySqlRequester
   table: 'wiki_day_agg'
   filters: null
 })
 
 # Druid
-druidPass = druidRequester({
+druidRequester = druidRequesterFactory({
   host: info.druidHost
 })
 
 driverFns.druid = druidDriver({
-  requester: druidPass
+  requester: druidRequester
   dataSource: 'wikipedia_editstream'
   timeAttribute: 'time'
   approximate: true

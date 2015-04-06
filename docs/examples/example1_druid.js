@@ -1,8 +1,8 @@
-var druidRequester = require('facetjs-druid-requester').druidRequester;
+var druidRequesterFactory = require('facetjs-druid-requester').druidRequesterFactory;
 var facet = require('../../build/facet');
 var Dataset = facet.core.Dataset;
 
-var druidPass = druidRequester({
+var druidRequester = druidRequesterFactory({
   host: '10.153.211.100' // Where ever your Druid may be
 });
 
@@ -15,7 +15,7 @@ var context = {
     timeAttribute: 'time',
     forceInterval: true,
     approximate: true,
-    requester: druidPass
+    requester: druidRequester
   })
 };
 

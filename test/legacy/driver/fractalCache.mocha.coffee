@@ -9,7 +9,7 @@ if not WallTime.rules
   tzData = require("chronology/lib/walltime/walltime-data.js")
   WallTime.init(tzData.rules, tzData.zones)
 
-{ mySqlRequester } = require('facetjs-mysql-requester')
+{ mySqlRequesterFactory } = require('facetjs-mysql-requester')
 
 facet = require("../../../build/facet")
 { FacetQuery, SegmentTree, mySqlDriver, nativeDriver, fractalCache } = facet.legacy

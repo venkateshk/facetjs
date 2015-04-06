@@ -6,8 +6,8 @@ if not WallTime.rules
   tzData = require("chronology/lib/walltime/walltime-data.js")
   WallTime.init(tzData.rules, tzData.zones)
 
-{ druidRequester } = require('facetjs-druid-requester')
-{ mySqlRequester } = require('facetjs-mysql-requester')
+{ druidRequesterFactory } = require('facetjs-druid-requester')
+{ mySqlRequesterFactory } = require('facetjs-mysql-requester')
 
 facet = require("../../../build/facet")
 { FacetFilter, nativeDriver, mySqlDriver, druidDriver } = facet.legacy
@@ -23,30 +23,30 @@ verbose = false
 # driverFns.native = nativeDriver(diamondsData)
 
 # MySQL
-mySqlPass = mySqlRequester({
+mySqlRequester = mySqlRequesterFactory({
   host: info.mySqlHost
   database: info.mySqlDatabase
   user: info.mySqlUser
   password: info.mySqlPassword
 })
 
-mySqlPass = utils.wrapVerbose(mySqlPass, 'MySQL') if verbose
+mySqlRequester = utils.wrapVerbose(mySqlRequester, 'MySQL') if verbose
 
 driverFns.mySql = mySqlDriver({
-  requester: mySqlPass
+  requester: mySqlRequester
   table: 'wiki_day_agg'
   filters: null
 })
 
 # # Druid
-druidPass = druidRequester({
+druidRequester = druidRequesterFactory({
   host: info.druidHost
 })
 
-druidPass = utils.wrapVerbose(druidPass, 'Druid') if verbose
+druidRequester = utils.wrapVerbose(druidRequester, 'Druid') if verbose
 
 driverFns.druid = druidDriver({
-  requester: druidPass
+  requester: druidRequester
   dataSource: 'wikipedia_editstream'
   timeAttribute: 'time'
   approximate: true

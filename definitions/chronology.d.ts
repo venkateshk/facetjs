@@ -1,4 +1,3 @@
-/// <reference path="../definitions/require.d.ts" />
 /// <reference path="../definitions/higher-object.d.ts" />
 declare module Chronology {
     interface WallTime {
@@ -205,9 +204,7 @@ declare module Chronology {
         subtract(duration: Duration, timezone: Timezone): TimeRange;
     }
 }
-declare var module: {
-    exports: any;
-};
+
 declare var chronology: typeof Chronology;
 declare module "chronology" {
     export = chronology;

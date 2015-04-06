@@ -1,4 +1,3 @@
-/// <reference path="../definitions/require.d.ts" />
 /// <reference path="../typings/q/Q.d.ts" />
 /// <reference path="../typings/async/async.d.ts" />
 /// <reference path="../definitions/higher-object.d.ts" />
@@ -45,6 +44,9 @@
  [2] http://www.typescriptlang.org/Handbook#modules-pitfalls-of-modules
 
  */
+
+declare function require(file: string): any;
+declare var module: { exports: any; };
 
 var HigherObject = <HigherObject.Base>require("higher-object");
 var q = <typeof Q>require("q");

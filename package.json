@@ -21,7 +21,7 @@
   "license": "Apache 2.0",
   "repository": {
     "type": "git",
-    "url": "http://github.com/vogievetsky/facet.git"
+    "url": "http://github.com/facetjs/facetjs.git"
   },
   "main": "build/facet.js",
   "typescript": {

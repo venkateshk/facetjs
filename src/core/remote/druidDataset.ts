@@ -61,7 +61,7 @@ module Core {
   }
 
   function correctTimeBoundaryResult(result: Druid.TimeBoundaryResults): boolean {
-    return Array.isArray(result) && result.length === 0;
+    return Array.isArray(result) && result.length === 1 && typeof result[0].result === 'object';
   }
 
   function correctTimeseriesResult(result: Druid.TimeseriesResults): boolean {

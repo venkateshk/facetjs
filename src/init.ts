@@ -61,8 +61,17 @@ interface Lookup<T> {
   [key: string]: T;
 }
 
-interface Parser {
-  parse: (str: string) => any;
+interface PEGParserOptions {
+  cache?: boolean;
+  allowedStartRules?: string;
+  output?: string;
+  optimize?: string;
+  plugins?: any;
+  [key: string]: any;
+}
+
+interface PEGParser {
+  parse: (str: string, options?: PEGParserOptions) => any;
 }
 
 interface Dummy {}
@@ -101,8 +110,8 @@ function checkArrayEquality<T>(a: Array<T>, b: Array<T>): boolean {
 }
 
 module Core {
-  export var expressionParser = <Parser>require("../parser/expression");
-  export var sqlParser = <Parser>require("../parser/sql");
+  export var expressionParser = <PEGParser>require("../parser/expression");
+  export var sqlParser = <PEGParser>require("../parser/sql");
 
   export var isInstanceOf = HigherObject.isInstanceOf;
   export var isHigherObject = HigherObject.isHigherObject;
@@ -120,8 +129,8 @@ module Core {
 }
 
 module Legacy {
-  export var filterParser = <Parser>require("../parser/filter");
-  export var applyParser = <Parser>require("../parser/apply");
+  export var filterParser = <PEGParser>require("../parser/filter");
+  export var applyParser = <PEGParser>require("../parser/apply");
 
   export var isInstanceOf = HigherObject.isInstanceOf;
 

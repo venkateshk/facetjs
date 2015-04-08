@@ -9,7 +9,12 @@ facet = require('../../../build/facet')
 { Expression } = facet.core
 
 describe "SQL parser", ->
-  it "it should parse a total expression", ->
+  it "should fail on a expression with no columns", ->
+    expect(->
+      Expression.parseSQL("SELECT  FROM diamonds")
+    ).to.throw('SQL parse error Can not have empty column list on `SELECT  FROM diamonds`')
+
+  it "should parse a total expression", ->
     ex = Expression.parseSQL("""
       SELECT
       SUM(added) AS 'TotalAdded'
@@ -24,12 +29,26 @@ describe "SQL parser", ->
 
     expect(ex.toJS()).to.deep.equal(ex2.toJS())
 
-  it "it should work without a FROM", ->
+  it "should parse a total expression without group by clause", ->
+    ex = Expression.parseSQL("""
+      SELECT
+      SUM(added) AS 'TotalAdded'
+      FROM `wiki`
+      WHERE `language`="en"    -- This is just some comment
+      """)
+
+    ex2 = facet()
+      .def('data', '$wiki.filter($language = "en")')
+      .apply('TotalAdded', '$data.sum($added)')
+
+    expect(ex.toJS()).to.deep.equal(ex2.toJS())
+
+  it "should work without a FROM", ->
     ex = Expression.parseSQL("""
       SELECT
       SUM(added) AS 'TotalAdded'
       WHERE `language`="en"
-      GROUP BY ''
+      GROUP BY 1
       """)
 
     ex2 = facet()
@@ -38,7 +57,7 @@ describe "SQL parser", ->
 
     expect(ex.toJS()).to.deep.equal(ex2.toJS())
 
-  it "it should parse a complex filter", ->
+  it "should parse a complex filter", ->
     ex = Expression.parseSQL("""
       SELECT
       SUM(added) AS 'TotalAdded'
@@ -57,7 +76,7 @@ describe "SQL parser", ->
 
     expect(ex.toJS()).to.deep.equal(ex2.toJS())
 
-  it "it should parse a total + split expression", ->
+  it "should parse a total + split expression", ->
     ex = Expression.parseSQL("""
       SELECT
       SUM(`added`) AS 'TotalAdded',

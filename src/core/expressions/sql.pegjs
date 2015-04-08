@@ -74,8 +74,14 @@
   }
 
   function handleQuery(columns, from, where, groupBy, having, orderBy, limit) {
-    columns = columns || [];
+    if (!columns) error('Can not have empty column list');
     from = from || dataRef;
+
+    // Support for not having a group by clause is there are aggregates in the columns
+    // A redneck check for aggregate columns is the same as having "GROUP BY 1"
+    if (!groupBy && JSON.stringify(columns).indexOf('"op":"aggregate"') !== -1) {
+      groupBy = { op: 'literal', value: 1 };
+    }
 
     var operand = null;
     var groupByDef = null;
@@ -179,7 +185,7 @@ SQLQuery
     { return handleQuery(columns, from, where, groupBy, having, orderBy, limit); }
 
 SQLSubQuery
-  = SelectToken columns:Columns? groupBy:GroupByClause? having:HavingClause? orderBy:OrderByClause? limit:LimitClause?
+  = SelectToken columns:Columns? groupBy:GroupByClause having:HavingClause? orderBy:OrderByClause? limit:LimitClause?
     { return handleQuery(columns, null, null, groupBy, having, orderBy, limit); }
 
 Columns

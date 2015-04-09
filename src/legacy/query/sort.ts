@@ -1,4 +1,4 @@
-module Legacy {
+module Facet.Legacy {
   export interface DirectionFn {
     (a: any, b: any): number;
   }

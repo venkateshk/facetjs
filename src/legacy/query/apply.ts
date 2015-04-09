@@ -1,4 +1,4 @@
-module Legacy {
+module Facet.Legacy {
   var DEFAULT_DATASET = "main";
 
   export interface FacetApplyJS {

@@ -1,4 +1,4 @@
-module Legacy {
+module Facet.Legacy {
   function smaller<T>(a: T, b: T): T {
     return a < b ? a : b;
   }

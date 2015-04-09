@@ -29,6 +29,7 @@ if (defData.indexOf('declare var module') !== -1) {
   throw new Error("failed to delete require declaration");
 }
 
+/*
 // Add the extra export code
 defData += [
   '',
@@ -42,6 +43,7 @@ defData += [
   '    export = facet;',
   '}'
 ].join('\n');
+*/
 
 // Delete the _delete_me_
 jsData = jsData.replace(/_delete_me_/g, '');

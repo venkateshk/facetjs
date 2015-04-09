@@ -8,7 +8,7 @@ if not WallTime.rules
 { mySqlRequesterFactory } = require('facetjs-mysql-requester')
 
 facet = require('../../build/facet')
-{ Expression, Dataset, TimeRange } = facet.core
+{ Expression, Dataset, TimeRange } = facet
 
 info = require('../info')
 

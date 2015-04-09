@@ -1,4 +1,4 @@
-module Legacy {
+module Facet.Legacy {
   interface SqlAggFn {
     (column: string): string;
   }

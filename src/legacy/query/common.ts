@@ -1,4 +1,4 @@
-module Legacy {
+module Facet.Legacy {
   export function specialJoin(array: string[], sep: string, lastSep: string) {
     var lengthMinus1 = array.length - 1;
     return array.reduce((prev, now, index) => prev + (index < lengthMinus1 ? sep : lastSep) + now);

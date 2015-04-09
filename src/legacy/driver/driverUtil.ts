@@ -1,4 +1,4 @@
-module Legacy.driverUtil {
+module Facet.Legacy.driverUtil {
   export function flatten<T>(xss: T[][]): T[] {
     var flat: T[] = [];
     xss.forEach((xs) => {

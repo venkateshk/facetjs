@@ -1,6 +1,6 @@
 /// <reference path="../../../definitions/druid.d.ts" />
 
-module Legacy {
+module Facet.Legacy {
   function isString(str: any): boolean {
     return typeof str === "string";
   }

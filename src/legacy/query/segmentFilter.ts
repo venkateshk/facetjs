@@ -1,4 +1,4 @@
-module Legacy {
+module Facet.Legacy {
   function parseValue(value: any): any {
     if (!Array.isArray(value)) {
       return value;

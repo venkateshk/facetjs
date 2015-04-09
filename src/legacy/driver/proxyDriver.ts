@@ -1,4 +1,4 @@
-module Legacy {
+module Facet.Legacy {
   export interface AjaxParameters {
     url: string;
     context: Lookup<any>;

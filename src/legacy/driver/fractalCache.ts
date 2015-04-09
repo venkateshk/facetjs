@@ -1,4 +1,4 @@
-module Legacy {
+module Facet.Legacy {
   interface LRUCacheParameters {
     name?: string;
     keepFor?: number;

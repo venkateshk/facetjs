@@ -1,4 +1,4 @@
-module Legacy {
+module Facet.Legacy {
   function isInteger(n: any): boolean {
     return !isNaN(n) && n % 1 === 0;
   }

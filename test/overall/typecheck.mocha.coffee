@@ -1,7 +1,7 @@
 { expect } = require("chai")
 
 facet = require('../../build/facet')
-{ Expression } = facet
+{ Expression, $ } = facet
 
 describe "typecheck", ->
   it "should throw silly ref type", ->

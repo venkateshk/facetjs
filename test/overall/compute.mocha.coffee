@@ -1,7 +1,7 @@
 { expect } = require("chai")
 
 facet = require('../../build/facet')
-{ Expression, Dataset } = facet
+{ Expression, Dataset, $ } = facet
 
 describe "compute native", ->
   data = [
@@ -13,7 +13,7 @@ describe "compute native", ->
   ]
 
   it "works in uber-basic case", (testComplete) ->
-    ex = facet()
+    ex = $()
       .apply('five', 5)
       .apply('nine', 9)
 
@@ -35,8 +35,8 @@ describe "compute native", ->
       { cut: 'Wow',   price: 160 }
     ])
 
-    ex = facet(ds)
-      .apply('priceX2', facet('price').multiply(2))
+    ex = $(ds)
+      .apply('priceX2', $('price').multiply(2))
 
     p = ex.compute()
     p.then((v) ->
@@ -51,10 +51,10 @@ describe "compute native", ->
   it "works with simple group aggregator", (testComplete) ->
     ds = Dataset.fromJS(data)
 
-    ex = facet()
-    .def('Data', facet(ds))
+    ex = $()
+    .def('Data', $(ds))
     .apply('Cuts'
-      facet('Data').group('$cut')
+      $('Data').group('$cut')
     )
 
     p = ex.compute()
@@ -74,10 +74,10 @@ describe "compute native", ->
   it "works with simple group aggregator + label", (testComplete) ->
     ds = Dataset.fromJS(data)
 
-    ex = facet()
-      .def('Data', facet(ds))
+    ex = $()
+      .def('Data', $(ds))
       .apply('Cuts'
-        facet('Data').group('$cut').label('Cut')
+        $('Data').group('$cut').label('Cut')
       )
 
     p = ex.compute()
@@ -97,12 +97,12 @@ describe "compute native", ->
   it "works with simple group/label followed by some simple applies", (testComplete) ->
     ds = Dataset.fromJS(data)
 
-    ex = facet()
-      .def('Data', facet(ds))
+    ex = $()
+      .def('Data', $(ds))
       .apply('Cuts'
-        facet('Data').group('$cut').label('Cut')
+        $('Data').group('$cut').label('Cut')
           .apply('Six', 6)
-          .apply('Seven', facet('Six').add(1))
+          .apply('Seven', $('Six').add(1))
       )
 
     p = ex.compute()
@@ -134,10 +134,10 @@ describe "compute native", ->
   it "works with context", (testComplete) ->
     ds = Dataset.fromJS(data)
 
-    ex = facet()
-      .def('Data', facet(ds))
+    ex = $()
+      .def('Data', $(ds))
       .apply('Cuts'
-        facet('Data').split('$cut', 'Cut')
+        $('Data').split('$cut', 'Cut')
           .apply('CountPlusX', '$Data.count() + $x')
       )
 
@@ -167,11 +167,11 @@ describe "compute native", ->
   it "works with simple group/label and subData filter", (testComplete) ->
     ds = Dataset.fromJS(data)
 
-    ex = facet()
-      .def('Data', facet(ds))
+    ex = $()
+      .def('Data', $(ds))
       .apply('Cuts'
-        facet('Data').group('$cut').label('Cut')
-          .apply('Data', facet('^Data').filter(facet('cut').is('$^Cut')))
+        $('Data').group('$cut').label('Cut')
+          .apply('Data', $('^Data').filter($('cut').is('$^Cut')))
       )
     
     p = ex.compute()
@@ -224,15 +224,15 @@ describe "compute native", ->
     it "does a union", (testComplete) ->
       ds = Dataset.fromJS(data)
 
-      ex = facet()
-        .def('Data1', facet(ds).filter(facet('price').in(105, 305)))
-        .def('Data2', facet(ds).filter(facet('price').in(105, 305).not()))
+      ex = $()
+        .def('Data1', $(ds).filter($('price').in(105, 305)))
+        .def('Data2', $(ds).filter($('price').in(105, 305).not()))
         .apply('Count1', '$Data1.count()')
         .apply('Count2', '$Data2.count()')
         .apply('Cuts'
-          facet('Data1').group('$cut').union(facet('Data2').group('$cut')).label('Cut')
-            .def('Data1', facet('^Data1').filter(facet('cut').is('$^Cut')))
-            .def('Data2', facet('^Data2').filter(facet('cut').is('$^Cut')))
+          $('Data1').group('$cut').union($('Data2').group('$cut')).label('Cut')
+            .def('Data1', $('^Data1').filter($('cut').is('$^Cut')))
+            .def('Data2', $('^Data2').filter($('cut').is('$^Cut')))
             .apply('Counts', '10 * $Data1.count() + $Data2.count()')
         )
       
@@ -267,15 +267,15 @@ describe "compute native", ->
     it "does a join on group / label", (testComplete) ->
       ds = Dataset.fromJS(data)
 
-      ex = facet()
-        .def('Data1', facet(ds).filter(facet('price').in(105, 305)))
-        .def('Data2', facet(ds).filter(facet('price').in(105, 305).not()))
+      ex = $()
+        .def('Data1', $(ds).filter($('price').in(105, 305)))
+        .def('Data2', $(ds).filter($('price').in(105, 305).not()))
         .apply('Count1', '$Data1.count()')
         .apply('Count2', '$Data2.count()')
         .apply('Cuts'
-          facet('Data1').group('$cut').label('Cut').join(facet('Data2').group('$cut').label('Cut'))
-            .def('Data1', facet('^Data1').filter(facet('cut').is('$^Cut')))
-            .def('Data2', facet('^Data2').filter(facet('cut').is('$^Cut')))
+          $('Data1').group('$cut').label('Cut').join($('Data2').group('$cut').label('Cut'))
+            .def('Data1', $('^Data1').filter($('cut').is('$^Cut')))
+            .def('Data2', $('^Data2').filter($('cut').is('$^Cut')))
             .apply('Counts', '10 * $Data1.count() + $Data2.count()')
         )
 
@@ -308,13 +308,13 @@ describe "compute native", ->
     it "does a join on split", (testComplete) ->
       ds = Dataset.fromJS(data)
 
-      ex = facet()
-        .def('Data1', facet(ds).filter(facet('price').in(105, 305)))
-        .def('Data2', facet(ds).filter(facet('price').in(105, 305).not()))
+      ex = $()
+        .def('Data1', $(ds).filter($('price').in(105, 305)))
+        .def('Data2', $(ds).filter($('price').in(105, 305).not()))
         .apply('Count1', '$Data1.count()')
         .apply('Count2', '$Data2.count()')
         .apply('Cuts'
-          facet('Data1').split('$cut', 'Cut').join(facet('Data2').split('$cut', 'Cut'))
+          $('Data1').split('$cut', 'Cut').join($('Data2').split('$cut', 'Cut'))
             .apply('Counts', '10 * $Data1.count() + $Data2.count()')
         )
 
@@ -350,13 +350,13 @@ describe "compute native", ->
     midData = null
 
     it "works with simple group/label and subData filter with applies", (testComplete) ->
-      ex = facet()
-        .def('Data', facet(ds))
+      ex = $()
+        .def('Data', $(ds))
         .apply('Count', '$Data.count()')
         .apply('Price', '$Data.sum($price)')
         .apply('Cuts'
-          facet('Data').group('$cut').label('Cut')
-            .def('Data', facet('^Data').filter(facet('cut').is('$^Cut')))
+          $('Data').group('$cut').label('Cut')
+            .def('Data', $('^Data').filter($('cut').is('$^Cut')))
             .apply('Count', '$Data.count()')
             .apply('Price', '$Data.sum($price)')
         )
@@ -391,10 +391,10 @@ describe "compute native", ->
       ).done()
 
     it "re-selects", (testComplete) ->
-      ex = facet(midData)
+      ex = $(midData)
         .apply('CountOver2', '$Count / 2')
         .apply('Cuts'
-          facet('Cuts')
+          $('Cuts')
             .apply('AvgPrice', '$Data.sum($price) / $Data.count()')
         )
 

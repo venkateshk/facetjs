@@ -6,7 +6,7 @@ if not WallTime.rules
   WallTime.init(tzData.rules, tzData.zones)
 
 facet = require('../../build/facet')
-{ legacyConverter, legacyTranslator, Dataset } = facet
+{ legacyConverter, legacyTranslator, Dataset, $ } = facet
 { nativeDriver } = facet.legacy
 
 diamondsData = require('../../data/diamonds.js')
@@ -15,9 +15,9 @@ legacyDriver = legacyConverter(nativeDriver(diamondsData))
 
 describe "legacyDriver", ->
   describe.skip "simple query", ->
-    ex = facet()
-      .apply('Count', facet('diamonds').count())
-      .apply('TotalPrice', facet('diamonds').sum('$price'))
+    ex = $()
+      .apply('Count', $('diamonds').count())
+      .apply('TotalPrice', $('diamonds').sum('$price'))
 
     it "works", (testComplete) ->
       legacyDriver(ex)
@@ -34,19 +34,19 @@ describe "legacyDriver", ->
 
 
   describe "advanced query", ->
-    ex = facet()
-      .def("diamonds", facet('diamonds').filter(facet("color").is('D')))
-      .apply('Count', facet('diamonds').count())
-      .apply('TotalPrice', facet('diamonds').sum('$price'))
+    ex = $()
+      .def("diamonds", $('diamonds').filter($("color").is('D')))
+      .apply('Count', $('diamonds').count())
+      .apply('TotalPrice', $('diamonds').sum('$price'))
       .apply('Cuts',
-        facet("diamonds").group("$cut").label('Cut')
-          .def('diamonds', facet('diamonds').filter(facet('cut').is('$^Cut')))
-          .apply('Count', facet('diamonds').count())
+        $("diamonds").group("$cut").label('Cut')
+          .def('diamonds', $('diamonds').filter($('cut').is('$^Cut')))
+          .apply('Count', $('diamonds').count())
           .sort('$Count', 'descending')
           .limit(2)
           .apply('Carats',
-            facet("diamonds").split(facet("carat").numberBucket(0.25), 'Carat')
-              .apply('Count', facet('diamonds').count())
+            $("diamonds").split($("carat").numberBucket(0.25), 'Carat')
+              .apply('Count', $('diamonds').count())
               .sort('$Count', 'descending')
               .limit(3)
           )

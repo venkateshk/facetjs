@@ -3,7 +3,7 @@
 { testHigherObjects } = require("higher-object/build/tester")
 
 facet = require('../../build/facet')
-{ TimeRange } = facet
+{ TimeRange, $ } = facet
 
 describe "TimeRange", ->
   it "passes higher object tests", ->

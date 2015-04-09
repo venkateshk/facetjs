@@ -6,7 +6,7 @@ if not WallTime.rules
   WallTime.init(tzData.rules, tzData.zones)
 
 facet = require('../../build/facet')
-{ Expression } = facet
+{ Expression, $ } = facet
 
 describe "SQL parser", ->
   it "should fail on a expression with no columns", ->
@@ -23,7 +23,7 @@ describe "SQL parser", ->
       GROUP BY ''
       """)
 
-    ex2 = facet()
+    ex2 = $()
       .def('data', '$wiki.filter($language = "en")')
       .apply('TotalAdded', '$data.sum($added)')
 
@@ -37,7 +37,7 @@ describe "SQL parser", ->
       WHERE `language`="en"    -- This is just some comment
       """)
 
-    ex2 = facet()
+    ex2 = $()
       .def('data', '$wiki.filter($language = "en")')
       .apply('TotalAdded', '$data.sum($added)')
 
@@ -51,7 +51,7 @@ describe "SQL parser", ->
       GROUP BY 1
       """)
 
-    ex2 = facet()
+    ex2 = $()
       .def('data', '$data.filter($language = "en")')
       .apply('TotalAdded', '$data.sum($added)')
 
@@ -66,10 +66,10 @@ describe "SQL parser", ->
       GROUP BY ''
       """)
 
-    ex2 = facet()
+    ex2 = $()
       .def('data',
-        facet('wiki').filter(
-          facet('language').is("en").and(facet('page').isnt("Hello World"), facet('added').lessThan(5))
+        $('wiki').filter(
+          $('language').is("en").and($('page').isnt("Hello World"), $('added').lessThan(5))
         )
       )
       .apply('TotalAdded', '$data.sum($added)')
@@ -97,11 +97,11 @@ describe "SQL parser", ->
       GROUP BY ''
       """)
 
-    ex2 = facet()
+    ex2 = $()
       .def('data', '$wiki.filter($language = "en")')
       .apply('TotalAdded', '$data.sum($added)')
       .apply('Pages',
-        facet('data').split('$page', 'Page')
+        $('data').split('$page', 'Page')
           .apply('Count', '$data.count()')
           .apply('TotalAdded', '$data.sum($added)')
           .apply('MinAdded', '$data.min($added)')

@@ -6,7 +6,7 @@ if not WallTime.rules
   WallTime.init(tzData.rules, tzData.zones)
 
 facet = require('../../build/facet')
-{ Expression, Dataset, TimeRange } = facet
+{ Expression, Dataset, TimeRange, $ } = facet
 
 wikiDataset = Dataset.fromJS({
   source: 'druid',
@@ -24,7 +24,7 @@ wikiDataset = Dataset.fromJS({
 })
 
 context = {
-  wiki: wikiDataset.addFilter(facet('time').in(TimeRange.fromJS({
+  wiki: wikiDataset.addFilter($('time').in(TimeRange.fromJS({
     start: new Date("2013-02-26T00:00:00Z")
     end: new Date("2013-02-27T00:00:00Z")
   })))
@@ -41,13 +41,13 @@ context = {
       page: { type: 'STRING' }
       added: { type: 'NUMBER' }
     }
-    filter: facet('time').in(TimeRange.fromJS({
+    filter: $('time').in(TimeRange.fromJS({
       start: new Date("2013-02-25T00:00:00Z")
       end: new Date("2013-02-26T00:00:00Z")
     }))
   })
 
-#  wikiDataset.addFilter(facet('time').in(TimeRange.fromJS({
+#  wikiDataset.addFilter($('time').in(TimeRange.fromJS({
 #    start: new Date("2013-02-25T00:00:00Z")
 #    end: new Date("2013-02-26T00:00:00Z")
 #  })))
@@ -56,11 +56,11 @@ context = {
 describe "RemoteDataset", ->
   describe "simplifies / digests", ->
     it "a total", ->
-      ex = facet()
+      ex = $()
         .def("wiki",
-          facet('^wiki')
+          $('^wiki')
             .apply('addedTwice', '$added * 2')
-            .filter(facet("language").is('en'))
+            .filter($("language").is('en'))
         )
         .apply('Count', '$wiki.count()')
         .apply('TotalAdded', '$wiki.sum($added)')
@@ -80,7 +80,7 @@ describe "RemoteDataset", ->
       ])
 
     it "a split on string", ->
-      ex = facet('wiki').split("$page", 'Page')
+      ex = $('wiki').split("$page", 'Page')
         .apply('Count', '$wiki.count()')
         .apply('Added', '$wiki.sum($added)')
         .sort('$Count', 'descending')
@@ -100,7 +100,7 @@ describe "RemoteDataset", ->
       ])
 
     it "a split on time", ->
-      ex = facet('wiki').split(facet("time").timeBucket('P1D', 'America/Los_Angeles'), 'Timestamp')
+      ex = $('wiki').split($("time").timeBucket('P1D', 'America/Los_Angeles'), 'Timestamp')
         .apply('Count', '$wiki.count()')
         .apply('Added', '$wiki.sum($added)')
         .sort('$Count', 'descending')
@@ -127,16 +127,16 @@ describe "RemoteDataset", ->
       ])
 
     it "a total and a split", ->
-      ex = facet()
+      ex = $()
         .def("wiki",
-          facet('^wiki')
+          $('^wiki')
             .apply('addedTwice', '$added * 2')
-            .filter(facet("language").is('en'))
+            .filter($("language").is('en'))
         )
         .apply('Count', '$wiki.count()')
         .apply('TotalAdded', '$wiki.sum($added)')
         .apply('Pages',
-          facet('wiki').split("$page", 'Page')
+          $('wiki').split("$page", 'Page')
             .apply('Count', '$wiki.count()')
             .apply('Added', '$wiki.sum($added)')
             .sort('$Count', 'descending')
@@ -153,7 +153,7 @@ describe "RemoteDataset", ->
       expect(remoteDataset.applies).to.have.length(2)
 
     it "a union of two groups", ->
-      ex = facet('wiki').group('$page').union(facet('wikiCmp').group('$page')).label('Page')
+      ex = $('wiki').group('$page').union($('wikiCmp').group('$page')).label('Page')
         .def('wiki', '$wiki.filter($page = $^Page)')
         .def('wikiCmp', '$wikiCmp.filter($page = $^Page)')
         .apply('Count', '$wiki.count()')

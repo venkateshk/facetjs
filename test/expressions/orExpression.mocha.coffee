@@ -1,7 +1,7 @@
 { expect } = require("chai")
 
 facet = require('../../build/facet')
-{ Set } = facet
+{ Set, $ } = facet
 
 tests = require './sharedTests'
 

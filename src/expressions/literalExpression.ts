@@ -49,7 +49,7 @@ module Facet {
     public toString(): string {
       var value = this.value;
       if (value instanceof Dataset && value.basis()) {
-        return 'facet()';
+        return '$()';
       } else if (this.type === 'STRING') {
         return JSON.stringify(value);
       } else {

@@ -1,15 +1,15 @@
 { expect } = require("chai")
 
 facet = require('../../build/facet')
-{ Expression, Dataset, NativeDataset } = facet
+{ Expression, Dataset, NativeDataset, $ } = facet
 
 describe "resolve", ->
   describe "errors if", ->
     it "went too deep", ->
-      ex = facet()
+      ex = $()
         .apply('num', '$^foo + 1')
         .apply('subData',
-          facet()
+          $()
             .apply('x', '$^num * 3')
             .apply('y', '$^^^foo * 10')
         )
@@ -19,10 +19,10 @@ describe "resolve", ->
       ).to.throw('went too deep during resolve on: $^^^foo')
 
     it "could not find something in context", ->
-      ex = facet()
+      ex = $()
         .apply('num', '$^foo + 1')
         .apply('subData',
-          facet()
+          $()
             .apply('x', '$^num * 3')
             .apply('y', '$^^foobar * 10')
         )
@@ -32,10 +32,10 @@ describe "resolve", ->
       ).to.throw('could not resolve $^^foobar because is was not in the context')
 
     it "ended up with bad types", ->
-      ex = facet()
+      ex = $()
         .apply('num', '$^foo + 1')
         .apply('subData',
-          facet()
+          $()
             .apply('x', '$^num * 3')
             .apply('y', '$^^foo * 10')
         )
@@ -47,7 +47,7 @@ describe "resolve", ->
 
   describe "resolves", ->
     it "works in a basic case", ->
-      ex = facet('foo').add('$bar')
+      ex = $('foo').add('$bar')
 
       context = {
         foo: 7
@@ -55,11 +55,11 @@ describe "resolve", ->
 
       ex = ex.resolve(context, true)
       expect(ex.toJS()).to.deep.equal(
-        facet(7).add('$bar').toJS()
+        $(7).add('$bar').toJS()
       )
 
     it "works in a basic case (and simplifies)", ->
-      ex = facet('foo').add(3)
+      ex = $('foo').add(3)
 
       context = {
         foo: 7
@@ -67,14 +67,14 @@ describe "resolve", ->
 
       ex = ex.resolve(context, true).simplify()
       expect(ex.toJS()).to.deep.equal(
-        facet(10).toJS()
+        $(10).toJS()
       )
 
     it "works in a basic actions case", ->
-      ex = facet()
+      ex = $()
         .apply('num', '$^foo + 1')
         .apply('subData',
-          facet()
+          $()
             .apply('x', '$^num * 3')
             .apply('y', '$^^foo * 10')
         )
@@ -85,10 +85,10 @@ describe "resolve", ->
 
       ex = ex.resolve(context)
       expect(ex.toJS()).to.deep.equal(
-        facet()
+        $()
           .apply('num', '7 + 1')
           .apply('subData',
-            facet()
+            $()
               .apply('x', '$^num * 3')
               .apply('y', '7 * 10')
           )
@@ -97,10 +97,10 @@ describe "resolve", ->
 
       ex = ex.simplify()
       expect(ex.toJS()).to.deep.equal(
-        facet()
+        $()
           .apply('num', 8)
           .apply('subData',
-            facet()
+            $()
               .apply('x', '$^num * 3')
               .apply('y', 70)
           )
@@ -108,10 +108,10 @@ describe "resolve", ->
       )
 
     it "works in a basic actions case (in $def)", ->
-      ex = facet()
+      ex = $()
         .apply('num', '$^foo + 1')
         .apply('subData',
-          facet()
+          $()
             .apply('x', '$^num * 3')
             .apply('y', '$^^foo * 10')
         )
@@ -122,10 +122,10 @@ describe "resolve", ->
 
       ex = ex.resolve(context)
       expect(ex.toJS()).to.deep.equal(
-        facet()
+        $()
           .apply('num', '7 + 1')
           .apply('subData',
-            facet()
+            $()
               .apply('x', '$^num * 3')
               .apply('y', '7 * 10')
           )
@@ -166,16 +166,16 @@ describe "resolve", ->
     }
 
     it "resolves all remotes correctly", ->
-      ex = facet()
+      ex = $()
         .apply('Cuts',
-          facet("diamonds").split("$cut", 'Cut')
-            .apply('Count', facet('diamonds').count())
+          $("diamonds").split("$cut", 'Cut')
+            .apply('Count', $('diamonds').count())
             .sort('$Count', 'descending')
             .limit(10)
         )
         .apply('Carats',
-          facet("diamonds").split(facet('carat').numberBucket(0.5), 'Carat')
-            .apply('Count', facet('diamonds').count())
+          $("diamonds").split($('carat').numberBucket(0.5), 'Carat')
+            .apply('Count', $('diamonds').count())
             .sort('$Count', 'descending')
             .limit(10)
         )
@@ -188,16 +188,16 @@ describe "resolve", ->
       )).to.equal(true)
 
     it "resolves two dataset remotes", ->
-      ex = facet()
+      ex = $()
         .apply('Cuts',
-          facet("diamonds").split("$cut", 'Cut')
-            .apply('Count', facet('diamonds').count())
+          $("diamonds").split("$cut", 'Cut')
+            .apply('Count', $('diamonds').count())
             .sort('$Count', 'descending')
             .limit(10)
         )
         .apply('Carats',
-          facet("diamonds2").split(facet('carat').numberBucket(0.5), 'Carat')
-            .apply('Count', facet('diamonds2').count())
+          $("diamonds2").split($('carat').numberBucket(0.5), 'Carat')
+            .apply('Count', $('diamonds2').count())
             .sort('$Count', 'descending')
             .limit(10)
         )

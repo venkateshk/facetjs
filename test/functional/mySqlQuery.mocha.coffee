@@ -8,7 +8,7 @@ if not WallTime.rules
 { mySqlRequesterFactory } = require('facetjs-mysql-requester')
 
 facet = require('../../build/facet')
-{ Expression, Dataset, TimeRange } = facet
+{ Expression, Dataset, TimeRange, $ } = facet
 
 info = require('../info')
 
@@ -38,27 +38,27 @@ describe "MySQLDataset", ->
       })
     }
 
-    ex = facet()
-      .def("wiki", facet('wiki').filter(facet("language").is('en')))
+    ex = $()
+      .def("wiki", $('wiki').filter($("language").is('en')))
       .apply('Count', '$wiki.sum($count)')
       .apply('TotalAdded', '$wiki.sum($added)')
       .apply('Pages',
-        facet("wiki").split("$page", 'Page')
+        $("wiki").split("$page", 'Page')
           .apply('Count', '$wiki.sum($count)')
           .sort('$Count', 'descending')
           .limit(2)
           .apply('Time',
-            facet("wiki").split(facet("time").timeBucket('PT1H', 'Etc/UTC'), 'Timestamp')
+            $("wiki").split($("time").timeBucket('PT1H', 'Etc/UTC'), 'Timestamp')
               .apply('TotalAdded', '$wiki.sum($added)')
               .sort('$TotalAdded', 'descending')
               .limit(3)
           )
       )
 #      .apply('PagesHaving',
-#        facet("wiki").split("$page", 'Page')
+#        $("wiki").split("$page", 'Page')
 #          .apply('Count', '$wiki.sum($count)')
 #          .sort('$Count', 'descending')
-#          .filter(facet('Count').lessThan(30))
+#          .filter($('Count').lessThan(30))
 #          .limit(100)
 #      )
 
@@ -143,17 +143,17 @@ describe "MySQLDataset", ->
       })
     }
 
-    ex = facet()
-      .def("wiki", facet('wiki').filter(facet("language").is('en')))
+    ex = $()
+      .def("wiki", $('wiki').filter($("language").is('en')))
       .apply('Count', '$wiki.sum($count)')
       .apply('TotalAdded', '$wiki.sum($added)')
       .apply('Time',
-        facet("wiki").split(facet("time").timeBucket('PT1H', 'Etc/UTC'), 'Timestamp')
+        $("wiki").split($("time").timeBucket('PT1H', 'Etc/UTC'), 'Timestamp')
           .apply('TotalAdded', '$wiki.sum($added)')
           .sort('$Timestamp', 'ascending')
           .limit(3)
           .apply('Pages',
-            facet("wiki").split("$page", 'Page')
+            $("wiki").split("$page", 'Page')
               .apply('Count', '$wiki.sum($count)')
               .sort('$Count', 'descending')
               .limit(2)

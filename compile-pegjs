@@ -10,13 +10,13 @@ echo "The contents of this directory is auto-generated" > parser/README.md
 # Expression parser
 node_modules/.bin/pegjs \
   --export-var "module.exports" \
-  src/core/expressions/expression.pegjs \
+  src/expressions/expression.pegjs \
   parser/expression.js
 
 # SQL Expression parser
 node_modules/.bin/pegjs \
   --export-var "module.exports" \
-  src/core/expressions/sql.pegjs \
+  src/expressions/sql.pegjs \
   parser/sql.js
 
 # Legacy

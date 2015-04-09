@@ -1,10 +1,11 @@
 { expect } = require("chai")
 
 facet = require('../../build/facet')
+{ $ } = facet
 
 describe "composition", ->
   it "works in blank case", ->
-    ex = facet()
+    ex = $()
     expect(ex.toJS()).to.deep.equal({
       "op": "literal"
       "type": "DATASET"
@@ -12,14 +13,14 @@ describe "composition", ->
     })
 
   it "works in ref case", ->
-    ex = facet("diamonds")
+    ex = $("diamonds")
     expect(ex.toJS()).to.deep.equal({
       "op": "ref"
       "name": "diamonds"
     })
 
   it "works in uber-basic case", ->
-    ex = facet()
+    ex = $()
       .apply('five', 5)
       .apply('nine', 9)
 
@@ -47,14 +48,14 @@ describe "composition", ->
   it "works in semi-realistic case", ->
     someDriver = {} # ToDo: fix this
 
-    ex = facet()
+    ex = $()
       .apply("Diamonds",
-        facet() # someDriver)
-          .filter(facet('color').is('D'))
-          .apply("priceOver2", facet("price").divide(2))
+        $() # someDriver)
+          .filter($('color').is('D'))
+          .apply("priceOver2", $("price").divide(2))
       )
-      .apply('Count', facet('Diamonds').count())
-      .apply('TotalPrice', facet('Diamonds').sum('$priceOver2'))
+      .apply('Count', $('Diamonds').count())
+      .apply('TotalPrice', $('Diamonds').sum('$priceOver2'))
 
     expect(ex.toJS()).to.deep.equal({
       "op": "actions"
@@ -125,14 +126,14 @@ describe "composition", ->
   it "works in semi-realistic case (using parser)", ->
     someDriver = {} # ToDo: fix this
 
-    ex = facet()
+    ex = $()
       .apply("Diamonds",
-        facet() #someDriver)
+        $() #someDriver)
           #.filter("$color = 'D'")
           .apply("priceOver2", "$price/2")
       )
-      .apply('Count', facet('Diamonds').count())
-      .apply('TotalPrice', facet('Diamonds').sum('$priceOver2'))
+      .apply('Count', $('Diamonds').count())
+      .apply('TotalPrice', $('Diamonds').sum('$priceOver2'))
 
     expect(ex.toJS()).to.deep.equal({
       "actions": [

@@ -29,6 +29,9 @@ if (defData.indexOf('declare var module') !== -1) {
   throw new Error("failed to delete require declaration");
 }
 
+var defLines = defData.split('\n');
+
+
 /*
 // Add the extra export code
 defData += [

@@ -1,5 +1,6 @@
 var facet = require('../../build/facet');
-var Dataset = facet.core.Dataset;
+var $ = facet.$;
+var Dataset = facet.Dataset;
 
 var diamondsData = require('../../data/diamonds.js');
 
@@ -12,9 +13,9 @@ var context = {
   })
 };
 
-var ex = facet()
-  .def("diamonds", facet('diamonds').filter(facet("color").is('D')))
-  .apply('Count', facet('diamonds').count())
+var ex = $()
+  .def("diamonds", $('diamonds').filter($("color").is('D')))
+  .apply('Count', $('diamonds').count())
   .apply('TotalPrice', '$diamonds.sum($price)');
 
 ex.compute(context).then(function(data) {

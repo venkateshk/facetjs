@@ -1,7 +1,7 @@
 { expect } = require("chai")
 
 facet = require('../../build/facet')
-{ Expression, Dataset } = facet
+{ Expression, Dataset, $ } = facet
 
 describe "reference check", ->
 
@@ -13,10 +13,10 @@ describe "reference check", ->
 
   describe "errors", ->
     it "fails to resolve a variable that does not exist", ->
-      ex = facet()
+      ex = $()
         .def('num', 5)
         .apply('subData',
-          facet()
+          $()
             .apply('x', '$num + 1')
             .apply('y', '$foo * 2')
         )
@@ -26,10 +26,10 @@ describe "reference check", ->
       ).to.throw('could not resolve $foo')
 
     it "fails to resolve a variable that does not exist (in scope)", ->
-      ex = facet()
+      ex = $()
         .def('num', 5)
         .apply('subData',
-          facet()
+          $()
             .apply('x', '$num + 1')
             .apply('y', '$^x * 2')
         )
@@ -39,10 +39,10 @@ describe "reference check", ->
       ).to.throw('could not resolve $^x')
 
     it "fails to when a variable goes too deep", ->
-      ex = facet()
+      ex = $()
         .def('num', 5)
         .apply('subData',
-          facet()
+          $()
             .apply('x', '$num + 1')
             .apply('y', '$^^^x * 2')
         )
@@ -52,10 +52,10 @@ describe "reference check", ->
       ).to.throw('went too deep on $^^^x')
 
     it "fails when discovering that the types mismatch", ->
-      ex = facet()
+      ex = $()
         .def('str', 'Hello')
         .apply('subData',
-          facet()
+          $()
             .apply('x', '$str + 1')
         )
 
@@ -64,10 +64,10 @@ describe "reference check", ->
       ).to.throw('add must have an operand of type NUMBER at position 0')
 
     it "fails when discovering that the types mismatch via label", ->
-      ex = facet()
-        .def("diamonds", facet("diamonds").filter(facet('color').is('D')))
+      ex = $()
+        .def("diamonds", $("diamonds").filter($('color').is('D')))
         .apply('Cuts',
-          facet("diamonds").group("$cut").label('Cut')
+          $("diamonds").group("$cut").label('Cut')
             .apply('TotalPrice', '$Cut * 10')
         )
 
@@ -78,19 +78,19 @@ describe "reference check", ->
 
   describe "resolves", ->
     it "works in a basic case", ->
-      ex = facet()
+      ex = $()
         .def('num', 5)
         .apply('subData',
-          facet()
+          $()
             .apply('x', '$num + 1')
             .apply('y', '$x * 2')
         )
 
       expect(ex.referenceCheck({}).toJS()).to.deep.equal(
-        facet()
+        $()
           .def('num', 5)
           .apply('subData',
-            facet()
+            $()
               .apply('x', '$^num:NUMBER + 1')
               .apply('y', '$x:NUMBER * 2')
           )
@@ -98,23 +98,23 @@ describe "reference check", ->
       )
 
     it "works from context", ->
-      ex = facet('diamonds')
+      ex = $('diamonds')
         .def('priceOver2', '$price / 2')
 
       expect(ex.referenceCheck(context).toJS()).to.deep.equal(
-        facet('diamonds:DATASET')
+        $('diamonds:DATASET')
           .def('priceOver2', '$price:NUMBER / 2')
           .toJS()
       )
 
     it "a split", ->
-      ex = facet()
-        .def("diamonds", facet("diamonds").filter(facet('color').is('D')))
+      ex = $()
+        .def("diamonds", $("diamonds").filter($('color').is('D')))
         .apply('Count', '$diamonds.count()')
         .apply('TotalPrice', '$diamonds.sum($price)')
         .apply('Cuts',
-          facet("diamonds").group("$cut").label('Cut')
-            .def('diamonds', facet('diamonds').filter(facet('cut').is('$^Cut')))
+          $("diamonds").group("$cut").label('Cut')
+            .def('diamonds', $('diamonds').filter($('cut').is('$^Cut')))
             .apply('Count', '$diamonds.count()')
             .apply('TotalPrice', '$diamonds.sum($price)')
             .apply('AvgPrice', '$TotalPrice / $Count')
@@ -123,13 +123,13 @@ describe "reference check", ->
         )
 
       expect(ex.referenceCheck(context).toJS()).to.deep.equal(
-        facet()
-          .def("diamonds", facet("^diamonds:DATASET").filter(facet('color:STRING').is('D')))
+        $()
+          .def("diamonds", $("^diamonds:DATASET").filter($('color:STRING').is('D')))
           .apply('Count', '$diamonds:DATASET.count()')
           .apply('TotalPrice', '$diamonds:DATASET.sum($price:NUMBER)')
           .apply('Cuts',
-            facet("diamonds:DATASET").group("$cut:STRING").label('Cut')
-              .def('diamonds', facet('^diamonds:DATASET').filter(facet('cut:STRING').is('$^Cut:STRING')))
+            $("diamonds:DATASET").group("$cut:STRING").label('Cut')
+              .def('diamonds', $('^diamonds:DATASET').filter($('cut:STRING').is('$^Cut:STRING')))
               .apply('Count', '$diamonds:DATASET.count()')
               .apply('TotalPrice', '$diamonds:DATASET.sum($price:NUMBER)')
               .apply('AvgPrice', '$TotalPrice:NUMBER / $Count:NUMBER')
@@ -140,40 +140,40 @@ describe "reference check", ->
       )
 
     it "two splits", ->
-      ex = facet()
-        .def("diamonds", facet('diamonds').filter(facet("color").is('D')))
-        .apply('Count', facet('diamonds').count())
-        .apply('TotalPrice', facet('diamonds').sum('$price'))
+      ex = $()
+        .def("diamonds", $('diamonds').filter($("color").is('D')))
+        .apply('Count', $('diamonds').count())
+        .apply('TotalPrice', $('diamonds').sum('$price'))
         .apply('Cuts',
-          facet("diamonds").group("$cut").label('Cut')
-            .def('diamonds', facet('diamonds').filter(facet('cut').is('$^Cut')))
-            .apply('Count', facet('diamonds').count())
+          $("diamonds").group("$cut").label('Cut')
+            .def('diamonds', $('diamonds').filter($('cut').is('$^Cut')))
+            .apply('Count', $('diamonds').count())
             .sort('$Count', 'descending')
             .limit(2)
             .apply('Carats',
-              facet("diamonds").group(facet("carat").numberBucket(0.25)).label('Carat')
-                .def('diamonds', facet('diamonds').filter(facet("carat").numberBucket(0.25).is('$^Carat')))
-                .apply('Count', facet('diamonds').count())
+              $("diamonds").group($("carat").numberBucket(0.25)).label('Carat')
+                .def('diamonds', $('diamonds').filter($("carat").numberBucket(0.25).is('$^Carat')))
+                .apply('Count', $('diamonds').count())
                 .sort('$Count', 'descending')
                 .limit(3)
             )
         )
 
       expect(ex.referenceCheck(context).toJS()).to.deep.equal(
-        facet()
-          .def("diamonds", facet('^diamonds:DATASET').filter(facet("color:STRING").is('D')))
-          .apply('Count', facet('diamonds:DATASET').count())
-          .apply('TotalPrice', facet('diamonds:DATASET').sum('$price:NUMBER'))
+        $()
+          .def("diamonds", $('^diamonds:DATASET').filter($("color:STRING").is('D')))
+          .apply('Count', $('diamonds:DATASET').count())
+          .apply('TotalPrice', $('diamonds:DATASET').sum('$price:NUMBER'))
           .apply('Cuts',
-            facet("diamonds:DATASET").group("$cut:STRING").label('Cut')
-              .def('diamonds', facet('^diamonds:DATASET').filter(facet('cut:STRING').is('$^Cut:STRING')))
-              .apply('Count', facet('diamonds:DATASET').count())
+            $("diamonds:DATASET").group("$cut:STRING").label('Cut')
+              .def('diamonds', $('^diamonds:DATASET').filter($('cut:STRING').is('$^Cut:STRING')))
+              .apply('Count', $('diamonds:DATASET').count())
               .sort('$Count:NUMBER', 'descending')
               .limit(2)
               .apply('Carats',
-                facet("diamonds:DATASET").group(facet("carat:NUMBER").numberBucket(0.25)).label('Carat')
-                  .def('diamonds', facet('^diamonds:DATASET').filter(facet("carat:NUMBER").numberBucket(0.25).is('$^Carat:NUMBER_RANGE')))
-                  .apply('Count', facet('diamonds:DATASET').count())
+                $("diamonds:DATASET").group($("carat:NUMBER").numberBucket(0.25)).label('Carat')
+                  .def('diamonds', $('^diamonds:DATASET').filter($("carat:NUMBER").numberBucket(0.25).is('$^Carat:NUMBER_RANGE')))
+                  .apply('Count', $('diamonds:DATASET').count())
                   .sort('$Count:NUMBER', 'descending')
                   .limit(3)
               )

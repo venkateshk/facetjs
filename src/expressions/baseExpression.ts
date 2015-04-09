@@ -90,14 +90,13 @@ module Facet {
 
   /**
    * The expression starter function. Performs different operations depending on the type and value of the input
-   * facet() produces a native dataset with a singleton empty datum inside of it. This is useful to describe the base container
-   * facet('blah') produces an reference lookup expression on 'blah'
-   * facet(driver) produces a remote dataset accessible via the driver
+   * $() produces a native dataset with a singleton empty datum inside of it. This is useful to describe the base container
+   * $('blah') produces an reference lookup expression on 'blah'
    *
    * @param input The input that can be nothing, a string, or a driver
    * @returns {Expression}
    */
-  export function facet(input: any = null): Expression {
+  export function $(input: any = null): Expression {
     if (input) {
       if (typeof input === 'string') {
         var parts = input.split(':');
@@ -689,7 +688,7 @@ module Facet {
         dataName = (<RefExpression>this).name;
       }
       return this.group(attribute).label(name)
-        .def(dataName, facet('^' + dataName).filter(attribute.is(facet('^' + name))));
+        .def(dataName, $('^' + dataName).filter(attribute.is($('^' + name))));
     }
 
     // Expression constructors (Binary)

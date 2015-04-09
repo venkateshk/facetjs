@@ -1,11 +1,11 @@
 { expect } = require("chai")
 
 facet = require('../../build/facet')
-{ Expression } = facet
+{ Expression, $ } = facet
 
 describe "substitute", ->
   it "should substitute on IS", ->
-    ex = facet(5).is('$hello')
+    ex = $(5).is('$hello')
 
     subs = (ex) ->
       if ex.op is 'literal' and ex.type is 'NUMBER'
@@ -14,18 +14,18 @@ describe "substitute", ->
         return null
 
     expect(ex.substitute(subs).toJS()).to.deep.equal(
-      facet(15).is('$hello').toJS()
+      $(15).is('$hello').toJS()
     )
 
   it "should substitute on complex expression", ->
-    ex = facet()
+    ex = $()
       .def('num', 5)
       .apply('subData',
-        facet()
+        $()
           .apply('x', '$num + 1')
           .apply('y', '$foo * 2')
-          .apply('z', facet().sum('$a + 3'))
-          .apply('w', facet().sum('$a + 4 + $b'))
+          .apply('z', $().sum('$a + 3'))
+          .apply('w', $().sum('$a + 4 + $b'))
       )
 
     subs = (ex) ->
@@ -35,14 +35,14 @@ describe "substitute", ->
         return null
 
     expect(ex.substitute(subs).toJS()).to.deep.equal(
-      facet()
+      $()
         .def('num', 15)
         .apply('subData',
-          facet()
+          $()
             .apply('x', '$num + 11')
             .apply('y', '$foo * 12')
-            .apply('z', facet().sum('$a + 13'))
-            .apply('w', facet().sum('$a + 14 + $b'))
+            .apply('z', $().sum('$a + 13'))
+            .apply('w', $().sum('$a + 14 + $b'))
         )
         .toJS()
     )

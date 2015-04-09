@@ -6,7 +6,7 @@ if not WallTime.rules
   WallTime.init(tzData.rules, tzData.zones)
 
 facet = require('../../build/facet')
-{ Expression, Dataset, TimeRange } = facet
+{ Expression, Dataset, TimeRange, $ } = facet
 
 context = {
   diamonds: Dataset.fromJS({
@@ -22,7 +22,7 @@ context = {
       price: { type: 'NUMBER' }
       tax: { type: 'NUMBER' }
     }
-#    filter: facet("time").in(TimeRange.fromJS({
+#    filter: $("time").in(TimeRange.fromJS({
 #      start: new Date('2015-03-12T00:00:00')
 #      end:   new Date('2015-03-19T00:00:00')
 #    }))
@@ -31,29 +31,29 @@ context = {
 
 describe "simulate MySQL", ->
   it "works in advanced case", ->
-    ex = facet()
-      .def("diamonds", facet('diamonds').filter(facet("color").is('D')))
+    ex = $()
+      .def("diamonds", $('diamonds').filter($("color").is('D')))
       .apply('Count', '$diamonds.count()')
       .apply('TotalPrice', '$diamonds.sum($price)')
       .apply('PriceTimes2', '$diamonds.sum($price) * 2')
       .apply('PriceMinusTax', '$diamonds.sum($price) - $diamonds.sum($tax)')
       .apply('Crazy', '$diamonds.sum($price) - $diamonds.sum($tax) + 10 - $diamonds.sum($carat)')
       .apply('PriceAndTax', '$diamonds.sum($price) + $diamonds.sum($tax)')
-      #.apply('PriceGoodCut', facet('diamonds').filter(facet('cut').is('good')).sum('$price'))
+      #.apply('PriceGoodCut', $('diamonds').filter($('cut').is('good')).sum('$price'))
       .apply('Cuts',
-        facet("diamonds").split("$cut", 'Cut')
-          .apply('Count', facet('diamonds').count())
+        $("diamonds").split("$cut", 'Cut')
+          .apply('Count', $('diamonds').count())
           .apply('PercentOfTotal', '$^Count / $Count')
           .sort('$Count', 'descending')
           .limit(2)
           .apply('Time',
-            facet("diamonds").split(facet("time").timeBucket('P1D', 'America/Los_Angeles'), 'Timestamp')
-              .apply('TotalPrice', facet('diamonds').sum('$price'))
+            $("diamonds").split($("time").timeBucket('P1D', 'America/Los_Angeles'), 'Timestamp')
+              .apply('TotalPrice', $('diamonds').sum('$price'))
               .sort('$Timestamp', 'ascending')
               #.limit(10)
               .apply('Carats',
-                facet("diamonds").split(facet("carat").numberBucket(0.25), 'Carat')
-                  .apply('Count', facet('diamonds').count())
+                $("diamonds").split($("carat").numberBucket(0.25), 'Carat')
+                  .apply('Count', $('diamonds').count())
                   .sort('$Count', 'descending')
                   .limit(3)
               )
@@ -111,10 +111,10 @@ describe "simulate MySQL", ->
 
 
   it "works with having filter", ->
-    ex = facet("diamonds").split("$cut", 'Cut')
-      .apply('Count', facet('diamonds').count())
+    ex = $("diamonds").split("$cut", 'Cut')
+      .apply('Count', $('diamonds').count())
       .sort('$Count', 'descending')
-      .filter(facet('Count').greaterThan(100))
+      .filter($('Count').greaterThan(100))
       .limit(10)
 
     queryPlan = ex.simulateQueryPlan(context)
@@ -132,16 +132,16 @@ describe "simulate MySQL", ->
       """)
 
   it "works with range bucket", ->
-    ex = facet()
+    ex = $()
       .apply('HeightBuckets',
-        facet("diamonds").split("$height_bucket", 'HeightBucket')
-          .apply('Count', facet('diamonds').count())
+        $("diamonds").split("$height_bucket", 'HeightBucket')
+          .apply('Count', $('diamonds').count())
           .sort('$Count', 'descending')
           .limit(10)
       )
       .apply('HeightUpBuckets',
-        facet("diamonds").split(facet('height_bucket').numberBucket(2, 0.5), 'HeightBucket')
-          .apply('Count', facet('diamonds').count())
+        $("diamonds").split($('height_bucket').numberBucket(2, 0.5), 'HeightBucket')
+          .apply('Count', $('diamonds').count())
           .sort('$Count', 'descending')
           .limit(10)
       )

@@ -6,7 +6,7 @@ if not WallTime.rules
   WallTime.init(tzData.rules, tzData.zones)
 
 facet = require('../../build/facet')
-{ Expression } = facet
+{ Expression, $ } = facet
 
 
 exports.errorsFromJS = (expectedMessage) ->

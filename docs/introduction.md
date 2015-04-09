@@ -29,7 +29,7 @@ Making a query in facet.js consists of creating an expression and then evaluatin
 
 There are a number of ways to create expressions:
 
-- by using the ```facet()``` helper method
+- by using the ```$()``` helper method
 - by parsing an expression string using the built-in parser
 - by composing them manually using the Expression sub-class objects
 - by constructing the appropriate JSON and then deserializing it into an Expression
@@ -63,18 +63,18 @@ Lear more about [data types here](./datatypes.md).
 Here is an example of a simple facet.js query that illustrates the different ways by which expressions can be created:
 
 ```javascript
-var ex0 = facet() // Create an empty singleton dataset literal [{}]
+var ex0 = $() // Create an empty singleton dataset literal [{}]
   // 1 is converted into a literal
   .def("one", 1)
 
-  // 2 is converted into a literal via the facet() function
-  .def("two", facet(2))
+  // 2 is converted into a literal via the $() function
+  .def("two", $(2))
 
   // The string "$one + $two" is parsed into an expression
   .apply("three", "$one + $two")
 
   // The method chaining approach is used to make an expression
-  .apply("four", facet("three").add(1))
+  .apply("four", $("three").add(1))
 
   // Simple JSON of an expression is used to define an expression
   .apply("five", {
@@ -106,7 +106,7 @@ Calling ```ex0.compute()``` will return a Q promise that will resolve to:
 
 This example employees three functions:
 
-* `facet()` creates a dataset with one empty datum inside of it. This is the base of most facet operations.
+* `$()` creates a dataset with one empty datum inside of it. This is the base of most facet operations.
 
 * `apply(name, expression)` evaluates the given `expression` for every element of the dataset and saves the result as `name`.
 
@@ -151,17 +151,17 @@ var context = {
   wiki: wikiDataset
 };
 
-var ex = facet()
+var ex = $()
   // Define the dataset in context with a filter on time and language
   .def("wiki",
-    facet('wiki').filter(facet("time").in({
+    $('wiki').filter($("time").in({
       start: new Date("2013-02-26T00:00:00Z"),
       end: new Date("2013-02-27T00:00:00Z")
-    }).and(facet('language').is('en')))
+    }).and($('language').is('en')))
   )
 
   // Calculate count
-  .apply('Count', facet('wiki').count())
+  .apply('Count', $('wiki').count())
 
   // Calculate the total of the `added` attribute
   .apply('TotalAdded', '$wiki.sum($added)');
@@ -197,18 +197,18 @@ var context = {
   wiki: wikiDataset
 };
 
-var ex = facet()
+var ex = $()
   .def("wiki",
-    facet('wiki').filter(facet("time").in({
+    $('wiki').filter($("time").in({
       start: new Date("2013-02-26T00:00:00Z"),
       end: new Date("2013-02-27T00:00:00Z")
     }))
   )
-  .apply('Count', facet('wiki').count())
+  .apply('Count', $('wiki').count())
   .apply('TotalAdded', '$wiki.sum($added)')
   .apply('Pages',
-    facet('wiki').split('$page', 'Page')
-      .apply('Count', facet('wiki').count())
+    $('wiki').split('$page', 'Page')
+      .apply('Count', $('wiki').count())
       .sort('$Count', 'descending')
       .limit(6)
   );

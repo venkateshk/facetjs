@@ -6,7 +6,7 @@ if not WallTime.rules
   WallTime.init(tzData.rules, tzData.zones)
 
 facet = require('../../build/facet')
-{ Expression, Dataset, TimeRange } = facet
+{ Expression, Dataset, TimeRange, $ } = facet
 
 context = {
   wiki: Dataset.fromJS({
@@ -22,7 +22,7 @@ context = {
       added: { type: 'NUMBER' }
       deleted: { type: 'NUMBER' }
     }
-    filter: facet('time').in(TimeRange.fromJS({
+    filter: $('time').in(TimeRange.fromJS({
       start: new Date("2013-02-26T00:00:00Z")
       end: new Date("2013-02-27T00:00:00Z")
     }))
@@ -42,7 +42,7 @@ contextNoApprox = {
       page: { type: 'STRING' }
       added: { type: 'NUMBER' }
     }
-    filter: facet('time').in(TimeRange.fromJS({
+    filter: $('time').in(TimeRange.fromJS({
       start: new Date("2013-02-26T00:00:00Z")
       end: new Date("2013-02-27T00:00:00Z")
     }))
@@ -54,7 +54,7 @@ describe "DruidDataset", ->
     wikiDataset = context.wiki
 
     it "breaks up correctly in simple case", ->
-      ex = facet()
+      ex = $()
         .apply('Count', '$wiki.count()')
         .apply('Added', '$wiki.sum($added)')
         .apply('Volatile', '$wiki.max($added) - $wiki.min($deleted)')
@@ -68,7 +68,7 @@ describe "DruidDataset", ->
         """)
 
     it "breaks up correctly in case of duplicate name", ->
-      ex = facet()
+      ex = $()
         .apply('Count', '$wiki.count()')
         .apply('Added', '$wiki.sum($added)')
         .apply('Volatile', '$wiki.sum($added) - $wiki.sum($deleted)')
@@ -81,7 +81,7 @@ describe "DruidDataset", ->
         """)
 
     it "breaks up correctly in case of variable reference", ->
-      ex = facet()
+      ex = $()
         .apply('Count', '$wiki.count()')
         .apply('Added', '$wiki.sum($added)')
         .apply('Volatile', '$Added - $wiki.sum($deleted)')
@@ -94,7 +94,7 @@ describe "DruidDataset", ->
         """)
 
     it "breaks up correctly in case of duplicate apply", ->
-      ex = facet()
+      ex = $()
         .apply('Added', '$wiki.sum($added)')
         .apply('Added2', '$wiki.sum($added)')
         .apply('Volatile', '$Added - $wiki.sum($deleted)')
@@ -107,7 +107,7 @@ describe "DruidDataset", ->
         """)
 
     it "breaks up correctly in case of duplicate apply (same name)", ->
-      ex = facet()
+      ex = $()
         .apply('Added', '$wiki.sum($added)')
         .apply('Added', '$wiki.sum($added)')
         .apply('Volatile', '$Added - $wiki.sum($deleted)')
@@ -120,7 +120,7 @@ describe "DruidDataset", ->
 
   describe "simplifies / digests", ->
     it "a (timeBoundary) total", ->
-      ex = facet()
+      ex = $()
         .apply('maximumTime', '$wiki.max($time)')
         .apply('minimumTime', '$wiki.min($time)')
 
@@ -133,11 +133,11 @@ describe "DruidDataset", ->
       })
 
     it "a total", ->
-      ex = facet()
+      ex = $()
         .def("wiki",
-          facet('^wiki')
+          $('^wiki')
             .apply('addedTwice', '$added * 2')
-            .filter(facet("language").is('en'))
+            .filter($("language").is('en'))
         )
         .apply('Count', '$wiki.count()')
         .apply('TotalAdded', '$wiki.sum($added)')
@@ -172,7 +172,7 @@ describe "DruidDataset", ->
       })
 
     it "a split", ->
-      ex = facet('wiki').split("$page", 'Page')
+      ex = $('wiki').split("$page", 'Page')
         .apply('Count', '$wiki.count()')
         .apply('Added', '$wiki.sum($added)')
         .sort('$Count', 'descending')
@@ -210,7 +210,7 @@ describe "DruidDataset", ->
       })
 
     it "a split (no approximate)", ->
-      ex = facet('wiki').split("$page", 'Page')
+      ex = $('wiki').split("$page", 'Page')
         .apply('Count', '$wiki.count()')
         .apply('Added', '$wiki.sum($added)')
         .sort('$Count', 'descending')
@@ -258,10 +258,10 @@ describe "DruidDataset", ->
       })
 
     it "filters", ->
-      ex = facet()
+      ex = $()
         .def("wiki",
-          facet('^wiki')
-            .filter(facet("language").contains('en'))
+          $('^wiki')
+            .filter($("language").contains('en'))
         )
         .apply('Count', '$wiki.count()')
 

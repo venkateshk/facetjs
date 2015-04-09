@@ -7,7 +7,7 @@ if not WallTime.rules
   WallTime.init(tzData.rules, tzData.zones)
 
 facet = require('../../build/facet')
-{ Dataset, introspectDatum } = facet
+{ Dataset, introspectDatum, $ } = facet
 
 
 describe "introspect", ->

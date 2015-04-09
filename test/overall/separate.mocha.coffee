@@ -1,7 +1,7 @@
 { expect } = require("chai")
 
 facet = require('../../build/facet')
-{ Expression } = facet
+{ Expression, $ } = facet
 
 toJS = (sep) ->
   return sep unless sep
@@ -33,7 +33,7 @@ describe "separate", ->
     }))
 
   it 'works on a single included expression', ->
-    ex = facet('venue').is('Google')
+    ex = $('venue').is('Google')
 
     expect(toJS(ex.separateViaAnd('venue'))).to.deep.equal(toJS({
       included: ex
@@ -41,7 +41,7 @@ describe "separate", ->
     }))
 
   it 'works on a single excluded expression', ->
-    ex = facet('venue').is('Google')
+    ex = $('venue').is('Google')
 
     expect(toJS(ex.separateViaAnd('make'))).to.deep.equal(toJS({
       included: Expression.TRUE
@@ -49,36 +49,36 @@ describe "separate", ->
     }))
 
   it 'works on a small AND expression', ->
-    ex = facet('venue').is('Google').and(facet('country').is('USA'))
+    ex = $('venue').is('Google').and($('country').is('USA'))
 
     expect(toJS(ex.separateViaAnd('country'))).to.deep.equal(toJS({
-      included: facet('country').is('USA')
-      excluded: facet('venue').is('Google')
+      included: $('country').is('USA')
+      excluded: $('venue').is('Google')
     }))
 
   it 'works on an AND expression', ->
-    ex = facet('venue').is('Google').and(facet('country').is('USA'), facet('state').is('California'))
+    ex = $('venue').is('Google').and($('country').is('USA'), $('state').is('California'))
 
     expect(toJS(ex.separateViaAnd('country'))).to.deep.equal(toJS({
-      included: facet('country').is('USA')
-      excluded: facet('state').is('California').and(facet('venue').is('Google'))
+      included: $('country').is('USA')
+      excluded: $('state').is('California').and($('venue').is('Google'))
     }))
 
   it 'extracts a NOT expression', ->
-    ex = facet('venue').is('Google').and(facet('country').is('USA').not(), facet('state').is('California'))
+    ex = $('venue').is('Google').and($('country').is('USA').not(), $('state').is('California'))
 
     expect(toJS(ex.separateViaAnd('country'))).to.deep.equal(toJS({
-      included: facet('country').is('USA').not()
-      excluded: facet('state').is('California').and(facet('venue').is('Google'))
+      included: $('country').is('USA').not()
+      excluded: $('state').is('California').and($('venue').is('Google'))
     }))
 
   it 'does not work on mixed OR expression', ->
-    ex = facet('venue').is('Google').or(facet('country').is('USA'), facet('state').is('California'))
+    ex = $('venue').is('Google').or($('country').is('USA'), $('state').is('California'))
 
     expect(toJS(ex.separateViaAnd('country'))).to.deep.equal(null)
 
   it 'works on mixed OR filter (all in)', ->
-    ex = facet('venue').is('Apple').or(facet('venue').is('Google').not())
+    ex = $('venue').is('Apple').or($('venue').is('Google').not())
 
     expect(toJS(ex.separateViaAnd('venue'))).to.deep.equal(toJS({
       included: ex
@@ -86,7 +86,7 @@ describe "separate", ->
     }))
 
   it 'works on mixed OR filter (all out)', ->
-    ex = facet('venue').is('Google').or(facet('country').is('USA'), facet('state').is('California'))
+    ex = $('venue').is('Google').or($('country').is('USA'), $('state').is('California'))
 
     expect(toJS(ex.separateViaAnd('model'))).to.deep.equal(toJS({
       included: Expression.TRUE

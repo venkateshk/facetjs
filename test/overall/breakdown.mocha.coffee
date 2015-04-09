@@ -1,7 +1,7 @@
 { expect } = require("chai")
 
 facet = require('../../build/facet')
-{ Expression, Dataset, NativeDataset } = facet
+{ Expression, Dataset, NativeDataset, $ } = facet
 
 describe "breakdown", ->
   context = {

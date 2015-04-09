@@ -1,5 +1,5 @@
 facet = require('../../build/facet')
-{ Set, NumberRange } = facet
+{ Set, NumberRange, $ } = facet
 
 tests = require './sharedTests'
 

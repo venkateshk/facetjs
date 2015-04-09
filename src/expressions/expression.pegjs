@@ -275,7 +275,7 @@ Leaf
   = "(" _ ex:Expression _ ")" { return ex; }
   / Literal
   / Ref
-  / "facet()" { return base; }
+  / "$()" { return base; }
 
 Ref
   = "$" name:RefName ":" type:TypeName

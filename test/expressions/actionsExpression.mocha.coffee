@@ -1,7 +1,7 @@
 { expect } = require("chai")
 
 facet = require('../../build/facet')
-{ Expression, Dataset } = facet
+{ Expression, Dataset, $ } = facet
 tests = require './sharedTests'
 
 describe 'ActionsExpression', ->
@@ -29,82 +29,82 @@ describe 'ActionsExpression', ->
 
   describe.skip 'simplify', ->
     it 'puts defs in front of applies', ->
-      expression = facet()
+      expression = $()
         .def('test', 5)
-        .apply('Data', facet())
+        .apply('Data', $())
 
       simplifiedExpression = expression.simplify().toJS()
       expect(simplifiedExpression).to.deep.equal(
-        facet()
+        $()
           .def('test', 5)
-          .apply('Data', facet())
+          .apply('Data', $())
           .toJS()
       )
 
     it 'puts defs with less references in front of defs with more', ->
-      expression = facet()
+      expression = $()
         .def('z', 5)
-        .def('a', facet('Data').add(5))
+        .def('a', $('Data').add(5))
 
       simplifiedExpression = expression.simplify().toJS()
       expect(simplifiedExpression).to.deep.equal(
-        facet()
+        $()
           .def('z', 5)
-          .def('a', facet('Data').add(5))
+          .def('a', $('Data').add(5))
           .toJS()
       )
 
     it 'sorts defs in alphabetical order of their references if they have the same number of references', ->
-      expression = facet()
-        .def('z', facet('Data').add(5))
-        .def('a', facet('Test').add(7))
+      expression = $()
+        .def('z', $('Data').add(5))
+        .def('a', $('Test').add(7))
 
       simplifiedExpression = expression.simplify().toJS()
       expect(simplifiedExpression).to.deep.equal(
-        facet()
-          .def('z', facet('Data').add(5))
-          .def('a', facet('Test').add(7))
+        $()
+          .def('z', $('Data').add(5))
+          .def('a', $('Test').add(7))
           .toJS()
       )
 
     it 'sorts defs in alphabetical order, all else equal', ->
-      expression = facet()
+      expression = $()
         .def('z', 5)
         .def('a', 7)
 
       simplifiedExpression = expression.simplify().toJS()
       expect(simplifiedExpression).to.deep.equal(
-        expression = facet()
+        expression = $()
           .def('a', 7)
           .def('z', 5)
           .toJS()
       )
 
     it 'merges filters', ->
-      expression = facet()
-        .filter(facet('Country').is('USA'))
-        .apply('Data', facet())
-        .filter(facet('Device').is('iPhone'))
+      expression = $()
+        .filter($('Country').is('USA'))
+        .apply('Data', $())
+        .filter($('Device').is('iPhone'))
         .apply('Count', 5)
 
       simplifiedExpression = expression.simplify().toJS()
       expect(simplifiedExpression).to.deep.equal(
-        facet()
-          .filter(facet('Country').is('USA').and(facet('Device').is('iPhone')))
+        $()
+          .filter($('Country').is('USA').and($('Device').is('iPhone')))
           .apply('Count', 5)
-          .apply('Data', facet())
+          .apply('Data', $())
           .toJS()
       )
 
     it 'reorders sort', ->
-      expression = facet()
+      expression = $()
         .apply('X', 5)
         .apply('Y', '$y')
         .sort('$X', 'descending')
 
       simplifiedExpression = expression.simplify().toJS()
       expect(simplifiedExpression).to.deep.equal(
-        facet()
+        $()
           .apply('X', 5)
           .sort('$X', 'descending')
           .apply('Y', '$y')
@@ -112,7 +112,7 @@ describe 'ActionsExpression', ->
       )
 
     it 'puts sort and limit together', ->
-      expression = facet()
+      expression = $()
         .apply('X', 5)
         .apply('Y', '$y')
         .sort('$X', 'descending')
@@ -121,7 +121,7 @@ describe 'ActionsExpression', ->
 
       simplifiedExpression = expression.simplify().toJS()
       expect(simplifiedExpression).to.deep.equal(
-        facet()
+        $()
           .apply('X', 5)
           .sort('$X', 'descending')
           .limit(10)
@@ -131,16 +131,16 @@ describe 'ActionsExpression', ->
       )
 
     it 'topological sort', ->
-      expression = facet()
-        .apply('Y', facet('X').add('$Z'))
-        .apply('X', facet('A'))
+      expression = $()
+        .apply('Y', $('X').add('$Z'))
+        .apply('X', $('A'))
         .apply('Z', 5)
 
       simplifiedExpression = expression.simplify().toJS()
       expect(simplifiedExpression).to.deep.equal(
-        facet()
+        $()
           .apply('Z', 5)
-          .apply('X', facet('A'))
-          .apply('Y', facet('X').add('$Z'))
+          .apply('X', $('A'))
+          .apply('Y', $('X').add('$Z'))
           .toJS()
       )

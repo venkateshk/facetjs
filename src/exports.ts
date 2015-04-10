@@ -1,6 +1,5 @@
 if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
-  module.exports = Core.facet;
-  module.exports.core = Core;
-  module.exports.extra = Extra;
-  module.exports.legacy = Legacy;
+  module.exports = Facet;
+  module.exports.helper = Facet.Helper;
+  module.exports.legacy = Facet.Legacy;
 }

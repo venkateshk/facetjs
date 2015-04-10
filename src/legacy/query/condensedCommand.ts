@@ -1,4 +1,4 @@
-module Legacy {
+module Facet.Legacy {
   export class CondensedCommand {
     public knownProps: any = {};
     public split: FacetSplit;

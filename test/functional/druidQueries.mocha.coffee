@@ -8,7 +8,7 @@ if not WallTime.rules
 { druidRequesterFactory } = require('facetjs-druid-requester')
 
 facet = require('../../build/facet')
-{ Expression, Dataset, TimeRange } = facet.core
+{ Expression, Dataset, TimeRange, $ } = facet
 
 info = require('../info')
 
@@ -35,7 +35,7 @@ describe "DruidDataset", ->
           added: { type: 'NUMBER' }
           count: { type: 'NUMBER' }
         }
-        filter: facet('time').in(TimeRange.fromJS({
+        filter: $('time').in(TimeRange.fromJS({
           start: new Date("2013-02-26T00:00:00Z")
           end: new Date("2013-02-27T00:00:00Z")
         }))
@@ -44,10 +44,10 @@ describe "DruidDataset", ->
     }
 
     it "works timePart case", (testComplete) ->
-      ex = facet()
-        .def("wiki", facet('wiki').filter(facet("language").is('en')))
+      ex = $()
+        .def("wiki", $('wiki').filter($("language").is('en')))
         .apply('HoursOfDay',
-          facet("wiki").split("$time.timePart(HOUR_OF_DAY, 'Etc/UTC')", 'HourOfDay')
+          $("wiki").split("$time.timePart(HOUR_OF_DAY, 'Etc/UTC')", 'HourOfDay')
             .apply('TotalAdded', '$wiki.sum($added)')
             .sort('$TotalAdded', 'descending')
             .limit(3)
@@ -78,27 +78,27 @@ describe "DruidDataset", ->
       ).done()
 
     it "works in advanced case", (testComplete) ->
-      ex = facet()
-        .def("wiki", facet('wiki').filter(facet("language").is('en')))
+      ex = $()
+        .def("wiki", $('wiki').filter($("language").is('en')))
         .apply('Count', '$wiki.sum($count)')
         .apply('TotalAdded', '$wiki.sum($added)')
         .apply('Pages',
-          facet("wiki").split("$page", 'Page')
+          $("wiki").split("$page", 'Page')
             .apply('Count', '$wiki.sum($count)')
             .sort('$Count', 'descending')
             .limit(2)
             .apply('Time',
-              facet("wiki").split(facet("time").timeBucket('PT1H', 'Etc/UTC'), 'Timestamp')
+              $("wiki").split($("time").timeBucket('PT1H', 'Etc/UTC'), 'Timestamp')
                 .apply('TotalAdded', '$wiki.sum($added)')
                 .sort('$TotalAdded', 'descending')
                 .limit(3)
             )
         )
         .apply('PagesHaving',
-          facet("wiki").split("$page", 'Page')
+          $("wiki").split("$page", 'Page')
             .apply('Count', '$wiki.sum($count)')
             .sort('$Count', 'descending')
-            .filter(facet('Count').lessThan(300))
+            .filter($('Count').lessThan(300))
             .limit(5)
         )
 
@@ -198,7 +198,7 @@ describe "DruidDataset", ->
         forceInterval: true,
         approximate: true,
         context: null
-        filter: facet('time').in(TimeRange.fromJS({
+        filter: $('time').in(TimeRange.fromJS({
           start: new Date("2013-02-26T00:00:00Z")
           end: new Date("2013-02-27T00:00:00Z")
         }))
@@ -207,17 +207,17 @@ describe "DruidDataset", ->
     }
 
     it "works with introspection", (testComplete) ->
-      ex = facet()
-        .def("wiki", facet('wiki').filter(facet("language").is('en')))
+      ex = $()
+        .def("wiki", $('wiki').filter($("language").is('en')))
         .apply('Count', '$wiki.sum($count)')
         .apply('TotalAdded', '$wiki.sum($added)')
         .apply('Time',
-          facet("wiki").split(facet("time").timeBucket('PT1H', 'Etc/UTC'), 'Timestamp')
+          $("wiki").split($("time").timeBucket('PT1H', 'Etc/UTC'), 'Timestamp')
             .apply('TotalAdded', '$wiki.sum($added)')
             .sort('$Timestamp', 'ascending')
             .limit(3)
             .apply('Pages',
-              facet("wiki").split("$page", 'Page')
+              $("wiki").split("$page", 'Page')
                 .apply('Count', '$wiki.sum($count)')
                 .sort('$Count', 'descending')
                 .limit(2)

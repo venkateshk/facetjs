@@ -1,4 +1,4 @@
-module Legacy {
+module Facet.Legacy {
   export interface CommandJS {
     operation: string;
     name?: string;

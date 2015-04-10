@@ -1,4 +1,4 @@
-module Legacy {
+module Facet.Legacy {
   export interface FacetSplitJS {
     operation?: string;
     name?: string;

@@ -13,8 +13,12 @@ if grep -rq 'it\.only' ./test
 fi
 
 mocha \
-  test/core/* \
-  test/extra/* \
+  test/actions/* \
+  test/datatypes/* \
+  test/expressions/* \
+  test/overall/* \
+  test/remote/* \
+  test/helper/* \
   test/legacy/query/* \
   test/legacy/driver/fractalCache.mocha.coffee \
   test/legacy/driver/nativeDriver.mocha.coffee \

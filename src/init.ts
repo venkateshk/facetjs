@@ -109,7 +109,7 @@ function checkArrayEquality<T>(a: Array<T>, b: Array<T>): boolean {
   return a.length === b.length && a.every((item, i) => (item === b[i]));
 }
 
-module Core {
+module Facet {
   export var expressionParser = <PEGParser>require("../parser/expression");
   export var sqlParser = <PEGParser>require("../parser/sql");
 
@@ -128,7 +128,7 @@ module Core {
   }
 }
 
-module Legacy {
+module Facet.Legacy {
   export var filterParser = <PEGParser>require("../parser/filter");
   export var applyParser = <PEGParser>require("../parser/apply");
 

@@ -1,4 +1,4 @@
-module Legacy {
+module Facet.Legacy {
   export interface FacetDatasetJS {
     operation?: string;
     name?: string;

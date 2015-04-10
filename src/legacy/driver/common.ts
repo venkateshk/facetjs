@@ -1,4 +1,4 @@
-module Legacy {
+module Facet.Legacy {
   export module Driver {
     export interface Request {
       query: FacetQuery;

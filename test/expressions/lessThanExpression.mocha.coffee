@@ -22,7 +22,14 @@ describe 'LessThanExpression', ->
       this.expression = { op: 'lessThan', lhs: { op: 'ref', name: 'test' }, rhs: { op: 'literal', value: 5 } }
 
     tests.complexityIs(3)
-    tests.simplifiedExpressionIs({ op: 'lessThan', lhs: { op: 'ref', name: 'test' }, rhs: { op: 'literal', value: 5 } })
+    tests.simplifiedExpressionIs({ op: 'in', lhs: { op: 'ref', name: 'test' }, rhs: { op: 'literal', value: [Infinity, 5] } })
+    # ToDo: allow for configuring exclusive, inclusive
+    # Intervals should be able to be created fliped Int(0, 3) == Int(3, 0)
+    # Intervals correspond to Math.abs (could be used to implement it with .length)
+    # Do not need lessThanExpression class at all, use interval everywhere, have a renamer so that the fromJs can still work
+    # Allow union and intersect of (0, 10) + [(0, 1), (4, 5]] + dayofWeek(time) === 3
+
+    # add = binary or nary
 
     describe '#mergeAnd', ->
       tests

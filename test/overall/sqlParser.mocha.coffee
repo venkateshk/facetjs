@@ -17,7 +17,8 @@ describe "SQL parser", ->
   it "should parse a total expression", ->
     ex = Expression.parseSQL("""
       SELECT
-      SUM(added) AS 'TotalAdded'
+      SUM(added) AS 'TotalAdded',
+      '2014-01-02' AS 'Date'
       FROM `wiki`
       WHERE `language`="en"    -- This is just some comment
       GROUP BY ''
@@ -26,13 +27,14 @@ describe "SQL parser", ->
     ex2 = $()
       .def('data', '$wiki.filter($language = "en")')
       .apply('TotalAdded', '$data.sum($added)')
+      .apply('Date', new Date('2014-01-02T00:00:00.000Z'))
 
     expect(ex.toJS()).to.deep.equal(ex2.toJS())
 
   it "should parse a total expression without group by clause", ->
     ex = Expression.parseSQL("""
       SELECT
-      SUM(added) AS 'TotalAdded'
+      SUM(added) AS TotalAdded
       FROM `wiki`
       WHERE `language`="en"    -- This is just some comment
       """)

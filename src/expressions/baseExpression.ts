@@ -191,6 +191,8 @@ module Facet {
             }
           } else if (param.op) {
             expressionJS = <ExpressionJS>param;
+          } else if (param.toISOString) {
+            expressionJS = { op: 'literal', value: new Date(param) };
           } else if (Array.isArray(param)) {
             expressionJS = { op: 'literal', value: Set.fromJS(param) };
           } else if (hasOwnProperty(param, 'start') && hasOwnProperty(param, 'end')) {

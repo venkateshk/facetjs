@@ -51,45 +51,34 @@ module Facet {
     public simplify(): Expression {
       if (this.simple) return this;
 
-      var finalOperands: Expression[];
-      var groupedOperands: { [key: string]: Expression[]; };
-      var mergedExpression: Expression;
-      var mergedSimplifiedOperands: Expression[];
-      var referenceGroup: string;
-      var simplifiedOperands: Expression[];
-      var sortedReferenceGroups: string[];
-      var thisOperand: Expression;
+      var simplifiedOperands = this.operands.map((operand) => operand.simplify());
 
-      mergedSimplifiedOperands = [];
-      simplifiedOperands = this.operands.map((operand) => operand.simplify());
-
+      var mergedSimplifiedOperands: Expression[] = [];
       for (var i = 0; i < simplifiedOperands.length; i++) {
         var simplifiedOperand = simplifiedOperands[i];
         if (simplifiedOperand instanceof AndExpression) {
-          mergedSimplifiedOperands = mergedSimplifiedOperands.concat((simplifiedOperand).operands);
+          mergedSimplifiedOperands = mergedSimplifiedOperands.concat(simplifiedOperand.operands);
         } else {
           mergedSimplifiedOperands.push(simplifiedOperand);
         }
       }
 
-      groupedOperands = {};
-
+      var groupedOperands: Lookup<Expression[]> = {};
       for (var j = 0; j < mergedSimplifiedOperands.length; j++) {
-        thisOperand = mergedSimplifiedOperands[j];
-        referenceGroup = thisOperand.getFreeReferences().toString();
+        var thisOperand = mergedSimplifiedOperands[j];
+        var referenceGroup = thisOperand.getFreeReferences().toString();
 
-        if (groupedOperands[referenceGroup]) {
+        if (hasOwnProperty(groupedOperands, referenceGroup)) {
           groupedOperands[referenceGroup].push(thisOperand);
         } else {
           groupedOperands[referenceGroup] = [thisOperand];
         }
       }
 
-      finalOperands = [];
-      sortedReferenceGroups = Object.keys(groupedOperands).sort();
-
+      var sortedReferenceGroups = Object.keys(groupedOperands).sort();
+      var finalOperands: Expression[] = [];
       for (var k = 0; k < sortedReferenceGroups.length; k++) {
-        mergedExpression = AndExpression._mergeExpressions(groupedOperands[sortedReferenceGroups[k]]);
+        var mergedExpression = AndExpression._mergeExpressions(groupedOperands[sortedReferenceGroups[k]]);
         if (mergedExpression === null) {
           finalOperands = finalOperands.concat(groupedOperands[sortedReferenceGroups[k]]);
         } else {

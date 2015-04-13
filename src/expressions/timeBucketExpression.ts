@@ -61,7 +61,7 @@ module Facet {
     protected _getFnHelper(operandFn: ComputeFn): ComputeFn {
       var duration = this.duration;
       var timezone = this.timezone;
-      return (d: Datum) => TimeRange.fromDate(operandFn(d), duration, timezone);
+      return (d: Datum) => TimeRange.timeBucket(operandFn(d), duration, timezone);
     }
 
     protected _getJSExpressionHelper(operandFnJS: string): string {

@@ -12,6 +12,7 @@ node_modules/.bin/tsc --noImplicitAny --noEmitOnError --declaration --removeComm
   src/datatypes/dataset.ts \
   src/datatypes/nativeDataset.ts \
   src/datatypes/remoteDataset.ts \
+  src/datatypes/range.ts \
   src/datatypes/numberRange.ts \
   src/datatypes/set.ts \
   src/datatypes/shape.ts \

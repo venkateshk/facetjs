@@ -2,7 +2,7 @@
 
 tests = require './sharedTests'
 facet = require('../../build/facet')
-{ Set, TimeRange, $ } = facet
+{ Set, TimeRange, NumberRange, $ } = facet
 
 describe 'AndExpression', ->
   describe 'empty expressions', ->
@@ -77,7 +77,24 @@ describe 'AndExpression', ->
     tests.complexityIs(7)
     tests.simplifiedExpressionIs({ op: 'is', lhs: { op: 'ref', name: "test" }, rhs: { op: 'literal', value: "blah" } })
 
-  describe 'with number comparison expressions', ->
+  describe 'with hasOwnProperty', ->
+    beforeEach ->
+      this.expression = { op: 'and', operands: [
+        {
+          op: 'in',
+          lhs: "$hasOwnProperty",
+          rhs: {
+            op: 'literal'
+            value: Set.fromJS(["blah", "test2"])
+          }
+        }
+        { op: 'is', lhs: "$hasOwnProperty", rhs: "blah" }
+      ] }
+
+    tests.complexityIs(7)
+    tests.simplifiedExpressionIs({ op: 'is', lhs: { op: 'ref', name: "hasOwnProperty" }, rhs: { op: 'literal', value: "blah" } })
+
+  describe.only 'with number comparison expressions', ->
     beforeEach ->
       this.expression = { op: 'and', operands: [
         { op: 'lessThan', lhs: "$test", rhs: 1 },
@@ -85,7 +102,11 @@ describe 'AndExpression', ->
       ] }
 
     tests.complexityIs(7)
-    tests.simplifiedExpressionIs({ op: 'lessThanOrEqual', lhs: { op: 'ref', name: "test" }, rhs: { op: 'literal', value: 0 }})
+    tests.simplifiedExpressionIs({
+      op: 'in',
+      lhs: { op: 'ref', name: "test" },
+      rhs: { op: 'literal', type: "NUMBER_RANGE", value: { start: null, end: 0, bounds: '(]' } }
+    })
 
   describe 'with and expressions', ->
     beforeEach ->

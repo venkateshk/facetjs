@@ -16,11 +16,11 @@ module Facet {
       return `${this.lhs.toString()} > ${this.rhs.toString()}`;
     }
 
-    public simplify(): Expression {
+    protected _specialSimplify(simpleLhs: Expression, simpleRhs: Expression): Expression {
       return (new LessThanExpression({
         op: 'lessThan',
-        lhs: this.rhs,
-        rhs: this.lhs
+        lhs: simpleLhs,
+        rhs: simpleRhs
       })).simplify()
     }
 

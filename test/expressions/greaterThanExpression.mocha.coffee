@@ -22,7 +22,22 @@ describe 'GreaterThanExpression', ->
       this.expression = { op: 'greaterThan', lhs: { op: 'literal', value: 5 }, rhs: { op: 'ref', name: 'flight_time' } }
 
     tests.complexityIs(3)
-    tests.simplifiedExpressionIs({ op: 'lessThan', lhs: { op: 'ref', name: 'flight_time' }, rhs: { op: 'literal', value: 5 } })
+    tests.simplifiedExpressionIs({
+      "lhs": {
+        "name": "flight_time"
+        "op": "ref"
+      }
+      "op": "in"
+      "rhs": {
+        "op": "literal"
+        "type": "NUMBER_RANGE"
+        "value": {
+          "start": null
+          "end": 5
+          "bounds": "()"
+        }
+      }
+    })
 
   describe 'with complex values', ->
     beforeEach ->

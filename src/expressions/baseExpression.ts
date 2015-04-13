@@ -211,7 +211,7 @@ module Facet {
           break;
 
         case 'string':
-          if (/^[\w ]+$/.test(param)) {
+          if (/^[\w ]+$/.test(param)) { // ToDo: is [\w ] right?
             expressionJS = { op: 'literal', value: param };
           } else {
             expressionJS = parseExpression(param);

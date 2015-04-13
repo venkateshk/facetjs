@@ -17,10 +17,10 @@ module Facet {
     }
 
     protected _specialSimplify(simpleLhs: Expression, simpleRhs: Expression): Expression {
-      return (new LessThanExpression({
+      return (new LessThanOrEqualExpression({
         op: 'lessThanOrEqual',
-        lhs: simpleLhs,
-        rhs: simpleRhs
+        lhs: simpleRhs,
+        rhs: simpleLhs
       })).simplify()
     }
 

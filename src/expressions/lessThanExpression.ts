@@ -33,14 +33,14 @@ module Facet {
         return (new InExpression({
           op: 'in',
           lhs: simpleRhs,
-          rhs: $(NumberRange.fromJS({ start: null, end: simpleLhs.value, bounds: '()' }))
+          rhs: $(NumberRange.fromJS({ start: simpleLhs.value, end: null, bounds: '()' }))
         })).simplify();
       }
       if (simpleRhs instanceof LiteralExpression) { // x < 5
         return (new InExpression({
           op: 'in',
           lhs: simpleLhs,
-          rhs: $(NumberRange.fromJS({ start: simpleRhs.value, end: null, bounds: '()' }))
+          rhs: $(NumberRange.fromJS({ start: null, end: simpleRhs.value, bounds: '()' }))
         })).simplify();
       }
       return null;

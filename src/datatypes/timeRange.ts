@@ -46,12 +46,8 @@ module Facet {
       });
     }
 
-    static fromTimes(a: Date, b: Date): TimeRange {
-      return new TimeRange({
-        start: smaller(a, b),
-        end: larger(a, b),
-        bounds: Range.DEFAULT_BOUNDS
-      })
+    static fromTime(t: Date): TimeRange {
+      return new TimeRange({ start: t, end: t, bounds: '[]' });
     }
 
     static fromJS(parameters: TimeRangeJS): TimeRange {

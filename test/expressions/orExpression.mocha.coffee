@@ -158,7 +158,7 @@ describe 'OrExpression', ->
       }
     ] })
 
-  describe.skip 'with collapsible expressions', ->
+  describe 'with collapsible expressions', ->
     beforeEach ->
       this.expression = { op: 'or', operands: [
         { op: 'lessThan', lhs: "$test", rhs: 1 },
@@ -167,5 +167,62 @@ describe 'OrExpression', ->
 
     tests.complexityIs(7)
     tests.simplifiedExpressionIs({
+      "lhs": { "name": "test", "op": "ref" }
+      "op": "in"
+      "rhs": {
+        "op": "literal"
+        "type": "SET"
+        "value": {
+          "setType": "NUMBER_RANGE"
+          "elements": [
+            {
+              "start": 2
+              "end": null
+              "bounds": "()"
+            }
+            {
+              "start": null
+              "end": 1
+              "bounds": "()"
+            }
+          ]
+        }
+      }
+    })
 
+  describe 'with collapsible expressions of different types', ->
+    beforeEach ->
+      this.expression = { op: 'or', operands: [
+        { op: 'lessThan', lhs: "$test", rhs: 5 },
+        { op: 'in', lhs: '$test', rhs: [0, 2, 4, 6, 8] }
+      ] }
+
+    tests.complexityIs(7)
+    tests.simplifiedExpressionIs({
+      "lhs": { "name": "test", "op": "ref" }
+      "op": "in"
+      "rhs": {
+        "op": "literal"
+        "type": "SET"
+        "value": {
+          "setType": "NUMBER_RANGE"
+          "elements": [
+            {
+              "bounds": "()"
+              "end": 5
+              "start": null
+            }
+            {
+              "bounds": "[]"
+              "end": 6
+              "start": 6
+            }
+            {
+              "bounds": "[]"
+              "end": 8
+              "start": 8
+            }
+          ]
+        }
+      }
     })

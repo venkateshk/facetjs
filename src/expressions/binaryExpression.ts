@@ -88,11 +88,7 @@ module Facet {
     }
 
     public checkLefthandedness(): boolean {
-      if (this.lhs instanceof RefExpression && this.rhs instanceof RefExpression) return null;
-      if (this.lhs instanceof RefExpression) return true;
-      if (this.rhs instanceof RefExpression) return false;
-
-      return null;
+      return this.lhs.isOp('ref') && this.rhs.isOp('literal');
     }
 
     public _everyHelper(iter: BooleanExpressionIterator, depth: number, genDiff: number): boolean {

@@ -1,5 +1,5 @@
 module Facet {
-  export function getType(value: any): string {
+  export function getValueType(value: any): string {
     var typeofValue = typeof value;
     if (typeofValue === 'object') {
       if (value === null) {
@@ -7,18 +7,16 @@ module Facet {
       } else if (value.toISOString) {
         return 'TIME';
       } else {
-        var type = value.constructor.type;
-        if (!type) {
+        var ctrType = value.constructor.type;
+        if (!ctrType) {
           if (Expression.isExpression(value)) {
             throw new Error("expression used as datum value " + value.toString());
           } else {
             throw new Error("can not have an object without a type: " + JSON.stringify(value));
           }
         }
-        if (type === 'SET') {
-          type += '/' + value.setType;
-        }
-        return type;
+        if (ctrType === 'SET') ctrType += '/' + value.setType;
+        return ctrType;
       }
     } else {
       if (typeofValue !== 'boolean' && typeofValue !== 'number' && typeofValue !== 'string') {
@@ -29,11 +27,11 @@ module Facet {
   }
 
   export function getFullType(value: any): FullType {
-    var myType = getType(value);
+    var myType = getValueType(value);
     return myType === 'DATASET' ? (<Dataset>value).getFullType() : { type: myType };
   }
 
-  export function valueFromJS(v: any, type: string = null): any {
+  export function valueFromJS(v: any, typeOverride: string = null): any {
     if (v == null) {
       return null;
     } else if (Array.isArray(v)) {
@@ -42,7 +40,7 @@ module Facet {
         data: v
       })
     } else if (typeof v === 'object') {
-      switch (type || v.type) {
+      switch (typeOverride || v.type) {
         case 'NUMBER':
           var n = Number(v.value);
           if (isNaN(n)) throw new Error("bad number value '" + String(v.value) + "'");
@@ -52,7 +50,7 @@ module Facet {
           return NumberRange.fromJS(v);
 
         case 'TIME':
-          return type ? v : new Date(v.value);
+          return typeOverride ? v : new Date(v.value);
 
         case 'TIME_RANGE':
           return TimeRange.fromJS(v);
@@ -70,7 +68,7 @@ module Facet {
             throw new Error('can not have an object without a `type` as a datum value');
           }
       }
-    } else if (typeof v === 'string' && type === 'TIME') {
+    } else if (typeof v === 'string' && typeOverride === 'TIME') {
       return new Date(v);
     }
     return v;

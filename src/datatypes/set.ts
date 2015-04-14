@@ -27,20 +27,6 @@ module Facet {
     return Object.keys(hash).sort().map((k) => hash[k]);
   }
 
-  function guessSetType(thing: any): string {
-    var typeofThing = typeof thing;
-    switch (typeofThing) {
-      case 'boolean':
-      case 'string':
-      case 'number':
-        return typeofThing.toUpperCase();
-
-      default:
-        if (thing.toISOString) return 'TIME';
-        throw new Error("Could not guess the setType of the set. Please specify explicit setType");
-    }
-  }
-
   function unifyElements(elements: Lookup<Range<any>>): Lookup<Range<any>> {
     var newElements: Lookup<Range<any>> = Object.create(null);
     for (var k in elements) {
@@ -73,12 +59,57 @@ module Facet {
     return newElements;
   }
 
+  var typeUpgrades: Lookup<string> = {
+    'NUMBER': 'NUMBER_RANGE',
+    'TIME': 'TIME_RANGE'
+  };
+
   var check: ImmutableClass<SetValue, SetJS>;
   export class Set implements ImmutableInstance<SetValue, SetJS> {
     static type = 'SET';
 
     static isSet(candidate: any): boolean {
       return isInstanceOf(candidate, Set);
+    }
+
+    static convertToSet(thing: any): Set {
+      var thingType = getValueType(thing);
+      if (thingType.indexOf('SET/') === 0) return thing;
+      return Set.fromJS({ setType: thingType, elements: [thing] });
+    }
+
+    static generalUnion(a: any, b: any): any {
+      var aSet = Set.convertToSet(a);
+      var bSet = Set.convertToSet(b);
+      var aSetType = aSet.setType;
+      var bSetType = bSet.setType;
+
+      if (typeUpgrades[aSetType] === bSetType) {
+        aSet = aSet.upgradeType();
+      } else if (typeUpgrades[bSetType] === aSetType) {
+        bSet = bSet.upgradeType();
+      } else if (aSetType !== bSetType) {
+        return null;
+      }
+
+      return aSet.union(bSet).simplify();
+    }
+
+    static generalIntersect(a: any, b: any): any {
+      var aSet = Set.convertToSet(a);
+      var bSet = Set.convertToSet(b);
+      var aSetType = aSet.setType;
+      var bSetType = bSet.setType;
+
+      if (typeUpgrades[aSetType] === bSetType) {
+        aSet = aSet.upgradeType();
+      } else if (typeUpgrades[bSetType] === aSetType) {
+        bSet = bSet.upgradeType();
+      } else if (aSetType !== bSetType) {
+        return null;
+      }
+
+      return aSet.intersect(bSet).simplify();
     }
 
     static fromJS(parameters: Array<any>): Set;
@@ -92,7 +123,7 @@ module Facet {
       }
       var setType = parameters.setType;
       if (!setType) {
-        setType = guessSetType(parameters.elements[0]);
+        setType = getValueType(parameters.elements[0]);
       }
       return new Set({
         setType: setType,
@@ -121,14 +152,14 @@ module Facet {
       };
     }
 
-    public getValues(): any[] {
+    public getElements(): any[] {
       return hashToValues(this.elements);
     }
 
     public toJS(): SetJS {
       return {
         setType: this.setType,
-        elements: this.getValues().map(valueToJS)
+        elements: this.getElements().map(valueToJS)
       };
     }
 
@@ -148,6 +179,46 @@ module Facet {
 
     public empty(): boolean {
       return this.toJS().elements.length === 0;
+    }
+
+    public simplify(): any {
+      var simpleSet = this.downgradeType();
+      var simpleSetElements = simpleSet.getElements();
+      return simpleSetElements.length === 1 ? simpleSetElements[0] : simpleSet;
+    }
+
+    public upgradeType(): Set {
+      if (this.setType === 'NUMBER') {
+        return Set.fromJS({
+          setType: 'NUMBER_RANGE',
+          elements: this.getElements().map(NumberRange.fromNumber)
+        })
+      } else if (this.setType === 'TIME') {
+        return Set.fromJS({
+          setType: 'TIME_RANGE',
+          elements: this.getElements().map(TimeRange.fromTime)
+        })
+      } else {
+        return this;
+      }
+    }
+
+    public downgradeType(): Set {
+      if (this.setType === 'NUMBER_RANGE' || this.setType === 'TIME_RANGE') {
+        var elements: Array<Range<any>> = this.getElements();
+        var simpleElements: any[] = [];
+        for (var i = 0; i < elements.length; i++) {
+          var element = elements[i];
+          if (element.degenerate()) {
+            simpleElements.push(element.start);
+          } else {
+            return this;
+          }
+        }
+        return Set.fromJS(simpleElements)
+      } else {
+        return this;
+      }
     }
 
     public union(other: Set): Set {
@@ -235,7 +306,7 @@ module Facet {
       return new NativeDataset({
         source: 'native',
         key: name,
-        data: this.getValues().map((v) => {
+        data: this.getElements().map((v) => {
           var datum: Datum = {};
           datum[name] = v;
           return datum

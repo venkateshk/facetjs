@@ -395,7 +395,7 @@ module Facet {
           if (rhsType === 'SET/STRING') {
             return {
               type: "or",
-              fields: rhs.value.getValues().map((value: string) => {
+              fields: rhs.value.getElements().map((value: string) => {
                 return {
                   type: "selector",
                   dimension: lhs.name,
@@ -479,7 +479,7 @@ module Facet {
           var timeRanges: TimeRange[];
           var rhsType = rhs.type;
           if (rhsType === 'SET/TIME_RANGE') {
-            timeRanges = rhs.value.getValues();
+            timeRanges = rhs.value.getElements();
           } else if (rhsType === 'TIME_RANGE') {
             timeRanges = [rhs.value];
           } else {
@@ -880,7 +880,7 @@ return (start < 0 ?'-':'') + parts.join('.');
           if (rhsType === 'SET/STRING') {
             return {
               type: "or",
-              fields: rhs.value.getValues().map((value: string) => {
+              fields: rhs.value.getElements().map((value: string) => {
                 return {
                   type: "equalTo",
                   aggregation: lhs.name,

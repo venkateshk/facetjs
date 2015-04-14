@@ -32,12 +32,8 @@ module Facet {
       });
     }
 
-    static fromNumbers(a: number, b: number): NumberRange {
-      return new NumberRange({
-        start: finiteOrNull(smaller(a, b)),
-        end: finiteOrNull(larger(a, b)),
-        bounds: Range.DEFAULT_BOUNDS
-      })
+    static fromNumber(n: number): NumberRange {
+      return new NumberRange({ start: n, end: n, bounds: '[]' });
     }
 
     static fromJS(parameters: NumberRangeJS): NumberRange {

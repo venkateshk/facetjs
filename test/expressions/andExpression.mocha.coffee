@@ -179,3 +179,24 @@ describe 'AndExpression', ->
       start: new Date('2015-03-14T00:00:00')
       end:   new Date('2015-03-15T00:00:00')
     })).toJS())
+
+  describe 'with collapsible expressions of different types', ->
+    beforeEach ->
+      this.expression = { op: 'and', operands: [
+        { op: 'lessThan', lhs: "$test", rhs: 5 },
+        { op: 'in', lhs: '$test', rhs: [0, 2, 4, 6, 8] }
+      ] }
+
+    tests.complexityIs(7)
+    tests.simplifiedExpressionIs({
+      "lhs": { "name": "test", "op": "ref" }
+      "op": "in"
+      "rhs": {
+        "op": "literal"
+        "type": "SET"
+        "value": {
+          "setType": "NUMBER"
+          "elements": [0, 2, 4]
+        }
+      }
+    })

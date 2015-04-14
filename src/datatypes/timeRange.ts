@@ -12,7 +12,8 @@ module Facet {
   }
 
   function toDate(date: any, name: string): Date {
-    if (typeof date === "undefined" || date === null) throw new TypeError(`timeRange must have a ${name}`);
+    if (date === null) return null;
+    if (typeof date === "undefined") throw new TypeError(`timeRange must have a ${name}`);
     if (typeof date === 'string' || typeof date === 'number') date = new Date(date);
     if (!date.getDay) throw new TypeError(`timeRange must have a ${name} that is a Date`);
     return date;
@@ -73,10 +74,15 @@ module Facet {
     }
 
     protected _endpointEqual(a: Date, b: Date): boolean {
-      return a.valueOf() === b.valueOf();
+      if (a === null) {
+        return b === null;
+      } else {
+        return b !== null && a.valueOf() === b.valueOf();
+      }
     }
 
     protected _endpointToString(a: Date): string {
+      if (!a) return 'null';
       return a.toISOString();
     }
 

@@ -41,6 +41,38 @@ module Facet {
     }
   }
 
+  function unifyElements(elements: Lookup<Range<any>>): Lookup<Range<any>> {
+    var newElements: Lookup<Range<any>> = Object.create(null);
+    for (var k in elements) {
+      var accumulator = elements[k];
+      var newElementsKeys = Object.keys(newElements);
+      for (var i = 0; i < newElementsKeys.length; i++) {
+        var newElementsKey = newElementsKeys[i];
+        var newElement = newElements[newElementsKey];
+        var unionElement = accumulator.union(newElement);
+        if (unionElement) {
+          accumulator = unionElement;
+          delete newElements[newElementsKey];
+        }
+      }
+      newElements[accumulator.toString()] = accumulator;
+    }
+    return newElements;
+  }
+
+  function intersectElements(elements1: Lookup<Range<any>>, elements2: Lookup<Range<any>>): Lookup<Range<any>> {
+    var newElements: Lookup<Range<any>> = Object.create(null);
+    for (var k1 in elements1) {
+      var element1 = elements1[k1];
+      for (var k2 in elements2) {
+        var element2 = elements2[k2];
+        var intersect = element1.intersect(element2);
+        if (intersect) newElements[intersect.toString()] = intersect;
+      }
+    }
+    return newElements;
+  }
+
   var check: ImmutableClass<SetValue, SetJS>;
   export class Set implements ImmutableInstance<SetValue, SetJS> {
     static type = 'SET';
@@ -58,11 +90,12 @@ module Facet {
       if (typeof parameters !== "object") {
         throw new Error("unrecognizable set");
       }
-      if (!parameters.setType) {
-        parameters.setType = guessSetType(parameters.elements[0]);
+      var setType = parameters.setType;
+      if (!setType) {
+        setType = guessSetType(parameters.elements[0]);
       }
       return new Set({
-        setType: parameters.setType,
+        setType: setType,
         elements: hashFromJS(parameters.elements, parameters.setType)
       });
     }
@@ -71,8 +104,14 @@ module Facet {
     public elements: Lookup<any>;
 
     constructor(parameters: SetValue) {
-      this.setType = parameters.setType;
-      this.elements = parameters.elements;
+      var setType = parameters.setType;
+      this.setType = setType;
+
+      var elements = parameters.elements;
+      if (setType === 'NUMBER_RANGE' || setType === 'TIME_RANGE') {
+        elements = unifyElements(elements);
+      }
+      this.elements = elements;
     }
 
     public valueOf(): SetValue {
@@ -137,17 +176,23 @@ module Facet {
     }
 
     public intersect(other: Set): Set {
+      var setType = this.setType;
       if (this.setType !== other.setType) {
         throw new TypeError("can not intersect sets of different types");
       }
 
       var thisValues = this.elements;
       var otherValues = other.elements;
-      var newValues: Lookup<any> = {};
+      var newValues: Lookup<any>;
 
-      for (var k in thisValues) {
-        if (hasOwnProperty(thisValues, k) && hasOwnProperty(otherValues, k)) {
-          newValues[k] = thisValues[k];
+      if (setType === 'NUMBER_RANGE' || setType === 'TIME_RANGE') {
+        newValues = intersectElements(thisValues, otherValues);
+      } else {
+        newValues = Object.create(null);
+        for (var k in thisValues) {
+          if (hasOwnProperty(thisValues, k) && hasOwnProperty(otherValues, k)) {
+            newValues[k] = thisValues[k];
+          }
         }
       }
 

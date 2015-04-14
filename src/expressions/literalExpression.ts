@@ -97,10 +97,10 @@ module Facet {
           return String(value.start) + '/' + String(value.end);
 
         case 'TIME':
-          return dateToSQL(<Date>value);
+          return timeToSQL(<Date>value);
 
         case 'TIME_RANGE':
-          return dateToSQL(value.start) + '/' + dateToSQL(value.end);
+          return timeToSQL(value.start) + '/' + timeToSQL(value.end);
 
         case 'SET/STRING':
           return '(' + (<Set>value).getElements().map((v: string) => JSON.stringify(v)).join(',') + ')';

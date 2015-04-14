@@ -67,6 +67,7 @@ module Facet {
   var check: ImmutableClass<SetValue, SetJS>;
   export class Set implements ImmutableInstance<SetValue, SetJS> {
     static type = 'SET';
+    static EMPTY: Set;
 
     static isSet(candidate: any): boolean {
       return isInstanceOf(candidate, Set);
@@ -122,12 +123,13 @@ module Facet {
         throw new Error("unrecognizable set");
       }
       var setType = parameters.setType;
+      var elements = parameters.elements;
       if (!setType) {
-        setType = getValueType(parameters.elements[0]);
+        setType = getValueType(elements.length ? elements[0] : null);
       }
       return new Set({
         setType: setType,
-        elements: hashFromJS(parameters.elements, parameters.setType)
+        elements: hashFromJS(elements, setType)
       });
     }
 
@@ -178,7 +180,11 @@ module Facet {
     }
 
     public empty(): boolean {
-      return this.toJS().elements.length === 0;
+      var elements = this.elements;
+      for (var k in elements) {
+        if (hasOwnProperty(elements, k)) return false;
+      }
+      return true;
     }
 
     public simplify(): any {
@@ -222,6 +228,9 @@ module Facet {
     }
 
     public union(other: Set): Set {
+      if (this.empty()) return other;
+      if (other.empty()) return this;
+
       if (this.setType !== other.setType) {
         throw new TypeError("can not union sets of different types");
       }
@@ -247,6 +256,8 @@ module Facet {
     }
 
     public intersect(other: Set): Set {
+      if (this.empty() || other.empty()) return Set.EMPTY;
+
       var setType = this.setType;
       if (this.setType !== other.setType) {
         throw new TypeError("can not intersect sets of different types");
@@ -287,17 +298,22 @@ module Facet {
     }
 
     public add(value: any): Set {
-      var elements = this.elements;
+      var setType = this.setType;
+      var valueType = getValueType(value);
+      if (setType === 'NULL') setType = valueType;
+      if (setType !== valueType) throw new Error('value type must match');
+
       var newValues: Lookup<any> = {};
       newValues[String(value)] = value;
 
+      var elements = this.elements;
       for (var k in elements) {
         if (!hasOwnProperty(elements, k)) continue;
         newValues[k] = elements[k];
       }
 
       return new Set({
-        setType: this.setType,
+        setType: setType,
         elements: newValues
       });
     }
@@ -316,4 +332,6 @@ module Facet {
 
   }
   check = Set;
+
+  Set.EMPTY = Set.fromJS([]);
 }

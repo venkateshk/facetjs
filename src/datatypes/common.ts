@@ -114,11 +114,18 @@ module Facet {
     return v;
   }
 
-  export function dateToSQL(date: Date): string {
-    return date.toISOString()
+  export function numberToSQL(num: number): string {
+    if (num === null) return null;
+    return String(num);
+  }
+
+  export function timeToSQL(date: Date): string {
+    if (!date) return null;
+    var str = date.toISOString()
       .replace("T", " ")
       .replace(/\.\d\d\dZ$/, "")
       .replace(" 00:00:00", "");
+    return "'" + str + "'";
   }
 
   // Remote functionality

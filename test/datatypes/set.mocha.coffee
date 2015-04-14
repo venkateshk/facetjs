@@ -9,6 +9,10 @@ describe "Set", ->
   it "passes higher object tests", ->
     testHigherObjects(Set, [
       {
+        setType: 'NULL'
+        elements: []
+      }
+      {
         setType: 'BOOLEAN'
         elements: [true]
       }
@@ -34,7 +38,7 @@ describe "Set", ->
       }
       {
         setType: 'NUMBER'
-        elements: [1, 2]
+        elements: [0, 1, 2]
       }
       {
         setType: 'NUMBER_RANGE'
@@ -57,8 +61,8 @@ describe "Set", ->
     ])
 
 
-  describe "does not die with hasOwnProperty", ->
-    it "survives", ->
+  describe "general", ->
+    it "does not die with hasOwnProperty", ->
       expect(Set.fromJS({
         setType: 'NUMBER'
         elements: [1, 2]
@@ -67,6 +71,9 @@ describe "Set", ->
         setType: 'NUMBER'
         elements: [1, 2]
       })
+
+    it "has EMPTY", ->
+      expect(Set.EMPTY.empty()).to.equal(true)
 
 
   describe "unifies", ->
@@ -151,6 +158,14 @@ describe "Set", ->
         elements: ['A', 'B', 'C']
       })
 
+    it 'works with empty', ->
+      expect(
+        Set.EMPTY.add('A').toJS()
+      ).to.deep.equal({
+        setType: 'STRING'
+        elements: ['A']
+      })
+
 
   describe "#union()", ->
     it 'works correctly', ->
@@ -194,6 +209,24 @@ describe "Set", ->
           { start: 10, end: null }
           { start: 6, end: 9 }
         ]
+      })
+
+    it 'works with empty set as lhs', ->
+      expect(Set.EMPTY.union(Set.fromJS(['A', 'B'])).toJS()).to.deep.equal({
+        setType: "STRING"
+        elements: ["A", "B"]
+      })
+
+    it 'works with empty set as rhs', ->
+      expect(Set.fromJS(['A', 'B']).union(Set.EMPTY).toJS()).to.deep.equal({
+        setType: "STRING"
+        elements: ["A", "B"]
+      })
+
+    it 'works with empty set as lhs & rhs', ->
+      expect(Set.EMPTY.union(Set.EMPTY).toJS()).to.deep.equal({
+        setType: "NULL"
+        elements: []
       })
 
 

@@ -850,6 +850,28 @@ return (start < 0 ?'-':'') + parts.join('.');
       };
     }
 
+    public makeHavingComparison(agg: string, op: string, value: number): Druid.Having {
+      // Druid does not support <= and >= filters so... improvise.
+      switch (op) {
+        case '<':  return { type: "lessThan", aggregation: agg, value: value };
+        case '>':  return { type: "greaterThan", aggregation: agg, value: value };
+        case '<=': return { type: 'not', field: { type: "greaterThan", aggregation: agg, value: value } };
+        case '>=': return { type: 'not', field: { type: "lessThan", aggregation: agg, value: value } };
+        default:   throw new Error('unknown op: ' + op);
+      }
+    }
+
+    public inToHavingFilter(agg: string, range: NumberRange): Druid.Having {
+      var fields: Druid.Having[] = [];
+      if (range.start !== null) {
+        fields.push(this.makeHavingComparison(agg, (range.bounds[0] === '[' ? '>=' : '>'), range.start));
+      }
+      if (range.end !== null) {
+        fields.push(this.makeHavingComparison(agg, (range.bounds[1] === ']' ? '<=' : '<'), range.end));
+      }
+      return fields.length === 1 ? fields[0] : { type: 'or', fields: fields };
+    }
+
     public havingFilterToDruid(filter: Expression): Druid.Having {
       if (filter instanceof LiteralExpression) {
         if (filter.value === true) {
@@ -889,8 +911,16 @@ return (start < 0 ?'-':'') + parts.join('.');
               })
             };
 
+          } else if (rhsType === 'SET/NUMBER_RANGE') {
+            return {
+              type: "or",
+              fields: rhs.value.getElements().map((value: NumberRange) => {
+                return this.inToHavingFilter(lhs.name, value);
+              }, this)
+            };
+
           } else if (rhsType === 'NUMBER_RANGE') {
-            throw new Error("to do");
+            return this.inToHavingFilter(lhs.name, rhs.value);
 
           } else if (rhsType === 'TIME_RANGE') {
             throw new Error("can not time filter on non-primary time dimension");
@@ -900,25 +930,6 @@ return (start < 0 ?'-':'') + parts.join('.');
           }
         } else {
           throw new Error(`can not convert ${filter.toString()} to Druid having filter`);
-        }
-
-      } else if (filter instanceof LessThanExpression) {
-        var lhs = filter.lhs;
-        var rhs = filter.rhs;
-        if (lhs instanceof RefExpression && rhs instanceof LiteralExpression) {
-          return {
-            type: "lessThan",
-            aggregation: lhs.name,
-            value: rhs.value
-          }
-        }
-
-        if (lhs instanceof LiteralExpression && rhs instanceof RefExpression) {
-          return {
-            type: "greaterThan",
-            aggregation: rhs.name,
-            value: lhs.value
-          }
         }
 
       } else if (filter instanceof NotExpression) {

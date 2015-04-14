@@ -54,19 +54,19 @@ module Facet {
         case 'NUMBER_RANGE':
           if (rhs instanceof LiteralExpression) {
             var numberRange: NumberRange = rhs.value;
-            return `(${numberRange.start}<=${lhsSQL} AND ${lhsSQL}<${numberRange.end})`;
+            return dialect.inExpression(lhsSQL, numberToSQL(numberRange.start), numberToSQL(numberRange.end), numberRange.bounds);
           }
           throw new Error('not implemented yet');
 
         case 'TIME_RANGE':
           if (rhs instanceof LiteralExpression) {
             var timeRange: TimeRange = rhs.value;
-            return `('${dateToSQL(timeRange.start)}'<=${lhsSQL} AND ${lhsSQL}<'${dateToSQL(timeRange.end)}')`;
+            return dialect.inExpression(lhsSQL, timeToSQL(timeRange.start), timeToSQL(timeRange.end), timeRange.bounds);
           }
           throw new Error('not implemented yet');
 
         case 'SET/STRING':
-          return `${lhsSQL} in ${rhsSQL}`;
+          return `${lhsSQL} IN ${rhsSQL}`;
 
         default:
           throw new Error('not implemented yet');

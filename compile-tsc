@@ -19,7 +19,6 @@ node_modules/.bin/tsc --noImplicitAny --noEmitOnError --declaration --removeComm
   src/datatypes/timeRange.ts \
   src/remote/druidDataset.ts \
   src/remote/mySqlDataset.ts \
-  src/remote/legacyConverter.ts \
   \
   src/expressions/baseExpression.ts \
   src/expressions/unaryExpression.ts \
@@ -84,6 +83,8 @@ node_modules/.bin/tsc --noImplicitAny --noEmitOnError --declaration --removeComm
   src/legacy/driver/fractalCache.ts \
   src/legacy/driver/mySqlDriver.ts \
   src/legacy/driver/nativeDriver.ts \
+  \
+  src/legacy/convert/legacyConverter.ts \
   \
   src/exports.ts \
   && \

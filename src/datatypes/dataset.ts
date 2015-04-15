@@ -20,9 +20,6 @@ module Facet {
     limit?: LimitAction;
     havingFilter?: Expression;
 
-    // Legacy
-    driver?: Legacy.Driver.FacetDriver;
-
     // Druid
     dataSource?: string | string[];
     timeAttribute?: string;
@@ -45,9 +42,6 @@ module Facet {
     // Remote
     requester?: Requester.FacetRequester<any>;
     filter?: ExpressionJS;
-
-    // Legacy
-    driver?: Legacy.Driver.FacetDriver;
 
     // Druid
     dataSource?: string | string[];
@@ -236,7 +230,7 @@ module Facet {
       }
       var myFullType: FullType = {
         type: 'DATASET',
-        datasetType: myDatasetType,
+        datasetType: myDatasetType
       };
       if (remote) {
         myFullType.remote = remote;

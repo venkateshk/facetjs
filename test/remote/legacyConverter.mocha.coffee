@@ -6,8 +6,8 @@ if not WallTime.rules
   WallTime.init(tzData.rules, tzData.zones)
 
 facet = require('../../build/facet')
-{ legacyConverter, legacyTranslator, Dataset, $ } = facet
-{ nativeDriver } = facet.legacy
+{ Dataset, $ } = facet
+{ nativeDriver, legacyConverter, legacyTranslator } = facet.legacy
 
 diamondsData = require('../../data/diamonds.js')
 

@@ -1,4 +1,4 @@
-module Facet {
+module Facet.Legacy {
   function makeFacetFilter(expression: Expression): any {
     if (expression.type !== 'BOOLEAN') return null;
 

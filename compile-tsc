@@ -29,6 +29,7 @@ node_modules/.bin/tsc --noImplicitAny --noEmitOnError --declaration --removeComm
   src/expressions/aggregateExpression.ts \
   src/expressions/andExpression.ts \
   src/expressions/concatExpression.ts \
+  src/expressions/substrExpression.ts \
   src/expressions/greaterThanExpression.ts \
   src/expressions/greaterThanOrEqualExpression.ts \
   src/expressions/inExpression.ts \

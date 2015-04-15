@@ -5,11 +5,11 @@ if not WallTime.rules
   tzData = require("chronology/lib/walltime/walltime-data.js")
   WallTime.init(tzData.rules, tzData.zones)
 
-facet = require('../../build/facet')
+facet = require('../../../build/facet')
 { Dataset, $ } = facet
 { nativeDriver, legacyConverter, legacyTranslator } = facet.legacy
 
-diamondsData = require('../../data/diamonds.js')
+diamondsData = require('../../../data/diamonds.js')
 
 legacyDriver = legacyConverter(nativeDriver(diamondsData))
 

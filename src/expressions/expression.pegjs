@@ -110,7 +110,17 @@ CallChainExpression
               duration: getName(params[0])
             };
             if (params.length === 2) operand.timezone = getName(params[1]);
-            break
+            break;
+
+          case 'substr':
+            if (params.length !== 2) error(op + ' must have 2 parameters');
+            operand = {
+              op: op,
+              operand: operand,
+              position: getNumber(params[0]),
+              length: getNumber(params[1])
+            };
+            break;
 
           case 'timePart':
             if (params.length !== 1 && params.length !== 2) error(op + ' must have 1 or 2 parameter');
@@ -120,7 +130,7 @@ CallChainExpression
               part: getName(params[0])
             };
             if (params.length === 2) operand.timezone = getName(params[1]);
-            break
+            break;
 
           case 'filter':
             if (params.length !== 1) error(op + ' must have 1 parameter');

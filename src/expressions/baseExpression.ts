@@ -41,6 +41,8 @@ module Facet {
     duration?: Duration;
     timezone?: Timezone;
     part?: string;
+    position?: number;
+    length?: number;
   }
 
   export interface ExpressionJS {
@@ -61,6 +63,8 @@ module Facet {
     duration?: string;
     timezone?: string;
     part?: string;
+    position?: number;
+    length?: number;
   }
 
   export interface Alteration {

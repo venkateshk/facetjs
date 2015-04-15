@@ -552,7 +552,7 @@ return (start < 0 ?'-':'') + parts.join('.');
 
       if (splitExpression instanceof RefExpression) {
         var dimensionSpec = (splitExpression.name === label) ?
-                            label : { type: "default", dimension: splitExpression.name, outputName: label };
+          label : {type: "default", dimension: splitExpression.name, outputName: label};
 
         if (this.havingFilter.equals(Expression.TRUE) && this.limit && this.approximate) {
           var attributeInfo = this.attributes[splitExpression.name];
@@ -575,6 +575,32 @@ return (start < 0 ?'-':'') + parts.join('.');
           dimensions = [dimensionSpec];
           postProcess = postProcessGroupBy;
 
+        }
+
+      } else if (splitExpression instanceof SubstrExpression) {
+        var refExpression = splitExpression.operand;
+        if (refExpression instanceof RefExpression) {
+          var substrDimension = {
+            type: "extraction",
+            dimension: refExpression.name,
+            outputName: label,
+            extractionFn: {
+              type: "javascript",
+              'function': `function(s){return s.substr(${splitExpression.position},${splitExpression.length});}`
+            }
+          };
+
+          if (this.havingFilter.equals(Expression.TRUE) && this.limit && this.approximate) {
+            queryType = 'topN';
+            dimension = substrDimension;
+            postProcess = postProcessTopNFactory(null, null);
+          } else {
+            queryType = 'groupBy';
+            dimensions = [substrDimension];
+            postProcess = postProcessGroupBy;
+          }
+        } else {
+          throw new Error(`can not convert complex substr: ${refExpression.toString()}`);
         }
 
       } else if (splitExpression instanceof TimePartExpression) {

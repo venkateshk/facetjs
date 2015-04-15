@@ -91,6 +91,23 @@ module Facet {
       return this.lhs.isOp('ref') && this.rhs.isOp('literal');
     }
 
+    protected _checkMatchingTypes(): void {
+      var lhsType = this.lhs.type;
+      var rhsType = this.rhs.type;
+      if (lhsType && rhsType && lhsType !== rhsType) {
+        throw new TypeError(`${this.op} expression must have matching types, (are: ${lhsType}, ${rhsType})`);
+      }
+    }
+
+    protected _checkNumberOrTime(): void {
+      var lhs = this.lhs;
+      var rhs = this.rhs;
+      if (!((lhs.canHaveType('NUMBER') && rhs.canHaveType('NUMBER'))
+         || (lhs.canHaveType('TIME') && rhs.canHaveType('TIME')))) {
+        throw new TypeError(`${this.op} expression has a bad type combination ${lhs.type || '?'}, ${rhs.type || '?'}`);
+      }
+    }
+
     public _everyHelper(iter: BooleanExpressionIterator, depth: number, genDiff: number): boolean {
       var pass = iter(this, depth, genDiff);
       if (pass != null) return pass;

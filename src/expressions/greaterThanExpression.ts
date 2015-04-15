@@ -7,8 +7,8 @@ module Facet {
     constructor(parameters: ExpressionValue) {
       super(parameters, dummyObject);
       this._ensureOp("greaterThan");
-      this._checkTypeOf('lhs', 'NUMBER');
-      this._checkTypeOf('rhs', 'NUMBER');
+      this._checkMatchingTypes();
+      this._checkNumberOrTime();
       this.type = 'BOOLEAN';
     }
 

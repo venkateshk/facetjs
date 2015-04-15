@@ -4,6 +4,15 @@ module Facet {
   export class Range<T> {
     static DEFAULT_BOUNDS = '[)';
 
+    // ToDo: enforce stricter typing here
+    static fromJS(parameters: any): Range<any> {
+      if (typeof parameters.start === 'number' || typeof parameters.end === 'number') {
+        return NumberRange.fromJS(parameters);
+      } else {
+        return TimeRange.fromJS(parameters);
+      }
+    }
+
     public start: T;
     public end: T;
     public bounds: string;

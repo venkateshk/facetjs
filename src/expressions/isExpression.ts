@@ -1,5 +1,4 @@
 module Facet {
-
   export class IsExpression extends BinaryExpression {
     static fromJS(parameters: ExpressionJS): IsExpression {
       return new IsExpression(BinaryExpression.jsToValue(parameters));
@@ -8,11 +7,7 @@ module Facet {
     constructor(parameters: ExpressionValue) {
       super(parameters, dummyObject);
       this._ensureOp("is");
-      var lhsType = this.lhs.type;
-      var rhsType = this.rhs.type;
-      if (lhsType && rhsType && lhsType !== rhsType) {
-        throw new TypeError('is expression must have matching types, (are: ' + lhsType + ', ' + rhsType + ')');
-      }
+      this._checkMatchingTypes();
       this.type = 'BOOLEAN';
     }
 

@@ -7,8 +7,8 @@ module Facet {
     constructor(parameters: ExpressionValue) {
       super(parameters, dummyObject);
       this._ensureOp("lessThan");
-      this._checkTypeOf('lhs', 'NUMBER');
-      this._checkTypeOf('rhs', 'NUMBER');
+      this._checkMatchingTypes();
+      this._checkNumberOrTime();
       this.type = 'BOOLEAN';
     }
 
@@ -33,14 +33,14 @@ module Facet {
         return (new InExpression({
           op: 'in',
           lhs: simpleRhs,
-          rhs: $(NumberRange.fromJS({ start: simpleLhs.value, end: null, bounds: '()' }))
+          rhs: $(Range.fromJS({ start: simpleLhs.value, end: null, bounds: '()' }))
         })).simplify();
       }
       if (simpleRhs instanceof LiteralExpression) { // x < 5
         return (new InExpression({
           op: 'in',
           lhs: simpleLhs,
-          rhs: $(NumberRange.fromJS({ start: null, end: simpleRhs.value, bounds: '()' }))
+          rhs: $(Range.fromJS({ start: null, end: simpleRhs.value, bounds: '()' }))
         })).simplify();
       }
       return null;

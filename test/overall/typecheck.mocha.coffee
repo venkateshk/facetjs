@@ -21,7 +21,7 @@ describe "typecheck", ->
   it "should throw on unbalanced IS (via explicit type)", ->
     expect(->
       Expression.fromJS({
-        op: 'is'
+        op: 'is'  
         lhs: 5
         rhs: { op: 'ref', type: 'STRING', name: 'str' }
       })
@@ -34,7 +34,7 @@ describe "typecheck", ->
         lhs: 5
         rhs: 'hello'
       })
-    ).to.throw('lessThan rhs must be of type NUMBER')
+    ).to.throw('lessThan expression must have matching types, (are: NUMBER, STRING)')
 
   it "should throw on bad in", ->
     expect(->

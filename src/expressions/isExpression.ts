@@ -1,5 +1,4 @@
 module Facet {
-
   export class IsExpression extends BinaryExpression {
     static fromJS(parameters: ExpressionJS): IsExpression {
       return new IsExpression(BinaryExpression.jsToValue(parameters));
@@ -8,11 +7,7 @@ module Facet {
     constructor(parameters: ExpressionValue) {
       super(parameters, dummyObject);
       this._ensureOp("is");
-      var lhsType = this.lhs.type;
-      var rhsType = this.rhs.type;
-      if (lhsType && rhsType && lhsType !== rhsType) {
-        throw new TypeError('is expression must have matching types, (are: ' + lhsType + ', ' + rhsType + ')');
-      }
+      this._checkMatchingTypes();
       this.type = 'BOOLEAN';
     }
 
@@ -51,23 +46,7 @@ module Facet {
         return Expression.FALSE;
 
       } else if (exp instanceof InExpression) {
-        if (references.length === 2) return null;
-        if (!(this.lhs instanceof RefExpression && exp.lhs instanceof RefExpression)) return null;
-
-        var expRhs = exp.rhs;
-        var thisValue = (<LiteralExpression>(this.rhs)).value;
-
-        if (expRhs instanceof LiteralExpression) {
-          var rValue = expRhs.value;
-          if (rValue instanceof Set || rValue instanceof TimeRange || rValue instanceof NumberRange) {
-            if (rValue.contains(thisValue)) {
-              return this;
-            } else {
-              return Expression.FALSE;
-            }
-          }
-        }
-        return null;
+        return exp.mergeAnd(this);
       } else {
         return null;
       }
@@ -102,36 +81,7 @@ module Facet {
         });
 
       } else if (exp instanceof InExpression) {
-        if (references.length === 2) return null;
-        if (!(this.lhs instanceof RefExpression && exp.lhs instanceof RefExpression)) return null;
-
-        var expRhs = exp.rhs;
-        var thisValue = (<LiteralExpression>(this.rhs)).value;
-
-        if (expRhs instanceof LiteralExpression) {
-          var rValue = expRhs.value;
-          if (rValue instanceof Set) {
-            if (rValue.contains(thisValue)) {
-              return exp;
-            } else {
-              return new InExpression({
-                op: 'in',
-                lhs: this.lhs,
-                rhs: new LiteralExpression({
-                  op: 'literal',
-                  value: rValue.add(thisValue)
-                })
-              });
-            }
-          } else if (rValue instanceof TimeRange || rValue instanceof NumberRange) {
-            if (rValue.contains(thisValue)) {
-              return exp;
-            } else {
-              return null;
-            }
-          }
-        }
-        return null;
+        return exp.mergeOr(this);
       } else {
         return null;
       }

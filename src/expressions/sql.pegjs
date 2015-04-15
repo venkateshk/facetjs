@@ -1,6 +1,7 @@
 {
   var base = { op: 'literal', value: [{}] };
   var dataRef = { op: 'ref', name: 'data' };
+  var dateRegExp = /^\d\d\d\d-\d\d-\d\d(?:T(?:\d\d)?(?::\d\d)?(?::\d\d)?(?:.\d\d\d)?)?Z?$/;
 
   // See here: https://www.drupal.org/node/141051
   var reservedWords = {
@@ -203,10 +204,10 @@ Column
     }
 
 As
-  = __ AsToken __ name:String { return name; }
+  = __ AsToken __ name:(String / Ref) { return name; }
 
 FromClause
-  = __ FromToken __ table:Ref
+  = __ FromToken __ table:RefExpression
     { return table; }
 
 WhereClause
@@ -299,7 +300,7 @@ BasicExpression
   / FunctionCallExpression
   / "(" _ ex:Expression _ ")" { return ex; }
   / "(" _ subQuery:SQLSubQuery _ ")" { return subQuery; }
-  / Ref
+  / RefExpression
 
 AggregateExpression
   = CountToken "()"
@@ -316,16 +317,31 @@ FunctionCallExpression
   / NumberBucketToken "(" _ operand:Expression _ "," _ size:Number _ "," _ offset:Number ")"
     { return { op: 'numberBucket', operand: operand, size: size, offset: offset }; }
 
-Ref
-  = name:RefName !{ return reserved(name); }
-    { return { op: "ref", name: name }; }
-  / "`" name:RefName "`"
-    { return { op: "ref", name: name }; }
+RefExpression
+  = ref:Ref { return { op: "ref", name: ref }; }
 
 LiteralExpression
   = number:Number { return { op: "literal", value: number }; }
-  / string:String { return { op: "literal", value: string }; }
+  / string:String
+    {
+      if (dateRegExp.test(string)) {
+        var date = new Date(string);
+        if (!isNaN(date)) {
+          return { op: "literal", value: date };
+        } else {
+          return { op: "literal", value: string };
+        }
+      } else {
+        return { op: "literal", value: string };
+      }
+    }
   / v:(NullToken / TrueToken / FalseToken) { return { op: "literal", value: v }; }
+
+Ref
+  = name:RefName !{ return reserved(name); }
+    { return name }
+  / "`" name:RefName "`"
+    { return name }
 
 String "String"
   = "'" chars:NotSQuote "'" { return chars; }

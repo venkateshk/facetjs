@@ -1,4 +1,20 @@
 module Facet {
+  function makeInOrIs(lhs: Expression, value: any): Expression {
+    var literal = new LiteralExpression({
+      op: 'literal',
+      value: value
+    });
+
+    var literalType = literal.type;
+    var returnExpression: Expression = null;
+    if (literalType === 'NUMBER_RANGE' || literalType === 'TIME_RANGE' || literalType.indexOf('SET/') === 0) {
+      returnExpression = new InExpression({ op: 'in', lhs: lhs, rhs: literal });
+    } else {
+      returnExpression = new IsExpression({ op: 'is', lhs: lhs, rhs: literal });
+    }
+    return returnExpression.simplify();
+  }
+
   export class InExpression extends BinaryExpression {
     static fromJS(parameters: ExpressionJS): InExpression {
       return new InExpression(BinaryExpression.jsToValue(parameters));
@@ -54,19 +70,19 @@ module Facet {
         case 'NUMBER_RANGE':
           if (rhs instanceof LiteralExpression) {
             var numberRange: NumberRange = rhs.value;
-            return `(${numberRange.start}<=${lhsSQL} AND ${lhsSQL}<${numberRange.end})`;
+            return dialect.inExpression(lhsSQL, numberToSQL(numberRange.start), numberToSQL(numberRange.end), numberRange.bounds);
           }
           throw new Error('not implemented yet');
 
         case 'TIME_RANGE':
           if (rhs instanceof LiteralExpression) {
             var timeRange: TimeRange = rhs.value;
-            return `('${dateToSQL(timeRange.start)}'<=${lhsSQL} AND ${lhsSQL}<'${dateToSQL(timeRange.end)}')`;
+            return dialect.inExpression(lhsSQL, timeToSQL(timeRange.start), timeToSQL(timeRange.end), timeRange.bounds);
           }
           throw new Error('not implemented yet');
 
         case 'SET/STRING':
-          return `${lhsSQL} in ${rhsSQL}`;
+          return `${lhsSQL} IN ${rhsSQL}`;
 
         default:
           throw new Error('not implemented yet');
@@ -74,57 +90,31 @@ module Facet {
     }
 
     public mergeAnd(exp: Expression): Expression {
-      if (!this.checkLefthandedness()) return null; //TODO Do something about A is B and C in A
+      if (!this.checkLefthandedness()) return null; // ToDo: Do something about A is B and B in C
       if (!checkArrayEquality(this.getFreeReferences(), exp.getFreeReferences())) return null;
 
-      if (exp instanceof IsExpression) {
-        return exp.mergeAnd(this);
-      } else if (exp instanceof InExpression) {
+      if (exp instanceof IsExpression || exp instanceof InExpression) {
         if (!exp.checkLefthandedness()) return null;
-        var rhsType = this.rhs.type;
-        if (rhsType !== exp.rhs.type) return Expression.FALSE;
-        if (rhsType ===  'TIME_RANGE' || rhsType === 'NUMBER_RANGE' || rhsType.indexOf('SET/') === 0) {
-          var intersect = (<LiteralExpression>this.rhs).value.intersect((<LiteralExpression>exp.rhs).value);
-          if (intersect === null) return Expression.FALSE;
 
-          return new InExpression({
-            op: 'in',
-            lhs: this.lhs,
-            rhs: new LiteralExpression({
-              op: 'literal',
-              value: intersect
-            })
-          }).simplify();
-        }
-        return null;
+        var intersect = Set.generalIntersect((<LiteralExpression>this.rhs).value, (<LiteralExpression>exp.rhs).value);
+        if (intersect === null) return null;
+
+        return makeInOrIs(this.lhs, intersect);
       }
       return exp;
     }
 
     public mergeOr(exp: Expression): Expression {
-      if (!this.checkLefthandedness()) return null; //TODO Do something about A is B and C in A
+      if (!this.checkLefthandedness()) return null; // ToDo: Do something about A is B and B in C
       if (!checkArrayEquality(this.getFreeReferences(), exp.getFreeReferences())) return null;
 
-      if (exp instanceof IsExpression) {
-        return exp.mergeOr(this);
-      } else if (exp instanceof InExpression) {
+      if (exp instanceof IsExpression || exp instanceof InExpression) {
         if (!exp.checkLefthandedness()) return null;
-        var rhsType = this.rhs.type;
-        if (rhsType !== exp.rhs.type) return Expression.FALSE;
-        if (rhsType ===  'TIME_RANGE' || rhsType === 'NUMBER_RANGE' || rhsType.indexOf('SET/') === 0) {
-          var intersect = (<LiteralExpression>this.rhs).value.union((<LiteralExpression>exp.rhs).value);
-          if (intersect === null) return null;
 
-          return new InExpression({
-            op: 'in',
-            lhs: this.lhs,
-            rhs: new LiteralExpression({
-              op: 'literal',
-              value: intersect
-            })
-          }).simplify();
-        }
-        return null;
+        var intersect = Set.generalUnion((<LiteralExpression>this.rhs).value, (<LiteralExpression>exp.rhs).value);
+        if (intersect === null) return null;
+
+        return makeInOrIs(this.lhs, intersect);
       }
       return exp;
     }

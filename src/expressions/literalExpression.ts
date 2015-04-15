@@ -24,7 +24,7 @@ module Facet {
       if (typeof this.value === 'undefined') {
         throw new TypeError("must have a `value`")
       }
-      this.type = getType(value);
+      this.type = getValueType(value);
       this.simple = true;
     }
 
@@ -97,13 +97,13 @@ module Facet {
           return String(value.start) + '/' + String(value.end);
 
         case 'TIME':
-          return dateToSQL(<Date>value);
+          return timeToSQL(<Date>value);
 
         case 'TIME_RANGE':
-          return dateToSQL(value.start) + '/' + dateToSQL(value.end);
+          return timeToSQL(value.start) + '/' + timeToSQL(value.end);
 
         case 'SET/STRING':
-          return '(' + (<Set>value).getValues().map((v: string) => JSON.stringify(v)).join(',') + ')';
+          return '(' + (<Set>value).getElements().map((v: string) => JSON.stringify(v)).join(',') + ')';
 
         default:
           throw new Error("currently unsupported type: " + this.type);

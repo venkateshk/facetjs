@@ -38,21 +38,6 @@ describe 'InExpression', ->
     tests.complexityIs(3)
     tests.simplifiedExpressionIs({ op: 'literal', value: false })
 
-  describe 'with invalid number range', ->
-    beforeEach ->
-      this.expression = {
-        op: 'in',
-        lhs: { op: 'ref', name: 'test' },
-        rhs: { op: 'literal', value: new NumberRange({start: 0.05, end: 0}) }
-      }
-
-    tests.complexityIs(3)
-    tests.simplifiedExpressionIs({
-      op: 'in',
-      lhs: { op: 'ref', name: 'test' },
-      rhs: { op: 'literal', value: { start: 0.05, end: 0 }, type: 'NUMBER_RANGE' }
-    })
-
   describe 'with complex values', ->
     beforeEach ->
       this.expression = {
@@ -336,7 +321,31 @@ describe 'InExpression', ->
               rhs: { op: 'literal', value: 2 }
             }
           )
-          .equals(null)
+          .equals({
+            "lhs": {
+              "name": "test"
+              "op": "ref"
+            }
+            "op": "in"
+            "rhs": {
+              "op": "literal"
+              "type": "SET"
+              "value": {
+                "elements": [
+                  {
+                    "end": 1
+                    "start": 0
+                  }
+                  {
+                    "bounds": "[]"
+                    "end": 2
+                    "start": 2
+                  }
+                ]
+                "setType": "NUMBER_RANGE"
+              }
+            }
+          })
 
         tests
           .mergeOrWith(
@@ -347,7 +356,30 @@ describe 'InExpression', ->
               rhs: { op: 'literal', value: new NumberRange({start: 2, end: 3}) }
             }
           )
-          .equals(null)
+          .equals({
+            "lhs": {
+              "name": "test"
+              "op": "ref"
+            }
+            "op": "in"
+            "rhs": {
+              "op": "literal"
+              "type": "SET"
+              "value": {
+                "elements": [
+                  {
+                    "start": 0
+                    "end": 1
+                  }
+                  {
+                    "start": 2
+                    "end": 3
+                  }
+                ]
+                "setType": "NUMBER_RANGE"
+              }
+            }
+          })
 
         tests
           .mergeOrWith(
@@ -475,7 +507,31 @@ describe 'InExpression', ->
               rhs: { op: 'literal', value: new Date(20) }
             }
           )
-          .equals(null)
+          .equals({
+            "lhs": {
+              "name": "test"
+              "op": "ref"
+            }
+            "op": "in"
+            "rhs": {
+              "op": "literal"
+              "type": "SET"
+              "value": {
+                "elements": [
+                  {
+                    "end": new Date(10)
+                    "start": new Date(0)
+                  }
+                  {
+                    "bounds": "[]"
+                    "end": new Date(20)
+                    "start": new Date(20)
+                  }
+                ]
+                "setType": "TIME_RANGE"
+              }
+            }
+          })
 
         tests
           .mergeOrWith(
@@ -486,7 +542,30 @@ describe 'InExpression', ->
               rhs: { op: 'literal', value: new TimeRange({start: new Date(20), end: new Date(30)}) }
             }
           )
-          .equals(null)
+          .equals({
+            "lhs": {
+              "name": "test"
+              "op": "ref"
+            }
+            "op": "in"
+            "rhs": {
+              "op": "literal"
+              "type": "SET"
+              "value": {
+                "elements": [
+                  {
+                    "end": new Date("1970-01-01T00:00:00.010Z")
+                    "start": new Date("1970-01-01T00:00:00.000Z")
+                  }
+                  {
+                    "end": new Date("1970-01-01T00:00:00.030Z")
+                    "start": new Date("1970-01-01T00:00:00.020Z")
+                  }
+                ]
+                "setType": "TIME_RANGE"
+              }
+            }
+          })
 
         tests
           .mergeOrWith(

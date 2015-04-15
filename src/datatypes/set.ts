@@ -27,26 +27,90 @@ module Facet {
     return Object.keys(hash).sort().map((k) => hash[k]);
   }
 
-  function guessSetType(thing: any): string {
-    var typeofThing = typeof thing;
-    switch (typeofThing) {
-      case 'boolean':
-      case 'string':
-      case 'number':
-        return typeofThing.toUpperCase();
-
-      default:
-        if (thing.toISOString) return 'TIME';
-        throw new Error("Could not guess the setType of the set. Please specify explicit setType");
+  function unifyElements(elements: Lookup<Range<any>>): Lookup<Range<any>> {
+    var newElements: Lookup<Range<any>> = Object.create(null);
+    for (var k in elements) {
+      var accumulator = elements[k];
+      var newElementsKeys = Object.keys(newElements);
+      for (var i = 0; i < newElementsKeys.length; i++) {
+        var newElementsKey = newElementsKeys[i];
+        var newElement = newElements[newElementsKey];
+        var unionElement = accumulator.union(newElement);
+        if (unionElement) {
+          accumulator = unionElement;
+          delete newElements[newElementsKey];
+        }
+      }
+      newElements[accumulator.toString()] = accumulator;
     }
+    return newElements;
   }
+
+  function intersectElements(elements1: Lookup<Range<any>>, elements2: Lookup<Range<any>>): Lookup<Range<any>> {
+    var newElements: Lookup<Range<any>> = Object.create(null);
+    for (var k1 in elements1) {
+      var element1 = elements1[k1];
+      for (var k2 in elements2) {
+        var element2 = elements2[k2];
+        var intersect = element1.intersect(element2);
+        if (intersect) newElements[intersect.toString()] = intersect;
+      }
+    }
+    return newElements;
+  }
+
+  var typeUpgrades: Lookup<string> = {
+    'NUMBER': 'NUMBER_RANGE',
+    'TIME': 'TIME_RANGE'
+  };
 
   var check: ImmutableClass<SetValue, SetJS>;
   export class Set implements ImmutableInstance<SetValue, SetJS> {
     static type = 'SET';
+    static EMPTY: Set;
 
     static isSet(candidate: any): boolean {
       return isInstanceOf(candidate, Set);
+    }
+
+    static convertToSet(thing: any): Set {
+      var thingType = getValueType(thing);
+      if (thingType.indexOf('SET/') === 0) return thing;
+      return Set.fromJS({ setType: thingType, elements: [thing] });
+    }
+
+    static generalUnion(a: any, b: any): any {
+      var aSet = Set.convertToSet(a);
+      var bSet = Set.convertToSet(b);
+      var aSetType = aSet.setType;
+      var bSetType = bSet.setType;
+
+      if (typeUpgrades[aSetType] === bSetType) {
+        aSet = aSet.upgradeType();
+      } else if (typeUpgrades[bSetType] === aSetType) {
+        bSet = bSet.upgradeType();
+      } else if (aSetType !== bSetType) {
+        return null;
+      }
+
+      return aSet.union(bSet).simplify();
+    }
+
+    static generalIntersect(a: any, b: any): any {
+      var aSet = Set.convertToSet(a);
+      var bSet = Set.convertToSet(b);
+      var aSetType = aSet.setType;
+      var bSetType = bSet.setType;
+
+      if (typeUpgrades[aSetType] === bSetType) {
+        aSet = aSet.upgradeType();
+      } else if (typeUpgrades[bSetType] === aSetType) {
+        bSet = bSet.upgradeType();
+      } else if (aSetType !== bSetType) {
+        return null;
+      }
+
+      return aSet.intersect(bSet).simplify();
     }
 
     static fromJS(parameters: Array<any>): Set;
@@ -58,12 +122,14 @@ module Facet {
       if (typeof parameters !== "object") {
         throw new Error("unrecognizable set");
       }
-      if (!parameters.setType) {
-        parameters.setType = guessSetType(parameters.elements[0]);
+      var setType = parameters.setType;
+      var elements = parameters.elements;
+      if (!setType) {
+        setType = getValueType(elements.length ? elements[0] : null);
       }
       return new Set({
-        setType: parameters.setType,
-        elements: hashFromJS(parameters.elements, parameters.setType)
+        setType: setType,
+        elements: hashFromJS(elements, setType)
       });
     }
 
@@ -71,8 +137,14 @@ module Facet {
     public elements: Lookup<any>;
 
     constructor(parameters: SetValue) {
-      this.setType = parameters.setType;
-      this.elements = parameters.elements;
+      var setType = parameters.setType;
+      this.setType = setType;
+
+      var elements = parameters.elements;
+      if (setType === 'NUMBER_RANGE' || setType === 'TIME_RANGE') {
+        elements = unifyElements(elements);
+      }
+      this.elements = elements;
     }
 
     public valueOf(): SetValue {
@@ -82,14 +154,14 @@ module Facet {
       };
     }
 
-    public getValues(): any[] {
+    public getElements(): any[] {
       return hashToValues(this.elements);
     }
 
     public toJS(): SetJS {
       return {
         setType: this.setType,
-        elements: this.getValues().map(valueToJS)
+        elements: this.getElements().map(valueToJS)
       };
     }
 
@@ -108,10 +180,57 @@ module Facet {
     }
 
     public empty(): boolean {
-      return this.toJS().elements.length === 0;
+      var elements = this.elements;
+      for (var k in elements) {
+        if (hasOwnProperty(elements, k)) return false;
+      }
+      return true;
+    }
+
+    public simplify(): any {
+      var simpleSet = this.downgradeType();
+      var simpleSetElements = simpleSet.getElements();
+      return simpleSetElements.length === 1 ? simpleSetElements[0] : simpleSet;
+    }
+
+    public upgradeType(): Set {
+      if (this.setType === 'NUMBER') {
+        return Set.fromJS({
+          setType: 'NUMBER_RANGE',
+          elements: this.getElements().map(NumberRange.fromNumber)
+        })
+      } else if (this.setType === 'TIME') {
+        return Set.fromJS({
+          setType: 'TIME_RANGE',
+          elements: this.getElements().map(TimeRange.fromTime)
+        })
+      } else {
+        return this;
+      }
+    }
+
+    public downgradeType(): Set {
+      if (this.setType === 'NUMBER_RANGE' || this.setType === 'TIME_RANGE') {
+        var elements: Array<Range<any>> = this.getElements();
+        var simpleElements: any[] = [];
+        for (var i = 0; i < elements.length; i++) {
+          var element = elements[i];
+          if (element.degenerate()) {
+            simpleElements.push(element.start);
+          } else {
+            return this;
+          }
+        }
+        return Set.fromJS(simpleElements)
+      } else {
+        return this;
+      }
     }
 
     public union(other: Set): Set {
+      if (this.empty()) return other;
+      if (other.empty()) return this;
+
       if (this.setType !== other.setType) {
         throw new TypeError("can not union sets of different types");
       }
@@ -137,17 +256,25 @@ module Facet {
     }
 
     public intersect(other: Set): Set {
+      if (this.empty() || other.empty()) return Set.EMPTY;
+
+      var setType = this.setType;
       if (this.setType !== other.setType) {
         throw new TypeError("can not intersect sets of different types");
       }
 
       var thisValues = this.elements;
       var otherValues = other.elements;
-      var newValues: Lookup<any> = {};
+      var newValues: Lookup<any>;
 
-      for (var k in thisValues) {
-        if (hasOwnProperty(thisValues, k) && hasOwnProperty(otherValues, k)) {
-          newValues[k] = thisValues[k];
+      if (setType === 'NUMBER_RANGE' || setType === 'TIME_RANGE') {
+        newValues = intersectElements(thisValues, otherValues);
+      } else {
+        newValues = Object.create(null);
+        for (var k in thisValues) {
+          if (hasOwnProperty(thisValues, k) && hasOwnProperty(otherValues, k)) {
+            newValues[k] = thisValues[k];
+          }
         }
       }
 
@@ -171,17 +298,22 @@ module Facet {
     }
 
     public add(value: any): Set {
-      var elements = this.elements;
+      var setType = this.setType;
+      var valueType = getValueType(value);
+      if (setType === 'NULL') setType = valueType;
+      if (setType !== valueType) throw new Error('value type must match');
+
       var newValues: Lookup<any> = {};
       newValues[String(value)] = value;
 
+      var elements = this.elements;
       for (var k in elements) {
         if (!hasOwnProperty(elements, k)) continue;
         newValues[k] = elements[k];
       }
 
       return new Set({
-        setType: this.setType,
+        setType: setType,
         elements: newValues
       });
     }
@@ -190,7 +322,7 @@ module Facet {
       return new NativeDataset({
         source: 'native',
         key: name,
-        data: this.getValues().map((v) => {
+        data: this.getElements().map((v) => {
           var datum: Datum = {};
           datum[name] = v;
           return datum
@@ -200,4 +332,6 @@ module Facet {
 
   }
   check = Set;
+
+  Set.EMPTY = Set.fromJS([]);
 }

@@ -48,7 +48,7 @@ module Facet {
       return (d: Datum) => {
         var num = operandFn(d);
         if (num === null) return null;
-        return NumberRange.fromNumber(num, size, offset);
+        return NumberRange.numberBucket(num, size, offset);
       }
     }
 

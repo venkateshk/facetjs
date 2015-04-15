@@ -16,12 +16,27 @@ describe 'GreaterThanOrEqualExpression', ->
     tests.complexityIs(3)
     tests.simplifiedExpressionIs({op:'literal', value: true})
 
-  describe 'with reference', ->
+  describe 'with reference (5 >= $flight_time)', ->
     beforeEach ->
       this.expression = { op: 'greaterThanOrEqual', lhs: { op: 'literal', value: 5 }, rhs: { op: 'ref', name: 'flight_time' } }
 
     tests.complexityIs(3)
-    tests.simplifiedExpressionIs({ op: 'lessThanOrEqual', lhs: { op: 'ref', name: 'flight_time' }, rhs: { op: 'literal', value: 5 } })
+    tests.simplifiedExpressionIs({
+      "lhs": {
+        "name": "flight_time"
+        "op": "ref"
+      }
+      "op": "in"
+      "rhs": {
+        "op": "literal"
+        "type": "NUMBER_RANGE"
+        "value": {
+          "start": null
+          "end": 5
+          "bounds": "(]"
+        }
+      }
+    })
 
   describe 'with complex values', ->
     beforeEach ->

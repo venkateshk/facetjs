@@ -7,8 +7,8 @@ module Facet {
     constructor(parameters: ExpressionValue) {
       super(parameters, dummyObject);
       this._ensureOp("greaterThanOrEqual");
-      this._checkTypeOf('lhs', 'NUMBER');
-      this._checkTypeOf('rhs', 'NUMBER');
+      this._checkMatchingTypes();
+      this._checkNumberOrTime();
       this.type = 'BOOLEAN';
     }
 
@@ -16,11 +16,11 @@ module Facet {
       return `${this.lhs.toString()} = ${this.rhs.toString()}`;
     }
 
-    public simplify(): Expression {
+    protected _specialSimplify(simpleLhs: Expression, simpleRhs: Expression): Expression {
       return (new LessThanOrEqualExpression({
         op: 'lessThanOrEqual',
-        lhs: this.rhs,
-        rhs: this.lhs
+        lhs: simpleRhs,
+        rhs: simpleLhs
       })).simplify()
     }
 

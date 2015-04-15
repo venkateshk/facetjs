@@ -1,38 +1,40 @@
-module Facet.Helper {
-  var integerRegExp = /^\d+$/;
+module Facet {
+  export module Helper {
+    var integerRegExp = /^\d+$/;
 
-  export interface SimpleLocatorParameters {
-    resource: string;
-    defaultPort?: number;
-  }
+    export interface SimpleLocatorParameters {
+      resource: string;
+      defaultPort?: number;
+    }
 
-  export function simpleLocator(parameters: string): Locator.FacetLocator;
-  export function simpleLocator(parameters: SimpleLocatorParameters): Locator.FacetLocator;
-  export function simpleLocator(parameters: any): Locator.FacetLocator {
-    if (typeof parameters === "string") parameters = {resource: parameters};
-    var resource: string = parameters.resource;
-    var defaultPort: number = parameters.defaultPort;
-    if (!resource) throw new Error("must have resource");
+    export function simpleLocator(parameters: string): Locator.FacetLocator;
+    export function simpleLocator(parameters: SimpleLocatorParameters): Locator.FacetLocator;
+    export function simpleLocator(parameters: any): Locator.FacetLocator {
+      if (typeof parameters === "string") parameters = {resource: parameters};
+      var resource: string = parameters.resource;
+      var defaultPort: number = parameters.defaultPort;
+      if (!resource) throw new Error("must have resource");
 
-    var locations = resource.split(";").map((locationString) => {
-      var parts = locationString.split(":");
-      if (parts.length > 2) throw new Error("invalid resource part '" + locationString + "'");
+      var locations = resource.split(";").map((locationString) => {
+        var parts = locationString.split(":");
+        if (parts.length > 2) throw new Error("invalid resource part '" + locationString + "'");
 
-      var location: Locator.Location = {
-        hostname: parts[0]
-      };
-      if (parts.length === 2) {
-        if (!integerRegExp.test(parts[1])) {
-          throw new Error("invalid port in resource '" + parts[1] + "'");
+        var location: Locator.Location = {
+          hostname: parts[0]
+        };
+        if (parts.length === 2) {
+          if (!integerRegExp.test(parts[1])) {
+            throw new Error("invalid port in resource '" + parts[1] + "'");
+          }
+          location.port = Number(parts[1]);
+        } else if (defaultPort) {
+          location.port = defaultPort;
         }
-        location.port = Number(parts[1]);
-      } else if (defaultPort) {
-        location.port = defaultPort;
-      }
 
-      return location;
-    });
+        return location;
+      });
 
-    return () => Q(locations[Math.floor(Math.random() * locations.length)]);
+      return () => Q(locations[Math.floor(Math.random() * locations.length)]);
+    }
   }
 }

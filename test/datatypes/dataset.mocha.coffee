@@ -29,8 +29,9 @@ describe "Dataset", ->
           }
           ToInfinityAndBeyond: {
             type: 'NUMBER_RANGE'
-            start: '-Infinity'
-            end: 'Infinity'
+            start: null
+            end: null
+            bounds: "()"
           }
           SomeDate: {
             type: 'TIME'

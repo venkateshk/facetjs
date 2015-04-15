@@ -1,12 +1,4 @@
 module Facet.Legacy {
-  function smaller<T>(a: T, b: T): T {
-    return a < b ? a : b;
-  }
-
-  function larger<T>(a: T, b: T): T {
-    return a < b ? b : a;
-  }
-
   type Range = any[];
 
   function intersectRanges(range1: Range, range2: Range): Range {

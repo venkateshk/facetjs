@@ -126,7 +126,7 @@ describe "simulate MySQL", ->
       COUNT(1) AS 'Count'
       FROM `diamonds`
       GROUP BY `cut`
-      HAVING (100<`Count`)
+      HAVING 100<`Count`
       ORDER BY `Count` DESC
       LIMIT 10
       """)

@@ -109,6 +109,14 @@ function checkArrayEquality<T>(a: Array<T>, b: Array<T>): boolean {
   return a.length === b.length && a.every((item, i) => (item === b[i]));
 }
 
+function smaller<T>(a: T, b: T): T {
+  return a < b ? a : b;
+}
+
+function larger<T>(a: T, b: T): T {
+  return a < b ? b : a;
+}
+
 module Facet {
   export var expressionParser = <PEGParser>require("../parser/expression");
   export var sqlParser = <PEGParser>require("../parser/sql");

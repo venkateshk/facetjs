@@ -63,7 +63,7 @@ describe 'IsExpression', ->
             "with inclusive InExpression",
             {
               op: 'in',
-              lhs: { op: 'ref', name: 'flight_time', type: 'NUMBER' },
+              lhs: { op: 'ref', name: 'flight_time' },
               rhs: { op: 'literal', value: new NumberRange({start: 5, end: 7}), type: 'NUMBER_RANGE' }
             }
           )
@@ -101,13 +101,13 @@ describe 'IsExpression', ->
             "with inclusive InExpression",
             {
               op: 'in',
-              lhs: { op: 'ref', name: 'flight_time', type: 'NUMBER' },
+              lhs: { op: 'ref', name: 'flight_time' },
               rhs: { op: 'literal', value: new NumberRange({start: 5, end: 7}), type: 'NUMBER_RANGE' }
             }
           )
           .equals({
             op: 'in'
-            lhs: { op: 'ref', name: 'flight_time', type: 'NUMBER' }
+            lhs: { op: 'ref', name: 'flight_time' }
             rhs: { op: 'literal', value: {start: 5, end: 7}, type: 'NUMBER_RANGE' }
           })
 
@@ -147,7 +147,7 @@ describe 'IsExpression', ->
             "with inclusive InExpression",
             {
               op: 'in'
-              lhs: { op: 'ref', name: 'flight_time', type: 'TIME' }
+              lhs: { op: 'ref', name: 'flight_time' }
               rhs: {
                 op: 'literal'
                 value: new TimeRange({
@@ -235,7 +235,7 @@ describe 'IsExpression', ->
             "with inclusive InExpression",
             {
               op: 'in'
-              lhs: { op: 'ref', name: 'flight_time', type: 'TIME' }
+              lhs: { op: 'ref', name: 'flight_time' }
               rhs: {
                 op: 'literal'
                 value: new TimeRange({
@@ -248,7 +248,7 @@ describe 'IsExpression', ->
           )
           .equals({
             op: 'in'
-            lhs: { op: 'ref', name: 'flight_time', type: 'TIME' }
+            lhs: { op: 'ref', name: 'flight_time' }
             rhs: {
               op: 'literal'
               value: {
@@ -294,7 +294,7 @@ describe 'IsExpression', ->
             "with inclusive InExpression",
             {
               op: 'in',
-              lhs: { op: 'ref', name: 'flight_time', type: 'STRING' },
+              lhs: { op: 'ref', name: 'flight_time' },
               rhs: { op: 'literal', value: Set.fromJS({ elements: ['ABC', 'DEF'], setType: 'STRING' }) }
             }
           )
@@ -305,7 +305,7 @@ describe 'IsExpression', ->
               "with exclusive InExpression",
               {
                 op: 'in',
-                lhs: { op: 'ref', name: 'flight_time', type: 'STRING' },
+                lhs: { op: 'ref', name: 'flight_time' },
                 rhs: { op: 'literal', value: Set.fromJS({ elements: ['DEF'], setType: 'STRING' }) }
               }
             )
@@ -343,13 +343,13 @@ describe 'IsExpression', ->
             "with inclusive InExpression",
             {
               op: 'in',
-              lhs: { op: 'ref', name: 'flight_time', type: 'STRING' },
+              lhs: { op: 'ref', name: 'flight_time' },
               rhs: { op: 'literal', value: Set.fromJS(['ABC', 'DEF']) }
             }
           )
           .equals({
             op: 'in',
-            lhs: { op: 'ref', name: 'flight_time', type: 'STRING' },
+            lhs: { op: 'ref', name: 'flight_time' },
             rhs: { op: 'literal', value: { elements: ['ABC', 'DEF'], setType: 'STRING' }, type: 'SET' }
           })
 
@@ -358,7 +358,7 @@ describe 'IsExpression', ->
             "with exclusive InExpression",
             {
               op: 'in',
-              lhs: { op: 'ref', name: 'flight_time', type: 'STRING' },
+              lhs: { op: 'ref', name: 'flight_time' },
               rhs: { op: 'literal', value: Set.fromJS(['DEF']) }
             }
           )

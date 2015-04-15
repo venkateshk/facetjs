@@ -1,4 +1,20 @@
 module Facet {
+  function makeInOrIs(lhs: Expression, value: any): Expression {
+    var literal = new LiteralExpression({
+      op: 'literal',
+      value: value
+    });
+
+    var literalType = literal.type;
+    var returnExpression: Expression = null;
+    if (literalType === 'NUMBER_RANGE' || literalType === 'TIME_RANGE' || literalType.indexOf('SET/') === 0) {
+      returnExpression = new InExpression({ op: 'in', lhs: lhs, rhs: literal });
+    } else {
+      returnExpression = new IsExpression({ op: 'is', lhs: lhs, rhs: literal });
+    }
+    return returnExpression.simplify();
+  }
+
   export class InExpression extends BinaryExpression {
     static fromJS(parameters: ExpressionJS): InExpression {
       return new InExpression(BinaryExpression.jsToValue(parameters));
@@ -77,22 +93,13 @@ module Facet {
       if (!this.checkLefthandedness()) return null; // ToDo: Do something about A is B and B in C
       if (!checkArrayEquality(this.getFreeReferences(), exp.getFreeReferences())) return null;
 
-      if (exp instanceof IsExpression) {
-        return exp.mergeAnd(this);
-      } else if (exp instanceof InExpression) {
+      if (exp instanceof IsExpression || exp instanceof InExpression) {
         if (!exp.checkLefthandedness()) return null;
 
         var intersect = Set.generalIntersect((<LiteralExpression>this.rhs).value, (<LiteralExpression>exp.rhs).value);
         if (intersect === null) return null;
 
-        return new InExpression({
-          op: 'in',
-          lhs: this.lhs,
-          rhs: new LiteralExpression({
-            op: 'literal',
-            value: intersect
-          })
-        }).simplify();
+        return makeInOrIs(this.lhs, intersect);
       }
       return exp;
     }
@@ -101,22 +108,13 @@ module Facet {
       if (!this.checkLefthandedness()) return null; // ToDo: Do something about A is B and B in C
       if (!checkArrayEquality(this.getFreeReferences(), exp.getFreeReferences())) return null;
 
-      if (exp instanceof IsExpression) {
-        return exp.mergeOr(this);
-      } else if (exp instanceof InExpression) {
+      if (exp instanceof IsExpression || exp instanceof InExpression) {
         if (!exp.checkLefthandedness()) return null;
 
         var intersect = Set.generalUnion((<LiteralExpression>this.rhs).value, (<LiteralExpression>exp.rhs).value);
         if (intersect === null) return null;
 
-        return new InExpression({
-          op: 'in',
-          lhs: this.lhs,
-          rhs: new LiteralExpression({
-            op: 'literal',
-            value: intersect
-          })
-        }).simplify();
+        return makeInOrIs(this.lhs, intersect);
       }
       return exp;
     }

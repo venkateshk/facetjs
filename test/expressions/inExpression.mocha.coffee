@@ -321,7 +321,31 @@ describe 'InExpression', ->
               rhs: { op: 'literal', value: 2 }
             }
           )
-          .equals(null)
+          .equals({
+            "lhs": {
+              "name": "test"
+              "op": "ref"
+            }
+            "op": "in"
+            "rhs": {
+              "op": "literal"
+              "type": "SET"
+              "value": {
+                "elements": [
+                  {
+                    "end": 1
+                    "start": 0
+                  }
+                  {
+                    "bounds": "[]"
+                    "end": 2
+                    "start": 2
+                  }
+                ]
+                "setType": "NUMBER_RANGE"
+              }
+            }
+          })
 
         tests
           .mergeOrWith(
@@ -483,7 +507,31 @@ describe 'InExpression', ->
               rhs: { op: 'literal', value: new Date(20) }
             }
           )
-          .equals(null)
+          .equals({
+            "lhs": {
+              "name": "test"
+              "op": "ref"
+            }
+            "op": "in"
+            "rhs": {
+              "op": "literal"
+              "type": "SET"
+              "value": {
+                "elements": [
+                  {
+                    "end": new Date(10)
+                    "start": new Date(0)
+                  }
+                  {
+                    "bounds": "[]"
+                    "end": new Date(20)
+                    "start": new Date(20)
+                  }
+                ]
+                "setType": "TIME_RANGE"
+              }
+            }
+          })
 
         tests
           .mergeOrWith(

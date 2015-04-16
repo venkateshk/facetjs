@@ -186,10 +186,10 @@ CallChainExpression
             if (params.length !== 2 && params.length !== 3) error(op + ' must have 2 or 3 parameter');
             var attribute = params[0];
             var name = getName(params[1]);
-            var dataName = params[2];
-            if (!dataName) {
-              if (operand.op !== 'ref') error("could not guess data name in `split`, please provide one explicitly");
-              dataName = operand.name;
+            var newDataName = params[2];
+            var dataName = operand.op === 'ref' ? operand.name : null;
+            if (!dataName && !newDataName) {
+              error("could not guess data name in `split`, please provide one explicitly");
             }
             operand = {
               op: 'actions',
@@ -201,10 +201,10 @@ CallChainExpression
               actions: [
                 {
                   action: 'def',
-                  name: dataName,
+                  name: newDataName || dataName,
                   expression: {
                     op: 'actions',
-                    operand: { op: 'ref', name: '^' + dataName },
+                    operand: { op: 'ref', name: '^' + (dataName || newDataName) },
                     actions: [{
                       action: 'filter',
                       expression: {

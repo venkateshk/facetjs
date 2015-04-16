@@ -99,7 +99,7 @@
           name: extract.label,
           operand: {
             op: 'aggregate',
-            operand: dataRef,
+            operand: from,
             fn: 'group',
             attribute: groupBy
           }

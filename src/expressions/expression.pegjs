@@ -110,7 +110,17 @@ CallChainExpression
               duration: getName(params[0])
             };
             if (params.length === 2) operand.timezone = getName(params[1]);
-            break
+            break;
+
+          case 'substr':
+            if (params.length !== 2) error(op + ' must have 2 parameters');
+            operand = {
+              op: op,
+              operand: operand,
+              position: getNumber(params[0]),
+              length: getNumber(params[1])
+            };
+            break;
 
           case 'timePart':
             if (params.length !== 1 && params.length !== 2) error(op + ' must have 1 or 2 parameter');
@@ -120,7 +130,7 @@ CallChainExpression
               part: getName(params[0])
             };
             if (params.length === 2) operand.timezone = getName(params[1]);
-            break
+            break;
 
           case 'filter':
             if (params.length !== 1) error(op + ' must have 1 parameter');
@@ -176,10 +186,10 @@ CallChainExpression
             if (params.length !== 2 && params.length !== 3) error(op + ' must have 2 or 3 parameter');
             var attribute = params[0];
             var name = getName(params[1]);
-            var dataName = params[2];
-            if (!dataName) {
-              if (operand.op !== 'ref') error("could not guess data name in `split`, please provide one explicitly");
-              dataName = operand.name;
+            var newDataName = params[2];
+            var dataName = operand.op === 'ref' ? operand.name : null;
+            if (!dataName && !newDataName) {
+              error("could not guess data name in `split`, please provide one explicitly");
             }
             operand = {
               op: 'actions',
@@ -191,10 +201,10 @@ CallChainExpression
               actions: [
                 {
                   action: 'def',
-                  name: dataName,
+                  name: newDataName || dataName,
                   expression: {
                     op: 'actions',
-                    operand: { op: 'ref', name: '^' + dataName },
+                    operand: { op: 'ref', name: '^' + (dataName || newDataName) },
                     actions: [{
                       action: 'filter',
                       expression: {

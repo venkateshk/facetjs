@@ -99,7 +99,7 @@
           name: extract.label,
           operand: {
             op: 'aggregate',
-            operand: dataRef,
+            operand: from,
             fn: 'group',
             attribute: groupBy
           }
@@ -198,7 +198,7 @@ Column
     {
       return {
         action: 'apply',
-        name: as || text().toLowerCase().replace(/^\W+|\W+$/g, '').replace(/\W+/g, '_'),
+        name: as || text().replace(/^\W+|\W+$/g, '').replace(/\W+/g, '_'),
         expression: ex
       };
     }
@@ -316,6 +316,8 @@ FunctionCallExpression
     { return { op: 'timeBucket', operand: operand, duration: duration, timezone: timezone }; }
   / NumberBucketToken "(" _ operand:Expression _ "," _ size:Number _ "," _ offset:Number ")"
     { return { op: 'numberBucket', operand: operand, size: size, offset: offset }; }
+  / SubstrToken "(" _ operand:Expression _ "," _ position:Number _ "," _ length:Number ")"
+    { return { op: 'substr', operand: operand, position: position, length: length }; }
 
 RefExpression
   = ref:Ref { return { op: "ref", name: ref }; }
@@ -391,6 +393,7 @@ MaxToken          = "MAX"i           !IdentifierPart { return 'max'; }
 
 TimeBucketToken   = "TIME_BUCKET"i   !IdentifierPart
 NumberBucketToken = "NUMBER_BUCKET"i !IdentifierPart
+SubstrToken       = "SUBSTR"i        !IdentifierPart
 
 IdentifierPart = [A-Za-z_]
 

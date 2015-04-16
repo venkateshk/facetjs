@@ -41,6 +41,8 @@ module Facet {
     duration?: Duration;
     timezone?: Timezone;
     part?: string;
+    position?: number;
+    length?: number;
   }
 
   export interface ExpressionJS {
@@ -61,6 +63,8 @@ module Facet {
     duration?: string;
     timezone?: string;
     part?: string;
+    position?: number;
+    length?: number;
   }
 
   export interface Alteration {
@@ -658,6 +662,10 @@ module Facet {
       return this._performUnaryExpression({ op: 'timePart', part: part, timezone: timezone });
     }
 
+    public substr(position: number, length: number) {
+      return this._performUnaryExpression({ op: 'timePart', position: position, length: length });
+    }
+
     // Aggregators
     protected _performAggregate(fn: string, attribute: any): Expression {
       if (!Expression.isExpression(attribute)) attribute = Expression.fromJSLoose(attribute);
@@ -683,14 +691,14 @@ module Facet {
     }
 
     // Split // .split(attr, l, d) = .group(attr).label(l).def(d, facet(^d).filter(ex = ^l))
-    public split(attribute: any, name: string, dataName: string = null): Expression {
+    public split(attribute: any, name: string, newDataName: string = null): Expression {
       if (!Expression.isExpression(attribute)) attribute = Expression.fromJSLoose(attribute);
-      if (!dataName) {
-        if (!this.isOp('ref')) throw new Error("could not guess data name in `split`, please provide one explicitly");
-        dataName = (<RefExpression>this).name;
+      var dataName = this.isOp('ref') ? (<RefExpression>this).name : null;
+      if (!dataName && !newDataName) {
+        throw new Error("could not guess data name in `split`, please provide one explicitly");
       }
       return this.group(attribute).label(name)
-        .def(dataName, $('^' + dataName).filter(attribute.is($('^' + name))));
+        .def(newDataName || dataName, $('^' + (dataName || newDataName)).filter(attribute.is($('^' + name))));
     }
 
     // Expression constructors (Binary)

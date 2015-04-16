@@ -1,5 +1,5 @@
 module Facet {
-  function margin1d(left: any, width: any, right: any, parentWidth: any): any[] {
+  function margin1d(left: number, width: number, right: number, parentWidth: number): number[] {
     if (left != null) {
       if (width != null) {
         if (right != null) throw new Error("over-constrained");
@@ -21,7 +21,6 @@ module Facet {
   }
 
   export interface ShapeJS {
-    type?: string;
     shape?: string;
     x: number;
     y: number;
@@ -116,6 +115,7 @@ module Facet {
   }
   check = Shape;
 
+
   export interface MarginParameters {
     left: any;
     width: any;
@@ -160,15 +160,8 @@ module Facet {
     }
 
     public margin(parameters: MarginParameters) {
-      var left = parameters.left;
-      var width = parameters.width;
-      var right = parameters.right;
-      var top = parameters.top;
-      var height = parameters.height;
-      var bottom = parameters.bottom;
-
-      var xw = margin1d(left, width, right, this.width);
-      var yh = margin1d(top, height, bottom, this.height);
+      var xw = margin1d(parameters.left, parameters.width, parameters.right, this.width);
+      var yh = margin1d(parameters.top, parameters.height, parameters.bottom, this.height);
       return new RectangleShape({
         x: xw[0],
         y: yh[0],

@@ -14,8 +14,6 @@ var context = {
     source: 'druid',
     dataSource: 'wikipedia_editstream',
     timeAttribute: 'time',
-    forceInterval: true,
-    approximate: true,
     requester: druidRequester
   })
 };

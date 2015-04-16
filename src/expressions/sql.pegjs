@@ -260,7 +260,17 @@ NotExpression
   / ComparisonExpression
 
 ComparisonExpression
-  = lhs:AdditiveExpression rest:(_ ComparisonOp _ AdditiveExpression)?
+  = lhs:AdditiveExpression __ BetweenToken __ start:AdditiveExpression __ AndToken __ end:AdditiveExpression
+    {
+      if (start.op !== 'literal') error('between start must be a literal');
+      if (end.op !== 'literal') error('between end must be a literal');
+      return {
+        op: 'in',
+        lhs: lhs,
+        rhs: { start: start.value, end: end.value, bounds: '[]' }
+      };
+    }
+  / lhs:AdditiveExpression rest:(_ ComparisonOp _ AdditiveExpression)?
     {
       if (!rest) return lhs;
       var op = rest[1];

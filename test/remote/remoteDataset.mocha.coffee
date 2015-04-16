@@ -12,8 +12,6 @@ wikiDataset = Dataset.fromJS({
   source: 'druid',
   dataSource: 'wikipedia_editstream',
   timeAttribute: 'time',
-  forceInterval: true,
-  approximate: true,
   context: null
   attributes: {
     time: { type: 'TIME' }
@@ -32,8 +30,6 @@ context = {
     source: 'druid',
     dataSource: 'wikipedia_editstream_cmp',
     timeAttribute: 'time',
-    forceInterval: true,
-    approximate: true,
     context: null
     attributes: {
       time: { type: 'TIME' }

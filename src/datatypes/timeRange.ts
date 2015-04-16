@@ -107,8 +107,19 @@ module Facet {
       return TimeRange.isTimeRange(other) && this._equalsHelper(other);
     }
 
+    /**
+     * Produces an inclusive exclusive [s, e) interval that represents this timeRange
+     * If the timeRange itself is not inclusive/exclusive then a second is added to account for that
+     *
+     * @returns {string}
+     */
     public toInterval(): string {
-      return dateToIntervalPart(this.start) + "/" + dateToIntervalPart(this.end);
+      var start = this.start;
+      var end = this.end;
+      var bounds = this.bounds;
+      if (bounds[0] === '(') start = new Date(start.valueOf() + 1000); // add a sec
+      if (bounds[1] === ']') end = new Date(end.valueOf() + 1000); // add a sec
+      return dateToIntervalPart(start) + "/" + dateToIntervalPart(end);
     }
   }
   check = TimeRange;

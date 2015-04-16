@@ -19,16 +19,6 @@ module Facet {
     sortOrigin?: string;
     limit?: LimitAction;
     havingFilter?: Expression;
-
-    // Druid
-    dataSource?: string | string[];
-    timeAttribute?: string;
-    forceInterval?: boolean;
-    approximate?: boolean;
-    context?: Lookup<any>;
-
-    // SQL
-    table?: string;
   }
 
   export interface DatasetJS {
@@ -42,16 +32,6 @@ module Facet {
     // Remote
     requester?: Requester.FacetRequester<any>;
     filter?: ExpressionJS;
-
-    // Druid
-    dataSource?: string | string[];
-    timeAttribute?: string;
-    forceInterval?: boolean;
-    approximate?: boolean;
-    context?: Lookup<any>;
-
-    // SQL
-    table?: string;
   }
 
   export function mergeRemoteDatasets(remoteGroups: RemoteDataset[][]): RemoteDataset[] {

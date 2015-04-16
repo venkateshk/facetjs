@@ -11,8 +11,6 @@ describe "breakdown", ->
       source: 'druid',
       dataSource: 'diamonds',
       timeAttribute: 'time',
-      forceInterval: true,
-      approximate: true,
       context: null
       attributes: {
         time: { type: 'TIME' }
@@ -25,8 +23,6 @@ describe "breakdown", ->
       source: 'druid',
       dataSource: 'diamonds2',
       timeAttribute: 'time',
-      forceInterval: true,
-      approximate: true,
       context: null
       attributes: {
         time: { type: 'TIME' }

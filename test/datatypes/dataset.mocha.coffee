@@ -95,8 +95,6 @@ describe "Dataset", ->
         source: 'druid',
         dataSource: 'moon_child',
         timeAttribute: 'time',
-        forceInterval: true,
-        approximate: true,
         context: null
         attributes: {
           color: { type: 'STRING' }
@@ -110,8 +108,9 @@ describe "Dataset", ->
         source: 'druid',
         dataSource: 'wiki',
         timeAttribute: 'time',
-        forceInterval: true,
-        approximate: true,
+        allowEternity: true,
+        allowSelectQueries: true,
+        exactResultsOnly: true,
         context: null
       }
     ], {
@@ -124,16 +123,12 @@ describe "Dataset", ->
         source: 'druid',
         dataSource: 'wiki',
         timeAttribute: 'time',
-        forceInterval: true,
-        approximate: true,
         context: null,
         hasOwnProperty: 'troll'
       }).toJS()).to.deep.equal({
         source: 'druid',
         dataSource: 'wiki',
         timeAttribute: 'time',
-        forceInterval: true,
-        approximate: true,
         context: null
       })
 

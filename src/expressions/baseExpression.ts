@@ -200,11 +200,7 @@ module Facet {
           } else if (Array.isArray(param)) {
             expressionJS = { op: 'literal', value: Set.fromJS(param) };
           } else if (hasOwnProperty(param, 'start') && hasOwnProperty(param, 'end')) {
-            if (typeof param.start === 'number') {
-              expressionJS = { op: 'literal', value: NumberRange.fromJS(param) };
-            } else {
-              expressionJS = { op: 'literal', value: TimeRange.fromJS(param) };
-            }
+            expressionJS = { op: 'literal', value: Range.fromJS(param) };
           } else {
             throw new Error('unknown parameter');
           }

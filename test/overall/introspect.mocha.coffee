@@ -36,8 +36,6 @@ describe "introspect", ->
       source: 'druid',
       dataSource: 'diamonds',
       timeAttribute: 'time',
-      forceInterval: true,
-      approximate: true,
       context: null
     })
     wiki: Dataset.fromJS({
@@ -45,8 +43,6 @@ describe "introspect", ->
       source: 'druid',
       dataSource: 'wikipedia',
       timeAttribute: 'timestamp',
-      forceInterval: true,
-      approximate: true,
       context: null
     })
   }

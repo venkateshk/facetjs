@@ -13,8 +13,6 @@ context = {
     source: 'druid',
     dataSource: 'wikipedia_editstream',
     timeAttribute: 'time',
-    forceInterval: true,
-    approximate: true,
     attributes: {
       time: { type: 'TIME' }
       language: { type: 'STRING' }
@@ -34,8 +32,7 @@ contextNoApprox = {
     source: 'druid',
     dataSource: 'wikipedia_editstream',
     timeAttribute: 'time',
-    forceInterval: true,
-    approximate: false,
+    exactResultsOnly: true,
     attributes: {
       time: { type: 'TIME' }
       language: { type: 'STRING' }

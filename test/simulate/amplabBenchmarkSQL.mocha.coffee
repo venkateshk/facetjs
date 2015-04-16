@@ -13,8 +13,7 @@ context = {
     source: 'druid',
     dataSource: 'rankings',
     timeAttribute: 'time',
-    forceInterval: false,
-    approximate: true,
+    allowEternity: true,
     context: null
     attributes: {
       pageURL: { type: 'STRING' } # VARCHAR(300)
@@ -26,8 +25,7 @@ context = {
     source: 'druid',
     dataSource: 'uservisits',
     timeAttribute: 'visitDate',
-    forceInterval: false,
-    approximate: true,
+    allowEternity: true,
     context: null
     attributes: {
       sourceIP: { type: 'STRING' } # VARCHAR(116)

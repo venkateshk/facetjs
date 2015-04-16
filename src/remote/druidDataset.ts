@@ -230,6 +230,25 @@ module Facet {
       return attributes;
     }
   }
+  
+
+  export interface DruidDatasetValue extends DatasetValue{
+    dataSource?: string | string[];
+    timeAttribute?: string;
+    allowEternity?: boolean;
+    allowSelectQueries?: boolean;
+    exactResultsOnly?: boolean;
+    context?: Lookup<any>;
+  }
+
+  export interface DruidDatasetJS extends DatasetJS {
+    dataSource?: string | string[];
+    timeAttribute?: string;
+    allowEternity?: boolean;
+    allowSelectQueries?: boolean;
+    exactResultsOnly?: boolean;
+    context?: Lookup<any>;
+  }
 
   export class DruidDataset extends RemoteDataset {
     static type = 'DATASET';
@@ -238,48 +257,53 @@ module Facet {
     static FALSE_INTERVAL = ["1000-01-01/1000-01-02"];
 
     static fromJS(datasetJS: any): DruidDataset {
-      var value = RemoteDataset.jsToValue(datasetJS);
+      var value: DruidDatasetValue = RemoteDataset.jsToValue(datasetJS);
       value.dataSource = datasetJS.dataSource;
       value.timeAttribute = datasetJS.timeAttribute;
-      value.forceInterval = datasetJS.forceInterval;
-      value.approximate = datasetJS.approximate;
+      value.allowEternity = Boolean(datasetJS.allowEternity);
+      value.allowSelectQueries = Boolean(datasetJS.allowSelectQueries);
+      value.exactResultsOnly = Boolean(datasetJS.exactResultsOnly);
       value.context = datasetJS.context;
       return new DruidDataset(value);
     }
 
     public dataSource: string | string[];
     public timeAttribute: string;
-    public forceInterval: boolean;
-    public approximate: boolean;
+    public allowEternity: boolean;
+    public allowSelectQueries: boolean;
+    public exactResultsOnly: boolean;
     public context: Lookup<any>;
 
-    constructor(parameters: DatasetValue) {
+    constructor(parameters: DruidDatasetValue) {
       super(parameters, dummyObject);
       this._ensureSource("druid");
       this.dataSource = parameters.dataSource;
       this.timeAttribute = parameters.timeAttribute;
       if (typeof this.timeAttribute !== 'string') throw new Error("must have a timeAttribute");
-      this.forceInterval = parameters.forceInterval;
-      this.approximate = parameters.approximate;
+      this.allowEternity = parameters.allowEternity;
+      this.allowSelectQueries = parameters.allowSelectQueries;
+      this.exactResultsOnly = parameters.exactResultsOnly;
       this.context = parameters.context;
     }
 
-    public valueOf(): DatasetValue {
-      var value = super.valueOf();
+    public valueOf(): DruidDatasetValue {
+      var value: DruidDatasetValue = super.valueOf();
       value.dataSource = this.dataSource;
       value.timeAttribute = this.timeAttribute;
-      value.forceInterval = this.forceInterval;
-      value.approximate = this.approximate;
+      value.allowEternity = this.allowEternity;
+      value.allowSelectQueries = this.allowSelectQueries;
+      value.exactResultsOnly = this.exactResultsOnly;
       value.context = this.context;
       return value;
     }
 
-    public toJS(): DatasetJS {
-      var js = super.toJS();
+    public toJS(): DruidDatasetJS {
+      var js: DruidDatasetJS = super.toJS();
       js.dataSource = this.dataSource;
       js.timeAttribute = this.timeAttribute;
-      js.forceInterval = this.forceInterval;
-      js.approximate = this.approximate;
+      if (this.allowEternity) js.allowEternity = true;
+      if (this.allowSelectQueries) js.allowSelectQueries = true;
+      if (this.exactResultsOnly) js.exactResultsOnly = true;
       js.context = this.context;
       return js;
     }
@@ -288,8 +312,9 @@ module Facet {
       return super.equals(other) &&
         String(this.dataSource) === String(other.dataSource) &&
         this.timeAttribute === other.timeAttribute &&
-        this.forceInterval === other.forceInterval &&
-        this.approximate === other.approximate &&
+        this.allowEternity === other.allowEternity &&
+        this.allowSelectQueries === other.allowSelectQueries &&
+        this.exactResultsOnly === other.exactResultsOnly &&
         this.context === other.context;
     }
 
@@ -470,7 +495,9 @@ module Facet {
       if (filter.type !== 'BOOLEAN') throw new Error("must be a BOOLEAN filter");
 
       if (filter instanceof LiteralExpression) {
-        return filter.value ? DruidDataset.TRUE_INTERVAL : DruidDataset.FALSE_INTERVAL;
+        if (!filter.value) return DruidDataset.FALSE_INTERVAL;
+        if (!this.allowEternity) throw new Error('must filter on time unless the allowEternity flag is set');
+        return DruidDataset.TRUE_INTERVAL;
       } else if (filter instanceof InExpression) {
         var lhs = filter.lhs;
         var rhs = filter.rhs;
@@ -554,7 +581,7 @@ return (start < 0 ?'-':'') + parts.join('.');
         var dimensionSpec = (splitExpression.name === label) ?
           label : {type: "default", dimension: splitExpression.name, outputName: label};
 
-        if (this.havingFilter.equals(Expression.TRUE) && this.limit && this.approximate) {
+        if (this.havingFilter.equals(Expression.TRUE) && this.limit && !this.exactResultsOnly) {
           var attributeInfo = this.attributes[splitExpression.name];
           queryType = 'topN';
           if (attributeInfo instanceof RangeAttributeInfo) {
@@ -590,7 +617,7 @@ return (start < 0 ?'-':'') + parts.join('.');
             }
           };
 
-          if (this.havingFilter.equals(Expression.TRUE) && this.limit && this.approximate) {
+          if (this.havingFilter.equals(Expression.TRUE) && this.limit && !this.exactResultsOnly) {
             queryType = 'topN';
             dimension = substrDimension;
             postProcess = postProcessTopNFactory(null, null);
@@ -1030,6 +1057,9 @@ return (start < 0 ?'-':'') + parts.join('.');
 
       switch (this.mode) {
         case 'raw':
+          if (!this.allowSelectQueries) {
+            throw new Error("can issue make 'select' queries unless allowSelectQueries flag is set");
+          }
           druidQuery.queryType = 'select';
           druidQuery.dimensions = [];
           druidQuery.metrics = [];

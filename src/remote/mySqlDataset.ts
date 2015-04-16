@@ -58,31 +58,39 @@ module Facet {
     return attributes;
   }
 
+  export interface MySQLDatasetValue extends DatasetValue{
+    table?: string;
+  }
+
+  export interface MySQLDatasetJS extends DatasetJS {
+    table?: string;
+  }
+
   export class MySQLDataset extends RemoteDataset {
     static type = 'DATASET';
 
     static fromJS(datasetJS: any): MySQLDataset {
-      var value = RemoteDataset.jsToValue(datasetJS);
+      var value: MySQLDatasetValue = RemoteDataset.jsToValue(datasetJS);
       value.table = datasetJS.table;
       return new MySQLDataset(value);
     }
 
     public table: string;
 
-    constructor(parameters: DatasetValue) {
+    constructor(parameters: MySQLDatasetValue) {
       super(parameters, dummyObject);
       this._ensureSource("mysql");
       this.table = parameters.table;
     }
 
     public valueOf(): DatasetValue {
-      var value = super.valueOf();
+      var value: MySQLDatasetValue = super.valueOf();
       value.table = this.table;
       return value;
     }
 
     public toJS(): DatasetJS {
-      var js = super.toJS();
+      var js: MySQLDatasetJS = super.toJS();
       js.table = this.table;
       return js;
     }

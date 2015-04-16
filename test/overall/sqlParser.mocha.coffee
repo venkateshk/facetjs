@@ -59,6 +59,26 @@ describe "SQL parser", ->
 
     expect(ex.toJS()).to.deep.equal(ex2.toJS())
 
+  it "should work without with a BETWEEN", ->
+    ex = Expression.parseSQL("""
+      SELECT
+      SUM(added) AS 'TotalAdded'
+      WHERE `language`="en" AND `time` BETWEEN '2015-01-01T10:30:00' AND '2015-01-02T12:30:00'
+      GROUP BY 1
+      """)
+
+    ex2 = $()
+      .def('data', $('data').filter(
+        $('language').is("en").and($('time').in({
+          start: new Date('2015-01-01T10:30:00'),
+          end: new Date('2015-01-02T12:30:00'),
+          bounds: '[]'
+        }))
+      ))
+      .apply('TotalAdded', '$data.sum($added)')
+
+    expect(ex.toJS()).to.deep.equal(ex2.toJS())
+
   it "should parse a complex filter", ->
     ex = Expression.parseSQL("""
       SELECT

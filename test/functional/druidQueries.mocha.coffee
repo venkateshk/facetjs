@@ -25,8 +25,6 @@ describe "DruidDataset", ->
         source: 'druid',
         dataSource: 'wikipedia_editstream',
         timeAttribute: 'time',
-        forceInterval: true,
-        approximate: true,
         context: null
         attributes: {
           time: { type: 'TIME' }
@@ -195,8 +193,6 @@ describe "DruidDataset", ->
         source: 'druid',
         dataSource: 'wikipedia_editstream',
         timeAttribute: 'time',
-        forceInterval: true,
-        approximate: true,
         context: null
         filter: $('time').in(TimeRange.fromJS({
           start: new Date("2013-02-26T00:00:00Z")

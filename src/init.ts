@@ -105,7 +105,7 @@ function deduplicateSort(a: string[]): string[] {
   return newA
 }
 
-function checkArrayEquality<T>(a: Array<T>, b: Array<T>): boolean {
+function arraysEqual<T>(a: Array<T>, b: Array<T>): boolean {
   return a.length === b.length && a.every((item, i) => (item === b[i]));
 }
 

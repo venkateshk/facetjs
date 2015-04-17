@@ -43,13 +43,13 @@ module Facet {
       return true;
     }
 
-    public getComplexity(): number {
-      var complexity = 1;
+    public expressionCount(): number {
+      var expressionCount = 1;
       var operands = this.operands;
       for (var i = 0; i < operands.length; i++) {
-        complexity += operands[i].getComplexity();
+        expressionCount += operands[i].expressionCount();
       }
-      return complexity;
+      return expressionCount;
     }
 
     protected _specialSimplify(simpleOperands: Expression[]): Expression {
@@ -86,16 +86,27 @@ module Facet {
       return this.operands.filter((operand) => operand.isOp(type));
     }
 
-    public _everyHelper(iter: BooleanExpressionIterator, depth: number, genDiff: number): boolean {
-      var pass = iter(this, depth, genDiff);
-      if (pass != null) return false;
-      return this.operands.every((operand) => operand._everyHelper(iter, depth + 1, genDiff));
+    public _everyHelper(iter: BooleanExpressionIterator, thisArg: any, indexer: Indexer, depth: number, genDiff: number): boolean {
+      var pass = iter.call(thisArg, this, indexer.index, depth, genDiff);
+      if (pass != null) {
+        return pass;
+      } else {
+        indexer.index++;
+      }
+
+      return this.operands.every((operand) => operand._everyHelper(iter, thisArg, indexer, depth + 1, genDiff));
     }
 
-    public _substituteHelper(substitutionFn: SubstitutionFn, depth: number, genDiff: number): Expression {
-      var sub = substitutionFn(this, depth, genDiff);
-      if (sub) return sub;
-      var subOperands = this.operands.map((operand) => operand._substituteHelper(substitutionFn, depth + 1, genDiff));
+    public _substituteHelper(substitutionFn: SubstitutionFn, thisArg: any, indexer: Indexer, depth: number, genDiff: number): Expression {
+      var sub = substitutionFn.call(thisArg, this, indexer.index, depth, genDiff);
+      if (sub) {
+        indexer.index += this.expressionCount();
+        return sub;
+      } else {
+        indexer.index++;
+      }
+
+      var subOperands = this.operands.map((operand) => operand._substituteHelper(substitutionFn, thisArg, indexer, depth + 1, genDiff));
       if (this.operands.every((op, i) => op === subOperands[i])) return this;
 
       var value = this.valueOf();
@@ -137,8 +148,9 @@ module Facet {
       }
     }
 
-    public _fillRefSubstitutions(typeContext: FullType, alterations: Alteration[]): FullType {
-      var remotes = this.operands.map((operand) => operand._fillRefSubstitutions(typeContext, alterations).remote);
+    public _fillRefSubstitutions(typeContext: FullType, indexer: Indexer, alterations: Alterations): FullType {
+      indexer.index++;
+      var remotes = this.operands.map((operand) => operand._fillRefSubstitutions(typeContext, indexer, alterations).remote);
       return {
         type: this.type,
         remote: mergeRemotes(remotes)

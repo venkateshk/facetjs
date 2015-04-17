@@ -836,10 +836,10 @@ return (start < 0 ?'-':'') + parts.join('.');
       var nameIndex = 0;
 
       applies.forEach((apply) => {
-        var newExpression = apply.expression.substitute((ex: Expression, depth: number) => {
+        var newExpression = apply.expression.substitute((ex: Expression, index: number) => {
           if (ex instanceof AggregateExpression) {
             var key = ex.toString();
-            if (depth === 0) {
+            if (index === 0) {
               if (hasOwnProperty(knownExpressions, key)) {
                 return new RefExpression({
                   op: 'ref',

@@ -9,7 +9,7 @@ describe 'AndExpression', ->
     beforeEach ->
       this.expression = { op: 'and', operands: [] }
 
-    tests.complexityIs(1)
+    tests.expressionCountIs(1)
     tests.simplifiedExpressionIs({op: 'literal', value: true})
 
   describe 'with true expressions', ->
@@ -19,7 +19,7 @@ describe 'AndExpression', ->
         { op: 'literal', value: true }
       ] }
 
-    tests.complexityIs(3)
+    tests.expressionCountIs(3)
     tests.simplifiedExpressionIs({op: 'literal', value: true})
 
   describe 'with boolean expressions', ->
@@ -30,7 +30,7 @@ describe 'AndExpression', ->
         { op: 'literal', value: false }
       ] }
 
-    tests.complexityIs(4)
+    tests.expressionCountIs(4)
     tests.simplifiedExpressionIs({op: 'literal', value: false})
 
   describe 'with is expressions', ->
@@ -40,7 +40,7 @@ describe 'AndExpression', ->
         { op: 'is', lhs: "$test", rhs: "test2" },
       ] }
 
-    tests.complexityIs(7)
+    tests.expressionCountIs(7)
     tests.simplifiedExpressionIs({op: 'literal', value: false})
 
   describe 'with is/in expressions', ->
@@ -57,7 +57,7 @@ describe 'AndExpression', ->
         }
       ] }
 
-    tests.complexityIs(7)
+    tests.expressionCountIs(7)
     tests.simplifiedExpressionIs({ op: 'is', lhs: { op: 'ref', name: "test" }, rhs: { op: 'literal', value: "blah" } })
 
   describe 'with is/in expressions 2', ->
@@ -74,7 +74,7 @@ describe 'AndExpression', ->
         { op: 'is', lhs: "$test", rhs: "blah" }
       ] }
 
-    tests.complexityIs(7)
+    tests.expressionCountIs(7)
     tests.simplifiedExpressionIs({ op: 'is', lhs: { op: 'ref', name: "test" }, rhs: { op: 'literal', value: "blah" } })
 
   describe 'with hasOwnProperty', ->
@@ -91,7 +91,7 @@ describe 'AndExpression', ->
         { op: 'is', lhs: "$hasOwnProperty", rhs: "blah" }
       ] }
 
-    tests.complexityIs(7)
+    tests.expressionCountIs(7)
     tests.simplifiedExpressionIs({ op: 'is', lhs: { op: 'ref', name: "hasOwnProperty" }, rhs: { op: 'literal', value: "blah" } })
 
   describe 'with number comparison expressions', ->
@@ -101,7 +101,7 @@ describe 'AndExpression', ->
         { op: 'lessThanOrEqual', lhs: "$test", rhs: 0 }
       ] }
 
-    tests.complexityIs(7)
+    tests.expressionCountIs(7)
     tests.simplifiedExpressionIs({
       op: 'in',
       lhs: { op: 'ref', name: "test" },
@@ -115,7 +115,7 @@ describe 'AndExpression', ->
         { op: 'and', operands: [{ op: 'lessThan', lhs: "$test3", rhs: 1 }, { op: 'lessThanOrEqual', lhs: "$test4", rhs: 0 }]}
       ] }
 
-    tests.complexityIs(15)
+    tests.expressionCountIs(15)
     tests.simplifiedExpressionIs({ op: 'and', operands: [
       {
         "lhs": { "name": "test1", "op": "ref" }
@@ -146,7 +146,7 @@ describe 'AndExpression', ->
         { op: 'lessThan', lhs: 0, rhs: "$test" }
       ] }
 
-    tests.complexityIs(7)
+    tests.expressionCountIs(7)
     tests.simplifiedExpressionIs({
       "lhs": {
         "name": "test"
@@ -174,7 +174,7 @@ describe 'AndExpression', ->
         end:   new Date('2015-03-15T00:00:00')
       }))).toJS()
 
-    tests.complexityIs(7)
+    tests.expressionCountIs(7)
     tests.simplifiedExpressionIs($("time").in(TimeRange.fromJS({
       start: new Date('2015-03-14T00:00:00')
       end:   new Date('2015-03-15T00:00:00')
@@ -187,7 +187,7 @@ describe 'AndExpression', ->
         { op: 'in', lhs: '$test', rhs: [0, 2, 4, 6, 8] }
       ] }
 
-    tests.complexityIs(7)
+    tests.expressionCountIs(7)
     tests.simplifiedExpressionIs({
       "lhs": { "name": "test", "op": "ref" }
       "op": "in"

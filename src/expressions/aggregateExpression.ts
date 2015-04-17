@@ -99,17 +99,23 @@ module Facet {
       throw new Error("can not getSQL with complex operand");
     }
 
-    protected _specialEvery(iter: BooleanExpressionIterator, depth: number, genDiff: number): boolean {
-      return this.attribute ? this.attribute._everyHelper(iter, depth + 1, genDiff + 1) : true;
+    protected _specialEvery(iter: BooleanExpressionIterator, thisArg: any, indexer: Indexer, depth: number, genDiff: number): boolean {
+      return this.attribute ? this.attribute._everyHelper(iter, thisArg, indexer, depth + 1, genDiff + 1) : true;
     }
 
-    public _substituteHelper(substitutionFn: SubstitutionFn, depth: number, genDiff: number): Expression {
-      var sub = substitutionFn(this, depth, genDiff);
-      if (sub) return sub;
-      var subOperand = this.operand._substituteHelper(substitutionFn, depth + 1, genDiff);
+    public _substituteHelper(substitutionFn: SubstitutionFn, thisArg: any, indexer: Indexer, depth: number, genDiff: number): Expression {
+      var sub = substitutionFn.call(thisArg, this, indexer.index, depth, genDiff);
+      if (sub) {
+        indexer.index += this.expressionCount();
+        return sub;
+      } else {
+        indexer.index++;
+      }
+
+      var subOperand = this.operand._substituteHelper(substitutionFn, thisArg, indexer, depth + 1, genDiff);
       var subAttribute: Expression = null;
       if (this.attribute) {
-        subAttribute = this.attribute._substituteHelper(substitutionFn, depth + 1, genDiff + 1);
+        subAttribute = this.attribute._substituteHelper(substitutionFn, thisArg, indexer, depth + 1, genDiff + 1);
       }
       if (this.operand === subOperand && this.attribute === subAttribute) return this;
 
@@ -120,8 +126,8 @@ module Facet {
       return new AggregateExpression(value);
     }
 
-    public getComplexity(): number {
-      return 1 + this.operand.getComplexity() + (this.attribute ? this.attribute.getComplexity() : 0);
+    public expressionCount(): number {
+      return 1 + this.operand.expressionCount() + (this.attribute ? this.attribute.expressionCount() : 0);
     }
 
     public simplify(): Expression {
@@ -144,11 +150,12 @@ module Facet {
       return new AggregateExpression(simpleValue)
     }
 
-    public _fillRefSubstitutions(typeContext: FullType, alterations: Alteration[]): FullType {
-      var datasetContext = this.operand._fillRefSubstitutions(typeContext, alterations);
+    public _fillRefSubstitutions(typeContext: FullType, indexer: Indexer, alterations: Alterations): FullType {
+      indexer.index++;
+      var datasetContext = this.operand._fillRefSubstitutions(typeContext, indexer, alterations);
       var attributeType = 'NUMBER'; // In case of count
       if (this.attribute) {
-        attributeType = this.attribute._fillRefSubstitutions(datasetContext, alterations).type;
+        attributeType = this.attribute._fillRefSubstitutions(datasetContext, indexer, alterations).type;
       }
       return {
         type: this.fn === 'group' ? ('SET/' + attributeType) : this.type,

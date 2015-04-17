@@ -10,7 +10,7 @@ describe 'NumberBucketExpression', ->
         offset: 1
       }
 
-    tests.complexityIs(2)
+    tests.expressionCountIs(2)
     tests.simplifiedExpressionIs({
       "op": "literal"
       "type": "NUMBER_RANGE"
@@ -35,7 +35,7 @@ describe 'NumberBucketExpression', ->
         offset: 1
       }
 
-    tests.complexityIs(4)
+    tests.expressionCountIs(4)
     tests.simplifiedExpressionIs({
       "op": "literal"
       "type": "NUMBER_RANGE"

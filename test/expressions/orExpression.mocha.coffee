@@ -10,7 +10,7 @@ describe 'OrExpression', ->
     beforeEach ->
       this.expression = { op: 'or', operands: [] }
 
-    tests.complexityIs(1)
+    tests.expressionCountIs(1)
     tests.simplifiedExpressionIs({op: 'literal', value: false})
 
   describe 'with false expressions', ->
@@ -20,7 +20,7 @@ describe 'OrExpression', ->
         { op: 'literal', value: false }
       ] }
 
-    tests.complexityIs(3)
+    tests.expressionCountIs(3)
     tests.simplifiedExpressionIs({op: 'literal', value: false})
 
   describe 'with boolean expressions', ->
@@ -31,7 +31,7 @@ describe 'OrExpression', ->
         { op: 'literal', value: false }
       ] }
 
-    tests.complexityIs(4)
+    tests.expressionCountIs(4)
     tests.simplifiedExpressionIs({op: 'literal', value: true})
 
   describe 'with IS expressions', ->
@@ -41,7 +41,7 @@ describe 'OrExpression', ->
         { op: 'is', lhs: "$test", rhs: "test2" },
       ] }
 
-    tests.complexityIs(7)
+    tests.expressionCountIs(7)
     tests.simplifiedExpressionIs({
       op: 'in',
       lhs: { op: 'ref', name: 'test' },
@@ -66,7 +66,7 @@ describe 'OrExpression', ->
         }
       ] }
 
-    tests.complexityIs(7)
+    tests.expressionCountIs(7)
     tests.simplifiedExpressionIs({
       op: 'in',
       lhs: { op: 'ref', name: 'test' },
@@ -91,7 +91,7 @@ describe 'OrExpression', ->
         { op: 'is', lhs: "$test", rhs: "blah3" }
       ] }
 
-    tests.complexityIs(7)
+    tests.expressionCountIs(7)
     tests.simplifiedExpressionIs({
       op: 'in',
       lhs: { op: 'ref', name: 'test' },
@@ -109,7 +109,7 @@ describe 'OrExpression', ->
         { op: 'lessThanOrEqual', lhs: "$test", rhs: 0 }
       ] }
 
-    tests.complexityIs(7)
+    tests.expressionCountIs(7)
     tests.simplifiedExpressionIs({
       "lhs": {
         "name": "test"
@@ -134,7 +134,7 @@ describe 'OrExpression', ->
         { op: 'or', operands: [{ op: 'lessThan', lhs: "$test3", rhs: 1 }, { op: 'lessThanOrEqual', lhs: "$test4", rhs: 0 }]}
       ] }
 
-    tests.complexityIs(15)
+    tests.expressionCountIs(15)
     tests.simplifiedExpressionIs({ op: 'or', operands: [
       {
         "lhs": { "name": "test1", "op": "ref" }
@@ -165,7 +165,7 @@ describe 'OrExpression', ->
         { op: 'lessThan', lhs: 2, rhs: "$test" }
       ] }
 
-    tests.complexityIs(7)
+    tests.expressionCountIs(7)
     tests.simplifiedExpressionIs({
       "lhs": { "name": "test", "op": "ref" }
       "op": "in"
@@ -197,7 +197,7 @@ describe 'OrExpression', ->
         { op: 'in', lhs: '$test', rhs: [0, 2, 4, 6, 8] }
       ] }
 
-    tests.complexityIs(7)
+    tests.expressionCountIs(7)
     tests.simplifiedExpressionIs({
       "lhs": { "name": "test", "op": "ref" }
       "op": "in"

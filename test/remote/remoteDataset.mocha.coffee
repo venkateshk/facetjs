@@ -122,6 +122,28 @@ describe "RemoteDataset", ->
         }
       ])
 
+    it "a filtered split on string", ->
+      ex = $('wiki').filter('$language = "en"').group("$page").label('Page')
+        .def('wiki', '$wiki.filter($language = "en").filter($page = $^Page)')
+        .apply('Count', '$wiki.count()')
+        .apply('Added', '$wiki.sum($added)')
+        .sort('$Count', 'descending')
+        .limit(5)
+
+      ex = ex.referenceCheck(context).resolve(context).simplify()
+
+      expect(ex.op).to.equal('literal')
+      remoteDataset = ex.value
+      expect(remoteDataset.filter.toString()).to.equal('($language:STRING = "en" and $time in [2013-02-26T00:00:00.000Z,2013-02-27T00:00:00.000Z))')
+      expect(remoteDataset.defs).to.have.length(1)
+      expect(remoteDataset.applies).to.have.length(2)
+
+      expect(remoteDataset.simulate().toJS()).to.deep.equal([
+        "Added": 4
+        "Count": 4
+        "Page": "some_page"
+      ])
+
     it "a total and a split", ->
       ex = $()
         .def("wiki",

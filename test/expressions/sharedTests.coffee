@@ -17,9 +17,9 @@ exports.errorsFromJS = (expectedMessage) ->
     ).to.throw(expectedMessage)
 
 
-exports.complexityIs = (expectedComplexity) ->
-  it '#getComplexty() gets the complexity correctly', ->
-    expect(Expression.fromJS(@expression).getComplexity()).to.equal(expectedComplexity)
+exports.expressionCountIs = (expectedComplexity) ->
+  it '#expressionCount() is correct', ->
+    expect(Expression.fromJS(@expression).expressionCount()).to.equal(expectedComplexity)
 
 
 exports.simplifiedExpressionIs = (expectedSimplifiedExpression) ->

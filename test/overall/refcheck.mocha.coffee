@@ -139,6 +139,47 @@ describe "reference check", ->
           .toJS()
       )
 
+    it "a base split", ->
+      ex = $("diamonds").group("$cut").label('Cut')
+        .def('diamonds', $('diamonds').filter($('cut').is('$^Cut')))
+        .apply('Count', '$diamonds.count()')
+        .apply('TotalPrice', '$diamonds.sum($price)')
+
+      expect(ex.referenceCheck(context).toJS()).to.deep.equal(
+        $("diamonds:DATASET").group("$cut:STRING").label('Cut')
+          .def('diamonds', $('^diamonds:DATASET').filter($('cut:STRING').is('$^Cut:STRING')))
+          .apply('Count', '$diamonds:DATASET.count()')
+          .apply('TotalPrice', '$diamonds:DATASET.sum($price:NUMBER)')
+          .toJS()
+      )
+
+    it "a base split + filter", ->
+      ex = $("diamonds").filter($('color').is('D')).group("$cut").label('Cut')
+        .def('diamonds', $('diamonds').filter($('color').is('D')).filter($('cut').is('$^Cut')))
+        .apply('Count', '$diamonds.count()')
+        .apply('TotalPrice', '$diamonds.sum($price)')
+
+      expect(ex.referenceCheck(context).toJS()).to.deep.equal(
+        $("diamonds:DATASET").filter($('color:STRING').is('D')).group("$cut:STRING").label('Cut')
+          .def('diamonds', $('^diamonds:DATASET').filter($('color:STRING').is('D')).filter($('cut:STRING').is('$^Cut:STRING')))
+          .apply('Count', '$diamonds:DATASET.count()')
+          .apply('TotalPrice', '$diamonds:DATASET.sum($price:NUMBER)')
+          .toJS()
+      )
+
+    it "a base split + filter (using split)", ->
+      ex = $("diamonds").filter($('color').is('D')).split("$cut", 'Cut', 'diamonds')
+        .apply('Count', '$diamonds.count()')
+        .apply('TotalPrice', '$diamonds.sum($price)')
+
+      expect(ex.referenceCheck(context).toJS()).to.deep.equal(
+        $("diamonds:DATASET").filter($('color:STRING').is('D')).group("$cut:STRING").label('Cut')
+          .def('diamonds', $('^diamonds:DATASET').filter($('color:STRING').is('D')).filter($('cut:STRING').is('$^Cut:STRING')))
+          .apply('Count', '$diamonds:DATASET.count()')
+          .apply('TotalPrice', '$diamonds:DATASET.sum($price:NUMBER)')
+          .toJS()
+      )
+
     it "two splits", ->
       ex = $()
         .def("diamonds", $('diamonds').filter($("color").is('D')))

@@ -1,14 +1,14 @@
 module Facet {
   export interface SubstitutionFn {
-    (ex: Expression, depth?: number, genDiff?: number): Expression;
+    (ex: Expression, index?: number, depth?: number, genDiff?: number): Expression;
   }
 
   export interface BooleanExpressionIterator {
-    (ex: Expression, depth?: number, genDiff?: number): boolean;
+    (ex: Expression, index?: number, depth?: number, genDiff?: number): boolean;
   }
 
   export interface VoidExpressionIterator {
-    (ex: Expression, depth?: number, genDiff?: number): void;
+    (ex: Expression, index?: number, depth?: number, genDiff?: number): void;
   }
 
   export interface DatasetBreakdown {
@@ -20,6 +20,12 @@ module Facet {
     expression: Expression;
     undigested: ApplyAction;
   }
+
+  export interface Indexer {
+    index: number
+  }
+
+  export type Alterations = Lookup<Expression>;
 
   export interface ExpressionValue {
     op: string;
@@ -65,11 +71,6 @@ module Facet {
     part?: string;
     position?: number;
     length?: number;
-  }
-
-  export interface Alteration {
-    from: Expression;
-    to: Expression;
   }
 
   export interface Separation {
@@ -330,11 +331,11 @@ module Facet {
     }
 
     /**
-     * Compute the relative complexity of the expression
+     * Counts the number of expressions contained within this expression
      *
      * @returns {number}
      */
-    public getComplexity(): number {
+    public expressionCount(): number {
       return 1;
     }
 
@@ -385,19 +386,54 @@ module Facet {
     }
 
     /**
-     * Introspects self to look for all free references
+     * Retreave all free references by name
      * returns the alphabetically sorted list of the references
      *
      * @returns {string[]}
      */
     public getFreeReferences(): string[] {
       var freeReferences: string[] = [];
-      this.forEach((ex: Expression, depth: number, genDiff: number) => {
+      this.forEach((ex: Expression, index: number, depth: number, genDiff: number) => {
         if (ex instanceof RefExpression && genDiff <= ex.generations.length) {
           freeReferences.push(repeat('^', ex.generations.length - genDiff) + ex.name);
         }
       });
       return deduplicateSort(freeReferences);
+    }
+
+    /**
+     * Retreave all free references by index in the query
+     *
+     * @returns {number[]}
+     */
+    public getFreeReferenceIndexes(): number[] {
+      var freeReferenceIndexes: number[] = [];
+      this.forEach((ex: Expression, index: number, depth: number, genDiff: number) => {
+        if (ex instanceof RefExpression && genDiff <= ex.generations.length) {
+          freeReferenceIndexes.push(index);
+        }
+      });
+      return freeReferenceIndexes;
+    }
+
+    /**
+     * Increment the ^ nesting on all the free reference variables within this expression
+
+     * @param by The number of generation to increment by (default: 1)
+     * @returns {any}
+     */
+    public incrementNesting(by: number = 1): Expression {
+      var add = repeat('^', by);
+      var freeReferenceIndexes = this.getFreeReferenceIndexes();
+      if (freeReferenceIndexes.length === 0) return this;
+      return this.substitute((ex: Expression, index: number) => {
+        if (ex instanceof RefExpression && freeReferenceIndexes.indexOf(index) !== -1) {
+          var value = ex.valueOf();
+          value.name = add + value.name;
+          return new RefExpression(value);
+        }
+        return null;
+      });
     }
 
     /**
@@ -442,40 +478,43 @@ module Facet {
      * Runs iter over all the sub expression and return true if iter returns true for everything
      *
      * @param iter The function to run
+     * @param thisArg The this for the substitution function
      * @returns {boolean}
      */
-    public every(iter: BooleanExpressionIterator): boolean {
-      return this._everyHelper(iter, 0, 0);
+    public every(iter: BooleanExpressionIterator, thisArg?: any): boolean {
+      return this._everyHelper(iter, thisArg, { index: 0 }, 0, 0);
     }
 
-    public _everyHelper(iter: BooleanExpressionIterator, depth: number, genDiff: number): boolean {
-      return iter(this, depth, genDiff) !== false;
+    public _everyHelper(iter: BooleanExpressionIterator, thisArg: any, indexer: Indexer, depth: number, genDiff: number): boolean {
+      return iter.call(thisArg, this, indexer.index, depth, genDiff) !== false;
     }
 
     /**
      * Runs iter over all the sub expression and return true if iter returns true for anything
      *
      * @param iter The function to run
+     * @param thisArg The this for the substitution function
      * @returns {boolean}
      */
-    public some(iter: BooleanExpressionIterator): boolean {
-      return !this.every((ex: Expression, depth: number, genDiff: number) => {
-        var v = iter(ex, depth, genDiff);
+    public some(iter: BooleanExpressionIterator, thisArg?: any): boolean {
+      return !this.every((ex: Expression, index: number, depth: number, genDiff: number) => {
+        var v = iter.call(this, ex, index, depth, genDiff);
         return (v == null) ? null : !v;
-      });
+      }, thisArg);
     }
 
     /**
      * Runs iter over all the sub expressions
      *
      * @param iter The function to run
+     * @param thisArg The this for the substitution function
      * @returns {boolean}
      */
-    public forEach(iter: VoidExpressionIterator): void {
-      this.every((ex: Expression, depth: number, genDiff: number) => {
-        iter(ex, depth, genDiff);
+    public forEach(iter: VoidExpressionIterator, thisArg?: any): void {
+      this.every((ex: Expression, index: number, depth: number, genDiff: number) => {
+        iter.call(this, ex, index, depth, genDiff);
         return null;
-      });
+      }, thisArg);
     }
 
     /**
@@ -483,14 +522,21 @@ module Facet {
      * if substitutionFn returns an expression than it is replaced; if null is returned no action is taken.
      *
      * @param substitutionFn The function with which to substitute
+     * @param thisArg The this for the substitution function
      */
-    public substitute(substitutionFn: SubstitutionFn): Expression {
-      return this._substituteHelper(substitutionFn, 0, 0);
+    public substitute(substitutionFn: SubstitutionFn, thisArg?: any): Expression {
+      return this._substituteHelper(substitutionFn, thisArg, { index: 0 }, 0, 0);
     }
 
-    public _substituteHelper(substitutionFn: SubstitutionFn, depth: number, genDiff: number): Expression {
-      var sub = substitutionFn(this, depth, genDiff);
-      if (sub) return sub;
+    public _substituteHelper(substitutionFn: SubstitutionFn, thisArg: any, indexer: Indexer, depth: number, genDiff: number): Expression {
+      var sub = substitutionFn.call(thisArg, this, indexer.index, depth, genDiff);
+      if (sub) {
+        indexer.index += this.expressionCount();
+        return sub;
+      } else {
+        indexer.index++;
+      }
+
       return this;
     }
 
@@ -693,8 +739,9 @@ module Facet {
       if (!dataName && !newDataName) {
         throw new Error("could not guess data name in `split`, please provide one explicitly");
       }
+      var incrementedSelf = this.incrementNesting(1);
       return this.group(attribute).label(name)
-        .def(newDataName || dataName, $('^' + (dataName || newDataName)).filter(attribute.is($('^' + name))));
+        .def(newDataName || dataName, incrementedSelf.filter(attribute.is($('^' + name))));
     }
 
     // Expression constructors (Binary)
@@ -784,7 +831,8 @@ module Facet {
      * @returns the resolved type of the expression
      * @private
      */
-    public _fillRefSubstitutions(typeContext: FullType, alterations: Alteration[]): FullType {
+    public _fillRefSubstitutions(typeContext: FullType, indexer: Indexer, alterations: Alterations): FullType {
+      indexer.index++;
       return typeContext;
     }
 
@@ -805,18 +853,10 @@ module Facet {
         datasetType: datasetType
       };
       
-      var alterations: Alteration[] = [];
-      this._fillRefSubstitutions(typeContext, alterations); // This return the final type
-      if (!alterations.length) return this;
-      function substitutionFn(ex: Expression): Expression {
-        if (!ex.isOp('ref')) return null;
-        for (var i = 0; i < alterations.length; i++) {
-          var alteration = alterations[i];
-          if (ex === alteration.from) return alteration.to;
-        }
-        return null;
-      }
-      return this.substitute(substitutionFn);
+      var alterations: Alterations = {};
+      this._fillRefSubstitutions(typeContext, { index: 0 }, alterations); // This return the final type
+      if (!Object.keys(alterations).length) return this;
+      return this.substitute((ex: Expression, index: number): Expression => alterations[index] || null);
     }
 
     /**
@@ -827,7 +867,7 @@ module Facet {
      * @return The resolved expression
      */
     public resolve(context: Datum, leaveIfNotFound: boolean = false): Expression {
-      return this.substitute((ex: Expression, depth: number, genDiff: number) => {
+      return this.substitute((ex: Expression, index: number, depth: number, genDiff: number) => {
         if (ex instanceof RefExpression) {
           var refGen = ex.generations.length;
           if (genDiff === refGen) {

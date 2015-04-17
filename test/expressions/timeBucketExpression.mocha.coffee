@@ -13,7 +13,7 @@ describe 'TimeBucketExpression', ->
         timezone: 'Etc/UTC'
       }
 
-    tests.complexityIs(2)
+    tests.expressionCountIs(2)
     tests.simplifiedExpressionIs({
       "op": "literal"
       "type": "TIME_RANGE"

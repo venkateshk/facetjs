@@ -146,8 +146,8 @@ module Facet {
       throw new Error('can not call this directly');
     }
 
-    public getComplexity(): number {
-      return 1 + (this.expression ? this.expression.getComplexity() : 0);
+    public expressionCount(): number {
+      return this.expression ? this.expression.expressionCount() : 0;
     }
 
     public simplify(): Action {
@@ -161,13 +161,13 @@ module Facet {
       return this.expression ? this.expression.getFreeReferences() : [];
     }
 
-    public _everyHelper(iter: BooleanExpressionIterator, depth: number, genDiff: number): boolean {
-      return this.expression ? this.expression._everyHelper(iter, depth, genDiff) : true;
+    public _everyHelper(iter: BooleanExpressionIterator, thisArg: any, indexer: Indexer, depth: number, genDiff: number): boolean {
+      return this.expression ? this.expression._everyHelper(iter, thisArg, indexer, depth, genDiff) : true;
     }
 
-    public _substituteHelper(substitutionFn: SubstitutionFn, depth: number, genDiff: number): Action {
+    public _substituteHelper(substitutionFn: SubstitutionFn, thisArg: any, indexer: Indexer, depth: number, genDiff: number): Action {
       if (!this.expression) return this;
-      var subExpression = this.expression._substituteHelper(substitutionFn, depth, genDiff);
+      var subExpression = this.expression._substituteHelper(substitutionFn, thisArg, indexer, depth, genDiff);
       if (this.expression === subExpression) return this;
       var value = this.valueOf();
       value.expression = subExpression;

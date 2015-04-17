@@ -13,7 +13,7 @@ describe 'TimeOffsetExpression', ->
         timezone: 'Etc/UTC'
       }
 
-    tests.complexityIs(2)
+    tests.expressionCountIs(2)
     tests.simplifiedExpressionIs({
       op: 'literal'
       value: new Date('2015-02-21T15:41:12')

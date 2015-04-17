@@ -15,7 +15,7 @@ describe 'ActionsExpression', ->
         ]
       }
 
-    tests.complexityIs(2)
+    tests.expressionCountIs(5)
     tests.simplifiedExpressionIs({
       op: 'actions'
       operand: {

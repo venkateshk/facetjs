@@ -106,7 +106,9 @@ module Facet {
       return Boolean(this.remote && this.remote.length);
     }
 
-    public _fillRefSubstitutions(typeContext: FullType, alterations: Alteration[]): FullType {
+    public _fillRefSubstitutions(typeContext: FullType, indexer: Indexer, alterations: Alterations): FullType {
+      var myIndex = indexer.index;
+      indexer.index++;
       var numGenerations = this.generations.length;
 
       // Step the parentContext back; once for each generation
@@ -138,14 +140,11 @@ module Facet {
       // Check if it needs to be replaced
       if (!this.type || genBack > 0 || String(this.remote) !== String(myRemote)) {
         var newGenerations = this.generations + repeat('^', genBack);
-        alterations.push({
-          from: this,
-          to: new RefExpression({
-            op: 'ref',
-            name: newGenerations + this.name,
-            type: myType,
-            remote: myRemote
-          })
+        alterations[myIndex] = new RefExpression({
+          op: 'ref',
+          name: newGenerations + this.name,
+          type: myType,
+          remote: myRemote
         })
       }
 

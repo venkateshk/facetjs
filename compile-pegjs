@@ -8,10 +8,7 @@ echo "The contents of this directory is auto-generated" > parser/README.md
 # Core
 
 # Expression parser
-node_modules/.bin/pegjs \
-  --export-var "module.exports" \
-  src/expressions/expression.pegjs \
-  parser/expression.js
+node extra/pegjs.js
 
 # SQL Expression parser
 node_modules/.bin/pegjs \

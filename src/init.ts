@@ -74,6 +74,10 @@ interface PEGParser {
   parse: (str: string, options?: PEGParserOptions) => any;
 }
 
+interface PEGParserFactory {
+  (facet: any): PEGParser;
+}
+
 interface Dummy {}
 
 // --------------------------------------------------------
@@ -117,8 +121,9 @@ function larger<T>(a: T, b: T): T {
   return a < b ? b : a;
 }
 
+var expressionParser: PEGParser;
+
 module Facet {
-  export var expressionParser = <PEGParser>require("../parser/expression");
   export var sqlParser = <PEGParser>require("../parser/sql");
 
   export var isInstanceOf = HigherObject.isInstanceOf;

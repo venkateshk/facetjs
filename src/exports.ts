@@ -1,3 +1,5 @@
+expressionParser = (<PEGParserFactory>require("../parser/expression"))(Facet);
+
 if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
   module.exports = Facet;
   module.exports.helper = Facet.Helper;

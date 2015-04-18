@@ -122,15 +122,6 @@ module Facet {
     }
   }
 
-  function parseExpression(str: string): ExpressionJS {
-    try {
-      return expressionParser.parse(str);
-    } catch (e) {
-      // Re-throw to add the stacktrace
-      throw new Error('Expression parse error ' + e.message + ' on `' + str + '`');
-    }
-  }
-
   function parseSQL(str: string): ExpressionJS {
     try {
       return sqlParser.parse(str);
@@ -161,7 +152,12 @@ module Facet {
      * @returns {Expression}
      */
     static parse(str: string): Expression {
-      return Expression.fromJS(parseExpression(str));
+      try {
+        return expressionParser.parse(str);
+      } catch (e) {
+        // Re-throw to add the stacktrace
+        throw new Error('Expression parse error ' + e.message + ' on `' + str + '`');
+      }
     }
 
     /**
@@ -215,7 +211,7 @@ module Facet {
           if (/^[\w ]+$/.test(param)) { // ToDo: is [\w ] right?
             expressionJS = { op: 'literal', value: param };
           } else {
-            expressionJS = parseExpression(param);
+            return Expression.parse(param);
           }
           break;
 

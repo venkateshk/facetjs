@@ -198,7 +198,7 @@ module Facet {
       return new ActionsExpression(value);
     }
 
-    protected _performAction(action: Action): Expression {
+    public performAction(action: Action): Expression {
       return new ActionsExpression({
         op: 'actions',
         operand: this.operand,

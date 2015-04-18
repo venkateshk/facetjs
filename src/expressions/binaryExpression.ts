@@ -79,14 +79,6 @@ module Facet {
       return new (Expression.classMap[this.op])(simpleValue);
     }
 
-    public getOperandOfType(type: string): Expression[] {
-      var ret: Expression[] = [];
-
-      if (this.lhs.isOp(type)) ret.push(this.lhs);
-      if (this.rhs.isOp(type)) ret.push(this.rhs);
-      return ret;
-    }
-
     public checkLefthandedness(): boolean {
       return this.lhs.isOp('ref') && this.rhs.isOp('literal');
     }

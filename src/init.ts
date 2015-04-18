@@ -122,10 +122,9 @@ function larger<T>(a: T, b: T): T {
 }
 
 var expressionParser: PEGParser;
+var sqlParser: PEGParser;
 
 module Facet {
-  export var sqlParser = <PEGParser>require("../parser/sql");
-
   export var isInstanceOf = HigherObject.isInstanceOf;
   export var isHigherObject = HigherObject.isHigherObject;
 

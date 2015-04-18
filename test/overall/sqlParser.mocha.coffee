@@ -14,6 +14,19 @@ describe "SQL parser", ->
       Expression.parseSQL("SELECT  FROM diamonds")
     ).to.throw('SQL parse error Can not have empty column list on `SELECT  FROM diamonds`')
 
+  it "should parse a simple expression", ->
+    ex = Expression.parseSQL("""
+      SELECT
+      COUNT() AS 'Count'
+      FROM `wiki`
+      """)
+
+    ex2 = $()
+      .def('data', '$wiki')
+      .apply('Count', '$data.count()')
+
+    expect(ex.toJS()).to.deep.equal(ex2.toJS())
+
   it "should parse a total expression", ->
     ex = Expression.parseSQL("""
       SELECT
@@ -98,25 +111,26 @@ describe "SQL parser", ->
 
     expect(ex.toJS()).to.deep.equal(ex2.toJS())
 
-  it.skip "should work without top level GROUP BY", ->
+  it "should work without top level GROUP BY", ->
     ex = Expression.parseSQL("""
       SELECT
-      `page` AS 'Page'
+      `page` AS 'Page',
       SUM(added) AS 'TotalAdded'
       FROM `wiki`
       WHERE `language`="en" AND `time` BETWEEN '2015-01-01T10:30:00' AND '2015-01-02T12:30:00'
       GROUP BY `page`
       """)
 
-    ex2 = $('wiki')
-      .def('data', $('data').filter(
-        $('language').is("en").and($('time').in({
-          start: new Date('2015-01-01T10:30:00'),
-          end: new Date('2015-01-02T12:30:00'),
-          bounds: '[]'
-        }))
-      ))
+    ex2 = $('wiki').filter(
+      $('language').is("en").and($('time').in({
+        start: new Date('2015-01-01T10:30:00'),
+        end: new Date('2015-01-02T12:30:00'),
+        bounds: '[]'
+      }))
+    ).split('$page', 'Page', 'data')
       .apply('TotalAdded', '$data.sum($added)')
+
+    expect(ex.toJS()).to.deep.equal(ex2.toJS())
 
   it "should parse a complex filter", ->
     ex = Expression.parseSQL("""

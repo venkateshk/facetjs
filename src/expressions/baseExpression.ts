@@ -122,15 +122,6 @@ module Facet {
     }
   }
 
-  function parseSQL(str: string): ExpressionJS {
-    try {
-      return sqlParser.parse(str);
-    } catch (e) {
-      // Re-throw to add the stacktrace
-      throw new Error('SQL parse error ' + e.message + ' on `' + str + '`');
-    }
-  }
-
   var check: ImmutableClass<ExpressionValue, ExpressionJS>;
 
   /**
@@ -167,7 +158,12 @@ module Facet {
      * @returns {Expression}
      */
     static parseSQL(str: string): Expression {
-      return Expression.fromJS(parseSQL(str));
+      try {
+        return sqlParser.parse(str);
+      } catch (e) {
+        // Re-throw to add the stacktrace
+        throw new Error('SQL parse error ' + e.message + ' on `' + str + '`');
+      }
     }
 
     /**
@@ -433,16 +429,6 @@ module Facet {
     }
 
     /**
-     * Sifts through operands to find all operands of a certain type
-     *
-     * @param type{string} Type of operand to look for
-     * @returns {Expression[]}
-     */
-    public getOperandOfType(type: string): Expression[] {
-      throw new Error('can not call on base');
-    }
-
-    /**
      * Merge self with the provided expression for AND operation and returns a merged expression.
      *
      * @returns {Expression}
@@ -613,7 +599,7 @@ module Facet {
     // API behaviour
 
     // Action constructors
-    protected _performAction(action: Action): Expression {
+    public performAction(action: Action): Expression {
       return new ActionsExpression({
         op: 'actions',
         operand: this,
@@ -630,7 +616,7 @@ module Facet {
      */
     public apply(name: string, ex: any): Expression {
       if (!Expression.isExpression(ex)) ex = Expression.fromJSLoose(ex);
-      return this._performAction(new ApplyAction({ name: name, expression: ex }));
+      return this.performAction(new ApplyAction({ name: name, expression: ex }));
     }
 
     /**
@@ -643,7 +629,7 @@ module Facet {
      */
     public def(name: string, ex: any): Expression {
       if (!Expression.isExpression(ex)) ex = Expression.fromJSLoose(ex);
-      return this._performAction(new DefAction({ name: name, expression: ex }));
+      return this.performAction(new DefAction({ name: name, expression: ex }));
     }
 
     /**
@@ -655,7 +641,7 @@ module Facet {
      */
     public filter(ex: any): Expression {
       if (!Expression.isExpression(ex)) ex = Expression.fromJSLoose(ex);
-      return this._performAction(new FilterAction({ expression: ex }));
+      return this.performAction(new FilterAction({ expression: ex }));
     }
 
     /**
@@ -666,11 +652,11 @@ module Facet {
      */
     public sort(ex: any, direction: string): Expression {
       if (!Expression.isExpression(ex)) ex = Expression.fromJSLoose(ex);
-      return this._performAction(new SortAction({ expression: ex, direction: direction }));
+      return this.performAction(new SortAction({ expression: ex, direction: direction }));
     }
 
     public limit(limit: number): Expression {
-      return this._performAction(new LimitAction({ limit: limit }));
+      return this.performAction(new LimitAction({ limit: limit }));
     }
 
     // Expression constructors (Unary)

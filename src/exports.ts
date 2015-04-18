@@ -1,4 +1,5 @@
 expressionParser = (<PEGParserFactory>require("../parser/expression"))(Facet);
+sqlParser = (<PEGParserFactory>require("../parser/sql"))(Facet);
 
 if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
   module.exports = Facet;

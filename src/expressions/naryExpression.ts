@@ -82,10 +82,6 @@ module Facet {
       }
     }
 
-    public getOperandOfType(type: string): Expression[] {
-      return this.operands.filter((operand) => operand.isOp(type));
-    }
-
     public _everyHelper(iter: BooleanExpressionIterator, thisArg: any, indexer: Indexer, depth: number, genDiff: number): boolean {
       var pass = iter.call(thisArg, this, indexer.index, depth, genDiff);
       if (pass != null) {

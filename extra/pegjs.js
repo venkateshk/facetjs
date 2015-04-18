@@ -19,3 +19,19 @@ expressionParser = expressionParser.substring(prefixToRemove.length, expressionP
 expressionParser = 'module.exports = function(facet) {' + expressionParser + '};\n';
 
 fs.writeFileSync('./parser/expression.js', expressionParser, 'utf8');
+
+// SQL
+
+var sqlGrammarFilename = './src/expressions/sql.pegjs';
+var sqlGrammar = fs.readFileSync(sqlGrammarFilename, 'utf8');
+
+var sqlParser = PEG.buildParser(sqlGrammar, {
+  output: 'source',
+  optimize: "speed" // or "size"
+});
+
+sqlParser = sqlParser.substring(prefixToRemove.length, sqlParser.length - postfixToRemove.length);
+
+sqlParser = 'module.exports = function(facet) {' + sqlParser + '};\n';
+
+fs.writeFileSync('./parser/sql.js', sqlParser, 'utf8');

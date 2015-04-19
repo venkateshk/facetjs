@@ -125,8 +125,8 @@ SQLQuery
     { return handleQuery(columns, from, where, groupBy, having, orderBy, limit); }
 
 SQLSubQuery
-  = SelectToken columns:Columns? groupBy:GroupByClause having:HavingClause? orderBy:OrderByClause? limit:LimitClause?
-    { return handleQuery(columns, null, null, groupBy, having, orderBy, limit); }
+  = SelectToken columns:Columns? where:WhereClause? groupBy:GroupByClause having:HavingClause? orderBy:OrderByClause? limit:LimitClause?
+    { return handleQuery(columns, null, where, groupBy, having, orderBy, limit); }
 
 Columns
   = __ head:Column tail:(_ "," _ Column)*
@@ -173,7 +173,7 @@ LimitClause
     { return new LimitAction({ action: 'limit', limit: limit }); }
 
 /*
-Expressions are filed in below in acceding priority order
+Expressions are defined below in acceding priority order
 
   Or (OR)
   And (AND)
@@ -186,17 +186,21 @@ Expressions are filed in below in acceding priority order
 
 Expression = OrExpression
 
+
 OrExpression
   = head:AndExpression tail:(_ OrToken _ AndExpression)*
     { return naryExpressionFactory('or', head, tail); }
+
 
 AndExpression
   = head:NotExpression tail:(_ AndToken _ NotExpression)*
     { return naryExpressionFactory('and', head, tail); }
 
+
 NotExpression
-  = NotToken __ ex:ComparisonExpression { return ex.not(); }
+  = NotToken _ ex:ComparisonExpression { return ex.not(); }
   / ComparisonExpression
+
 
 ComparisonExpression
   = lhs:AdditiveExpression __ BetweenToken __ start:AdditiveExpression __ AndToken __ end:AdditiveExpression
@@ -221,17 +225,20 @@ ComparisonOp
   / "<"  { return 'lessThan'; }
   / ">"  { return 'greaterThan'; }
 
+
 AdditiveExpression
   = head:MultiplicativeExpression tail:(_ AdditiveOp _ MultiplicativeExpression)*
     { return naryExpressionWithAltFactory('add', head, tail, '-', 'negate'); }
 
 AdditiveOp = [+-]
 
+
 MultiplicativeExpression
   = head:BasicExpression tail:(_ MultiplicativeOp _ BasicExpression)*
     { return naryExpressionWithAltFactory('multiply', head, tail, '/', 'reciprocate'); }
 
 MultiplicativeOp = [*/]
+
 
 BasicExpression
   = LiteralExpression
@@ -240,6 +247,7 @@ BasicExpression
   / "(" _ ex:Expression _ ")" { return ex; }
   / "(" _ subQuery:SQLSubQuery _ ")" { return subQuery; }
   / RefExpression
+
 
 AggregateExpression
   = CountToken "()"
@@ -250,6 +258,7 @@ AggregateExpression
 AggregateFn
   = SumToken / AvgToken / MinToken / MaxToken
 
+
 FunctionCallExpression
   = TimeBucketToken "(" _ operand:Expression _ "," _ duration:Name _ "," _ timezone:String ")"
     { return operand.timeBucket(duration, timezone); }
@@ -258,8 +267,16 @@ FunctionCallExpression
   / SubstrToken "(" _ operand:Expression _ "," _ position:Number _ "," _ length:Number ")"
     { return operand.substr(position, length); }
 
+
 RefExpression
   = ref:Ref { return $(ref); }
+
+Ref
+  = name:RefName !{ return reserved(name); }
+    { return name }
+  / "`" name:RefName "`"
+    { return name }
+
 
 LiteralExpression
   = number:Number { return Expression.fromJS({ op: "literal", value: number }); }
@@ -278,11 +295,6 @@ LiteralExpression
     }
   / v:(NullToken / TrueToken / FalseToken) { return Expression.fromJS({ op: "literal", value: v }); }
 
-Ref
-  = name:RefName !{ return reserved(name); }
-    { return name }
-  / "`" name:RefName "`"
-    { return name }
 
 String "String"
   = "'" chars:NotSQuote "'" { return chars; }

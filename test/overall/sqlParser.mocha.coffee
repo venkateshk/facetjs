@@ -31,7 +31,9 @@ describe "SQL parser", ->
     ex = Expression.parseSQL("""
       SELECT
       SUM(added) AS 'TotalAdded',
-      '2014-01-02' AS 'Date'
+      '2014-01-02' AS 'Date',
+      SUM(added) / 4 AS TotalAddedOver4,
+      NOT(true) AS 'False'
       FROM `wiki`
       WHERE `language`="en"    -- This is just some comment
       GROUP BY ''
@@ -41,6 +43,8 @@ describe "SQL parser", ->
       .def('data', '$wiki.filter($language = "en")')
       .apply('TotalAdded', '$data.sum($added)')
       .apply('Date', new Date('2014-01-02T00:00:00.000Z'))
+      .apply('TotalAddedOver4', '$data.sum($added) / 4')
+      .apply('False', $(true).not())
 
     expect(ex.toJS()).to.deep.equal(ex2.toJS())
 

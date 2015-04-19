@@ -37,19 +37,86 @@ var possibleCalls = {
   'split': 1
 };
 
+function naryExpressionFactory(op, head, tail) {
+  if (!tail.length) return head;
+  return head[op].apply(head, tail.map(function(t) { return t[3]; }));
+}
+
+function naryExpressionWithAltFactory(op, head, tail, altToken, altOp) {
+  if (!tail.length) return head;
+  return head[op].apply(head, tail.map(function(t) { return t[1] === altToken ? t[3][altOp]() : t[3]; }))
+}
+
 }// Start grammar
 
 start
   = _ ex:Expression _ { return ex; }
 
-Expression
-  = BinaryExpression
-  / AdditiveExpression
-  / CallChainExpression
+/*
+Expressions are defined below in acceding priority order
+
+  Or (or)
+  And (and)
+  Not (not)
+  Comparison (=, <, >, <=, >=, <>, !=, in)
+  Additive (+, -)
+  Multiplicative (*), Division (/)
+  identity (+), negation (-)
+*/
+
+Expression = OrExpression
+
+
+OrExpression
+  = head:AndExpression tail:(_ OrToken _ AndExpression)*
+    { return naryExpressionFactory('or', head, tail); }
+
+
+AndExpression
+  = head:NotExpression tail:(_ AndToken _ NotExpression)*
+    { return naryExpressionFactory('and', head, tail); }
+
+
+NotExpression
+  = NotToken _ ex:ComparisonExpression { return ex.not(); }
+  / ComparisonExpression
+
+
+ComparisonExpression
+  = lhs:AdditiveExpression rest:(_ ComparisonOp _ AdditiveExpression)?
+    {
+      if (!rest) return lhs;
+      return lhs[rest[1]](rest[3]);
+    }
+
+ComparisonOp
+  = "="  { return 'is'; }
+  / "!=" { return 'isnt'; }
+  / "in" { return 'in'; }
+  / "<=" { return 'lessThanOrEqual'; }
+  / ">=" { return 'greaterThanOrEqual'; }
+  / "<"  { return 'lessThan'; }
+  / ">"  { return 'greaterThan'; }
+
+
+AdditiveExpression
+  = head:MultiplicativeExpression tail:(_ AdditiveOp _ MultiplicativeExpression)*
+    { return naryExpressionWithAltFactory('add', head, tail, '-', 'negate'); }
+
+AdditiveOp = [+-]
+
+
+MultiplicativeExpression
+  = head:CallChainExpression tail:(_ MultiplicativeOp _ CallChainExpression)*
+    { return naryExpressionWithAltFactory('multiply', head, tail, '/', 'reciprocate'); }
+
+MultiplicativeOp = [*/]
+
 
 CallChainExpression
-  = lhs:Leaf tail:(_ "." _ CallFn "(" _ Params? _ ")")+
+  = lhs:BasicExpression tail:(_ "." _ CallFn "(" _ Params? _ ")")*
     {
+      if (!tail.length) return lhs;
       var operand = lhs;
       for (var i = 0, n = tail.length; i < n; i++) {
         var part = tail[i];
@@ -68,69 +135,25 @@ Params
 Param
   = Number / Name / String / Expression
 
-BinaryExpression
-  = lhs:AdditiveExpression _ op:BinaryOp _ rhs:Expression
-    { return lhs[op](rhs); }
 
-BinaryOp
-  = "="  { return 'is'; }
-  / "in" { return 'in'; }
-  / "<=" { return 'lessThanOrEqual'; }
-  / ">=" { return 'greaterThanOrEqual'; }
-  / "<"  { return 'lessThan'; }
-  / ">"  { return 'greaterThan'; }
-
-AdditiveExpression
-  = head:MultiplicativeExpression tail:(_ [+-] _ MultiplicativeExpression)*
-    {
-      if (!tail.length) return head;
-      var operands = [];
-      for (var i = 0; i < tail.length; i++) {
-        if (tail[i][1] === '+') {
-          operands.push(tail[i][3]);
-        } else {
-          operands.push(tail[i][3].negate());
-        }
-      }
-      return head.add.apply(head, operands);
-    }
-
-MultiplicativeExpression
-  = head:Factor tail:(_ [*/] _ Factor)*
-    {
-      if (!tail.length) return head;
-      var operands = [];
-      for (var i = 0; i < tail.length; i++) {
-        if (tail[i][1] === '*') {
-          operands.push(tail[i][3]);
-        } else {
-          operands.push(tail[i][3].reciprocate());
-        }
-      }
-      return head.multiply.apply(head, operands);
-    }
-
-Factor
-  = CallChainExpression
-  / "(" _ ex:Expression _ ")" { return ex; }
-  / Literal
-  / Ref
-
-Leaf
+BasicExpression
   = "(" _ ex:Expression _ ")" { return ex; }
-  / Literal
-  / Ref
+  / LiteralExpression
+  / RefExpression
   / "$()" { return $(); }
 
-Ref
+
+RefExpression
   = "$" name:RefName ":" type:TypeName
     { return $(name + ':' + type); }
   / "$" name:RefName
     { return $(name); }
 
-Literal
+
+LiteralExpression
   = value:Number { return Expression.fromJS({ op: "literal", value: value }); }
   / value:String { return Expression.fromJS({ op: "literal", value: value }); }
+
 
 String "String"
   = "'" chars:NotSQuote "'" { return chars; }
@@ -138,6 +161,18 @@ String "String"
   / '"' chars:NotDQuote '"' { return chars; }
   / '"' chars:NotDQuote { error("Unmatched double quote"); }
 
+
+/* Tokens */
+
+NullToken         = "null"i   !IdentifierPart { return null; }
+TrueToken         = "true"i   !IdentifierPart { return true; }
+FalseToken        = "false"i  !IdentifierPart { return false; }
+
+NotToken          = "not"i    !IdentifierPart
+AndToken          = "and"i    !IdentifierPart
+OrToken           = "or"i     !IdentifierPart
+
+IdentifierPart = [A-Za-z_]
 
 /* Numbers */
 

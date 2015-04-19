@@ -37,9 +37,10 @@ module Facet {
       return null;
     }
 
-    public _fillRefSubstitutions(typeContext: FullType, alterations: Alteration[]): FullType {
-      var lhsFullType = this.lhs._fillRefSubstitutions(typeContext, alterations);
-      var rhsFullType = this.rhs._fillRefSubstitutions(typeContext, alterations);
+    public _fillRefSubstitutions(typeContext: FullType, indexer: Indexer, alterations: Alterations): FullType {
+      indexer.index++;
+      var lhsFullType = this.lhs._fillRefSubstitutions(typeContext, indexer, alterations);
+      var rhsFullType = this.rhs._fillRefSubstitutions(typeContext, indexer, alterations);
 
       var lhsDatasetType = lhsFullType.datasetType;
       var rhsDatasetType = rhsFullType.datasetType;

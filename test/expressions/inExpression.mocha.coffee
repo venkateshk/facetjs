@@ -13,7 +13,7 @@ describe 'InExpression', ->
         rhs: { op: 'literal', value: Set.fromJS(['Honda', 'BMW', 'Suzuki']) }
       }
 
-    tests.complexityIs(3)
+    tests.expressionCountIs(3)
     tests.simplifiedExpressionIs({ op: 'literal', value: true })
 
   describe 'with empty set', ->
@@ -24,7 +24,7 @@ describe 'InExpression', ->
         rhs: { op: 'literal', value: Set.fromJS({ elements: [], setType: 'STRING' }) }
       }
 
-    tests.complexityIs(3)
+    tests.expressionCountIs(3)
     tests.simplifiedExpressionIs({ op: 'literal', value: false })
 
   describe 'with number range', ->
@@ -35,7 +35,7 @@ describe 'InExpression', ->
         rhs: { op: 'literal', value: new NumberRange({start: 0.05, end: 1}) }
       }
 
-    tests.complexityIs(3)
+    tests.expressionCountIs(3)
     tests.simplifiedExpressionIs({ op: 'literal', value: false })
 
   describe 'with complex values', ->
@@ -46,7 +46,7 @@ describe 'InExpression', ->
         rhs: { op: 'literal', value: Set.fromJS([true]) }
       }
 
-    tests.complexityIs(5)
+    tests.expressionCountIs(5)
     tests.simplifiedExpressionIs({ op: 'literal', value: false })
 
   describe 'with right-handed reference', ->
@@ -57,7 +57,7 @@ describe 'InExpression', ->
         rhs: { op: 'ref', name: 'test' }
       }
 
-    tests.complexityIs(3)
+    tests.expressionCountIs(3)
     tests.simplifiedExpressionIs({ op: 'in', lhs: { op: 'literal', value: 5 }, rhs: { op: 'ref', name: 'test' }})
 
   describe 'with left-handed reference', ->
@@ -69,7 +69,7 @@ describe 'InExpression', ->
           rhs: { op: 'literal', value: Set.fromJS(['A', 'B', 'C']) }
         }
 
-      tests.complexityIs(3)
+      tests.expressionCountIs(3)
       tests.simplifiedExpressionIs({
         op: 'in',
         lhs: { op: 'ref', name: 'test' },
@@ -220,7 +220,7 @@ describe 'InExpression', ->
           rhs: { op: 'literal', value: new NumberRange({start: 0, end: 1}) }
         }
 
-      tests.complexityIs(3)
+      tests.expressionCountIs(3)
       tests.simplifiedExpressionIs({
         op: 'in',
         lhs: { op: 'ref', name: 'test' },
@@ -406,7 +406,7 @@ describe 'InExpression', ->
           rhs: { op: 'literal', value: new TimeRange({start: new Date(0), end: new Date(10)}) }
         }
 
-      tests.complexityIs(3)
+      tests.expressionCountIs(3)
       tests.simplifiedExpressionIs({
         op: 'in',
         lhs: { op: 'ref', name: 'test' },

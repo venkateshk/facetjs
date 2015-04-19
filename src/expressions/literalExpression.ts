@@ -139,7 +139,8 @@ module Facet {
       }
     }
 
-    public _fillRefSubstitutions(typeContext: FullType, alterations: Alteration[]): FullType {
+    public _fillRefSubstitutions(typeContext: FullType, indexer: Indexer, alterations: Alterations): FullType {
+      indexer.index++;
       if (this.type == 'DATASET') {
         var newTypeContext = (<Dataset>this.value).getFullType();
         newTypeContext.parent = typeContext;

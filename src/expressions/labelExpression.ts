@@ -99,8 +99,9 @@ module Facet {
       return null;
     }
 
-    public _fillRefSubstitutions(typeContext: FullType, alterations: Alteration[]): FullType {
-      var setFullType = this.operand._fillRefSubstitutions(typeContext, alterations);
+    public _fillRefSubstitutions(typeContext: FullType, indexer: Indexer, alterations: Alterations): FullType {
+      indexer.index++;
+      var setFullType = this.operand._fillRefSubstitutions(typeContext, indexer, alterations);
       var newDatasetType: Lookup<FullType> = {};
       
       newDatasetType[this.name] = {

@@ -49,8 +49,8 @@ module Facet {
         this.rhs.equals(other.rhs);
     }
 
-    public getComplexity(): number {
-      return 1 + this.lhs.getComplexity() + this.rhs.getComplexity()
+    public expressionCount(): number {
+      return 1 + this.lhs.expressionCount() + this.rhs.expressionCount()
     }
 
     protected _specialSimplify(simpleLhs: Expression, simpleRhs: Expression): Expression {
@@ -79,14 +79,6 @@ module Facet {
       return new (Expression.classMap[this.op])(simpleValue);
     }
 
-    public getOperandOfType(type: string): Expression[] {
-      var ret: Expression[] = [];
-
-      if (this.lhs.isOp(type)) ret.push(this.lhs);
-      if (this.rhs.isOp(type)) ret.push(this.rhs);
-      return ret;
-    }
-
     public checkLefthandedness(): boolean {
       return this.lhs.isOp('ref') && this.rhs.isOp('literal');
     }
@@ -108,17 +100,29 @@ module Facet {
       }
     }
 
-    public _everyHelper(iter: BooleanExpressionIterator, depth: number, genDiff: number): boolean {
-      var pass = iter(this, depth, genDiff);
-      if (pass != null) return pass;
-      return this.lhs._everyHelper(iter, depth + 1, genDiff) && this.rhs._everyHelper(iter, depth + 1, genDiff);
+    public _everyHelper(iter: BooleanExpressionIterator, thisArg: any, indexer: Indexer, depth: number, genDiff: number): boolean {
+      var pass = iter.call(thisArg, this, indexer.index, depth, genDiff);
+      if (pass != null) {
+        return pass;
+      } else {
+        indexer.index++;
+      }
+
+      return this.lhs._everyHelper(iter, thisArg, indexer, depth + 1, genDiff)
+          && this.rhs._everyHelper(iter, thisArg, indexer, depth + 1, genDiff);
     }
 
-    public _substituteHelper(substitutionFn: SubstitutionFn, depth: number, genDiff: number): Expression {
-      var sub = substitutionFn(this, depth, genDiff);
-      if (sub) return sub;
-      var subLhs = this.lhs._substituteHelper(substitutionFn, depth, genDiff);
-      var subRhs = this.rhs._substituteHelper(substitutionFn, depth, genDiff);
+    public _substituteHelper(substitutionFn: SubstitutionFn, thisArg: any, indexer: Indexer, depth: number, genDiff: number): Expression {
+      var sub = substitutionFn.call(thisArg, this, indexer.index, depth, genDiff);
+      if (sub) {
+        indexer.index += this.expressionCount();
+        return sub;
+      } else {
+        indexer.index++;
+      }
+
+      var subLhs = this.lhs._substituteHelper(substitutionFn, thisArg, indexer, depth, genDiff);
+      var subRhs = this.rhs._substituteHelper(substitutionFn, thisArg, indexer, depth, genDiff);
       if (this.lhs === subLhs && this.rhs === subRhs) return this;
 
       var value = this.valueOf();
@@ -159,9 +163,10 @@ module Facet {
       }
     }
 
-    public _fillRefSubstitutions(typeContext: FullType, alterations: Alteration[]): FullType {
-      var lhsFullType = this.lhs._fillRefSubstitutions(typeContext, alterations);
-      var rhsFullType = this.rhs._fillRefSubstitutions(typeContext, alterations);
+    public _fillRefSubstitutions(typeContext: FullType, indexer: Indexer, alterations: Alterations): FullType {
+      indexer.index++;
+      var lhsFullType = this.lhs._fillRefSubstitutions(typeContext, indexer, alterations);
+      var rhsFullType = this.rhs._fillRefSubstitutions(typeContext, indexer, alterations);
       return {
         type: this.type,
         remote: mergeRemotes([lhsFullType.remote, rhsFullType.remote])

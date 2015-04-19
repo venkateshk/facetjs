@@ -10,21 +10,21 @@ describe 'IsExpression', ->
     beforeEach ->
       this.expression = { op: 'is', lhs: { op: 'literal', value: 5 }, rhs: { op: 'literal', value: 5 } }
 
-    tests.complexityIs(3)
+    tests.expressionCountIs(3)
     tests.simplifiedExpressionIs({ op: 'literal', value: true })
 
   describe 'with false value', ->
     beforeEach ->
       this.expression = { op: 'is', lhs: { op: 'literal', value: 5 }, rhs: { op: 'literal', value: 2 } }
 
-    tests.complexityIs(3)
+    tests.expressionCountIs(3)
     tests.simplifiedExpressionIs({ op: 'literal', value: false })
 
   describe 'with string value', ->
     beforeEach ->
       this.expression = { op: 'is', lhs: 'abc', rhs: 'abc' }
 
-    tests.complexityIs(3)
+    tests.expressionCountIs(3)
     tests.simplifiedExpressionIs({ op: 'literal', value: true })
 
   describe 'with reference', ->
@@ -32,7 +32,7 @@ describe 'IsExpression', ->
       beforeEach ->
         this.expression = { op: 'is', lhs: { op: 'ref', name: 'flight_time' }, rhs: { op: 'literal', value: 5 } }
 
-      tests.complexityIs(3)
+      tests.expressionCountIs(3)
       tests.simplifiedExpressionIs({ op: 'is', lhs: { op: 'ref', name: 'flight_time' }, rhs: { op: 'literal', value: 5 } })
 
       describe '#mergeAnd', ->
@@ -116,7 +116,7 @@ describe 'IsExpression', ->
       beforeEach ->
         this.expression = { op: 'is', lhs: { op: 'ref', name: 'flight_time' }, rhs: { op: 'literal', value: new Date(6) } }
 
-      tests.complexityIs(3)
+      tests.expressionCountIs(3)
       tests.simplifiedExpressionIs({ op: 'is', lhs: { op: 'ref', name: 'flight_time' }, rhs: { op: 'literal', value: new Date(6) } })
 
       describe '#mergeAnd', ->
@@ -168,7 +168,7 @@ describe 'IsExpression', ->
             rhs: { op: 'literal', value: new TimeRange({ start: new Date('2015-03-14T00:00:00'), end: new Date('2015-03-15T00:00:00') }) }
           }
 
-        tests.complexityIs(4)
+        tests.expressionCountIs(4)
         tests.simplifiedExpressionIs({
           op: 'in'
           lhs: { op: 'ref', name: 'time' }
@@ -187,7 +187,7 @@ describe 'IsExpression', ->
             rhs: { op: 'literal', value: new TimeRange({ start: new Date('2015-03-14T00:00:00'), end: new Date('2015-03-15T01:00:00') }) }
           }
 
-        tests.complexityIs(4)
+        tests.expressionCountIs(4)
         tests.simplifiedExpressionIs({
           op: 'literal'
           value: false
@@ -263,7 +263,7 @@ describe 'IsExpression', ->
       beforeEach ->
         this.expression = { op: 'is', lhs: { op: 'ref', name: 'flight_time' }, rhs: { op: 'literal', value: 'ABC' } }
 
-      tests.complexityIs(3)
+      tests.expressionCountIs(3)
       tests.simplifiedExpressionIs({ op: 'is', lhs: { op: 'ref', name: 'flight_time' }, rhs: { op: 'literal', value: 'ABC' } })
 
       describe '#mergeAnd', ->
@@ -372,5 +372,5 @@ describe 'IsExpression', ->
     beforeEach ->
       this.expression = { op: 'is', lhs: { op: 'is', lhs: 1, rhs: 2 }, rhs: { op: 'is', lhs: 5, rhs: 2 }}
 
-    tests.complexityIs(7)
+    tests.expressionCountIs(7)
     tests.simplifiedExpressionIs({ op: 'literal', value: true })

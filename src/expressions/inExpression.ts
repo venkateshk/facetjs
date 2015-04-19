@@ -91,7 +91,7 @@ module Facet {
 
     public mergeAnd(exp: Expression): Expression {
       if (!this.checkLefthandedness()) return null; // ToDo: Do something about A is B and B in C
-      if (!checkArrayEquality(this.getFreeReferences(), exp.getFreeReferences())) return null;
+      if (!arraysEqual(this.getFreeReferences(), exp.getFreeReferences())) return null;
 
       if (exp instanceof IsExpression || exp instanceof InExpression) {
         if (!exp.checkLefthandedness()) return null;
@@ -106,7 +106,7 @@ module Facet {
 
     public mergeOr(exp: Expression): Expression {
       if (!this.checkLefthandedness()) return null; // ToDo: Do something about A is B and B in C
-      if (!checkArrayEquality(this.getFreeReferences(), exp.getFreeReferences())) return null;
+      if (!arraysEqual(this.getFreeReferences(), exp.getFreeReferences())) return null;
 
       if (exp instanceof IsExpression || exp instanceof InExpression) {
         if (!exp.checkLefthandedness()) return null;

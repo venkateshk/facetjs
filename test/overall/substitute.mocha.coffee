@@ -46,3 +46,22 @@ describe "substitute", ->
         )
         .toJS()
     )
+
+  it "has the right index", ->
+    ex = $()
+      .def('num', 5)
+      .apply('subData',
+        $()
+          .apply('x', '$num + 1')
+          .apply('y', '$foo * 2')
+          .apply('z', $().sum('$a + 3'))
+          .apply('w', $().sum('$a + 4 + $b'))
+      )
+
+    indexes = []
+    subs = (ex, index) ->
+      indexes.push(index)
+      return null
+
+    ex.substitute(subs)
+    expect(indexes).to.deep.equal([0...ex.expressionCount()])

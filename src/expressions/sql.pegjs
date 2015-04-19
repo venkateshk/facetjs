@@ -1,182 +1,121 @@
-{
-  var base = { op: 'literal', value: [{}] };
-  var dataRef = { op: 'ref', name: 'data' };
-  var dateRegExp = /^\d\d\d\d-\d\d-\d\d(?:T(?:\d\d)?(?::\d\d)?(?::\d\d)?(?:.\d\d\d)?)?Z?$/;
+{// starts with function(facet)
+var $ = facet.$;
+var Expression = facet.Expression;
+var FilterAction = facet.FilterAction;
+var ApplyAction = facet.ApplyAction;
+var DefAction = facet.DefAction;
+var SortAction = facet.SortAction;
+var LimitAction = facet.LimitAction;
 
-  // See here: https://www.drupal.org/node/141051
-  var reservedWords = {
-    ALL: 1, AND: 1,  AS: 1, ASC: 1, AVG: 1,
-    BETWEEN: 1, BY: 1,
-    CONTAINS: 1, CREATE: 1,
-    DELETE: 1, DESC: 1, DISTINCT: 1, DROP: 1,
-    EXISTS: 1, EXPLAIN: 1,
-    FALSE: 1, FROM: 1,
-    GROUP: 1,
-    HAVING: 1,
-    IN: 1, INNER: 1,  INSERT: 1, INTO: 1, IS: 1,
-    JOIN: 1,
-    LEFT: 1, LIKE: 1, LIMIT: 1,
-    MAX: 1, MIN: 1,
-    NOT: 1, NULL: 1, NUMBER_BUCKET: 1,
-    ON: 1, OR: 1, ORDER: 1,
-    REPLACE: 1,
-    SELECT: 1, SET: 1, SHOW: 1, SUM: 1,
-    TABLE: 1, TIME_BUCKET: 1, TRUE: 1,
-    UNION: 1, UPDATE: 1,
-    VALUES: 1,
-    WHERE: 1
-  }
+var dataRef = $('data');
+var dateRegExp = /^\d\d\d\d-\d\d-\d\d(?:T(?:\d\d)?(?::\d\d)?(?::\d\d)?(?:.\d\d\d)?)?Z?$/;
 
-  var objectHasOwnProperty = Object.prototype.hasOwnProperty;
-  function reserved(str) {
-    return objectHasOwnProperty.call(reservedWords, str.toUpperCase());
-  }
-
-  function parentify(ref) {
-    return { op: 'ref', name: '^' + ref.name };
-  }
-
-  function equals(a, b) {
-    aKeys = Object.keys(a).sort();
-    bKeys = Object.keys(b).sort();
-    if (String(aKeys) !== String(bKeys)) return false;
-    for (var i = 0; i < aKeys.length; i++) {
-      var key = aKeys[i];
-      var va = a[key];
-      var vb = b[key];
-      var tva = typeof va;
-      if (tva !== typeof vb) return false;
-      if (tva === 'object') {
-        if (!equals(va, vb)) return false;
-      } else {
-        if (va !== vb) return false;
-      }
-    }
-    return true;
-  }
-
-  function extractGroupByColumn(columns, groupBy) {
-    var label = null;
-    var applyColumns = [];
-    for (var i = 0; i < columns.length; i++) {
-      var column = columns[i];
-      if (equals(groupBy, column.expression)) {
-        if (label) error('already have a label');
-        label = column.name;
-      } else {
-        applyColumns.push(column);
-      }
-    }
-    if (!label) label = 'split';
-    return {
-      label: label,
-      applyColumns: applyColumns
-    };
-  }
-
-  function handleQuery(columns, from, where, groupBy, having, orderBy, limit) {
-    if (!columns) error('Can not have empty column list');
-    from = from || dataRef;
-
-    // Support for not having a group by clause is there are aggregates in the columns
-    // A redneck check for aggregate columns is the same as having "GROUP BY 1"
-    if (!groupBy && JSON.stringify(columns).indexOf('"op":"aggregate"') !== -1) {
-      groupBy = { op: 'literal', value: 1 };
-    }
-
-    var operand = null;
-    var groupByDef = null;
-    if (!groupBy) {
-      operand = dataRef;
-    } else {
-      if (groupBy.op === 'literal') {
-        operand = base;
-      } else {
-        var extract = extractGroupByColumn(columns, groupBy);
-        columns = extract.applyColumns;
-        operand = {
-          op: 'label',
-          name: extract.label,
-          operand: {
-            op: 'aggregate',
-            operand: from,
-            fn: 'group',
-            attribute: groupBy
-          }
-        };
-        groupByDef = {
-          action: 'def',
-          name: 'data',
-          expression: {
-            op: 'actions',
-            operand: parentify(from),
-            actions: [{
-              action: 'filter',
-              expression: { op: 'is', lhs: groupBy, rhs: { op: 'ref', name: '^' + extract.label }}
-            }]
-          }
-        }
-      }
-    }
-
-    var dataFrom = from;
-    if (where) {
-      dataFrom = {
-        op: 'actions',
-        operand: dataFrom,
-        actions: [{
-          action: 'filter',
-          expression: where
-        }]
-      };
-    }
-
-    var actions = [];
-    if (groupByDef) {
-      actions.push(groupByDef);
-    } else {
-      actions.push({
-        action: 'def',
-        name: 'data',
-        expression: dataFrom
-      });
-    }
-    actions = actions.concat(columns);
-    if (having) {
-      actions.push(having);
-    }
-    if (orderBy) {
-      actions.push(orderBy);
-    }
-    if (limit) {
-      actions.push(limit);
-    }
-
-    return {
-      op: 'actions',
-      operand: operand,
-      actions: actions
-    };
-  }
-
-  function naryExpressionFactory(op, head, tail) {
-    if (!tail.length) return head;
-    return {
-      op: op,
-      operands: [head].concat(tail.map(function(t) { return t[3]; }))
-    };
-  }
-
-  function naryExpressionWithAltFactory(op, head, tail, altToken, altOp) {
-    if (!tail.length) return head;
-    return {
-      op: op,
-      operands: [head].concat(tail.map(function(t) {
-        return t[1] === altToken ? { op: 'negate', operand: t[3] } : t[3];
-      }))
-    };
-  }
+// See here: https://www.drupal.org/node/141051
+var reservedWords = {
+  ALL: 1, AND: 1,  AS: 1, ASC: 1, AVG: 1,
+  BETWEEN: 1, BY: 1,
+  CONTAINS: 1, CREATE: 1,
+  DELETE: 1, DESC: 1, DISTINCT: 1, DROP: 1,
+  EXISTS: 1, EXPLAIN: 1,
+  FALSE: 1, FROM: 1,
+  GROUP: 1,
+  HAVING: 1,
+  IN: 1, INNER: 1,  INSERT: 1, INTO: 1, IS: 1,
+  JOIN: 1,
+  LEFT: 1, LIKE: 1, LIMIT: 1,
+  MAX: 1, MIN: 1,
+  NOT: 1, NULL: 1, NUMBER_BUCKET: 1,
+  ON: 1, OR: 1, ORDER: 1,
+  REPLACE: 1,
+  SELECT: 1, SET: 1, SHOW: 1, SUM: 1,
+  TABLE: 1, TIME_BUCKET: 1, TRUE: 1,
+  UNION: 1, UPDATE: 1,
+  VALUES: 1,
+  WHERE: 1
 }
+
+var objectHasOwnProperty = Object.prototype.hasOwnProperty;
+function reserved(str) {
+  return objectHasOwnProperty.call(reservedWords, str.toUpperCase());
+}
+
+function extractGroupByColumn(columns, groupBy) {
+  var label = null;
+  var applyColumns = [];
+  for (var i = 0; i < columns.length; i++) {
+    var column = columns[i];
+    if (groupBy.equals(column.expression)) {
+      if (label) error('already have a label');
+      label = column.name;
+    } else {
+      applyColumns.push(column);
+    }
+  }
+  if (!label) label = 'split';
+  return {
+    label: label,
+    applyColumns: applyColumns
+  };
+}
+
+function handleQuery(columns, from, where, groupBy, having, orderBy, limit) {
+  if (!columns) error('Can not have empty column list');
+  from = from || dataRef;
+
+  if (where) {
+    from = from.filter(where);
+  }
+
+  // Support for not having a group by clause is there are aggregates in the columns
+  // A redneck check for aggregate columns is the same as having "GROUP BY 1"
+  if (!groupBy) {
+    var hasAggregate = columns.some(function(column) {
+      return column.expression.some(function(ex) { return ex.isOp('aggregate') || null });
+    })
+    if (hasAggregate) groupBy = $(1);
+  }
+
+  var query = null;
+  var groupByDef = null;
+  if (!groupBy) {
+    query = from;
+  } else {
+    if (groupBy.isOp('literal')) {
+      query = $().def('data', from);
+    } else {
+      var extract = extractGroupByColumn(columns, groupBy);
+      columns = extract.applyColumns;
+      query = from.split(groupBy, extract.label, 'data');
+    }
+  }
+
+  for (var i = 0; i < columns.length; i++) {
+    query = query.performAction(columns[i]);
+  }
+  if (having) {
+    query = query.performAction(having);
+  }
+  if (orderBy) {
+    query = query.performAction(orderBy);
+  }
+  if (limit) {
+    query = query.performAction(limit);
+  }
+
+  return query;
+}
+
+function naryExpressionFactory(op, head, tail) {
+  if (!tail.length) return head;
+  return head[op].apply(head, tail.map(function(t) { return t[3]; }));
+}
+
+function naryExpressionWithAltFactory(op, head, tail, altToken, altOp) {
+  if (!tail.length) return head;
+  return head[op].apply(head, tail.map(function(t) { return t[1] === altToken ? t[3][altOp]() : t[3]; }))
+}
+
+}// Start grammar
 
 start
   = _ query:SQLQuery _ { return query; }
@@ -196,11 +135,11 @@ Columns
 Column
   = ex:Expression as:As?
     {
-      return {
+      return new ApplyAction({
         action: 'apply',
         name: as || text().replace(/^\W+|\W+$/g, '').replace(/\W+/g, '_'),
         expression: ex
-      };
+      });
     }
 
 As
@@ -220,18 +159,18 @@ GroupByClause
 
 HavingClause
   = __ HavingToken __ having:Expression
-    { return { action: 'filter', expression: having }; }
+    { return new FilterAction({ action: 'filter', expression: having }); }
 
 OrderByClause
   = __ OrderToken __ ByToken __ orderBy:Expression direction:Direction?
-    { return { action: 'sort', expression: orderBy, direction: direction || 'ascending' }; }
+    { return new SortAction({ action: 'sort', expression: orderBy, direction: direction || 'ascending' }); }
 
 Direction
   = __ dir:(AscToken / DescToken) { return dir; }
 
 LimitClause
   = __ LimitToken __ limit:Number
-    { return { action: 'limit', limit: limit }; }
+    { return new LimitAction({ action: 'limit', limit: limit }); }
 
 /*
 Expressions are filed in below in acceding priority order
@@ -256,7 +195,7 @@ AndExpression
     { return naryExpressionFactory('and', head, tail); }
 
 NotExpression
-  = NotToken __ ex:ComparisonExpression { return { op: 'not', operand: ex }; }
+  = NotToken __ ex:ComparisonExpression { return ex.not(); }
   / ComparisonExpression
 
 ComparisonExpression
@@ -264,22 +203,12 @@ ComparisonExpression
     {
       if (start.op !== 'literal') error('between start must be a literal');
       if (end.op !== 'literal') error('between end must be a literal');
-      return {
-        op: 'in',
-        lhs: lhs,
-        rhs: { start: start.value, end: end.value, bounds: '[]' }
-      };
+      return lhs.in({ start: start.value, end: end.value, bounds: '[]' });
     }
   / lhs:AdditiveExpression rest:(_ ComparisonOp _ AdditiveExpression)?
     {
       if (!rest) return lhs;
-      var op = rest[1];
-      var rhs = rest[3];
-      if (op === 'isnt') {
-        return { op: 'not', operand: { op: 'is', lhs: lhs, rhs: rhs }};
-      } else {
-        return { op: op, lhs: lhs, rhs: rhs };
-      }
+      return lhs[rest[1]](rest[3]);
     }
 
 ComparisonOp
@@ -294,13 +223,13 @@ ComparisonOp
 
 AdditiveExpression
   = head:MultiplicativeExpression tail:(_ AdditiveOp _ MultiplicativeExpression)*
-    { return naryExpressionFactory('add', head, tail, '-', 'negate'); }
+    { return naryExpressionWithAltFactory('add', head, tail, '-', 'negate'); }
 
 AdditiveOp = [+-]
 
 MultiplicativeExpression
   = head:BasicExpression tail:(_ MultiplicativeOp _ BasicExpression)*
-    { return naryExpressionFactory('multiply', head, tail, '/', 'reciprocate'); }
+    { return naryExpressionWithAltFactory('multiply', head, tail, '/', 'reciprocate'); }
 
 MultiplicativeOp = [*/]
 
@@ -314,40 +243,40 @@ BasicExpression
 
 AggregateExpression
   = CountToken "()"
-    { return { op: 'aggregate', fn: 'count', operand: dataRef }; }
+    { return dataRef.count(); }
   / fn:AggregateFn "(" _ ex:Expression _ ")"
-    { return { op: 'aggregate', fn: fn, operand: dataRef, attribute: ex }; }
+    { return dataRef[fn](ex); }
 
 AggregateFn
   = SumToken / AvgToken / MinToken / MaxToken
 
 FunctionCallExpression
   = TimeBucketToken "(" _ operand:Expression _ "," _ duration:Name _ "," _ timezone:String ")"
-    { return { op: 'timeBucket', operand: operand, duration: duration, timezone: timezone }; }
+    { return operand.timeBucket(duration, timezone); }
   / NumberBucketToken "(" _ operand:Expression _ "," _ size:Number _ "," _ offset:Number ")"
-    { return { op: 'numberBucket', operand: operand, size: size, offset: offset }; }
+    { return operand.numberBucket(size, offset); }
   / SubstrToken "(" _ operand:Expression _ "," _ position:Number _ "," _ length:Number ")"
-    { return { op: 'substr', operand: operand, position: position, length: length }; }
+    { return operand.substr(position, length); }
 
 RefExpression
-  = ref:Ref { return { op: "ref", name: ref }; }
+  = ref:Ref { return $(ref); }
 
 LiteralExpression
-  = number:Number { return { op: "literal", value: number }; }
+  = number:Number { return Expression.fromJS({ op: "literal", value: number }); }
   / string:String
     {
       if (dateRegExp.test(string)) {
         var date = new Date(string);
         if (!isNaN(date)) {
-          return { op: "literal", value: date };
+          return Expression.fromJS({ op: "literal", value: date });
         } else {
-          return { op: "literal", value: string };
+          return Expression.fromJS({ op: "literal", value: string });
         }
       } else {
-        return { op: "literal", value: string };
+        return Expression.fromJS({ op: "literal", value: string });
       }
     }
-  / v:(NullToken / TrueToken / FalseToken) { return { op: "literal", value: v }; }
+  / v:(NullToken / TrueToken / FalseToken) { return Expression.fromJS({ op: "literal", value: v }); }
 
 Ref
   = name:RefName !{ return reserved(name); }

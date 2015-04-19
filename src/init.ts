@@ -74,6 +74,10 @@ interface PEGParser {
   parse: (str: string, options?: PEGParserOptions) => any;
 }
 
+interface PEGParserFactory {
+  (facet: any): PEGParser;
+}
+
 interface Dummy {}
 
 // --------------------------------------------------------
@@ -105,7 +109,7 @@ function deduplicateSort(a: string[]): string[] {
   return newA
 }
 
-function checkArrayEquality<T>(a: Array<T>, b: Array<T>): boolean {
+function arraysEqual<T>(a: Array<T>, b: Array<T>): boolean {
   return a.length === b.length && a.every((item, i) => (item === b[i]));
 }
 
@@ -117,10 +121,10 @@ function larger<T>(a: T, b: T): T {
   return a < b ? b : a;
 }
 
-module Facet {
-  export var expressionParser = <PEGParser>require("../parser/expression");
-  export var sqlParser = <PEGParser>require("../parser/sql");
+var expressionParser: PEGParser;
+var sqlParser: PEGParser;
 
+module Facet {
   export var isInstanceOf = HigherObject.isInstanceOf;
   export var isHigherObject = HigherObject.isHigherObject;
 

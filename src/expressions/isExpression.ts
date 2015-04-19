@@ -30,7 +30,7 @@ module Facet {
     public mergeAnd(exp: Expression): Expression {
       var references = this.getFreeReferences();
 
-      if (!checkArrayEquality(references, exp.getFreeReferences())) return null;
+      if (!arraysEqual(references, exp.getFreeReferences())) return null;
       if (this.type !== exp.type) return null;
 
       if (exp instanceof IsExpression) {
@@ -55,7 +55,7 @@ module Facet {
     public mergeOr(exp: Expression): Expression {
       var references = this.getFreeReferences();
 
-      if (!checkArrayEquality(references, exp.getFreeReferences())) return null;
+      if (!arraysEqual(references, exp.getFreeReferences())) return null;
       if (this.type !== exp.type) return null;
 
       if (exp instanceof IsExpression) {

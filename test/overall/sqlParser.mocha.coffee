@@ -136,6 +136,20 @@ describe "SQL parser", ->
 
     expect(ex.toJS()).to.deep.equal(ex2.toJS())
 
+  it "should work without top level GROUP BY with a function", ->
+    ex = Expression.parseSQL("""
+      SELECT
+      TIME_BUCKET(`time`, 'PT1H', 'Etc/UTC') AS 'TimeByHour',
+      SUM(added) AS 'TotalAdded'
+      FROM `wiki`
+      GROUP BY TIME_BUCKET(`time`, PT1H, 'Etc/UTC')
+      """)
+
+    ex2 = $('wiki').split($('time').timeBucket('PT1H', 'Etc/UTC'), 'TimeByHour', 'data')
+      .apply('TotalAdded', '$data.sum($added)')
+
+    expect(ex.toJS()).to.deep.equal(ex2.toJS())
+
   it "should parse a complex filter", ->
     ex = Expression.parseSQL("""
       SELECT

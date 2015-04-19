@@ -260,7 +260,7 @@ AggregateFn
 
 
 FunctionCallExpression
-  = TimeBucketToken "(" _ operand:Expression _ "," _ duration:Name _ "," _ timezone:String ")"
+  = TimeBucketToken "(" _ operand:Expression _ "," _ duration:NameOrString _ "," _ timezone:NameOrString ")"
     { return operand.timeBucket(duration, timezone); }
   / NumberBucketToken "(" _ operand:Expression _ "," _ size:Number _ "," _ offset:Number ")"
     { return operand.numberBucket(size, offset); }
@@ -276,6 +276,8 @@ Ref
     { return name }
   / "`" name:RefName "`"
     { return name }
+
+NameOrString = Name / String
 
 
 LiteralExpression

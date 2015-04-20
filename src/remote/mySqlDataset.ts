@@ -118,6 +118,10 @@ module Facet {
       return true;
     }
 
+    public canHandleApply(ex: Expression): boolean {
+      return true;
+    }
+
     public canHandleSort(sortAction: SortAction): boolean {
       return true;
     }

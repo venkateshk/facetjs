@@ -72,6 +72,7 @@ module Facet {
       return value;
     }
 
+    public rawAttributes: Attributes = null;
     public requester: Requester.FacetRequester<any>;
     public mode: string; // raw, total, split (potential aggregate mode)
     public derivedAttributes: ApplyAction[];
@@ -88,6 +89,7 @@ module Facet {
 
     constructor(parameters: DatasetValue, dummy: Dummy = null) {
       super(parameters, dummyObject);
+      this.rawAttributes = parameters.rawAttributes;
       this.requester = parameters.requester;
       this.mode = parameters.mode || 'raw';
       this.derivedAttributes = parameters.derivedAttributes || [];
@@ -114,6 +116,9 @@ module Facet {
 
     public valueOf(): DatasetValue {
       var value = super.valueOf();
+      if (this.rawAttributes) {
+        value.rawAttributes = this.rawAttributes;
+      }
       if (this.requester) {
         value.requester = this.requester;
       }
@@ -144,6 +149,7 @@ module Facet {
 
     public toJS(): DatasetJS {
       var js = super.toJS();
+      if (this.rawAttributes) js.rawAttributes = this.getRawAttributesJS();
       if (this.requester) {
         js.requester = this.requester;
       }
@@ -151,6 +157,15 @@ module Facet {
         js.filter = this.filter.toJS();
       }
       return js;
+    }
+
+    public getRawAttributesJS(): Lookup<AttributeInfoJS> {
+      var rawAttributesJS: Lookup<AttributeInfoJS> = {};
+      var rawAttributes = this.rawAttributes;
+      for (var k in rawAttributes) {
+        rawAttributesJS[k] = rawAttributes[k].toJS();
+      }
+      return rawAttributesJS;
     }
 
     public toString(): string {
@@ -187,6 +202,10 @@ module Facet {
       return [this.getId()]
     }
 
+    public getAttributesInfo(attributeName: string) {
+      return this.rawAttributes ? this.rawAttributes[attributeName] : this.attributes[attributeName];
+    }
+
     // -----------------
 
     public canHandleFilter(ex: Expression): boolean {
@@ -219,17 +238,6 @@ module Facet {
 
     // -----------------
 
-    public makeTotal(): RemoteDataset {
-      if (this.mode !== 'raw') return null; // Can only split on 'raw' datasets
-      if (!this.canHandleTotal()) return null;
-
-      var value = this.valueOf();
-      value.mode = 'total';
-      value.attributes = {};
-
-      return <RemoteDataset>(new (Dataset.classMap[this.source])(value));
-    }
-
     public addFilter(expression: Expression): RemoteDataset {
       if (!expression.resolved()) return null;
 
@@ -252,6 +260,18 @@ module Facet {
       return <RemoteDataset>(new (Dataset.classMap[this.source])(value));
     }
 
+    public makeTotal(): RemoteDataset {
+      if (this.mode !== 'raw') return null; // Can only split on 'raw' datasets
+      if (!this.canHandleTotal()) return null;
+
+      var value = this.valueOf();
+      value.mode = 'total';
+      value.rawAttributes = value.attributes;
+      value.attributes = {};
+
+      return <RemoteDataset>(new (Dataset.classMap[this.source])(value));
+    }
+
     public addSplit(splitExpression: Expression, label: string): RemoteDataset {
       if (this.mode !== 'raw') return null; // Can only split on 'raw' datasets
       if (!this.canHandleSplit(splitExpression)) return null;
@@ -260,6 +280,7 @@ module Facet {
       value.mode = 'split';
       value.split = splitExpression;
       value.key = label;
+      value.rawAttributes = value.attributes;
       value.attributes = Object.create(null);
       value.attributes[label] = new AttributeInfo({ type: splitExpression.type });
 
@@ -310,6 +331,7 @@ module Facet {
 
       } else if (action instanceof ApplyAction) {
         if (expression.type !== 'NUMBER' && expression.type !== 'TIME') return null;
+        if (!this.canHandleApply(action.expression)) return null;
 
         if (this.mode === 'raw') {
           value.derivedAttributes = value.derivedAttributes.concat(action);

@@ -264,6 +264,8 @@ FunctionCallExpression
     { return operand.timeBucket(duration, timezone); }
   / NumberBucketToken "(" _ operand:Expression _ "," _ size:Number _ "," _ offset:Number ")"
     { return operand.numberBucket(size, offset); }
+  / TimePartToken "(" _ operand:Expression _ "," _ part:NameOrString _ "," _ timezone:NameOrString ")"
+      { return operand.timePart(part, timezone); }
   / SubstrToken "(" _ operand:Expression _ "," _ position:Number _ "," _ length:Number ")"
     { return operand.substr(position, length); }
 
@@ -346,6 +348,7 @@ MaxToken          = "MAX"i           !IdentifierPart { return 'max'; }
 
 TimeBucketToken   = "TIME_BUCKET"i   !IdentifierPart
 NumberBucketToken = "NUMBER_BUCKET"i !IdentifierPart
+TimePartToken     = "TIME_PART"i     !IdentifierPart
 SubstrToken       = "SUBSTR"i        !IdentifierPart
 
 IdentifierPart = [A-Za-z_]

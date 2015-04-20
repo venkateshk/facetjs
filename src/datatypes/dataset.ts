@@ -1,13 +1,16 @@
 module Facet {
+  export type Attributes = Lookup<AttributeInfo>;
+
   export interface DatasetValue {
     source: string;
-    attributes?: Lookup<AttributeInfo>;
+    attributes?: Attributes;
     key?: string;
 
     // Native
     data?: Datum[];
 
     // Remote
+    rawAttributes?: Attributes;
     requester?: Requester.FacetRequester<any>;
     mode?: string;
     derivedAttributes?: ApplyAction[];
@@ -30,6 +33,7 @@ module Facet {
     data?: Datum[];
 
     // Remote
+    rawAttributes?: Lookup<AttributeInfoJS>;
     requester?: Requester.FacetRequester<any>;
     filter?: ExpressionJS;
   }
@@ -112,7 +116,7 @@ module Facet {
     }
 
     public source: string;
-    public attributes: Lookup<AttributeInfo> = null;
+    public attributes: Attributes = null;
     public key: string = null;
 
     constructor(parameters: DatasetValue, dummy: Dummy = null) {
@@ -151,16 +155,18 @@ module Facet {
       var js: DatasetJS = {
         source: this.source
       };
-      var attributes = this.attributes;
-      if (attributes) {
-        var attributesJS: Lookup<AttributeInfoJS> = {};
-        for (var k in attributes) {
-          attributesJS[k] = attributes[k].toJS();
-        }
-        js.attributes = attributesJS;
-      }
+      if (this.attributes) js.attributes = this.getAttributesJS();
       if (this.key) js.key = this.key;
       return js;
+    }
+
+    public getAttributesJS(): Lookup<AttributeInfoJS> {
+      var attributesJS: Lookup<AttributeInfoJS> = {};
+      var attributes = this.attributes;
+      for (var k in attributes) {
+        attributesJS[k] = attributes[k].toJS();
+      }
+      return attributesJS;
     }
 
     public toString(): string {

@@ -336,6 +336,10 @@ module Facet {
       return true;
     }
 
+    public canHandleApply(ex: Expression): boolean {
+      return true;
+    }
+
     public canHandleSort(sortAction: SortAction): boolean {
       if (this.split instanceof TimeBucketExpression) {
         var sortExpression = sortAction.expression;
@@ -401,7 +405,7 @@ module Facet {
         var lhs = filter.lhs;
         var rhs = filter.rhs;
         if (lhs instanceof RefExpression && rhs instanceof LiteralExpression) {
-          attributeInfo = this.attributes[lhs.name];
+          attributeInfo = this.getAttributesInfo(lhs.name);
           return {
             type: "selector",
             dimension: lhs.name,
@@ -415,7 +419,7 @@ module Facet {
         var lhs = filter.lhs;
         var rhs = filter.rhs;
         if (lhs instanceof RefExpression && rhs instanceof LiteralExpression) {
-          attributeInfo = this.attributes[lhs.name];
+          attributeInfo = this.getAttributesInfo(lhs.name);
           var rhsType = rhs.type;
           if (rhsType === 'SET/STRING') {
             return {
@@ -582,7 +586,7 @@ return (start < 0 ?'-':'') + parts.join('.');
           label : {type: "default", dimension: splitExpression.name, outputName: label};
 
         if (this.havingFilter.equals(Expression.TRUE) && this.limit && !this.exactResultsOnly) {
-          var attributeInfo = this.attributes[splitExpression.name];
+          var attributeInfo = this.getAttributesInfo(splitExpression.name);
           queryType = 'topN';
           if (attributeInfo instanceof RangeAttributeInfo) {
             dimension = {
@@ -669,7 +673,7 @@ return (start < 0 ?'-':'') + parts.join('.');
       } else if (splitExpression instanceof NumberBucketExpression) {
         var refExpression = splitExpression.operand;
         if (refExpression instanceof RefExpression) {
-          var attributeInfo = this.attributes[refExpression.name];
+          var attributeInfo = this.getAttributesInfo(refExpression.name);
           queryType = "topN";
           switch (attributeInfo.type) {
             case 'NUMBER':

@@ -19,6 +19,7 @@ module Facet {
     filterable?: boolean;
     splitable?: boolean;
 
+    // range
     separator?: string;
     rangeSize?: number;
     digitsBeforeDecimal?: number;

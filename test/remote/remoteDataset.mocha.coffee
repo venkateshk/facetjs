@@ -230,7 +230,6 @@ describe "RemoteDataset", ->
       remoteDataset = ex.operand.value
       expect(remoteDataset.defs).to.have.length(1)
       expect(remoteDataset.applies).to.have.length(2)
-      expect(remoteDataset.limit.limit).to.equal(5)
 
     it "a split and another split in a strange order", ->
       ex = $('wiki').split("$page", 'Page')

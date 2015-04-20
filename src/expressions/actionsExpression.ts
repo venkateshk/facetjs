@@ -137,22 +137,24 @@ module Facet {
         }
 
         var absorbedDefs: DefAction[] = [];
-        var undigestedActions: ApplyAction[] = [];
-        while (simpleActions.length) {
-          var action: Action = simpleActions[0];
+        var undigestedActions: Action[] = [];
+        for (var i = 0; i < simpleActions.length; i++) {
+          var action: Action = simpleActions[i];
           var digest = remoteDataset.digest(digestedOperand, action);
-          if (!digest) break;
-          simpleActions.shift();
-          digestedOperand = digest.expression;
-          if (digest.undigested) undigestedActions.push(digest.undigested);
-          if (action instanceof DefAction) absorbedDefs.push(action);
+          if (digest) {
+            digestedOperand = digest.expression;
+            if (digest.undigested) undigestedActions.push(digest.undigested);
+            if (action instanceof DefAction) absorbedDefs.push(action);
+          } else {
+            undigestedActions.push(action);
+          }
         }
         if (simpleOperand !== digestedOperand) {
           simpleOperand = digestedOperand;
           var defsToAddBack: Action[] = absorbedDefs.filter((def) => {
-            return Action.actionsDependOn(simpleActions, def.name);
+            return Action.actionsDependOn(undigestedActions, def.name);
           });
-          simpleActions = defsToAddBack.concat(undigestedActions, simpleActions);
+          simpleActions = defsToAddBack.concat(undigestedActions);
         }
       }
 

@@ -33,14 +33,12 @@
   "dependencies": {
     "async": "~0.9.0",
     "backoff": "~2.4.1",
+    "chronology": "0.7.x",
     "express": "4.11.1",
     "higher-object": "^0.2.6",
     "node-zookeeper-client": "~0.2.2",
     "q": "^1.1.2",
     "request": "~2.51.0"
-  },
-  "peerDependencies": {
-    "chronology": "0.7.x"
   },
   "devDependencies": {
     "browserify": "~8.1.1",

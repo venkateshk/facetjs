@@ -136,6 +136,40 @@ describe "SQL parser", ->
 
     expect(ex.toJS()).to.deep.equal(ex2.toJS())
 
+  it "should work without top level GROUP BY with ORDER BY and LIMIT", ->
+    ex = Expression.parseSQL("""
+      SELECT
+      `page` AS 'Page',
+      SUM(added) AS 'TotalAdded'
+      FROM `wiki`
+      GROUP BY `page`
+      ORDER BY TotalAdded
+      LIMIT 5
+      """)
+
+    ex2 = $('wiki').split('$page', 'Page', 'data')
+      .apply('TotalAdded', '$data.sum($added)')
+      .sort('$TotalAdded', 'ascending')
+      .limit(5)
+
+    expect(ex.toJS()).to.deep.equal(ex2.toJS())
+
+  it "should work without top level GROUP BY with LIMIT only", ->
+    ex = Expression.parseSQL("""
+      SELECT
+      `page` AS 'Page',
+      SUM(added) AS 'TotalAdded'
+      FROM `wiki`
+      GROUP BY `page`
+      LIMIT 5
+      """)
+
+    ex2 = $('wiki').split('$page', 'Page', 'data')
+      .apply('TotalAdded', '$data.sum($added)')
+      .limit(5)
+
+    expect(ex.toJS()).to.deep.equal(ex2.toJS())
+
   it "should work without top level GROUP BY with a function", ->
     ex = Expression.parseSQL("""
       SELECT

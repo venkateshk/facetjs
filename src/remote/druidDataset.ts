@@ -1121,12 +1121,17 @@ return (start < 0 ?'-':'') + parts.join('.');
 
             case 'topN':
               var sortAction = this.sort;
-              var metric: any = (<RefExpression>sortAction.expression).name;
-              if (this.sortOrigin === 'label') {
-                metric = {type: 'lexicographic'};
-              }
-              if (sortAction.direction === 'ascending') {
-                metric = {type: "inverted", metric: metric};
+              var metric: string | Druid.TopNMetricSpec;
+              if (sortAction) {
+                metric = (<RefExpression>sortAction.expression).name;
+                if (this.sortOrigin === 'label') {
+                  metric = { type: 'lexicographic' };
+                }
+                if (sortAction.direction === 'ascending') {
+                  metric = { type: "inverted", metric: metric };
+                }
+              } else {
+                metric = { type: 'lexicographic' };
               }
               druidQuery.metric = metric;
               if (this.limit) {

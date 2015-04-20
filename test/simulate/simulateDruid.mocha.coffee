@@ -481,3 +481,60 @@ describe "simulate Druid", ->
         "threshold": 10
       }
     ])
+
+  it "works without a sort defined", ->
+    ex = $()
+      .apply('topN',
+        $("diamonds").split("$color", 'Color')
+          .apply('Count', $('diamonds').count())
+          .limit(10)
+      )
+      .apply('timeseries',
+        $("diamonds").split($("time").timeBucket('P1D', 'America/Los_Angeles'), 'Timestamp')
+          .apply('Count', $('diamonds').count())
+          .limit(10)
+      )
+
+    expect(ex.simulateQueryPlan(context)).to.deep.equal([
+      {
+        "aggregations": [
+          {
+            "name": "Count"
+            "type": "count"
+          }
+        ]
+        "dataSource": "diamonds"
+        "dimension": {
+          "dimension": "color"
+          "outputName": "Color"
+          "type": "default"
+        }
+        "granularity": "all"
+        "intervals": [
+          "2015-03-12/2015-03-19"
+        ]
+        "metric": {
+          "type": "lexicographic"
+        }
+        "queryType": "topN"
+        "threshold": 10
+      }
+      {
+        "aggregations": [
+          {
+            "name": "Count"
+            "type": "count"
+          }
+        ]
+        "dataSource": "diamonds"
+        "granularity": {
+          "period": "P1D"
+          "timeZone": "America/Los_Angeles"
+          "type": "period"
+        }
+        "intervals": [
+          "2015-03-12/2015-03-19"
+        ]
+        "queryType": "timeseries"
+      }
+    ])

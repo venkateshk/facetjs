@@ -55,6 +55,13 @@ module Facet {
     }
   }
 
+  function immutableAdd<T>(obj: Lookup<T>, key: string, value: T): Lookup<T> {
+    var newObj = Object.create(null);
+    for (var k in obj) newObj[k] = obj[k];
+    newObj[key] = value;
+    return newObj;
+  }
+
   export class RemoteDataset extends Dataset {
     static type = 'DATASET';
 
@@ -218,6 +225,7 @@ module Facet {
 
       var value = this.valueOf();
       value.mode = 'total';
+      value.attributes = {};
 
       return <RemoteDataset>(new (Dataset.classMap[this.source])(value));
     }
@@ -252,6 +260,8 @@ module Facet {
       value.mode = 'split';
       value.split = splitExpression;
       value.key = label;
+      value.attributes = Object.create(null);
+      value.attributes[label] = new AttributeInfo({ type: splitExpression.type });
 
       return <RemoteDataset>(new (Dataset.classMap[this.source])(value));
     }
@@ -307,6 +317,9 @@ module Facet {
           if (action.name === this.key) return null;
           value.applies = value.applies.concat(action);
         }
+        value.attributes = immutableAdd(
+          value.attributes, action.name, new AttributeInfo({ type: action.expression.type })
+        );
 
       } else if (action instanceof SortAction) {
         if (this.limit) return null; // Can not sort after limit

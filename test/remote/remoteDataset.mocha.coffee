@@ -69,6 +69,10 @@ describe "RemoteDataset", ->
       expect(remoteDataset.derivedAttributes).to.have.length(1)
       expect(remoteDataset.defs).to.have.length(1)
       expect(remoteDataset.applies).to.have.length(2)
+      expect(remoteDataset.getAttributesJS()).to.deep.equal({
+        Count: { "type": "NUMBER" },
+        TotalAdded: { "type": "NUMBER" }
+      })
 
       expect(remoteDataset.simulate().toJS()).to.deep.equal([
         {
@@ -91,6 +95,11 @@ describe "RemoteDataset", ->
       expect(remoteDataset.defs).to.have.length(1)
       expect(remoteDataset.applies).to.have.length(2)
       expect(remoteDataset.limit.limit).to.equal(5)
+      expect(remoteDataset.getAttributesJS()).to.deep.equal({
+        Page: { "type": "STRING" },
+        Count: { "type": "NUMBER" },
+        Added: { "type": "NUMBER" }
+      })
 
       expect(remoteDataset.simulate().toJS()).to.deep.equal([
         "Added": 4
@@ -113,6 +122,11 @@ describe "RemoteDataset", ->
       expect(remoteDataset.defs).to.have.length(1)
       expect(remoteDataset.applies).to.have.length(2)
       expect(remoteDataset.limit.limit).to.equal(5)
+      expect(remoteDataset.getAttributesJS()).to.deep.equal({
+        Page: { "type": "STRING" },
+        Count: { "type": "NUMBER" },
+        Added: { "type": "NUMBER" }
+      })
 
     it "a split on string with multiple limits in descending order", ->
       ex = $('wiki').split("$page", 'Page')
@@ -129,6 +143,11 @@ describe "RemoteDataset", ->
       expect(remoteDataset.defs).to.have.length(1)
       expect(remoteDataset.applies).to.have.length(2)
       expect(remoteDataset.limit.limit).to.equal(5)
+      expect(remoteDataset.getAttributesJS()).to.deep.equal({
+        Page: { "type": "STRING" },
+        Count: { "type": "NUMBER" },
+        Added: { "type": "NUMBER" }
+      })
 
     it "a split on time", ->
       ex = $('wiki').split($("time").timeBucket('P1D', 'America/Los_Angeles'), 'Timestamp')
@@ -144,6 +163,11 @@ describe "RemoteDataset", ->
       remoteDataset = ex.operand.value
       expect(remoteDataset.defs).to.have.length(1)
       expect(remoteDataset.applies).to.have.length(2)
+      expect(remoteDataset.getAttributesJS()).to.deep.equal({
+        Timestamp: { "type": "TIME_RANGE" },
+        Count: { "type": "NUMBER" },
+        Added: { "type": "NUMBER" }
+      })
 
       expect(remoteDataset.simulate().toJS()).to.deep.equal([
         {
@@ -172,6 +196,11 @@ describe "RemoteDataset", ->
       expect(remoteDataset.filter.toString()).to.equal('($language:STRING = "en" and $time in [2013-02-26T00:00:00.000Z,2013-02-27T00:00:00.000Z))')
       expect(remoteDataset.defs).to.have.length(1)
       expect(remoteDataset.applies).to.have.length(2)
+      expect(remoteDataset.getAttributesJS()).to.deep.equal({
+        Page: { "type": "STRING" },
+        Count: { "type": "NUMBER" },
+        Added: { "type": "NUMBER" }
+      })
 
       expect(remoteDataset.simulate().toJS()).to.deep.equal([
         "Added": 4
@@ -204,6 +233,10 @@ describe "RemoteDataset", ->
       remoteDataset = ex.operand.value
       expect(remoteDataset.defs).to.have.length(1)
       expect(remoteDataset.applies).to.have.length(2)
+      expect(remoteDataset.getAttributesJS()).to.deep.equal({
+        Count: { "type": "NUMBER" },
+        TotalAdded: { "type": "NUMBER" }
+      })
 
     it "a total and a split in a strange order", ->
       ex = $()
@@ -230,6 +263,10 @@ describe "RemoteDataset", ->
       remoteDataset = ex.operand.value
       expect(remoteDataset.defs).to.have.length(1)
       expect(remoteDataset.applies).to.have.length(2)
+      expect(remoteDataset.getAttributesJS()).to.deep.equal({
+        Count: { "type": "NUMBER" },
+        TotalAdded: { "type": "NUMBER" }
+      })
 
     it "a split and another split in a strange order", ->
       ex = $('wiki').split("$page", 'Page')
@@ -253,6 +290,11 @@ describe "RemoteDataset", ->
       expect(remoteDataset.defs).to.have.length(1)
       expect(remoteDataset.applies).to.have.length(2)
       expect(remoteDataset.limit.limit).to.equal(5)
+      expect(remoteDataset.getAttributesJS()).to.deep.equal({
+        Page: { "type": "STRING" },
+        Count: { "type": "NUMBER" },
+        Added: { "type": "NUMBER" }
+      })
 
     it "a union of two groups", ->
       ex = $('wiki').group('$page').union($('wikiCmp').group('$page')).label('Page')
@@ -273,9 +315,18 @@ describe "RemoteDataset", ->
       remoteDatasetMain = ex.operand.lhs.value
       expect(remoteDatasetMain.defs).to.have.length(1)
       expect(remoteDatasetMain.applies).to.have.length(2)
+      expect(remoteDatasetMain.getAttributesJS()).to.deep.equal({
+        Count: { "type": "NUMBER" }
+        Page: { "type": "STRING" }
+        _br_0: { "type": "NUMBER" }
+      })
 
       remoteDatasetCmp = ex.operand.rhs.value
       expect(remoteDatasetCmp.defs).to.have.length(1)
       expect(remoteDatasetCmp.applies).to.have.length(1)
+      expect(remoteDatasetCmp.getAttributesJS()).to.deep.equal({
+        Page: { "type": "STRING" }
+        _br_1: { "type": "NUMBER" }
+      })
 
       expect(ex.actions[0].toString()).to.equal('.apply(CountDiff, ($_br_0 + $_br_1))')

@@ -152,15 +152,18 @@ module Facet {
         source: this.source
       };
       var attributes = this.attributes;
-      if (attributes) {
-        var attributesJS: Lookup<AttributeInfoJS> = {};
-        for (var k in attributes) {
-          attributesJS[k] = attributes[k].toJS();
-        }
-        js.attributes = attributesJS;
-      }
+      if (attributes) js.attributes = this.getAttributesJS();
       if (this.key) js.key = this.key;
       return js;
+    }
+
+    public getAttributesJS(): Lookup<AttributeInfoJS> {
+      var attributesJS: Lookup<AttributeInfoJS> = {};
+      var attributes = this.attributes;
+      for (var k in attributes) {
+        attributesJS[k] = attributes[k].toJS();
+      }
+      return attributesJS;
     }
 
     public toString(): string {

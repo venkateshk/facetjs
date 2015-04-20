@@ -309,12 +309,15 @@ module Facet {
         }
 
       } else if (action instanceof SortAction) {
+        if (this.limit) return null; // Can not sort after limit
         if (!this.canHandleSort(action)) return null;
         value.sort = action;
 
       } else if (action instanceof LimitAction) {
         if (!this.canHandleLimit(action)) return null;
-        value.limit = action;
+        if (!value.limit || action.limit < value.limit.limit) {
+          value.limit = action;
+        }
 
       } else {
         return null;

@@ -29,53 +29,23 @@ module Facet {
         return null;
       }
 
-      var unitSmall: string;
-      var unitBig: string;
-      var timezone: Timezone;
-      var values: number[];
       if (partExpression instanceof InExpression || partExpression instanceof IsExpression) {
         var partLhs = partExpression.lhs;
         var partRhs = partExpression.rhs;
         if (partLhs instanceof TimePartExpression && partRhs instanceof LiteralExpression) {
-          var partUnits = partLhs.part.toLowerCase().split('_of_');
-          unitSmall = partUnits[0];
-          unitBig = partUnits[1];
-          timezone = partLhs.timezone;
-          values = Set.convertToSet(partRhs.value).getElements();
+          return <InExpression>lhs.in({
+            op: 'literal',
+            value: concreteRangeSet.intersect(partLhs.materializeWithinRange(
+              <TimeRange>concreteRangeSet.extent(),
+              Set.convertToSet(partRhs.value).getElements()
+            ))
+          });
         } else {
           return null;
         }
       } else {
         return null;
       }
-
-      var smallTimeMover = <Chronology.TimeMover>(<any>Chronology)[unitSmall];
-      var bigTimeMover = <Chronology.TimeMover>(<any>Chronology)[unitBig];
-
-      var concreteExtent: Range<any> = concreteRangeSet.extent();
-      var start = concreteExtent.start;
-      var end = concreteExtent.end;
-
-      var ranges: TimeRange[] = [];
-      var iter = bigTimeMover.floor(start, timezone);
-      while (iter <= end) {
-        for (var i = 0; i < values.length; i++) {
-          var subIter = smallTimeMover.move(iter, timezone, values[i]);
-          ranges.push(new TimeRange({
-            start: subIter,
-            end: smallTimeMover.move(subIter, timezone, 1)
-          }));
-        }
-        iter = bigTimeMover.move(iter, timezone, 1);
-      }
-
-      return <InExpression>lhs.in({
-        op: 'literal',
-        value: concreteRangeSet.intersect(Set.fromJS({
-          setType: 'TIME_RANGE',
-          elements: ranges
-        }))
-      });
     }
 
     constructor(parameters: ExpressionValue) {

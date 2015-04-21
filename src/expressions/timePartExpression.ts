@@ -64,6 +64,36 @@ module Facet {
       // ToDo: make this work
       throw new Error("Vad, srsly make this work")
     }
+
+    public materializeWithinRange(extentRange: TimeRange, values: number[]): Set {
+      var partUnits = this.part.toLowerCase().split('_of_');
+      var unitSmall = partUnits[0];
+      var unitBig = partUnits[1];
+      var timezone = this.timezone;
+      var smallTimeMover = <Chronology.TimeMover>(<any>Chronology)[unitSmall];
+      var bigTimeMover = <Chronology.TimeMover>(<any>Chronology)[unitBig];
+
+      var start = extentRange.start;
+      var end = extentRange.end;
+
+      var ranges: TimeRange[] = [];
+      var iter = bigTimeMover.floor(start, timezone);
+      while (iter <= end) {
+        for (var i = 0; i < values.length; i++) {
+          var subIter = smallTimeMover.move(iter, timezone, values[i]);
+          ranges.push(new TimeRange({
+            start: subIter,
+            end: smallTimeMover.move(subIter, timezone, 1)
+          }));
+        }
+        iter = bigTimeMover.move(iter, timezone, 1);
+      }
+
+      return Set.fromJS({
+        setType: 'TIME_RANGE',
+        elements: ranges
+      })
+    }
   }
 
   Expression.register(TimePartExpression);

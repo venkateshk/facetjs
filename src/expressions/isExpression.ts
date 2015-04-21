@@ -27,43 +27,47 @@ module Facet {
       return `(${lhsSQL}=${rhsSQL})`;
     }
 
-    public mergeAnd(exp: Expression): Expression {
+    public mergeAnd(ex: Expression): Expression {
+      if (ex.isOp('literal')) return ex.mergeAnd(this);
+
       var references = this.getFreeReferences();
 
-      if (!arraysEqual(references, exp.getFreeReferences())) return null;
-      if (this.type !== exp.type) return null;
+      if (!arraysEqual(references, ex.getFreeReferences())) return null;
+      if (this.type !== ex.type) return null;
 
-      if (exp instanceof IsExpression) {
+      if (ex instanceof IsExpression) {
         if (references.length === 2) return this;
-        if (!(this.lhs instanceof RefExpression && exp.lhs instanceof RefExpression)) return null;
+        if (!(this.lhs instanceof RefExpression && ex.lhs instanceof RefExpression)) return null;
 
         if (
-          (<LiteralExpression>(this.rhs)).value.valueOf &&
-          (<LiteralExpression>(exp).rhs).value.valueOf &&
-          (<LiteralExpression>(exp).rhs).value.valueOf() === (<LiteralExpression>(this.rhs)).value.valueOf()
+          (<LiteralExpression>this.rhs).value.valueOf &&
+          (<LiteralExpression>ex.rhs).value.valueOf &&
+          (<LiteralExpression>ex.rhs).value.valueOf() === (<LiteralExpression>this.rhs).value.valueOf()
         ) return this; // for higher objects
-        if ((<LiteralExpression>(this.rhs)).value === (<LiteralExpression>(exp).rhs).value) return this; // for simple values;
+        if ((<LiteralExpression>this.rhs).value === (<LiteralExpression>ex.rhs).value) return this; // for simple values;
         return Expression.FALSE;
 
-      } else if (exp instanceof InExpression) {
-        return exp.mergeAnd(this);
+      } else if (ex instanceof InExpression) {
+        return ex.mergeAnd(this);
       } else {
         return null;
       }
     }
 
-    public mergeOr(exp: Expression): Expression {
+    public mergeOr(ex: Expression): Expression {
+      if (ex.isOp('literal')) return ex.mergeOr(this);
+
       var references = this.getFreeReferences();
 
-      if (!arraysEqual(references, exp.getFreeReferences())) return null;
-      if (this.type !== exp.type) return null;
+      if (!arraysEqual(references, ex.getFreeReferences())) return null;
+      if (this.type !== ex.type) return null;
 
-      if (exp instanceof IsExpression) {
+      if (ex instanceof IsExpression) {
         if (references.length === 2) return this;
-        if (!(this.lhs instanceof RefExpression && exp.lhs instanceof RefExpression)) return null;
+        if (!(this.lhs instanceof RefExpression && ex.lhs instanceof RefExpression)) return null;
 
-        var thisValue = (<LiteralExpression>(this.rhs)).value;
-        var expValue = (<LiteralExpression>(exp.rhs)).value;
+        var thisValue = (<LiteralExpression>this.rhs).value;
+        var expValue = (<LiteralExpression>(ex.rhs)).value;
 
         if (
           thisValue.valueOf &&
@@ -80,8 +84,8 @@ module Facet {
           })
         });
 
-      } else if (exp instanceof InExpression) {
-        return exp.mergeOr(this);
+      } else if (ex instanceof InExpression) {
+        return ex.mergeOr(this);
       } else {
         return null;
       }

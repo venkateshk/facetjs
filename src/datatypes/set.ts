@@ -227,6 +227,20 @@ module Facet {
       }
     }
 
+    public extent(): Range<any> {
+      var setType = this.setType;
+      if (hasOwnProperty(typeUpgrades, setType)) {
+        return this.upgradeType().extent();
+      }
+      if (setType !== 'NUMBER_RANGE' && setType !== 'TIME_RANGE') return null;
+      var elements: Array<Range<any>> = this.getElements();
+      var extent: Range<any> = elements[0] || null;
+      for (var i = 1; i < elements.length; i++) {
+        extent = extent.extend(elements[i]);
+      }
+      return extent;
+    }
+
     public union(other: Set): Set {
       if (this.empty()) return other;
       if (other.empty()) return this;

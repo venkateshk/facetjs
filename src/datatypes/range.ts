@@ -127,7 +127,7 @@ module Facet {
     }
 
     /**
-     * Detects if two ranges can be merged such as [0, 1) and [1, 0)
+     * Detects if the two ranges can be merged such as [0, 1) and [1, 0)
      *
      * @param other The range to check against
      * @returns {boolean}
@@ -136,9 +136,24 @@ module Facet {
       return this.intersects(other) || this.adjacent(other);
     }
 
+    /**
+     * Computes the union of the ranges, if the ranges can not be merged null is returned
+     *
+     * @param other The range to union with
+     * @returns {boolean}
+     */
     public union(other: Range<T>): Range<T> {
       if (!this.mergeable(other)) return null;
+      return this.extend(other);
+    }
 
+    /**
+     * Computes the extent of the ranges
+     *
+     * @param other The range to extend with
+     * @returns {boolean}
+     */
+    public extend(other: Range<T>): Range<T> {
       var thisStart = this.start;
       var thisEnd = this.end;
       var otherStart = other.start;
@@ -173,6 +188,13 @@ module Facet {
       return new (<any>this.constructor)({start: start, end: end, bounds: startBound + endBound});
     }
 
+    /**
+     * Computes the intersection of the ranges, if the ranges do not intersect null is returned
+     * If the ranges are adjacent, like [0, 1) and [1, 2), the empty range [0, 0) is returned.
+     *
+     * @param other The range to union with
+     * @returns {boolean}
+     */
     public intersect(other: Range<T>): Range<T> {
       if (!this.mergeable(other)) return null;
 

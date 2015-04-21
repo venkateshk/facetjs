@@ -4,18 +4,77 @@ module Facet {
       return new AndExpression(NaryExpression.jsToValue(parameters));
     }
 
-    static _mergeExpressions(expressions: Expression[]): Expression {
-      return expressions.reduce(function(expression, reducedExpression) {
-        if (typeof reducedExpression === 'undefined') return expression;
-        if (reducedExpression === null) return null;
-        if (reducedExpression instanceof LiteralExpression) {
-          if (reducedExpression.value === true) {
-            return expression;
-          } else if (reducedExpression.value === false) {
-            return reducedExpression;
-          }
+    static mergeTimePart(andExpression: AndExpression): InExpression {
+      var operands = andExpression.operands;
+      if (operands.length !== 2) return null;
+      var concreteExpression: Expression;
+      var partExpression: Expression;
+      var op0TimePart = operands[0].containsOp('timePart');
+      var op1TimePart = operands[1].containsOp('timePart');
+      if (op0TimePart === op1TimePart) return null;
+      if (op0TimePart) {
+        concreteExpression = operands[1];
+        partExpression = operands[0];
+      } else {
+        concreteExpression = operands[0];
+        partExpression = operands[1];
+      }
+
+      var lhs: Expression;
+      var concreteRangeSet: Set;
+      if (concreteExpression instanceof InExpression && concreteExpression.checkLefthandedness()) {
+        lhs = concreteExpression.lhs;
+        concreteRangeSet = Set.convertToSet((<LiteralExpression>concreteExpression.rhs).value);
+      } else {
+        return null;
+      }
+
+      var unitSmall: string;
+      var unitBig: string;
+      var timezone: Timezone;
+      var values: number[];
+      if (partExpression instanceof InExpression || partExpression instanceof IsExpression) {
+        var partLhs = partExpression.lhs;
+        var partRhs = partExpression.rhs;
+        if (partLhs instanceof TimePartExpression && partRhs instanceof LiteralExpression) {
+          var partUnits = partLhs.part.toLowerCase().split('_of_');
+          unitSmall = partUnits[0];
+          unitBig = partUnits[1];
+          timezone = partLhs.timezone;
+          values = Set.convertToSet(partRhs.value).getElements();
+        } else {
+          return null;
         }
-        return expression.mergeAnd(reducedExpression);
+      } else {
+        return null;
+      }
+
+      var smallTimeMover = <Chronology.TimeMover>(<any>Chronology)[unitSmall];
+      var bigTimeMover = <Chronology.TimeMover>(<any>Chronology)[unitBig];
+
+      var concreteExtent: Range<any> = concreteRangeSet.extent();
+      var start = concreteExtent.start;
+      var end = concreteExtent.end;
+
+      var ranges: TimeRange[] = [];
+      var iter = bigTimeMover.floor(start, timezone);
+      while (iter <= end) {
+        for (var i = 0; i < values.length; i++) {
+          var subIter = smallTimeMover.move(iter, timezone, values[i]);
+          ranges.push(new TimeRange({
+            start: subIter,
+            end: smallTimeMover.move(subIter, timezone, 1)
+          }));
+        }
+        iter = bigTimeMover.move(iter, timezone, 1);
+      }
+
+      return <InExpression>lhs.in({
+        op: 'literal',
+        value: concreteRangeSet.intersect(Set.fromJS({
+          setType: 'TIME_RANGE',
+          elements: ranges
+        }))
       });
     }
 
@@ -78,11 +137,16 @@ module Facet {
       var sortedReferenceGroups = Object.keys(groupedOperands).sort();
       var finalOperands: Expression[] = [];
       for (var k = 0; k < sortedReferenceGroups.length; k++) {
-        var mergedExpression = AndExpression._mergeExpressions(groupedOperands[sortedReferenceGroups[k]]);
-        if (mergedExpression === null) {
-          finalOperands = finalOperands.concat(groupedOperands[sortedReferenceGroups[k]]);
+        var mergedExpressions = multiMerge(groupedOperands[sortedReferenceGroups[k]], (a, b) => {
+          return a ? a.mergeAnd(b) : null;
+        });
+        if (mergedExpressions.length === 1) {
+          finalOperands.push(mergedExpressions[0]);
         } else {
-          finalOperands.push(mergedExpression);
+          finalOperands.push(new AndExpression({
+            op: 'and',
+            operands: mergedExpressions
+          }));
         }
       }
 

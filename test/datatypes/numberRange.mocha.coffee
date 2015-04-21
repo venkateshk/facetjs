@@ -79,6 +79,23 @@ describe "NumberRange", ->
       ).to.throw('`start` must be a number')
 
 
+  describe "#extend()", ->
+    it 'works correctly with two bounded sets', ->
+      expect(
+        NumberRange.fromJS({ start: 0, end: 2 }).extend(NumberRange.fromJS({ start: 5, end: 6 })).toJS()
+      ).to.deep.equal({ start: 0, end: 6 })
+
+    it 'works correctly with a fancy bounds', ->
+      expect(
+        NumberRange.fromJS({ start: 0, end: 2, bounds: '(]' }).extend(NumberRange.fromJS({ start: 5, end: 6, bounds: '(]' })).toJS()
+      ).to.deep.equal({ start: 0, end: 6, bounds: '(]' })
+
+    it 'works correctly with infinite bounds on different sides', ->
+      expect(
+        NumberRange.fromJS({ start: null, end: 2 }).extend(NumberRange.fromJS({ start: 6, end: null })).toJS()
+      ).to.deep.equal({ start: null, end: null, bounds: '()' })
+
+
   describe "#union()", ->
     it 'works correctly with a non-disjoint set', ->
       expect(

@@ -109,6 +109,26 @@ function deduplicateSort(a: string[]): string[] {
   return newA
 }
 
+function multiMerge<T>(elements: T[], mergeFn: (a: T,b: T) => T): T[] {
+  var newElements: T[] = [];
+  for (var i = 0; i < elements.length; i++) {
+    var accumulator = elements[i];
+    var tempElements: T[] = [];
+    for (var j = 0; j < newElements.length; j++) {
+      var newElement = newElements[j];
+      var mergeElement = mergeFn(accumulator, newElement);
+      if (mergeElement) {
+        accumulator = mergeElement;
+      } else {
+        tempElements.push(newElement);
+      }
+    }
+    tempElements.push(accumulator);
+    newElements = tempElements;
+  }
+  return newElements;
+}
+
 function arraysEqual<T>(a: Array<T>, b: Array<T>): boolean {
   return a.length === b.length && a.every((item, i) => (item === b[i]));
 }

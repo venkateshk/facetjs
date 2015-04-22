@@ -1,9 +1,11 @@
 var fs = require('fs');
 
+var packageFilename = './package.json';
 var defFilename = './build/facet.d.ts';
 var newDefFilename = './build/facetjs.d.ts';
 var jsFilename = './build/facet.js';
 try {
+  var packageData = JSON.parse(fs.readFileSync(packageFilename, 'utf8'));
   var defData = fs.readFileSync(defFilename, 'utf8');
   var jsData = fs.readFileSync(jsFilename, 'utf8');
 } catch (e) {
@@ -49,8 +51,30 @@ defData = defData.replace(/[^\n]+_delete_me_[^\n]+\n/g, '');
 // Make explicit node module
 defData = defData.replace(/declare module Facet/, 'declare module "facetjs"');
 
+
+// Version
+var facetVersion = packageData.version;
+
+// Ensure version is correct
+if (!/^\d+\.\d+\.\d+$/.test(facetVersion)) {
+  throw new Error("version is not right");
+}
+
+// Fill in version
+jsData = jsData.replace('###_VERSION_###', facetVersion);
+
+// Ensure it was filled in
+if (jsData.indexOf(facetVersion) === -1) {
+  throw new Error("failed to fill in version");
+}
+
 // Delete the _delete_me_
 jsData = jsData.replace(/_delete_me_/g, '');
+
+// Ensure it was deleted
+if (jsData.indexOf('_delete_me_') !== -1) {
+  throw new Error("failed to delete _delete_me_");
+}
 
 fs.writeFileSync(newDefFilename, defData, 'utf8');
 fs.writeFileSync(jsFilename, jsData, 'utf8');

@@ -145,6 +145,8 @@ var expressionParser: PEGParser;
 var sqlParser: PEGParser;
 
 module Facet {
+  export var version = '###_VERSION_###';
+
   export var isInstanceOf = HigherObject.isInstanceOf;
   export var isHigherObject = HigherObject.isHigherObject;
 

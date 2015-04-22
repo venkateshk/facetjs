@@ -528,6 +528,75 @@ describe "simulate Druid", ->
       }
     ])
 
+  it "splits on timePart with sub split", ->
+    ex = $("diamonds").split($("time").timePart('HOUR_OF_DAY', 'Etc/UTC'), 'hourOfDay')
+      .apply('Count', '$diamonds.count()')
+      .sort('$Count', 'descending')
+      .limit(3)
+      .apply('Colors'
+        $("diamonds").split("$color", 'Color')
+          .apply('Count', $('diamonds').count())
+          .sort('$Count', 'descending')
+          .limit(10)
+      )
+
+    expect(ex.simulateQueryPlan(context)).to.deep.equal([
+      {
+        "aggregations": [
+          {
+            "name": "Count"
+            "type": "count"
+          }
+        ]
+        "dataSource": "diamonds"
+        "dimension": {
+          "dimension": "__time"
+          "extractionFn": {
+            "format": "H"
+            "locale": "en-US"
+            "timeZone": "Etc/UTC"
+            "type": "timeFormat"
+          }
+          "outputName": "hourOfDay"
+          "type": "extraction"
+        }
+        "granularity": "all"
+        "intervals": [
+          "2015-03-12/2015-03-19"
+        ]
+        "metric": "Count"
+        "queryType": "topN"
+        "threshold": 3
+      }
+      {
+        "aggregations": [
+          {
+            "name": "Count"
+            "type": "count"
+          }
+        ]
+        "dataSource": "diamonds"
+        "dimension": {
+          "dimension": "color"
+          "outputName": "Color"
+          "type": "default"
+        }
+        "granularity": "all"
+        "intervals": [
+          "2015-03-12T04/2015-03-12T05"
+          "2015-03-13T04/2015-03-13T05"
+          "2015-03-14T04/2015-03-14T05"
+          "2015-03-15T04/2015-03-15T05"
+          "2015-03-16T04/2015-03-16T05"
+          "2015-03-17T04/2015-03-17T05"
+          "2015-03-18T04/2015-03-18T05"
+        ]
+        "metric": "Count"
+        "queryType": "topN"
+        "threshold": 10
+      }
+    ])
+
   it "works without a sort defined", ->
     ex = $()
       .apply('topN',

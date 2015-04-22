@@ -80,6 +80,16 @@ module Facet {
 
   export var simulatedQueries: any[] = null;
 
+  function getDataName(ex: Expression): string {
+    if (ex instanceof RefExpression) {
+      return ex.name;
+    } else if (ex instanceof ActionsExpression) {
+      return getDataName(ex.operand);
+    } else {
+      return null;
+    }
+  }
+
   export function mergeRemotes(remotes: string[][]): string[] {
     var lookup: Lookup<boolean> = {};
     for (var i = 0; i < remotes.length; i++) {
@@ -332,13 +342,23 @@ module Facet {
     }
 
     /**
-     * Check if the expression has the given operation (op)
+     * Check if the expression is of the given operation (op)
      *
      * @param op The operation to test
      * @returns {boolean}
      */
     public isOp(op: string): boolean {
       return this.op === op;
+    }
+
+    /**
+     * Check if the expression contains the given operation (op)
+     *
+     * @param op The operation to test
+     * @returns {boolean}
+     */
+    public containsOp(op: string): boolean {
+      return this.some((ex: Expression) => ex.isOp(op) || null);
     }
 
     /**
@@ -433,7 +453,7 @@ module Facet {
      *
      * @returns {Expression}
      */
-    public mergeAnd(a: Expression): Expression {
+    public mergeAnd(ex: Expression): Expression {
       throw new Error('can not call on base');
     }
 
@@ -442,7 +462,7 @@ module Facet {
      *
      * @returns {Expression}
      */
-    public mergeOr(a: Expression): Expression {
+    public mergeOr(ex: Expression): Expression {
       throw new Error('can not call on base');
     }
 
@@ -717,7 +737,7 @@ module Facet {
     // Split // .split(attr, l, d) = .group(attr).label(l).def(d, facet(^d).filter(ex = ^l))
     public split(attribute: any, name: string, newDataName: string = null): Expression {
       if (!Expression.isExpression(attribute)) attribute = Expression.fromJSLoose(attribute);
-      var dataName = this.isOp('ref') ? (<RefExpression>this).name : null;
+      var dataName = getDataName(this);
       if (!dataName && !newDataName) {
         throw new Error("could not guess data name in `split`, please provide one explicitly");
       }

@@ -502,6 +502,7 @@ module Facet {
         if (!filter.value) return DruidDataset.FALSE_INTERVAL;
         if (!this.allowEternity) throw new Error('must filter on time unless the allowEternity flag is set');
         return DruidDataset.TRUE_INTERVAL;
+
       } else if (filter instanceof InExpression) {
         var lhs = filter.lhs;
         var rhs = filter.rhs;
@@ -521,6 +522,15 @@ module Facet {
         } else {
           throw new Error("can not convert " + filter.toString() + " to Druid interval");
         }
+
+      } else if (filter instanceof AndExpression) {
+        var mergedTimePart = AndExpression.mergeTimePart(filter);
+        if (mergedTimePart) {
+          return this.timeFilterToIntervals(mergedTimePart);
+        } else {
+          throw new Error("can not convert AND filter " + filter.toString() + " to Druid interval");
+        }
+
       } else {
         throw new Error("can not convert " + filter.toString() + " to Druid interval");
       }

@@ -25,10 +25,10 @@ context = {
       tax: { type: 'NUMBER', filterable: false, splitable: false }
       unique_views: { special: 'unique', filterable: false, splitable: false }
     }
-    filter: $("time").in(TimeRange.fromJS({
+    filter: $("time").in({
       start: new Date('2015-03-12T00:00:00')
       end:   new Date('2015-03-19T00:00:00')
-    }))
+    })
   })
 }
 
@@ -475,6 +475,52 @@ describe "simulate Druid", ->
         "granularity": "all"
         "intervals": [
           "2015-03-12/2015-03-19"
+        ]
+        "metric": "Count"
+        "queryType": "topN"
+        "threshold": 10
+      }
+    ])
+
+  it "makes a filter on timePart", ->
+    ex = $("diamonds").filter(
+      $("time").timePart('HOUR_OF_DAY', 'Etc/UTC').in([3, 4, 10]).and($("time").in([
+          TimeRange.fromJS({ start: new Date('2015-03-12T00:00:00'), end: new Date('2015-03-15T00:00:00') })
+          TimeRange.fromJS({ start: new Date('2015-03-16T00:00:00'), end: new Date('2015-03-18T00:00:00') })
+        ]
+      ))
+    ).split("$color", 'Color')
+      .apply('Count', $('diamonds').count())
+      .sort('$Count', 'descending')
+      .limit(10)
+
+    expect(ex.simulateQueryPlan(context)).to.deep.equal([
+      {
+        "aggregations": [
+          {
+            "name": "Count"
+            "type": "count"
+          }
+        ]
+        "dataSource": "diamonds"
+        "dimension": {
+          "dimension": "color"
+          "outputName": "Color"
+          "type": "default"
+        }
+        "granularity": "all"
+        "intervals": [
+          "2015-03-12T03/2015-03-12T05"
+          "2015-03-12T10/2015-03-12T11"
+          "2015-03-13T03/2015-03-13T05"
+          "2015-03-13T10/2015-03-13T11"
+          "2015-03-14T03/2015-03-14T05"
+          "2015-03-14T10/2015-03-14T11"
+
+          "2015-03-16T03/2015-03-16T05"
+          "2015-03-16T10/2015-03-16T11"
+          "2015-03-17T03/2015-03-17T05"
+          "2015-03-17T10/2015-03-17T11"
         ]
         "metric": "Count"
         "queryType": "topN"

@@ -129,11 +129,21 @@ module Facet {
       return this.value instanceof Dataset && this.value.source !== 'native';
     }
 
-    public mergeAnd(exp: Expression): Expression {
+    public mergeAnd(ex: Expression): Expression {
       if (this.value === false) {
         return this;
       } else if (this.value === true) {
-        return exp;
+        return ex;
+      } else {
+        return null;
+      }
+    }
+
+    public mergeOr(ex: Expression): Expression {
+      if (this.value === true) {
+        return this;
+      } else if (this.value === false) {
+        return ex;
       } else {
         return null;
       }

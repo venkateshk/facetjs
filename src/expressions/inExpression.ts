@@ -89,34 +89,38 @@ module Facet {
       }
     }
 
-    public mergeAnd(exp: Expression): Expression {
-      if (!this.checkLefthandedness()) return null; // ToDo: Do something about A is B and B in C
-      if (!arraysEqual(this.getFreeReferences(), exp.getFreeReferences())) return null;
+    public mergeAnd(ex: Expression): Expression {
+      if (ex.isOp('literal')) return ex.mergeAnd(this);
 
-      if (exp instanceof IsExpression || exp instanceof InExpression) {
-        if (!exp.checkLefthandedness()) return null;
+      if (!this.checkLefthandedness()) return null;
+      if (!arraysEqual(this.getFreeReferences(), ex.getFreeReferences())) return null;
 
-        var intersect = Set.generalIntersect((<LiteralExpression>this.rhs).value, (<LiteralExpression>exp.rhs).value);
+      if (ex instanceof IsExpression || ex instanceof InExpression) {
+        if (!ex.checkLefthandedness()) return null;
+
+        var intersect = Set.generalIntersect((<LiteralExpression>this.rhs).value, (<LiteralExpression>ex.rhs).value);
         if (intersect === null) return null;
 
         return makeInOrIs(this.lhs, intersect);
       }
-      return exp;
+      return null;
     }
 
-    public mergeOr(exp: Expression): Expression {
-      if (!this.checkLefthandedness()) return null; // ToDo: Do something about A is B and B in C
-      if (!arraysEqual(this.getFreeReferences(), exp.getFreeReferences())) return null;
+    public mergeOr(ex: Expression): Expression {
+      if (ex.isOp('literal')) return ex.mergeOr(this);
 
-      if (exp instanceof IsExpression || exp instanceof InExpression) {
-        if (!exp.checkLefthandedness()) return null;
+      if (!this.checkLefthandedness()) return null;
+      if (!arraysEqual(this.getFreeReferences(), ex.getFreeReferences())) return null;
 
-        var intersect = Set.generalUnion((<LiteralExpression>this.rhs).value, (<LiteralExpression>exp.rhs).value);
+      if (ex instanceof IsExpression || ex instanceof InExpression) {
+        if (!ex.checkLefthandedness()) return null;
+
+        var intersect = Set.generalUnion((<LiteralExpression>this.rhs).value, (<LiteralExpression>ex.rhs).value);
         if (intersect === null) return null;
 
         return makeInOrIs(this.lhs, intersect);
       }
-      return exp;
+      return null;
     }
 
     protected _specialSimplify(simpleLhs: Expression, simpleRhs: Expression): Expression {

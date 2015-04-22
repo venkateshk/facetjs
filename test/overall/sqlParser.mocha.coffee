@@ -170,7 +170,7 @@ describe "SQL parser", ->
 
     expect(ex.toJS()).to.deep.equal(ex2.toJS())
 
-  it "should work without top level GROUP BY with a function", ->
+  it "should work with a TIME_BUCKET function", ->
     ex = Expression.parseSQL("""
       SELECT
       TIME_BUCKET(`time`, 'PT1H', 'Etc/UTC') AS 'TimeByHour',
@@ -180,6 +180,34 @@ describe "SQL parser", ->
       """)
 
     ex2 = $('wiki').split($('time').timeBucket('PT1H', 'Etc/UTC'), 'TimeByHour', 'data')
+      .apply('TotalAdded', '$data.sum($added)')
+
+    expect(ex.toJS()).to.deep.equal(ex2.toJS())
+
+  it "should work with a NUMBER_BUCKET function", ->
+    ex = Expression.parseSQL("""
+      SELECT
+      NUMBER_BUCKET(added, 10, 1) AS 'AddedBucket',
+      SUM(added) AS 'TotalAdded'
+      FROM `wiki`
+      GROUP BY NUMBER_BUCKET(added, 10, 1)
+      """)
+
+    ex2 = $('wiki').split($('added').numberBucket(10, 1), 'AddedBucket', 'data')
+      .apply('TotalAdded', '$data.sum($added)')
+
+    expect(ex.toJS()).to.deep.equal(ex2.toJS())
+
+  it "should work with a TIME_PART function", ->
+    ex = Expression.parseSQL("""
+      SELECT
+      TIME_PART(`time`, DAY_OF_WEEK, 'Etc/UTC') AS 'DayOfWeek',
+      SUM(added) AS 'TotalAdded'
+      FROM `wiki`
+      GROUP BY TIME_PART(`time`, DAY_OF_WEEK, 'Etc/UTC')
+      """)
+
+    ex2 = $('wiki').split($('time').timePart('DAY_OF_WEEK', 'Etc/UTC'), 'DayOfWeek', 'data')
       .apply('TotalAdded', '$data.sum($added)')
 
     expect(ex.toJS()).to.deep.equal(ex2.toJS())

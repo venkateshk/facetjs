@@ -4,21 +4,6 @@ module Facet {
       return new OrExpression(NaryExpression.jsToValue(parameters));
     }
 
-    static _mergeExpressions(expressions: Expression[]): Expression {
-      return expressions.reduce(function(expression, reducedExpression) {
-        if (typeof reducedExpression === 'undefined') return expression;
-        if (reducedExpression === null) return null;
-        if (reducedExpression instanceof LiteralExpression) {
-          if (reducedExpression.value === true) {
-            return reducedExpression;
-          } else if (reducedExpression.value === false) {
-            return expression;
-          }
-        }
-        return expression.mergeOr(reducedExpression);
-      });
-    }
-
     constructor(parameters: ExpressionValue) {
       super(parameters, dummyObject);
       this._ensureOp("or");
@@ -51,18 +36,9 @@ module Facet {
     public simplify(): Expression {
       if (this.simple) return this;
 
-      var finalOperands: Expression[];
-      var groupedOperands: { [key: string]: Expression[]; };
-      var mergedExpression: Expression;
-      var mergedSimplifiedOperands: Expression[];
-      var referenceGroup: string;
-      var simplifiedOperands: Expression[];
-      var sortedReferenceGroups: string[];
-      var thisOperand: Expression;
+      var simplifiedOperands = this.operands.map((operand) => operand.simplify());
 
-      mergedSimplifiedOperands = [];
-      simplifiedOperands = this.operands.map((operand) => operand.simplify());
-
+      var mergedSimplifiedOperands: Expression[] = [];
       for (var i = 0; i < simplifiedOperands.length; i++) {
         if (simplifiedOperands[i].isOp('or')) {
           mergedSimplifiedOperands = mergedSimplifiedOperands.concat((<OrExpression>simplifiedOperands[i]).operands);
@@ -71,11 +47,10 @@ module Facet {
         }
       }
 
-      groupedOperands = {};
-
+      var groupedOperands: Lookup<Expression[]> = {};
       for (var j = 0; j < mergedSimplifiedOperands.length; j++) {
-        thisOperand = mergedSimplifiedOperands[j];
-        referenceGroup = thisOperand.getFreeReferences().toString();
+        var thisOperand = mergedSimplifiedOperands[j];
+        var referenceGroup = thisOperand.getFreeReferences().toString();
 
         if (groupedOperands[referenceGroup]) {
           groupedOperands[referenceGroup].push(thisOperand);
@@ -84,15 +59,19 @@ module Facet {
         }
       }
 
-      finalOperands = [];
-      sortedReferenceGroups = Object.keys(groupedOperands).sort();
-
+      var sortedReferenceGroups = Object.keys(groupedOperands).sort();
+      var finalOperands: Expression[] = [];
       for (var k = 0; k < sortedReferenceGroups.length; k++) {
-        mergedExpression = OrExpression._mergeExpressions(groupedOperands[sortedReferenceGroups[k]]);
-        if (mergedExpression === null) {
-          finalOperands = finalOperands.concat(groupedOperands[sortedReferenceGroups[k]]);
+        var mergedExpressions = multiMerge(groupedOperands[sortedReferenceGroups[k]], (a, b) => {
+          return a ? a.mergeOr(b) : null;
+        });
+        if (mergedExpressions.length === 1) {
+          finalOperands.push(mergedExpressions[0]);
         } else {
-          finalOperands.push(mergedExpression);
+          finalOperands.push(new OrExpression({
+            op: 'or',
+            operands: mergedExpressions
+          }));
         }
       }
 

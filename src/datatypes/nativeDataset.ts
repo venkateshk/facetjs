@@ -22,6 +22,26 @@ module Facet {
     }
   };
 
+  export interface DatasetColumns {
+    prefix: string;
+    columns: FlattenedColumns;
+  }
+
+  export type FlattenedColumns = Array<string | DatasetColumns>;
+
+  var typeOrder: Lookup<number> = {
+    'TIME': 1,
+    'TIME_RANGE': 2,
+    'SET/TIME': 3,
+    'SET/TIME_RANGE': 4,
+    'STRING': 5,
+    'SET/STRING': 6,
+    'NUMBER': 7,
+    'NUMBER_RANGE': 8,
+    'SET/NUMBER': 9,
+    'SET/NUMBER_RANGE': 10
+  };
+
   function isDate(dt: any) {
     return Boolean(dt.toISOString)
   }
@@ -83,10 +103,19 @@ module Facet {
     return newDatum;
   }
 
+  function copy(obj: Lookup<any>): Lookup<any> {
+    var newObj: Lookup<any> = {};
+    var k: string;
+    for (k in obj) {
+      if (hasOwnProperty(obj, k)) newObj[k] = obj[k];
+    }
+    return newObj;
+  }
+
   export class NativeDataset extends Dataset {
     static type = 'DATASET';
 
-    static fromJS(datasetJS: any, requester: Requester.FacetRequester<any> = null): NativeDataset {
+    static fromJS(datasetJS: any): NativeDataset {
       var value = Dataset.jsToValue(datasetJS);
       value.data = datasetJS.data.map(datumFromJS);
       return new NativeDataset(value)
@@ -354,6 +383,70 @@ module Facet {
         }
       }
       return new NativeDataset({ source: 'native', data: newData });
+    }
+
+    public getFlattenedColumns(): FlattenedColumns {
+      this.introspect();
+      var basicColumns: Array<{ name: string; type: string }> = [];
+      var attributes = this.attributes;
+
+      var datasetAttribute: DatasetColumns = null;
+      for (var attributeName in attributes) {
+        if (!hasOwnProperty(attributes, attributeName)) continue;
+        var attributeInfo = attributes[attributeName];
+        if (attributeInfo.type === 'DATASET') {
+          if (!datasetAttribute) {
+            datasetAttribute = {
+              prefix: attributeName,
+              columns: this.data[0][attributeName].getFlattenedColumns()
+            }
+          }
+        } else {
+          basicColumns.push({
+            name: attributeName,
+            type: attributeInfo.type
+          });
+        }
+      }
+
+      var flattenedColumns: FlattenedColumns = basicColumns
+        .sort((a, b) => typeOrder[a.type] - typeOrder[b.type])
+        .map((c) => c.name);
+
+      if (datasetAttribute) flattenedColumns.push(datasetAttribute);
+      return flattenedColumns;
+    }
+
+    public _flattenHelper(flattenedColumns: FlattenedColumns, prefix: string, context: Datum, flat: Datum[]): void {
+      var data = this.data;
+      for (var i = 0; i < data.length; i++) {
+        var datum = data[i];
+        var flatDatum = copy(context);
+        for (var j = 0; j < flattenedColumns.length; j++) {
+          var flattenedColumn = flattenedColumns[j];
+          if (typeof flattenedColumn === 'string') {
+            flatDatum[prefix + flattenedColumn] = datum[flattenedColumn];
+          } else {
+            datum[flattenedColumn.prefix]._flattenHelper(
+              flattenedColumn.columns,
+              prefix + flattenedColumn.prefix + '.',
+              flatDatum,
+              flat
+            );
+          }
+        }
+        if (typeof flattenedColumns[flattenedColumns.length - 1] === 'string') {
+          // There is no subset to delegate to
+          flat.push(flatDatum);
+        }
+      }
+    }
+
+    public flatten(): Datum[] {
+      var flattenedColumns = this.getFlattenedColumns();
+      var flat: Datum[] = [];
+      this._flattenHelper(flattenedColumns, '', {}, flat);
+      return flat;
     }
   }
 

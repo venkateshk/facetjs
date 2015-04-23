@@ -88,7 +88,7 @@ module Facet {
       Dataset.classMap[id] = ex;
     }
 
-    static fromJS(datasetJS: any, requester: Requester.FacetRequester<any> = null): Dataset {
+    static fromJS(datasetJS: any): Dataset {
       if (Array.isArray(datasetJS)) {
         datasetJS = {
           source: 'native',
@@ -112,7 +112,7 @@ module Facet {
         throw new Error("unsupported dataset '" + source + "'");
       }
 
-      return ClassFn.fromJS(datasetJS, requester);
+      return ClassFn.fromJS(datasetJS);
     }
 
     public source: string;

@@ -25,7 +25,8 @@ if (defData.indexOf('declare var module') !== -1) {
 
 var i = 0;
 defData = defData.replace(/}\ndeclare module Facet \{\n/g, function(str) {
-  return i === 0 ? str : '';
+  i++;
+  return i === 1 ? str : '';
 });
 
 // remove protected

@@ -29,20 +29,68 @@ module Facet {
   }
 
   export type OrderedColumns = Column[];
+  
+  export interface FlatData {
+    columns: OrderedColumns;
+    data: Datum[];
+  }
 
   var typeOrder: Lookup<number> = {
+    'NULL': 0,
     'TIME': 1,
     'TIME_RANGE': 2,
     'SET/TIME': 3,
     'SET/TIME_RANGE': 4,
     'STRING': 5,
     'SET/STRING': 6,
-    'NUMBER': 7,
-    'NUMBER_RANGE': 8,
-    'SET/NUMBER': 9,
-    'SET/NUMBER_RANGE': 10,
-    'DATASET': 11
+    'BOOLEAN': 7,
+    'NUMBER': 8,
+    'NUMBER_RANGE': 9,
+    'SET/NUMBER': 10,
+    'SET/NUMBER_RANGE': 11,
+    'DATASET': 12
   };
+
+  export interface Formatter extends Lookup<Function> {
+    'NULL'?: (v: any) => string;
+    'TIME'?: (v: Date) => string;
+    'TIME_RANGE'?: (v: TimeRange) => string;
+    'SET/TIME'?: (v: Set) => string;
+    'SET/TIME_RANGE'?: (v: Set) => string;
+    'STRING'?: (v: string) => string;
+    'SET/STRING'?: (v: Set) => string;
+    'BOOLEAN'?: (v: boolean) => string;
+    'NUMBER'?: (v: number) => string;
+    'NUMBER_RANGE'?: (v: NumberRange) => string;
+    'SET/NUMBER'?: (v: Set) => string;
+    'SET/NUMBER_RANGE'?: (v: Set) => string;
+    'DATASET'?: (v: Dataset) => string;
+  }
+
+  var defaultFormatter: Formatter = {
+    'NULL': (v: any) => { return 'NULL'; },
+    'TIME': (v: Date) => { return v.toISOString(); },
+    'TIME_RANGE': (v: TimeRange) => { return String(v) },
+    'SET/TIME': (v: Set) => { return String(v); },
+    'SET/TIME_RANGE': (v: Set) => { return String(v); },
+    'STRING': (v: string) => {
+      if (v.indexOf('"') === -1) return v;
+      return '"' + v.replace(/"/g, '""') + '"';
+    },
+    'SET/STRING': (v: Set) => { return String(v); },
+    'BOOLEAN': (v: boolean) => { return String(v); },
+    'NUMBER': (v: number) => { return String(v); },
+    'NUMBER_RANGE': (v: NumberRange) => { return String(v); },
+    'SET/NUMBER': (v: Set) => { return String(v); },
+    'SET/NUMBER_RANGE': (v: Set) => { return String(v); },
+    'DATASET': (v: Dataset) => { return 'DATASET'; }
+  };
+
+  export interface TabulatorOptions {
+    separator?: string;
+    lineBreak?: string;
+    formatter?: Formatter;
+  }
 
   function isDate(dt: any) {
     return Boolean(dt.toISOString)
@@ -418,7 +466,7 @@ module Facet {
       });
     }
 
-    public _flattenHelper(flattenedColumns: OrderedColumns, prefix: string, context: Datum, flat: Datum[]): void {
+    private _flattenHelper(flattenedColumns: OrderedColumns, prefix: string, context: Datum, flat: Datum[]): void {
       var data = this.data;
       for (var i = 0; i < data.length; i++) {
         var datum = data[i];
@@ -443,11 +491,65 @@ module Facet {
       }
     }
 
-    public flatten(): Datum[] {
+    public flatten(): FlatData {
       var flattenedColumns = this.getOrderedColumns();
-      var flat: Datum[] = [];
-      this._flattenHelper(flattenedColumns, '', {}, flat);
-      return flat;
+      var flatData: Datum[] = [];
+      this._flattenHelper(flattenedColumns, '', {}, flatData);
+
+      var flatColumns: OrderedColumns = [];
+      var workingColumns = flattenedColumns;
+      var i = 0;
+      var prefix = '';
+      while (i < workingColumns.length) {
+        var workingColumn = workingColumns[i];
+        if (workingColumn.type === 'DATASET') {
+          workingColumns = workingColumn.columns;
+          prefix += workingColumn.name + '.';
+          i = 0;
+        } else {
+          flatColumns.push({
+            name: prefix + workingColumn.name,
+            type: workingColumn.type
+          });
+          i++;
+        }
+      }
+      
+      return {
+        columns: flatColumns,
+        data: flatData
+      };
+    }
+
+    public toTabular(tabulatorOptions: TabulatorOptions): string {
+      var formatter: Formatter = tabulatorOptions.formatter || {};
+      var flatData = this.flatten();
+      var columns = flatData.columns;
+      var data = flatData.data;
+
+      var lines: string[] = [];
+      lines.push(columns.map((c) => c.name).join(tabulatorOptions.separator || ','));
+
+      for (var i = 0; i < data.length; i++) {
+        var datum = data[i];
+        lines.push(columns.map((c) => {
+          return String((formatter[c.type] || defaultFormatter[c.type])(datum[c.name]));
+        }).join(tabulatorOptions.separator || ','));
+      }
+
+      return lines.join(tabulatorOptions.lineBreak || '\n');
+    }
+
+    public toCSV(tabulatorOptions: TabulatorOptions = {}): string {
+      tabulatorOptions.separator = tabulatorOptions.separator || ',';
+      tabulatorOptions.lineBreak = tabulatorOptions.lineBreak || '\r\n';
+      return this.toTabular(tabulatorOptions);
+    }
+
+    public toTSV(tabulatorOptions: TabulatorOptions = {}): string {
+      tabulatorOptions.separator = tabulatorOptions.separator || '\t';
+      tabulatorOptions.lineBreak = tabulatorOptions.lineBreak || '\r\n';
+      return this.toTabular(tabulatorOptions);
     }
   }
 

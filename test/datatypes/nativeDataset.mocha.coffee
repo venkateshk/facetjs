@@ -87,7 +87,7 @@ describe "NativeDataset", ->
 
   describe "#flatten", ->
     it "works with basic dataset", ->
-      expect(carDataset.flatten()).to.deep.equal([
+      expect(carDataset.flatten().data).to.deep.equal([
         {
           "make": "Honda"
           "model": "Civic"
@@ -103,7 +103,7 @@ describe "NativeDataset", ->
       ])
 
     it "works with sub-dataset", ->
-      expect(carAndPartsDataset.flatten()).to.deep.equal([
+      expect(carAndPartsDataset.flatten().data).to.deep.equal([
         {
           "make": "Honda"
           "model": "Civic"
@@ -137,3 +137,20 @@ describe "NativeDataset", ->
           "time": new Date("2015-01-04T14:00:40.000Z")
         }
       ])
+
+  describe "#toCSV", ->
+    it "works with basic dataset", ->
+      expect(carDataset.toTabular({})).to.equal("""
+      time,make,model,price
+      2015-01-04T12:32:43.000Z,Honda,Civic,10000
+      2015-01-04T14:00:40.000Z,Toyota,Prius,20000
+      """)
+
+    it "works with sub-dataset", ->
+      expect(carAndPartsDataset.toTabular({})).to.equal("""
+      time,make,model,price,parts.part,parts.weight
+      2015-01-04T12:32:43.000Z,Honda,Civic,10000,Engine,500
+      2015-01-04T12:32:43.000Z,Honda,Civic,10000,Door,20
+      2015-01-04T14:00:40.000Z,Toyota,Prius,20000,Engine,400
+      2015-01-04T14:00:40.000Z,Toyota,Prius,20000,Door,25
+      """)

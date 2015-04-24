@@ -1,9 +1,9 @@
 /// <reference path="../typings/q/Q.d.ts" />
-/// <reference path="../typings/async/async.d.ts" />
 /// <reference path="../definitions/higher-object.d.ts" />
 /// <reference path="../definitions/chronology.d.ts" />
 /// <reference path="../definitions/locator.d.ts" />
 /// <reference path="../definitions/requester.d.ts" />
+/// <reference path="../definitions/druid.d.ts" />
 "use strict";
 
 /*========================================*\
@@ -45,13 +45,14 @@
 
  */
 
+interface DELETE_START {} // This is just a marker for the declaration post processor
+
 declare function require(file: string): any;
 declare var module: { exports: any; };
 
 var HigherObject = <HigherObject.Base>require("higher-object");
 var q = <typeof Q>require("q");
 var Q_delete_me_ = q;
-var async = <Async>require("async");
 var chronology = <typeof Chronology>require("chronology");
 var Chronology_delete_me_ = chronology;
 
@@ -87,10 +88,6 @@ var dummyObject: Dummy = {};
 var objectHasOwnProperty = Object.prototype.hasOwnProperty;
 function hasOwnProperty(obj: any, key: string): boolean {
   return objectHasOwnProperty.call(obj, key);
-}
-
-function concatMap<T, U>(arr: T[], fn: (t: T) => U[]): U[] {
-  return Array.prototype.concat.apply([], arr.map(fn));
 }
 
 function repeat(str: string, times: number): string {
@@ -133,16 +130,10 @@ function arraysEqual<T>(a: Array<T>, b: Array<T>): boolean {
   return a.length === b.length && a.every((item, i) => (item === b[i]));
 }
 
-function smaller<T>(a: T, b: T): T {
-  return a < b ? a : b;
-}
-
-function larger<T>(a: T, b: T): T {
-  return a < b ? b : a;
-}
-
 var expressionParser: PEGParser;
 var sqlParser: PEGParser;
+
+interface DELETE_END {} // This is just a marker for the declaration post processor
 
 module Facet {
   export var version = '###_VERSION_###';
@@ -160,21 +151,44 @@ module Facet {
     [attribute: string]: any;
     $def?: Datum;
   }
-}
 
-module Facet.Legacy {
-  export var filterParser = <PEGParser>require("../parser/filter");
-  export var applyParser = <PEGParser>require("../parser/apply");
+  export function safeAdd(num: number, delta: number): number {
+    var stringDelta = String(delta);
+    var dotIndex = stringDelta.indexOf(".");
+    if (dotIndex === -1 || stringDelta.length === 18) {
+      return num + delta;
+    } else {
+      var scale = Math.pow(10, stringDelta.length - dotIndex - 1);
+      return (num * scale + delta * scale) / scale;
+    }
+  }
 
-  export var isInstanceOf = HigherObject.isInstanceOf;
+  export function find<T>(array: T[], fn: (value: T, index: number, array: T[]) => boolean): T {
+    for (var i = 0; i < array.length; i++) {
+      var a = array[i];
+      if (fn.call(array, a, i)) return a;
+    }
+    return null;
+  }
 
-  export import ImmutableClass = HigherObject.ImmutableClass;
-  export import ImmutableInstance = HigherObject.ImmutableInstance;
-
-  export import Timezone = Chronology.Timezone;
-  export import Duration = Chronology.Duration;
-
-  export interface Datum {
-    [attribute: string]: any;
+  export function continuousFloorExpression(variable: string, floorFn: string, size: number, offset: number): string {
+    var expr = variable;
+    if (offset !== 0) {
+      expr = expr + " - " + offset;
+    }
+    if (offset !== 0 && size !== 1) {
+      expr = "(" + expr + ")";
+    }
+    if (size !== 1) {
+      expr = expr + " / " + size;
+    }
+    expr = floorFn + "(" + expr + ")";
+    if (size !== 1) {
+      expr = expr + " * " + size;
+    }
+    if (offset !== 0) {
+      expr = expr + " + " + offset;
+    }
+    return expr;
   }
 }

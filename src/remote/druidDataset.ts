@@ -160,7 +160,7 @@ module Facet {
       var start = Number(v);
       return new NumberRange({
         start: start,
-        end: Legacy.driverUtil.safeAdd(start, rangeSize)
+        end: safeAdd(start, rangeSize)
       });
     }
   }
@@ -560,7 +560,7 @@ module Facet {
       if (numberBucket && numberBucket.offset === 0 && numberBucket.size === attributeInfo.rangeSize) numberBucket = null;
       var bucketing = '';
       if (numberBucket) {
-        bucketing = 's=' + Legacy.driverUtil.continuousFloorExpression('s', 'Math.floor', numberBucket.size, numberBucket.offset) + ';';
+        bucketing = 's=' + continuousFloorExpression('s', 'Math.floor', numberBucket.size, numberBucket.offset) + ';';
       }
       return {
         type: "javascript",
@@ -687,7 +687,7 @@ return (start < 0 ?'-':'') + parts.join('.');
           queryType = "topN";
           switch (attributeInfo.type) {
             case 'NUMBER':
-              var floorExpression = Legacy.driverUtil.continuousFloorExpression("d", "Math.floor", splitExpression.size, splitExpression.offset);
+              var floorExpression = continuousFloorExpression("d", "Math.floor", splitExpression.size, splitExpression.offset);
               dimension = {
                 type: "extraction",
                 dimension: refExpression.name,

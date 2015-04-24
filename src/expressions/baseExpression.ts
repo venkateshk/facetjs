@@ -590,7 +590,7 @@ module Facet {
         var remoteDatasets = ex.getRemoteDatasetIds();
         if (remoteDatasets.length !== 1) return null;
 
-        var existingApply = Legacy.driverUtil.find(singleDatasetActions, (apply) => apply.expression.equals(ex));
+        var existingApply = find(singleDatasetActions, (apply) => apply.expression.equals(ex));
 
         var tempName: string;
         if (existingApply) {

@@ -32,18 +32,58 @@ describe "NativeDataset", ->
 
   describe "#getFlattenedColumns", ->
     it "works with basic dataset", ->
-      expect(carDataset.getFlattenedColumns()).to.deep.equal(["time", "make", "model", "price"])
+      expect(carDataset.getOrderedColumns()).to.deep.equal([
+        {
+          "name": "time"
+          "type": "TIME"
+        }
+        {
+          "name": "make"
+          "type": "STRING"
+        }
+        {
+          "name": "model"
+          "type": "STRING"
+        }
+        {
+          "name": "price"
+          "type": "NUMBER"
+        }
+      ])
 
     it "works with sub-dataset", ->
-      expect(carAndPartsDataset.getFlattenedColumns()).to.deep.equal(
-        [
-          "time", "make", "model", "price",
-          {
-            "columns": ["part", "weight"]
-            "prefix": "parts"
-          }
-        ]
-      )
+      expect(carAndPartsDataset.getOrderedColumns()).to.deep.equal([
+        {
+          "name": "time"
+          "type": "TIME"
+        }
+        {
+          "name": "make"
+          "type": "STRING"
+        }
+        {
+          "name": "model"
+          "type": "STRING"
+        }
+        {
+          "name": "price"
+          "type": "NUMBER"
+        }
+        {
+          "columns": [
+            {
+              "name": "part"
+              "type": "STRING"
+            }
+            {
+              "name": "weight"
+              "type": "NUMBER"
+            }
+          ]
+          "name": "parts"
+          "type": "DATASET"
+        }
+      ])
 
   describe "#flatten", ->
     it "works with basic dataset", ->

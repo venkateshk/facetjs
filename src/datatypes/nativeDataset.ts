@@ -22,12 +22,13 @@ module Facet {
     }
   };
 
-  export interface DatasetColumns {
-    prefix: string;
-    columns: FlattenedColumns;
+  export interface Column {
+    name: string;
+    type: string;
+    columns?: OrderedColumns;
   }
 
-  export type FlattenedColumns = Array<string | DatasetColumns>;
+  export type OrderedColumns = Column[];
 
   var typeOrder: Lookup<number> = {
     'TIME': 1,
@@ -39,7 +40,8 @@ module Facet {
     'NUMBER': 7,
     'NUMBER_RANGE': 8,
     'SET/NUMBER': 9,
-    'SET/NUMBER_RANGE': 10
+    'SET/NUMBER_RANGE': 10,
+    'DATASET': 11
   };
 
   function isDate(dt: any) {
@@ -385,57 +387,56 @@ module Facet {
       return new NativeDataset({ source: 'native', data: newData });
     }
 
-    public getFlattenedColumns(): FlattenedColumns {
+    public getOrderedColumns(): OrderedColumns {
       this.introspect();
-      var basicColumns: Array<{ name: string; type: string }> = [];
+      var orderedColumns: OrderedColumns = [];
       var attributes = this.attributes;
 
-      var datasetAttribute: DatasetColumns = null;
+      var subDatasetAdded: boolean = false;
       for (var attributeName in attributes) {
         if (!hasOwnProperty(attributes, attributeName)) continue;
         var attributeInfo = attributes[attributeName];
+        var column: Column = {
+          name: attributeName,
+          type: attributeInfo.type
+        };
         if (attributeInfo.type === 'DATASET') {
-          if (!datasetAttribute) {
-            datasetAttribute = {
-              prefix: attributeName,
-              columns: this.data[0][attributeName].getFlattenedColumns()
-            }
+          if (!subDatasetAdded) {
+            subDatasetAdded = true;
+            column.columns = this.data[0][attributeName].getOrderedColumns();
+            orderedColumns.push(column);
           }
         } else {
-          basicColumns.push({
-            name: attributeName,
-            type: attributeInfo.type
-          });
+          orderedColumns.push(column);
         }
       }
 
-      var flattenedColumns: FlattenedColumns = basicColumns
-        .sort((a, b) => typeOrder[a.type] - typeOrder[b.type])
-        .map((c) => c.name);
-
-      if (datasetAttribute) flattenedColumns.push(datasetAttribute);
-      return flattenedColumns;
+      return orderedColumns.sort((a, b) => {
+        var typeDiff = typeOrder[a.type] - typeOrder[b.type];
+        if (typeDiff) return typeDiff;
+        return a.name.localeCompare(b.name);
+      });
     }
 
-    public _flattenHelper(flattenedColumns: FlattenedColumns, prefix: string, context: Datum, flat: Datum[]): void {
+    public _flattenHelper(flattenedColumns: OrderedColumns, prefix: string, context: Datum, flat: Datum[]): void {
       var data = this.data;
       for (var i = 0; i < data.length; i++) {
         var datum = data[i];
         var flatDatum = copy(context);
         for (var j = 0; j < flattenedColumns.length; j++) {
           var flattenedColumn = flattenedColumns[j];
-          if (typeof flattenedColumn === 'string') {
-            flatDatum[prefix + flattenedColumn] = datum[flattenedColumn];
-          } else {
-            datum[flattenedColumn.prefix]._flattenHelper(
+          if (flattenedColumn.type === 'DATASET') {
+            datum[flattenedColumn.name]._flattenHelper(
               flattenedColumn.columns,
-              prefix + flattenedColumn.prefix + '.',
+              prefix + flattenedColumn.name + '.',
               flatDatum,
               flat
             );
+          } else {
+            flatDatum[prefix + flattenedColumn.name] = datum[flattenedColumn.name];
           }
         }
-        if (typeof flattenedColumns[flattenedColumns.length - 1] === 'string') {
+        if (flattenedColumns[flattenedColumns.length - 1].type !== 'DATASET') {
           // There is no subset to delegate to
           flat.push(flatDatum);
         }
@@ -443,7 +444,7 @@ module Facet {
     }
 
     public flatten(): Datum[] {
-      var flattenedColumns = this.getFlattenedColumns();
+      var flattenedColumns = this.getOrderedColumns();
       var flat: Datum[] = [];
       this._flattenHelper(flattenedColumns, '', {}, flat);
       return flat;

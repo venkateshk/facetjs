@@ -23,7 +23,10 @@ if (defData.indexOf('declare var module') !== -1) {
   throw new Error("failed to delete require declaration");
 }
 
-defData = defData.replace(/}\ndeclare module Facet \{\n/g, '');
+var i = 0;
+defData = defData.replace(/}\ndeclare module Facet \{\n/g, function(str) {
+  return i === 0 ? str : '';
+});
 
 // remove protected
 defData = defData.replace(/ +protected [^\n]+\n/g, '');

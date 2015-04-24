@@ -57,7 +57,7 @@ module Facet {
     }
 
     protected _getSQLHelper(operandSQL: string, dialect: SQLDialect, minimal: boolean): string {
-      return Legacy.driverUtil.continuousFloorExpression(operandSQL, "FLOOR", this.size, this.offset);
+      return continuousFloorExpression(operandSQL, "FLOOR", this.size, this.offset);
     }
   }
 

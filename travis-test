@@ -19,15 +19,4 @@ mocha \
   test/overall/* \
   test/remote/* \
   test/helper/* \
-  test/legacy/query/* \
-  test/legacy/driver/fractalCache.mocha.coffee \
-  test/legacy/driver/nativeDriver.mocha.coffee \
-  test/legacy/driver/driverUtil.mocha.coffee \
-  test/legacy/driver/fractalCacheHelpers.mocha.coffee;
-
-# Commented out because these tests require some extra setup like Druid endpoints and mysql server
-# mocha test/legacy/driver/diamonds.mocha.coffee
-# mocha test/legacy/driver/druidDriver.mocha.coffee
-# mocha test/legacy/driver/mySqlDriver.mocha.coffee
-# mocha test/legacy/driver/driverErrors.mocha.coffee
-# mocha test/legacy/driver/wikiDay.mocha.coffee
+  ;

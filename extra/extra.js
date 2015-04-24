@@ -12,32 +12,15 @@ try {
   process.exit(0);
 }
 
-// Delete:
-// declare function require(file: string): any;
-defData = defData.replace('declare function require(file: string): any;\n', '');
-
-// Ensure it was deleted
-if (defData.indexOf('declare function require') !== -1) {
-  throw new Error("failed to delete require declaration");
-}
+defData += '\n';
 
 // Delete:
-// declare var module: {
-//   exports: any;
-// };
-defData = defData.replace(/declare var module: \{\s*exports: any;\s*};\n/, '');
+// initial crud
+defData = defData.replace(/interface DELETE_START[\s\S]+interface DELETE_END[^}]+}\n/, '');
 
 // Ensure it was deleted
 if (defData.indexOf('declare var module') !== -1) {
   throw new Error("failed to delete require declaration");
-}
-
-defData += '\n';
-defData = defData.replace(/declare module Facet\.Legacy \{[\s\S]+?\n}\n/g, '');
-
-// Ensure it was deleted
-if (defData.indexOf('declare module Facet.Legacy') !== -1) {
-  throw new Error("failed to delete Facet.Legacy");
 }
 
 defData = defData.replace(/}\ndeclare module Facet \{\n/g, '');
@@ -45,11 +28,8 @@ defData = defData.replace(/}\ndeclare module Facet \{\n/g, '');
 // remove protected
 defData = defData.replace(/ +protected [^\n]+\n/g, '');
 
-// remove _delete_me_
-defData = defData.replace(/[^\n]+_delete_me_[^\n]+\n/g, '');
-
 // Make explicit node module
-defData = defData.replace(/declare module Facet/, 'declare module "facetjs"');
+var defDataCommonJS = defData.replace(/declare module Facet/, 'declare module "facetjs"');
 
 
 // Version
@@ -76,5 +56,6 @@ if (jsData.indexOf('_delete_me_') !== -1) {
   throw new Error("failed to delete _delete_me_");
 }
 
-fs.writeFileSync(newDefFilename, defData, 'utf8');
+fs.writeFileSync(defFilename, defData, 'utf8');
+fs.writeFileSync(newDefFilename, defDataCommonJS, 'utf8');
 fs.writeFileSync(jsFilename, jsData, 'utf8');

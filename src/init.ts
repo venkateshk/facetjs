@@ -45,6 +45,9 @@
 
  */
 
+interface Lookup<T> { [key: string]: T }
+interface Dummy {}
+
 interface DELETE_START {} // This is just a marker for the declaration post processor
 
 declare function require(file: string): any;
@@ -57,10 +60,6 @@ var chronology = <typeof Chronology>require("chronology");
 var Chronology_delete_me_ = chronology;
 
 // --------------------------------------------------------
-
-interface Lookup<T> {
-  [key: string]: T;
-}
 
 interface PEGParserOptions {
   cache?: boolean;
@@ -78,8 +77,6 @@ interface PEGParser {
 interface PEGParserFactory {
   (facet: any): PEGParser;
 }
-
-interface Dummy {}
 
 // --------------------------------------------------------
 

@@ -27,28 +27,10 @@ context = {
     start: new Date("2013-02-26T00:00:00Z")
     end: new Date("2013-02-27T00:00:00Z")
   })))
-  wikiCmp: Dataset.fromJS({
-    source: 'druid',
-    dataSource: 'wikipedia_editstream_cmp',
-    timeAttribute: 'time',
-    context: null
-    attributes: {
-      time: { type: 'TIME' }
-      language: { type: 'STRING' }
-      user: { type: 'STRING' }
-      page: { type: 'STRING' }
-      added: { type: 'NUMBER' }
-    }
-    filter: $('time').in(TimeRange.fromJS({
-      start: new Date("2013-02-25T00:00:00Z")
-      end: new Date("2013-02-26T00:00:00Z")
-    }))
-  })
-
-#  wikiDataset.addFilter($('time').in(TimeRange.fromJS({
-#    start: new Date("2013-02-25T00:00:00Z")
-#    end: new Date("2013-02-26T00:00:00Z")
-#  })))
+  wikiCmp: wikiDataset.addFilter($('time').in(TimeRange.fromJS({
+    start: new Date("2013-02-25T00:00:00Z")
+    end: new Date("2013-02-26T00:00:00Z")
+  })))
 }
 
 describe "RemoteDataset", ->

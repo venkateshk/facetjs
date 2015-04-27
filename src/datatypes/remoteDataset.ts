@@ -190,6 +190,10 @@ module Facet {
         this.filter.equals(other.filter);
     }
 
+    public getId(): string {
+      return super.getId() + ':' + this.filter.toString();
+    }
+
     public hasRemote(): boolean {
       return true;
     }

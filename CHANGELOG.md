@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.14.4
+
+* added verboseRequester
+
 ## 0.14.3
 
 * moved chronology to peer decencies

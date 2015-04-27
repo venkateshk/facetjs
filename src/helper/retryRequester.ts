@@ -2,9 +2,9 @@ module Facet {
   export module Helper {
     export interface RetryRequesterParameters<T> {
       requester: Requester.FacetRequester<T>;
-      delay: number;
-      retry: number;
-      retryOnTimeout: boolean;
+      delay?: number;
+      retry?: number;
+      retryOnTimeout?: boolean;
     }
 
     export function retryRequester<T>(parameters: RetryRequesterParameters<T>): Requester.FacetRequester<T> {
@@ -16,7 +16,7 @@ module Facet {
       var requester = parameters.requester;
       var delay = parameters.delay || 500;
       var retry = parameters.retry || 3;
-      var retryOnTimeout = parameters.retryOnTimeout;
+      var retryOnTimeout = Boolean(parameters.retryOnTimeout);
 
       if (typeof delay !== "number") throw new TypeError("delay should be a number");
       if (typeof retry !== "number") throw new TypeError("retry should be a number");

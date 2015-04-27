@@ -23,7 +23,7 @@ describe "Retry requester", ->
     requester = makeRequester()
     concurrentLimitRequester = concurrentLimitRequesterFactory({
       requester
-      limit: 2
+      concurrentLimit: 2
     })
 
     concurrentLimitRequester({ query: 'a' }).then((res) ->
@@ -37,7 +37,7 @@ describe "Retry requester", ->
     requester = makeRequester()
     concurrentLimitRequester = concurrentLimitRequesterFactory({
       requester
-      limit: 2
+      concurrentLimit: 2
     })
 
     nextQuery = 'a'

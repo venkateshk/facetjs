@@ -2,7 +2,7 @@ module Facet {
   export module Helper {
     export interface ConcurrentLimitRequesterParameters<T> {
       requester: Requester.FacetRequester<T>;
-      limit: number;
+      concurrentLimit: number;
     }
 
     interface QueueItem<T> {
@@ -12,16 +12,16 @@ module Facet {
 
     export function concurrentLimitRequesterFactory<T>(parameters: ConcurrentLimitRequesterParameters<T>): Requester.FacetRequester<T> {
       var requester = parameters.requester;
-      var limit = parameters.limit || 5;
+      var concurrentLimit = parameters.concurrentLimit || 5;
 
-      if (typeof limit !== "number") throw new TypeError("limit should be a number");
+      if (typeof concurrentLimit !== "number") throw new TypeError("concurrentLimit should be a number");
 
       var requestQueue: Array<QueueItem<T>> = [];
       var outstandingRequests: number = 0;
 
       function requestFinished(): void {
         outstandingRequests--;
-        if (!(requestQueue.length && outstandingRequests < limit)) return;
+        if (!(requestQueue.length && outstandingRequests < concurrentLimit)) return;
         var queueItem = requestQueue.shift();
         var deferred = queueItem.deferred;
         outstandingRequests++;
@@ -31,7 +31,7 @@ module Facet {
       }
 
       return (request: Requester.DatabaseRequest<T>): Q.Promise<any> => {
-        if (outstandingRequests < limit) {
+        if (outstandingRequests < concurrentLimit) {
           outstandingRequests++;
           return requester(request).fin(requestFinished);
         } else {

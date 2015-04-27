@@ -8,6 +8,11 @@ module Facet {
     }
 
     export function retryRequester<T>(parameters: RetryRequesterParameters<T>): Requester.FacetRequester<T> {
+      console.warn('retryRequester has been renamed to retryRequesterFactory and will soon be deprecated');
+      return retryRequesterFactory(parameters);
+    }
+
+    export function retryRequesterFactory<T>(parameters: RetryRequesterParameters<T>): Requester.FacetRequester<T> {
       var requester = parameters.requester;
       var delay = parameters.delay || 500;
       var retry = parameters.retry || 3;

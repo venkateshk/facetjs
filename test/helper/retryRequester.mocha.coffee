@@ -3,7 +3,7 @@
 Q = require('q')
 
 facet = require("../../build/facet")
-{ retryRequester } = facet.helper
+{ retryRequesterFactory } = facet.helper
 
 describe "Retry requester", ->
   makeRequester = (failNumber, isTimeout) ->
@@ -16,49 +16,49 @@ describe "Retry requester", ->
 
 
   it "no retry needed (no fail)", (testComplete) ->
-    testRequester = retryRequester({
+    retryRequester = retryRequesterFactory({
       requester: makeRequester(0)
-      delay: 50
+      delay: 20
       retry: 2
     })
 
-    testRequester({}).then((res) ->
+    retryRequester({}).then((res) ->
       expect(res).to.be.an('array')
       testComplete()
     ).done()
 
   it "one fail", (testComplete) ->
-    testRequester = retryRequester({
+    retryRequester = retryRequesterFactory({
       requester: makeRequester(1)
-      delay: 50
+      delay: 20
       retry: 2
     })
 
-    testRequester({}).then((res) ->
+    retryRequester({}).then((res) ->
       expect(res).to.be.an('array')
       testComplete()
     ).done()
 
   it "two fails", (testComplete) ->
-    testRequester = retryRequester({
+    retryRequester = retryRequesterFactory({
       requester: makeRequester(2)
-      delay: 50
+      delay: 20
       retry: 2
     })
 
-    testRequester({}).then((res) ->
+    retryRequester({}).then((res) ->
       expect(res).to.be.an('array')
       testComplete()
     ).done()
 
   it "three fails", (testComplete) ->
-    testRequester = retryRequester({
+    retryRequester = retryRequesterFactory({
       requester: makeRequester(3)
-      delay: 50
+      delay: 20
       retry: 2
     })
 
-    testRequester({})
+    retryRequester({})
       .then(-> throw new Error('DID_NOT_THROW'))
       .catch((err) ->
         expect(err.message).to.equal('some error')
@@ -66,13 +66,13 @@ describe "Retry requester", ->
       ).done()
 
   it "timeout", (testComplete) ->
-    testRequester = retryRequester({
+    retryRequester = retryRequesterFactory({
       requester: makeRequester(1, true)
-      delay: 50
+      delay: 20
       retry: 2
     })
 
-    testRequester({})
+    retryRequester({})
       .then(-> throw new Error('DID_NOT_THROW'))
       .catch((err) ->
         expect(err.message).to.equal('timeout')

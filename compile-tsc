@@ -62,6 +62,7 @@ node_modules/.bin/tsc --noImplicitAny --noEmitOnError --declaration --removeComm
   \
   src/helper/simpleLocator.ts \
   src/helper/retryRequester.ts \
+  src/helper/limitRequester.ts \
   \
   src/exports.ts \
   && \

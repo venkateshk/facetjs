@@ -3,7 +3,7 @@
 Q = require('q')
 
 facet = require("../../build/facet")
-{ limitRequesterFactory } = facet.helper
+{ concurrentLimitRequesterFactory } = facet.helper
 
 describe "Retry requester", ->
   makeRequester = () ->
@@ -21,12 +21,12 @@ describe "Retry requester", ->
 
   it "basic works", (testComplete) ->
     requester = makeRequester()
-    limitRequester = limitRequesterFactory({
+    concurrentLimitRequester = concurrentLimitRequesterFactory({
       requester
       limit: 2
     })
 
-    limitRequester({ query: 'a' }).then((res) ->
+    concurrentLimitRequester({ query: 'a' }).then((res) ->
       expect(res).to.be.an('array')
       testComplete()
     ).done()
@@ -35,19 +35,19 @@ describe "Retry requester", ->
 
   it "limit works", (testComplete) ->
     requester = makeRequester()
-    limitRequester = limitRequesterFactory({
+    concurrentLimitRequester = concurrentLimitRequesterFactory({
       requester
       limit: 2
     })
 
     nextQuery = 'a'
-    limitRequester({ query: 'a' }).then((res) ->
+    concurrentLimitRequester({ query: 'a' }).then((res) ->
       expect(res).to.be.an('array')
       expect(nextQuery).to.equal('a')
       nextQuery = 'b'
     ).done()
 
-    limitRequester({ query: 'b' }).then((res) ->
+    concurrentLimitRequester({ query: 'b' }).then((res) ->
       expect(res).to.be.an('array')
       expect(nextQuery).to.equal('b')
       nextQuery = 'c'
@@ -55,7 +55,7 @@ describe "Retry requester", ->
       requester.resolve('c')
     ).done()
 
-    limitRequester({ query: 'c' }).then((res) ->
+    concurrentLimitRequester({ query: 'c' }).then((res) ->
       expect(res).to.be.an('array')
       expect(nextQuery).to.equal('c')
       testComplete()

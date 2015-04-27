@@ -1,6 +1,6 @@
 module Facet {
   export module Helper {
-    export interface LimitRequesterParameters<T> {
+    export interface ConcurrentLimitRequesterParameters<T> {
       requester: Requester.FacetRequester<T>;
       limit: number;
     }
@@ -10,7 +10,7 @@ module Facet {
       deferred: Q.Deferred<any>;
     }
 
-    export function limitRequesterFactory<T>(parameters: LimitRequesterParameters<T>): Requester.FacetRequester<T> {
+    export function concurrentLimitRequesterFactory<T>(parameters: ConcurrentLimitRequesterParameters<T>): Requester.FacetRequester<T> {
       var requester = parameters.requester;
       var limit = parameters.limit || 5;
 

@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.14.2
+
+* renamed limitRequesterFactory to concurrentLimitRequesterFactory - does not warrant a minor version bump since limitRequesterFactory existed for less than 24h
+
 ## 0.14.1
 
 * Started proper change log

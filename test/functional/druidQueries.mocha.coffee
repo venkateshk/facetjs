@@ -8,7 +8,7 @@ if not WallTime.rules
 { druidRequesterFactory } = require('facetjs-druid-requester')
 
 facet = require('../../build/facet')
-{ Expression, Dataset, TimeRange, $ } = facet
+{ Expression, Dataset, TimeRange, $, basicDispatcherFactory } = facet
 
 info = require('../info')
 
@@ -20,26 +20,28 @@ describe "DruidDataset", ->
   @timeout(10000);
 
   describe "defined attributes in datasource", ->
-    context = {
-      wiki: Dataset.fromJS({
-        source: 'druid',
-        dataSource: 'wikipedia_editstream',
-        timeAttribute: 'time',
-        context: null
-        attributes: {
-          time: { type: 'TIME' }
-          language: { type: 'STRING' }
-          page: { type: 'STRING' }
-          added: { type: 'NUMBER' }
-          count: { type: 'NUMBER' }
-        }
-        filter: $('time').in(TimeRange.fromJS({
-          start: new Date("2013-02-26T00:00:00Z")
-          end: new Date("2013-02-27T00:00:00Z")
-        }))
-        requester: druidRequester
-      })
-    }
+    basicDispatcher = basicDispatcherFactory({
+      context: {
+        wiki: Dataset.fromJS({
+          source: 'druid',
+          dataSource: 'wikipedia_editstream',
+          timeAttribute: 'time',
+          context: null
+          attributes: {
+            time: {type: 'TIME'}
+            language: {type: 'STRING'}
+            page: {type: 'STRING'}
+            added: {type: 'NUMBER'}
+            count: {type: 'NUMBER'}
+          }
+          filter: $('time').in(TimeRange.fromJS({
+            start: new Date("2013-02-26T00:00:00Z")
+            end: new Date("2013-02-27T00:00:00Z")
+          }))
+          requester: druidRequester
+        })
+      }
+    })
 
     it "works timePart case", (testComplete) ->
       ex = $()
@@ -53,7 +55,7 @@ describe "DruidDataset", ->
 
       # console.log("ex.simulateQueryPlan(context)", JSON.stringify(ex.simulateQueryPlan(context), null, 2));
 
-      ex.compute(context).then((result) ->
+      basicDispatcher(ex).then((result) ->
         expect(result.toJS()).to.deep.equal([
          {
            "HoursOfDay": [
@@ -100,7 +102,7 @@ describe "DruidDataset", ->
             .limit(5)
         )
 
-      ex.compute(context).then((result) ->
+      basicDispatcher(ex).then((result) ->
         expect(result.toJS()).to.deep.equal([
           {
             "Count": 334129
@@ -188,19 +190,21 @@ describe "DruidDataset", ->
 
 
   describe "introspection", ->
-    context = {
-      wiki: Dataset.fromJS({
-        source: 'druid',
-        dataSource: 'wikipedia_editstream',
-        timeAttribute: 'time',
-        context: null
-        filter: $('time').in(TimeRange.fromJS({
-          start: new Date("2013-02-26T00:00:00Z")
-          end: new Date("2013-02-27T00:00:00Z")
-        }))
-        requester: druidRequester
-      })
-    }
+    basicDispatcher = basicDispatcherFactory({
+      context: {
+        wiki: Dataset.fromJS({
+          source: 'druid',
+          dataSource: 'wikipedia_editstream',
+          timeAttribute: 'time',
+          context: null
+          filter: $('time').in(TimeRange.fromJS({
+            start: new Date("2013-02-26T00:00:00Z")
+            end: new Date("2013-02-27T00:00:00Z")
+          }))
+          requester: druidRequester
+        })
+      }
+    })
 
     it "works with introspection", (testComplete) ->
       ex = $()
@@ -220,7 +224,7 @@ describe "DruidDataset", ->
             )
         )
 
-      ex.compute(context).then((result) ->
+      basicDispatcher(ex).then((result) ->
         expect(result.toJS()).to.deep.equal([
           {
             "Count": 334129

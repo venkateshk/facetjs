@@ -3,11 +3,11 @@ module Facet {
     (ex: Expression): Q.Promise<NativeDataset>;
   }
 
-  interface BasicDispatcherParameters {
+  export interface BasicDispatcherParameters {
     context: Datum;
   }
 
-  function basicDispatcherFactory(parameters: BasicDispatcherParameters): Dispatcher {
+  export function basicDispatcherFactory(parameters: BasicDispatcherParameters): Dispatcher {
     var context = parameters.context;
     return (ex: Expression) => {
       return ex.compute(context);

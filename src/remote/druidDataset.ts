@@ -844,66 +844,68 @@ return (start < 0 ?'-':'') + parts.join('.');
       }
     }
 
-    public breakUpApplies(applies: ApplyAction[]): Action[] {
-      var knownExpressions: Lookup<string> = {};
+    public breakUpApply(apply: ApplyAction): Action[] {
       var actions: Action[] = [];
-      var nameIndex = 0;
+      var namesUsed: string[] = [];
 
-      applies.forEach((apply) => {
-        var newExpression = apply.expression.substitute((ex: Expression, index: number) => {
-          if (ex instanceof AggregateExpression) {
-            var key = ex.toString();
-            if (index === 0) {
-              if (hasOwnProperty(knownExpressions, key)) {
-                return new RefExpression({
-                  op: 'ref',
-                  name: knownExpressions[key]
-                });
-              } else {
-                knownExpressions[key] = apply.name;
-                return null;
-              }
-            }
-
-            var name: string;
-            if (hasOwnProperty(knownExpressions, key)) {
-              name = knownExpressions[key];
+      var newExpression = apply.expression.substitute((ex: Expression, index: number) => {
+        if (ex instanceof AggregateExpression) {
+          var existingAction = this.getExistingActionForExpression(ex);
+          if (index === 0) {
+            if (existingAction) {
+              return new RefExpression({
+                op: 'ref',
+                name: existingAction.name,
+                type: existingAction.expression.type
+              });
             } else {
-              name = '_sd_' + nameIndex;
-              nameIndex++;
-              actions.push(new DefAction({
-                action: 'def',
-                name: name,
-                expression: ex
-              }));
-              knownExpressions[key] = name;
+              return null;
             }
-
-            return new RefExpression({
-              op: 'ref',
-              name: name,
-              type: 'NUMBER'
-            });
           }
-        });
 
-        if (!(newExpression instanceof RefExpression && newExpression.name === apply.name)) {
-          actions.push(new ApplyAction({
-            action: 'apply',
-            name: apply.name,
-            expression: newExpression
-          }));
+          var name: string;
+          if (existingAction) {
+            name = existingAction.name;
+          } else {
+            name = this.getTempName(namesUsed);
+            namesUsed.push(name);
+            actions.push(new DefAction({
+              action: 'def',
+              name: name,
+              expression: ex
+            }));
+          }
+
+          return new RefExpression({
+            op: 'ref',
+            name: name,
+            type: 'NUMBER'
+          });
         }
       });
+
+      if (!(newExpression instanceof RefExpression && newExpression.name === apply.name)) {
+        actions.push(new ApplyAction({
+          action: 'apply',
+          name: apply.name,
+          expression: newExpression
+        }));
+      }
 
       return actions;
     }
 
-    public appliesToDruid(applies: ApplyAction[]): AggregationsAndPostAggregations {
+    public getAggregationsAndPostAggregations(): AggregationsAndPostAggregations {
       var aggregations: Druid.Aggregation[] = [];
       var postAggregations: Druid.PostAggregation[] = [];
 
-      this.breakUpApplies(applies).forEach((action) => {
+      this.defs.forEach((action) => {
+        if (action.expression instanceof AggregateExpression) {
+          aggregations.push(this.actionToAggregation(action));
+        }
+      });
+
+      this.applies.forEach((action) => {
         if (action.expression instanceof AggregateExpression) {
           aggregations.push(this.actionToAggregation(action));
         } else {
@@ -1088,7 +1090,7 @@ return (start < 0 ?'-':'') + parts.join('.');
           };
 
         case 'total':
-          var aggregationsAndPostAggregations = this.appliesToDruid(this.applies);
+          var aggregationsAndPostAggregations = this.getAggregationsAndPostAggregations();
           if (aggregationsAndPostAggregations.aggregations.length) {
             druidQuery.aggregations = aggregationsAndPostAggregations.aggregations;
           }
@@ -1102,7 +1104,7 @@ return (start < 0 ?'-':'') + parts.join('.');
           };
 
         case 'split':
-          var aggregationsAndPostAggregations = this.appliesToDruid(this.applies);
+          var aggregationsAndPostAggregations = this.getAggregationsAndPostAggregations();
           if (aggregationsAndPostAggregations.aggregations.length) {
             druidQuery.aggregations = aggregationsAndPostAggregations.aggregations;
           }

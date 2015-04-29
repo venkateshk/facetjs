@@ -289,6 +289,40 @@ module Facet {
       return <RemoteDataset>(new (Dataset.classMap[this.source])(value));
     }
 
+    public getExistingActionForExpression(expression: Expression): ApplyAction | DefAction {
+      var key = expression.toString();
+      var defs = this.defs;
+      for (var i = 0; i < defs.length; i++) {
+        if (defs[i].expression.toString() === key) return defs[i];
+      }
+      var applies = this.applies;
+      for (var i = 0; i < applies.length; i++) {
+        if (applies[i].expression.toString() === key) return applies[i];
+      }
+      return null;
+    }
+
+    public isKnownName(name: string): boolean {
+      if (hasOwnProperty(this.attributes, name)) return true;
+      var defs = this.defs;
+      for (var i = 0; i < defs.length; i++) {
+        if (defs[i].name === name) return true;
+      }
+      return false;
+    }
+
+    public getTempName(namesTaken: string[] = []): string {
+      for (var i = 0; i < 1e6; i++) {
+        var name = '_sd_' + i;
+        if (namesTaken.indexOf(name) === -1 && !this.isKnownName(name)) return name;
+      }
+      throw new Error('could not find available name');
+    }
+
+    public breakUpApply(action: ApplyAction): Action[] {
+      return [action];
+    }
+
     public addAction(action: Action): RemoteDataset {
       var expression = action.expression;
       if (action instanceof FilterAction) {
@@ -305,14 +339,14 @@ module Facet {
               var otherDataset: RemoteDataset = expression.value;
               value.derivedAttributes = otherDataset.derivedAttributes;
               value.filter = otherDataset.filter;
-              value.defs = value.defs.concat(action);
+              //value.defs = value.defs.concat(action);
             } else {
               return null;
             }
             break;
 
           case 'split':
-            // Expect it to be .def('myData', facet('myData').filter(split = ^label)
+            // Expect it to be .def('myData', facet('myData').filter(split = ^label))
             var defExpression = action.expression;
             if (defExpression instanceof ActionsExpression &&
               defExpression.actions.length === 1 &&
@@ -320,7 +354,7 @@ module Facet {
               defExpression.actions[0].expression.equals(
                 this.split.is(new RefExpression({ op: 'ref', name: '^' + this.key, type: this.split.type })))
             ) {
-              value.defs = value.defs.concat(action);
+              //value.defs = value.defs.concat(action);
 
             } else {
               return null;
@@ -337,13 +371,26 @@ module Facet {
 
         if (this.mode === 'raw') {
           value.derivedAttributes = value.derivedAttributes.concat(action);
+          value.attributes = immutableAdd(
+            value.attributes, action.name, new AttributeInfo({ type: action.expression.type })
+          );
         } else {
           if (action.name === this.key) return null;
-          value.applies = value.applies.concat(action);
+          var basicActions = this.breakUpApply(action);
+          for (var i = 0; i < basicActions.length; i++) {
+            var basicAction = basicActions[i];
+            if (basicAction instanceof ApplyAction) {
+              value.applies = value.applies.concat(basicAction);
+              value.attributes = immutableAdd(
+                value.attributes, basicAction.name, new AttributeInfo({ type: basicAction.expression.type })
+              );
+            } else if (basicAction instanceof DefAction) {
+              value.defs = value.defs.concat(basicAction);
+            } else {
+              throw new Error('got something strange from breakUpApply');
+            }
+          }
         }
-        value.attributes = immutableAdd(
-          value.attributes, action.name, new AttributeInfo({ type: action.expression.type })
-        );
 
       } else if (action instanceof SortAction) {
         if (this.limit) return null; // Can not sort after limit

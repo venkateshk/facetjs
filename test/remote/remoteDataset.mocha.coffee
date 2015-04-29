@@ -47,6 +47,7 @@ describe "RemoteDataset", ->
 
       ex = ex.referenceCheck(context).resolve(context).simplify()
 
+      expect(ex.op).to.equal('literal')
       remoteDataset = ex.value
       expect(remoteDataset.derivedAttributes).to.have.length(1)
       expect(remoteDataset.defs).to.have.length(1)

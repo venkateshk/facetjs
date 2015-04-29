@@ -66,15 +66,6 @@ describe "simulate Druid", ->
       {
         "aggregations": [
           {
-            "name": "Count"
-            "type": "count"
-          }
-          {
-            "fieldName": "price"
-            "name": "TotalPrice"
-            "type": "doubleSum"
-          }
-          {
             "fieldName": "tax"
             "name": "_sd_0"
             "type": "doubleSum"
@@ -82,6 +73,15 @@ describe "simulate Druid", ->
           {
             "fieldName": "carat"
             "name": "_sd_1"
+            "type": "doubleSum"
+          }
+          {
+            "name": "Count"
+            "type": "count"
+          }
+          {
+            "fieldName": "price"
+            "name": "TotalPrice"
             "type": "doubleSum"
           }
           {

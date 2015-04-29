@@ -24,7 +24,7 @@ describe "MySQLDataset", ->
 
   it "works in advanced case", (testComplete) ->
     basicDispatcher = basicDispatcherFactory({
-      context: {
+      datasets: {
         wiki: Dataset.fromJS({
           source: 'mysql'
           table: 'wiki_day_agg'
@@ -138,7 +138,7 @@ describe "MySQLDataset", ->
 
   it "works with introspection", (testComplete) ->
     basicDispatcher = basicDispatcherFactory({
-      context: {
+      datasets: {
         wiki: Dataset.fromJS({
           source: 'mysql'
           table: 'wiki_day_agg'

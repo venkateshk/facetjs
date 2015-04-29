@@ -21,7 +21,7 @@ describe "DruidDataset", ->
 
   describe "defined attributes in datasource", ->
     basicDispatcher = basicDispatcherFactory({
-      context: {
+      datasets: {
         wiki: Dataset.fromJS({
           source: 'druid',
           dataSource: 'wikipedia_editstream',
@@ -191,7 +191,7 @@ describe "DruidDataset", ->
 
   describe "introspection", ->
     basicDispatcher = basicDispatcherFactory({
-      context: {
+      datasets: {
         wiki: Dataset.fromJS({
           source: 'druid',
           dataSource: 'wikipedia_editstream',

@@ -84,8 +84,6 @@ module Facet {
     public sortOrigin: string;
     public limit: LimitAction;
     public havingFilter: Expression;
-    //public fullJoin: RemoteDataset; // ToDo: maybe a good idea to have chain joins
-    //public leftJoin: RemoteDataset;
 
     constructor(parameters: DatasetValue, dummy: Dummy = null) {
       super(parameters, dummyObject);

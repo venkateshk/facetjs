@@ -88,9 +88,21 @@ module Facet {
 
   interface CacheDispatcherParameters {
     dispatcher: Dispatcher;
+    datasets: Datum;
   }
 
   function cacheDispatcherFactory(parameters: CacheDispatcherParameters) {
+    var datasets = parameters.datasets;
+    for (var k in datasets) {
+      if (!hasOwnProperty(datasets, k)) continue;
+      if (datasets[k].source !== 'cache') throw new Error(k + ' must be a cache dataset');
+    }
 
+    // Break down query and see how much of it can be solved
+    //
+
+    return (ex: Expression) => {
+      throw 'to do'
+    }
   }
 }

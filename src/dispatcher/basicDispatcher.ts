@@ -4,13 +4,13 @@ module Facet {
   }
 
   export interface BasicDispatcherParameters {
-    context: Datum;
+    datasets: Datum;
   }
 
   export function basicDispatcherFactory(parameters: BasicDispatcherParameters): Dispatcher {
-    var context = parameters.context;
+    var datasets = parameters.datasets;
     return (ex: Expression) => {
-      return ex.compute(context);
+      return ex.compute(datasets);
     }
   }
 }

@@ -844,55 +844,8 @@ return (start < 0 ?'-':'') + parts.join('.');
       }
     }
 
-    public breakUpApply(apply: ApplyAction): Action[] {
-      var actions: Action[] = [];
-      var namesUsed: string[] = [];
-
-      var newExpression = apply.expression.substitute((ex: Expression, index: number) => {
-        if (ex instanceof AggregateExpression) {
-          var existingAction = this.getExistingActionForExpression(ex);
-          if (index === 0) {
-            if (existingAction) {
-              return new RefExpression({
-                op: 'ref',
-                name: existingAction.name,
-                type: existingAction.expression.type
-              });
-            } else {
-              return null;
-            }
-          }
-
-          var name: string;
-          if (existingAction) {
-            name = existingAction.name;
-          } else {
-            name = this.getTempName(namesUsed);
-            namesUsed.push(name);
-            actions.push(new DefAction({
-              action: 'def',
-              name: name,
-              expression: ex
-            }));
-          }
-
-          return new RefExpression({
-            op: 'ref',
-            name: name,
-            type: 'NUMBER'
-          });
-        }
-      });
-
-      if (!(newExpression instanceof RefExpression && newExpression.name === apply.name)) {
-        actions.push(new ApplyAction({
-          action: 'apply',
-          name: apply.name,
-          expression: newExpression
-        }));
-      }
-
-      return actions;
+    public processApply(apply: ApplyAction): Action[] {
+      return this.separateAggregates(apply, true);
     }
 
     public getAggregationsAndPostAggregations(): AggregationsAndPostAggregations {
@@ -1054,7 +1007,8 @@ return (start < 0 ?'-':'') + parts.join('.');
     }
 
     public getQueryAndPostProcess(): QueryAndPostProcess<Druid.Query> {
-      if (this.applies && this.applies.every(this.isMinMaxTimeApply, this)) {
+      var applies = this.applies;
+      if (applies && applies.length && applies.every(this.isMinMaxTimeApply, this)) {
         return this.getTimeBoundaryQueryAndPostProcess();
       }
 

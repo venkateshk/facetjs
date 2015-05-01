@@ -671,6 +671,12 @@ describe "simulate Druid", ->
 
     expect(ex.simulateQueryPlan(context)).to.deep.equal([
       {
+        "aggregations": [
+          {
+            "name": "_dummy"
+            "type": "count"
+          }
+        ]
         "dataSource": "diamonds"
         "granularity": {
           "period": "PT1H"

@@ -1,4 +1,6 @@
 module Facet {
+  var DUMMY_NAME = '!DUMMY';
+
   var timePartToFormat: Lookup<string> = {
     SECOND_OF_MINUTE: "s",
     SECOND_OF_HOUR: "m'*60+'s",
@@ -58,6 +60,12 @@ module Facet {
   export interface AggregationsAndPostAggregations {
     aggregations: Druid.Aggregation[];
     postAggregations: Druid.PostAggregation[];
+  }
+
+  function cleanDatumInplace(datum: Datum): void {
+    if (hasOwnProperty(datum, DUMMY_NAME)) {
+      delete datum[DUMMY_NAME];
+    }
   }
 
   function correctTimeBoundaryResult(result: Druid.TimeBoundaryResults): boolean {
@@ -148,6 +156,7 @@ module Facet {
           //}
 
           var datum: Datum = d.result;
+          cleanDatumInplace(datum);
           datum[label] = new TimeRange({ start: rangeStart, end: rangeEnd });
           return datum;
         })
@@ -1082,6 +1091,10 @@ return (start < 0 ?'-':'') + parts.join('.');
               }
               if (this.limit) {
                 throw new Error('can not limit within timeseries query');
+              }
+              if (!druidQuery.aggregations) {
+                // Druid hates not having aggregates so add a dummy count
+                druidQuery.aggregations = [{ name: DUMMY_NAME, type: "count" }];
               }
               break;
 
